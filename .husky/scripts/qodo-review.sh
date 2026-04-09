@@ -32,8 +32,9 @@ echo "▶ (Streaming output below — this may take a few seconds)"
 echo ""
 
 QODO_TMP="$(mktemp)"
+QODO_EXIT_TMP="$(mktemp)"
 KEYWORD_TMP="$(mktemp)"
-trap 'rm -f "$QODO_TMP" "$KEYWORD_TMP"' EXIT
+trap 'rm -f "$QODO_TMP" "$QODO_EXIT_TMP" "$KEYWORD_TMP"' EXIT
 
 MAX_ATTEMPTS=2
 attempt=1
@@ -46,8 +47,10 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
     sleep 1
   fi
 
-  (qodo review --ci 2>&1 || true) | tee "$QODO_TMP"
+  qodo review --ci 2>&1 | tee "$QODO_TMP"
+  QODO_EXIT_CODE=${PIPESTATUS[0]}
   QODO_OUTPUT="$(cat "$QODO_TMP")"
+  QODO_EXIT_CODE="$(cat "$QODO_EXIT_TMP")"
 
   if echo "$QODO_OUTPUT" | grep -iq "spawn git ENOENT"; then
     if [ $attempt -lt $MAX_ATTEMPTS ]; then
@@ -61,6 +64,10 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
       echo ""
       exit 1
     fi
+  elif [ "$QODO_EXIT_CODE" -ne 0 ]; then
+    echo ""
+    echo "❌ Commit blocked: Qodo review failed with exit code $QODO_EXIT_CODE."
+    exit 1
   else
     break
   fi
@@ -68,8 +75,8 @@ done
 
 if [ -z "$QODO_OUTPUT" ]; then
   echo ""
-  echo "⚠️  No output from Qodo review. Skipping checks."
-  exit 0
+  echo "❌ Commit blocked: No output from Qodo review."
+  exit 1
 fi
 
 BLOCKING_KEYWORDS="

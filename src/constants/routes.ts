@@ -3,5 +3,4 @@ export const paths = {
   chw: '/chw',
   district: '/district',
   alerts: '/alerts',
-  uiPreview: '/ui-preview',
 } as const;
