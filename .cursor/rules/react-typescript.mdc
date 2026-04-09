@@ -1,0 +1,15 @@
+---
+description: React and strict TypeScript implementation rules
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React + TypeScript
+
+- Write React 18 functional components with hooks; never use class components.
+- Export components, hooks, and utilities via named exports only.
+- Type props, state, event handlers, and async returns explicitly; avoid implicit `any`.
+- Prefer discriminated unions and narrow types over type assertions.
+- Keep components presentational when possible; move API calls and orchestration into hooks/services.
+- Avoid inline complex logic in JSX; derive values above `return` with typed helpers.
+- Keep reusable UI pieces generic and strongly typed rather than duplicating near-identical variants.
