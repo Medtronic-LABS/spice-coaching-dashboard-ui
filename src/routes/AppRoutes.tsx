@@ -23,6 +23,11 @@ const AlertsView = lazy(() =>
     default: module.AlertsView,
   })),
 );
+const UiPreviewPage = lazy(() =>
+  import('@/features/ui-preview/components/UiPreviewPage').then((module) => ({
+    default: module.UiPreviewPage,
+  })),
+);
 
 export const AppRoutes = () => {
   return (
@@ -37,6 +42,7 @@ export const AppRoutes = () => {
           <Route path={paths.chw} element={<CHWView />} />
           <Route path={paths.district} element={<DistrictView />} />
           <Route path={paths.alerts} element={<AlertsView />} />
+          <Route path={paths.uiPreview} element={<UiPreviewPage />} />
           <Route path="*" element={<Navigate to={paths.home} replace />} />
         </Route>
       </Routes>
