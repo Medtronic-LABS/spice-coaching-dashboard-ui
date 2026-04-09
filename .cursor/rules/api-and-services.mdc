@@ -1,0 +1,14 @@
+---
+description: API client, service layer, and network error handling rules
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# API and Services
+
+- Prefer RTK Query endpoints for HTTP access; only use Axios directly for non-RTK integration points.
+- Keep Axios usage centralized in shared clients/services with interceptors, base URL config, and typed responses.
+- Normalize API errors into a consistent typed shape before surfacing to UI components.
+- Never perform raw network calls in presentational components; call hooks/services instead.
+- Keep service functions deterministic and side-effect-light so they are easy to test.
+- Do not add alternate networking libraries or duplicate API clients without explicit project need.

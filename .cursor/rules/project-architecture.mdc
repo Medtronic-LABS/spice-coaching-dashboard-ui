@@ -1,0 +1,17 @@
+---
+description: Core architecture standards for the Medtronic coaching dashboard
+alwaysApply: true
+---
+
+# Project Architecture
+
+- Build by feature/domain, not by technical layer sprawl; keep dashboard views, feature-specific components, hooks, and data access inside `src/features/<feature>`.
+- Reserve `src/components` for shared layout and reusable UI primitives that are used across multiple features.
+- Keep `src/routes`, `src/store`, and `src/constants` focused on cross-app concerns only; do not move feature-specific code into global folders without a clear reuse case.
+- Keep business decisions in typed services/selectors/hooks, not in JSX render trees.
+- Prefer small, composable modules; split files when a component or service handles multiple responsibilities.
+- Use functional components and hooks only; class components are not allowed.
+- Use named exports only across app code; avoid default exports to keep refactors safe.
+- Keep TypeScript strict: no `any`, no unsafe assertions, and model API data with explicit interfaces/types.
+- Prefer co-locating tests with the feature modules they cover so behavior and implementation evolve together.
+- Reuse existing patterns before introducing new abstractions; optimize for maintainability over cleverness.

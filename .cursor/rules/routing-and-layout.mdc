@@ -1,0 +1,14 @@
+---
+description: Routing, layout composition, and navigation conventions
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Routing and Layout
+
+- Define route paths in a shared constants module and reuse them for route config, links, and redirects.
+- Use React Router v6 route objects/components consistently; avoid ad-hoc path strings in pages.
+- Lazy-load page routes with `React.lazy` and wrap with `Suspense` fallbacks suitable for dashboard UX.
+- Wrap routes with the required layout shell (navigation/header/content container) instead of duplicating layout markup in pages.
+- Keep guards/redirect logic near routing definitions, not scattered across page components.
+- Keep route params and query parsing typed and validated before use in data fetching.
