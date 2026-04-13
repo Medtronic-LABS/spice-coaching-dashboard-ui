@@ -1,7 +1,7 @@
-type ClassValue = string | false | null | undefined;
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 /**
- * Minimal class name combiner similar to clsx.
+ * Tailwind-aware class name combiner.
  */
-export const cn = (...values: ClassValue[]): string =>
-  values.filter(Boolean).join(' ');
+export const cn = (...values: ClassValue[]): string => twMerge(clsx(values));

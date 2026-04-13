@@ -1,4 +1,4 @@
-import { type KeyboardEvent } from 'react';
+import { type KeyboardEvent, useEffect, useRef } from 'react';
 import { cn } from '@/utils/cn';
 
 /**
@@ -27,20 +27,31 @@ export interface TabsProps {
 }
 
 export const Tabs = ({ items, value, onChange, className }: TabsProps) => {
-  const selectedIndex = Math.max(
-    0,
-    items.findIndex((item) => item.value === value),
-  );
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const matchedIndex = items.findIndex((item) => item.value === value);
+  const activeIndex =
+    items.length === 0 ? -1 : matchedIndex === -1 ? 0 : matchedIndex;
+
+  useEffect(() => {
+    if (items.length > 0 && matchedIndex === -1) {
+      onChange(items[0].value);
+    }
+  }, [items, matchedIndex, onChange]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (items.length === 0) {
+    if (activeIndex === -1) {
       return;
     }
 
+    const focusTab = (index: number) => {
+      buttonRefs.current[index]?.focus();
+    };
+
     // Supports circular keyboard navigation (last -> first, first -> last).
     const moveBy = (offset: number) => {
-      const nextIndex = (selectedIndex + offset + items.length) % items.length;
+      const nextIndex = (activeIndex + offset + items.length) % items.length;
       onChange(items[nextIndex].value);
+      focusTab(nextIndex);
     };
 
     switch (event.key) {
@@ -57,10 +68,12 @@ export const Tabs = ({ items, value, onChange, className }: TabsProps) => {
       case 'Home':
         event.preventDefault();
         onChange(items[0].value);
+        focusTab(0);
         break;
       case 'End':
         event.preventDefault();
         onChange((items.at(-1) ?? items[0]).value);
+        focusTab(items.length - 1);
         break;
       default:
         break;
@@ -75,12 +88,15 @@ export const Tabs = ({ items, value, onChange, className }: TabsProps) => {
       )}
       role="tablist"
     >
-      {items.map((item) => {
-        const isActive = item.value === value;
+      {items.map((item, index) => {
+        const isActive = index === activeIndex;
 
         return (
           <button
             key={item.value}
+            ref={(element) => {
+              buttonRefs.current[index] = element;
+            }}
             type="button"
             role="tab"
             aria-selected={isActive}
