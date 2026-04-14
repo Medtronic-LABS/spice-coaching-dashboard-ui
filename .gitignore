@@ -15,6 +15,9 @@ dist-ssr
 # Env files
 .env*
 
+# Coverage
+coverage
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
