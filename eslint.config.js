@@ -49,6 +49,7 @@ export default [
     },
     rules: {
       'import/no-default-export': 'warn',
+      'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
     },
   },
