@@ -1,0 +1,42 @@
+import { type ReactNode } from 'react';
+import { cn } from '@/utils/cn';
+
+/**
+ * Card
+ * Base surface container for reusable dashboard blocks and grouped content.
+ *
+ * Usage:
+ * <Card variant="elevated">Content</Card>
+ */
+export interface CardProps {
+  /** Content rendered inside the card container. */
+  children: ReactNode;
+  /** Visual surface style. Defaults to `default`. */
+  variant?: 'default' | 'bordered' | 'elevated';
+  /** Optional extra classes for layout-level customization. */
+  className?: string;
+}
+
+const variantClasses: Record<NonNullable<CardProps['variant']>, string> = {
+  default: 'bg-white',
+  bordered: 'bg-white border border-slate-200',
+  elevated: 'bg-white shadow-sm ring-1 ring-slate-200/70',
+};
+
+export const Card = ({
+  children,
+  variant = 'default',
+  className,
+}: CardProps) => {
+  return (
+    <section
+      className={cn(
+        'rounded-xl p-4 md:p-6',
+        variantClasses[variant],
+        className,
+      )}
+    >
+      {children}
+    </section>
+  );
+};
