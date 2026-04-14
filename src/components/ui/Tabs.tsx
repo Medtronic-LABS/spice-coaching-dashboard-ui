@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useRef } from 'react';
+import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
 import { cn } from '@/utils/cn';
 
 /**
@@ -22,15 +22,43 @@ export interface TabsProps {
   value: string;
   /** Callback fired when a tab is selected. */
   onChange: (value: string) => void;
+  /** Optional id prefix used to connect each tab with a tabpanel. */
+  idBase?: string;
   /** Optional class overrides for the outer tabs container. */
   className?: string;
 }
 
-export const Tabs = ({ items, value, onChange, className }: TabsProps) => {
+const toIdFragment = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9_-]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '') || 'tab';
+
+export const getTabsA11yIds = (idBase: string, value: string) => {
+  const itemIdFragment = toIdFragment(value);
+
+  return {
+    tabId: `${idBase}-tab-${itemIdFragment}`,
+    panelId: `${idBase}-panel-${itemIdFragment}`,
+  };
+};
+
+export const Tabs = ({
+  items,
+  value,
+  onChange,
+  idBase,
+  className,
+}: TabsProps) => {
+  const reactId = useId();
+  const tabsIdBase = idBase ?? `tabs-${reactId.replaceAll(':', '')}`;
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const matchedIndex = items.findIndex((item) => item.value === value);
-  const activeIndex =
-    items.length === 0 ? -1 : matchedIndex === -1 ? 0 : matchedIndex;
+  let activeIndex = -1;
+  if (items.length > 0) {
+    activeIndex = matchedIndex === -1 ? 0 : matchedIndex;
+  }
 
   useEffect(() => {
     if (items.length > 0 && matchedIndex === -1) {
@@ -90,6 +118,7 @@ export const Tabs = ({ items, value, onChange, className }: TabsProps) => {
     >
       {items.map((item, index) => {
         const isActive = index === activeIndex;
+        const { tabId, panelId } = getTabsA11yIds(tabsIdBase, item.value);
 
         return (
           <button
@@ -99,7 +128,9 @@ export const Tabs = ({ items, value, onChange, className }: TabsProps) => {
             }}
             type="button"
             role="tab"
+            id={tabId}
             aria-selected={isActive}
+            aria-controls={panelId}
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(item.value)}
             onKeyDown={handleKeyDown}

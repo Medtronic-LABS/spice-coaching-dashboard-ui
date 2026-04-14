@@ -17,13 +17,16 @@ import {
   Select,
   StatCard,
   StatusBadge,
+  getTabsA11yIds,
   Tabs,
 } from '@/components/ui';
 
 export const UiPreviewPage = () => {
+  const tabsIdBase = 'ui-preview-sections';
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
+  const activeTabA11y = getTabsA11yIds(tabsIdBase, activeTab);
   const handleResetFilters = () => {
     setSelectedRegion('all');
     setSearchQuery('');
@@ -150,8 +153,16 @@ export const UiPreviewPage = () => {
           ]}
           value={activeTab}
           onChange={setActiveTab}
+          idBase={tabsIdBase}
         />
-        <p className="text-sm text-slate-600">Active tab: {activeTab}</p>
+        <div
+          role="tabpanel"
+          id={activeTabA11y.panelId}
+          aria-labelledby={activeTabA11y.tabId}
+          className="rounded-md border border-slate-200 bg-white p-3"
+        >
+          <p className="text-sm text-slate-600">Active tab: {activeTab}</p>
+        </div>
 
         <Banner tone="warning">
           This is a warning banner for high-priority communication.

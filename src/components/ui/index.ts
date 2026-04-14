@@ -17,4 +17,4 @@ export type { SelectOption } from '@/components/ui/Select';
 export { StatCard } from '@/components/ui/StatCard';
 export { StatusBadge } from '@/components/ui/StatusBadge';
 export type { TabItem } from '@/components/ui/Tabs';
-export { Tabs } from '@/components/ui/Tabs';
+export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';
