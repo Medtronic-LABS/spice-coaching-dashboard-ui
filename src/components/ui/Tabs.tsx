@@ -111,7 +111,7 @@ export const Tabs = ({
   return (
     <div
       className={cn(
-        'flex w-full overflow-x-auto rounded-lg bg-slate-100 p-1 scrollbar-thin',
+        'flex w-full overflow-x-auto rounded-lg bg-slate-100 p-1',
         className,
       )}
       role="tablist"
