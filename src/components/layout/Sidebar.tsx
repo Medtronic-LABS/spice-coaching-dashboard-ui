@@ -25,6 +25,12 @@ export const Sidebar = () => {
         <NavLink className={linkClassName} to={paths.alerts}>
           Alerts
         </NavLink>
+        <NavLink className={linkClassName} to={paths.uiPreview}>
+          UI Preview
+        </NavLink>
+        <NavLink className={linkClassName} to={paths.chartPreview}>
+          Chart Preview
+        </NavLink>
       </nav>
     </aside>
   );

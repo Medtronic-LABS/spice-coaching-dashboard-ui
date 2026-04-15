@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { paths } from '@/constants/routes';
+import ChartPreview from '@/features/ui-preview/components/ChartPreview';
 
 const Home = lazy(() =>
   import('@/features/home/components/Home').then((module) => ({
@@ -37,6 +38,8 @@ export const AppRoutes = () => {
           <Route path={paths.chw} element={<CHWView />} />
           <Route path={paths.district} element={<DistrictView />} />
           <Route path={paths.alerts} element={<AlertsView />} />
+          <Route path={paths.uiPreview} element={<UiPreviewPage />} />
+          <Route path={paths.chartPreview} element={<ChartPreview />} />
           <Route path="*" element={<Navigate to={paths.home} replace />} />
         </Route>
       </Routes>
