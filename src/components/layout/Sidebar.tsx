@@ -19,12 +19,6 @@ export const Sidebar = () => {
         <NavLink className={linkClassName} to={paths.chw}>
           CHW View
         </NavLink>
-        <NavLink className={linkClassName} to={paths.district}>
-          District View
-        </NavLink>
-        <NavLink className={linkClassName} to={paths.alerts}>
-          Alerts
-        </NavLink>
         <NavLink className={linkClassName} to={paths.uiPreview}>
           UI Preview
         </NavLink>
