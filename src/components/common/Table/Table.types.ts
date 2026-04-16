@@ -2,14 +2,14 @@ import * as React from 'react';
 
 type KeyOf<T> = Extract<keyof T, string>;
 
-export type ColumnDef<T extends Record<string, unknown>> = {
+export type ColumnDef<T extends object> = {
   key: KeyOf<T>;
   header: React.ReactNode;
   className?: string;
   render?: (row: T) => React.ReactNode;
 };
 
-export type TableProps<T extends Record<string, unknown>> = Omit<
+export type TableProps<T extends object> = Omit<
   React.TableHTMLAttributes<HTMLTableElement>,
   'children'
 > & {

@@ -5,25 +5,9 @@ import {
   SectionHeader,
   StatusBadge,
 } from '@/components/ui';
+import { severityToBadgeStatus } from '@/features/home/utils/supervisorBadges';
 import { cn } from '@/utils';
 import type { PerformanceAlertItem } from '@/types/supervisor.types';
-
-type BadgeStatus = 'success' | 'warning' | 'critical' | 'info' | 'neutral';
-
-function severityToStatus(
-  severity: PerformanceAlertItem['severity'],
-): BadgeStatus {
-  switch (severity) {
-    case 'high':
-      return 'critical';
-    case 'medium':
-      return 'warning';
-    case 'low':
-      return 'info';
-    default:
-      return 'neutral';
-  }
-}
 
 export interface FlagsCardProps {
   title?: string;
@@ -80,7 +64,7 @@ export const FlagsCard = ({
               }
               rightContent={
                 <StatusBadge
-                  status={severityToStatus(item.severity)}
+                  status={severityToBadgeStatus(item.severity)}
                   label={item.severity}
                 />
               }

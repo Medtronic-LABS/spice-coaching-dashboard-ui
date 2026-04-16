@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Home } from '@/features/home/components/Home';
+import { Home } from '@/features/home/pages/Home';
 
 vi.mock('@/components/common/charts', async () => {
   return {
@@ -17,7 +17,7 @@ vi.mock('@/components/common/charts', async () => {
   };
 });
 
-vi.mock('@/features/home/pages/SupervisorDashboard', () => ({
+vi.mock('@/features/home/components/SupervisorDashboard', () => ({
   SupervisorDashboard: () => <div>SupervisorDashboard</div>,
 }));
 

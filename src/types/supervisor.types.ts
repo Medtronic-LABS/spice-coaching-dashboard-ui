@@ -1,10 +1,22 @@
-export type SupervisorStatus = 'on_track' | 'due_soon' | 'delayed' | 'inactive';
+export type SupervisorStatus =
+  | 'on_track'
+  | 'due_soon'
+  | 'delayed'
+  | 'inactive'
+  | 'on_time';
 
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 // --- UC-3 API response types (must match backend exactly) ---
 
 export type KpiStatus = 'info' | 'good' | 'warning' | 'critical';
+
+export interface DashboardCommonParams {
+  tenant_id: string;
+  date_from: string;
+  date_to: string;
+  upazila_id?: string;
+}
 
 export type KpiBase = {
   id: string;
@@ -13,7 +25,7 @@ export type KpiBase = {
   type: 'number' | 'progress' | 'alert';
   /** Semantic status from API (drives tone). */
   status: KpiStatus;
-  unit: string | null;
+  unit?: string | null;
 };
 
 export type NumberKpi = KpiBase & {
@@ -82,20 +94,26 @@ export interface CHWPerformanceRow {
   modules_done: number;
   modules_total: number;
   deadline_status: SupervisorStatus;
-  pass_count: number;
-  fail_count: number;
+  quiz_passed: number;
+  quiz_failed: number;
   overall_status: SupervisorStatus | 'in_progress';
 }
 
 export interface CHWPerformanceResponse {
   data: CHWPerformanceRow[];
+  pagination: {
+    page: number;
+    total: number;
+  };
 }
 
 export interface ModuleProgressItem {
   module_id: string;
   name: string;
-  completion_pct: number;
+  progress: number;
   status: SupervisorStatus;
+  completed: number;
+  total: number;
 }
 
 export interface ModulesProgressResponse {

@@ -1,33 +1,9 @@
 import { Button, Card, SectionHeader, StatusBadge } from '@/components/ui';
 import Table from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
-import type {
-  CHWPerformanceRow,
-  SupervisorStatus,
-} from '@/types/supervisor.types';
+import { statusToBadge } from '@/features/home/utils/supervisorBadges';
+import type { CHWPerformanceRow } from '@/types/supervisor.types';
 import { useMemo } from 'react';
-
-type BadgeStatus = 'success' | 'warning' | 'critical' | 'info' | 'neutral';
-
-function statusToBadge(status: SupervisorStatus | 'in_progress'): {
-  badge: BadgeStatus;
-  label: string;
-} {
-  switch (status) {
-    case 'on_track':
-      return { badge: 'success', label: 'On track' };
-    case 'due_soon':
-      return { badge: 'warning', label: 'Due soon' };
-    case 'delayed':
-      return { badge: 'critical', label: 'Delayed' };
-    case 'inactive':
-      return { badge: 'neutral', label: 'Inactive' };
-    case 'in_progress':
-      return { badge: 'info', label: 'In progress' };
-    default:
-      return { badge: 'neutral', label: 'Unknown' };
-  }
-}
 
 export interface PerformanceMatrixProps {
   title?: string;
@@ -50,7 +26,12 @@ export const PerformanceMatrix = ({
         header: 'Modules done',
         className: 'text-right',
         render: (row) => {
-          return `${row.modules_done}/${row.modules_total}`;
+          return (
+            <span className="text-left flex flex-col text-xl font-bold">
+              {`${row.modules_done}/${row.modules_total}`}
+              <span className="text-left text-xs font-normal">{`${row.modules_total - row.modules_done === 0 ? 'All Completed' : `${row.modules_total - row.modules_done} remaining`}`}</span>
+            </span>
+          );
         },
       },
       {
@@ -62,10 +43,16 @@ export const PerformanceMatrix = ({
         },
       },
       {
-        key: 'pass_count',
+        key: 'quiz_passed',
         header: 'Pass/Fail',
-        render: (row) => `${row.pass_count}/${row.fail_count}`,
-        className: 'text-right',
+        render: (row) => {
+          return (
+            <span className="text-left flex flex-col text-xl font-bold">
+              {`${((row.quiz_passed / (row.quiz_failed + row.quiz_passed)) * 100).toFixed(2)}%`}
+              <span className="text-left text-xs font-normal">{`${row.quiz_failed + row.quiz_passed} attempted - ${row.quiz_failed} fails`}</span>
+            </span>
+          );
+        },
       },
       {
         key: 'overall_status',
@@ -99,7 +86,7 @@ export const PerformanceMatrix = ({
   return (
     <Card variant="elevated">
       <SectionHeader title={title} subtitle={subtitle} />
-      <Table
+      <Table<CHWPerformanceRow>
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.chw_id}

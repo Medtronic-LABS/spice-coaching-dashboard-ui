@@ -1,30 +1,8 @@
 import { Card, SectionHeader, StatusBadge } from '@/components/ui';
 import { ProgressBar } from '@/components/common/ProgressBar';
+import { statusToBadge } from '@/features/home/utils/supervisorBadges';
 import { cn } from '@/utils';
-import type {
-  ModuleProgressItem,
-  SupervisorStatus,
-} from '@/types/supervisor.types';
-
-type BadgeStatus = 'success' | 'warning' | 'critical' | 'info' | 'neutral';
-
-function statusToBadge(status: SupervisorStatus): {
-  badge: BadgeStatus;
-  label: string;
-} {
-  switch (status) {
-    case 'on_track':
-      return { badge: 'success', label: 'On track' };
-    case 'due_soon':
-      return { badge: 'warning', label: 'Due soon' };
-    case 'delayed':
-      return { badge: 'critical', label: 'Delayed' };
-    case 'inactive':
-      return { badge: 'neutral', label: 'Inactive' };
-    default:
-      return { badge: 'neutral', label: 'Unknown' };
-  }
-}
+import type { ModuleProgressItem } from '@/types/supervisor.types';
 
 export interface ModuleProgressCardProps {
   title?: string;
@@ -70,14 +48,14 @@ export const ModuleProgressCard = ({
                     {item.name}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {item.completion_pct}% completion
+                    {item.progress}% completion - {item.completed}/{item.total}
                   </p>
                 </div>
                 <StatusBadge status={mapped.badge} label={mapped.label} />
               </div>
 
               <div className="mt-3">
-                <ProgressBar value={item.completion_pct} />
+                <ProgressBar value={item.progress} />
               </div>
             </button>
           );

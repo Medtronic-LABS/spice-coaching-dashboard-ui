@@ -5,7 +5,7 @@ import { paths } from '@/constants/routes';
 import ChartPreview from '@/features/ui-preview/components/ChartPreview';
 
 const Home = lazy(() =>
-  import('@/features/home/components/Home').then((module) => ({
+  import('@/features/home/pages/Home').then((module) => ({
     default: module.Home,
   })),
 );
@@ -14,14 +14,9 @@ const CHWView = lazy(() =>
     default: module.CHWView,
   })),
 );
-const DistrictView = lazy(() =>
-  import('@/features/district/components/DistrictView').then((module) => ({
-    default: module.DistrictView,
-  })),
-);
-const AlertsView = lazy(() =>
-  import('@/features/alerts/components/AlertsView').then((module) => ({
-    default: module.AlertsView,
+const UiPreviewPage = lazy(() =>
+  import('@/features/ui-preview/components/UiPreviewPage').then((module) => ({
+    default: module.UiPreviewPage,
   })),
 );
 
@@ -36,8 +31,6 @@ export const AppRoutes = () => {
         <Route element={<MainLayout />}>
           <Route path={paths.home} element={<Home />} />
           <Route path={paths.chw} element={<CHWView />} />
-          <Route path={paths.district} element={<DistrictView />} />
-          <Route path={paths.alerts} element={<AlertsView />} />
           <Route path={paths.uiPreview} element={<UiPreviewPage />} />
           <Route path={paths.chartPreview} element={<ChartPreview />} />
           <Route path="*" element={<Navigate to={paths.home} replace />} />

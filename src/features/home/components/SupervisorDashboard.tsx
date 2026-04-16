@@ -11,6 +11,7 @@ import { KPISection } from '@/features/home/components/KPISection';
 import { LeaderboardCard } from '@/features/home/components/LeaderboardCard';
 import { ModuleProgressCard } from '@/features/home/components/ModuleProgressCard';
 import { PerformanceMatrix } from '@/features/home/components/PerformanceMatrix';
+import { SUPERVISOR_DASHBOARD_CONSTANTS } from '@/features/home/constants/supervisorDashboardConstants';
 import { useSupervisorDashboard } from '@/features/home/hooks/useSupervisorDashboard';
 
 export const SupervisorDashboard = () => {
@@ -38,15 +39,19 @@ export const SupervisorDashboard = () => {
 
   const isInitialLoading = isLoading && !hasAnyData;
   if (isInitialLoading) {
-    return <LoadingState label="Loading supervisor dashboard" />;
+    return (
+      <LoadingState
+        label={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL}
+      />
+    );
   }
 
   const isAllError = isError && !hasAnyData;
   if (isAllError) {
     return (
       <ErrorState
-        title="Supervisor dashboard unavailable"
-        description="Please try again in a moment."
+        title={SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.ALL_TITLE}
+        description={SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.ALL_DESCRIPTION}
       />
     );
   }
@@ -61,23 +66,25 @@ export const SupervisorDashboard = () => {
   if (isEmpty) {
     return (
       <EmptyState
-        title="No supervisor data yet"
-        description="Once activity is available, you’ll see KPIs, flags, and progress here."
+        title={SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.TITLE}
+        description={SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.DESCRIPTION}
       />
     );
   }
 
   const summaryContent = summaryState.isError ? (
     <SectionStateCard
-      title="Summary"
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.SUMMARY}
       state="error"
-      errorDescription="We couldn’t load KPIs."
+      errorDescription={
+        SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.SUMMARY_DESCRIPTION
+      }
     />
   ) : summaryState.isLoading ? (
     <SectionStateCard
-      title="Summary"
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.SUMMARY}
       state="loading"
-      loadingLabel="Loading summary"
+      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.SUMMARY_LABEL}
     />
   ) : summary ? (
     <div className="space-y-6">
@@ -93,52 +100,64 @@ export const SupervisorDashboard = () => {
   ) : null;
 
   const leaderboardContent = leaderboardState.isError ? (
-    <SectionStateCard title="Leaderboard" state="error" />
+    <SectionStateCard
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD}
+      state="error"
+    />
   ) : leaderboardState.isLoading ? (
     <SectionStateCard
-      title="Leaderboard"
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD}
       state="loading"
-      loadingLabel="Loading leaderboard"
+      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.LEADERBOARD_LABEL}
     />
   ) : (
     <LeaderboardCard items={leaderboard} />
   );
 
   const performanceContent = performanceState.isError ? (
-    <SectionStateCard title="CHW matrix" state="error" />
+    <SectionStateCard
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE}
+      state="error"
+    />
   ) : performanceState.isLoading ? (
     <SectionStateCard
-      title="CHW matrix"
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE}
       state="loading"
-      loadingLabel="Loading CHW matrix"
+      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.PERFORMANCE_LABEL}
     />
   ) : (
     <PerformanceMatrix rows={performance} />
   );
 
   const flagsContent = alertsState.isError ? (
-    <SectionStateCard title="Flags" state="error" />
+    <SectionStateCard
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS}
+      state="error"
+    />
   ) : alertsState.isLoading ? (
     <SectionStateCard
-      title="Flags"
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS}
       state="loading"
-      loadingLabel="Loading flags"
+      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.FLAGS_LABEL}
     />
   ) : (
     <FlagsCard
       items={alerts}
-      primaryActionLabel="View all"
+      primaryActionLabel={SUPERVISOR_DASHBOARD_CONSTANTS.ACTIONS.VIEW_ALL}
       onPrimaryAction={() => undefined}
     />
   );
 
   const modulesContent = modulesState.isError ? (
-    <SectionStateCard title="Module progress" state="error" />
+    <SectionStateCard
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES}
+      state="error"
+    />
   ) : modulesState.isLoading ? (
     <SectionStateCard
-      title="Module progress"
+      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES}
       state="loading"
-      loadingLabel="Loading modules"
+      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.MODULES_LABEL}
     />
   ) : (
     <ModuleProgressCard items={modules} />
@@ -147,8 +166,8 @@ export const SupervisorDashboard = () => {
   return (
     <section className="space-y-6">
       <SectionHeader
-        title="Supervisor dashboard"
-        subtitle="Quick overview of performance, flags, and module progress."
+        title={SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE}
+        subtitle={SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.SUBTITLE}
       />
 
       {summaryContent}

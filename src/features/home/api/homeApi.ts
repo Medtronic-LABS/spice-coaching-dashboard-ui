@@ -1,14 +1,19 @@
 import { baseApi } from '@/store/apis/base';
-import type { DashboardSummaryResponse } from '@/types/supervisor.types';
-
-export interface HomeStatusResponse {
-  message: string;
-}
+import type {
+  DashboardCommonParams,
+  DashboardSummaryResponse,
+} from '@/types/supervisor.types';
 
 export const homeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getDashboardSummary: builder.query<DashboardSummaryResponse, void>({
-      query: () => '/api/v1/home/dashboard-summary',
+    getDashboardSummary: builder.query<
+      DashboardSummaryResponse,
+      DashboardCommonParams
+    >({
+      query: (params) => ({
+        url: 'dashboard/summary',
+        params,
+      }),
     }),
   }),
   overrideExisting: false,
