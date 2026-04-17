@@ -1,9 +1,10 @@
 import { Button, Card, SectionHeader, StatusBadge } from '@/components/ui';
-import Table from '@/components/common/Table';
+import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { statusToBadge } from '@/features/home/utils/supervisorBadges';
 import type { CHWPerformanceRow } from '@/types/supervisor.types';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface PerformanceMatrixProps {
   title?: string;
@@ -13,30 +14,43 @@ export interface PerformanceMatrixProps {
 }
 
 export const PerformanceMatrix = ({
-  title = 'Performance matrix',
+  title,
   subtitle,
   rows,
   onRowClick,
 }: PerformanceMatrixProps) => {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('home.performanceMatrix.title');
+
   const columns: Array<ColumnDef<CHWPerformanceRow>> = useMemo(
     () => [
-      { key: 'name', header: 'Name' },
+      { key: 'name', header: t('home.performanceMatrix.columns.name') },
       {
         key: 'modules_done',
-        header: 'Modules done',
+        header: t('home.performanceMatrix.columns.modulesDone'),
         className: 'text-right',
         render: (row) => {
+          const remainingCount = row.modules_total - row.modules_done;
+          const remainingLabel =
+            remainingCount === 0
+              ? t('home.performanceMatrix.allCompleted')
+              : t('home.performanceMatrix.remaining', {
+                  count: remainingCount,
+                });
+
           return (
             <span className="text-left flex flex-col text-xl font-bold">
               {`${row.modules_done}/${row.modules_total}`}
-              <span className="text-left text-xs font-normal">{`${row.modules_total - row.modules_done === 0 ? 'All Completed' : `${row.modules_total - row.modules_done} remaining`}`}</span>
+              <span className="text-left text-xs font-normal">
+                {remainingLabel}
+              </span>
             </span>
           );
         },
       },
       {
         key: 'deadline_status',
-        header: 'Deadline status',
+        header: t('home.performanceMatrix.columns.deadlineStatus'),
         render: (row) => {
           const mapped = statusToBadge(row.deadline_status);
           return <StatusBadge status={mapped.badge} label={mapped.label} />;
@@ -44,19 +58,30 @@ export const PerformanceMatrix = ({
       },
       {
         key: 'quiz_passed',
-        header: 'Pass/Fail',
+        header: t('home.performanceMatrix.columns.passFail'),
         render: (row) => {
+          const attempted = row.quiz_failed + row.quiz_passed;
+          const pct =
+            attempted === 0
+              ? '0.00'
+              : ((row.quiz_passed / attempted) * 100).toFixed(2);
+
           return (
             <span className="text-left flex flex-col text-xl font-bold">
-              {`${((row.quiz_passed / (row.quiz_failed + row.quiz_passed)) * 100).toFixed(2)}%`}
-              <span className="text-left text-xs font-normal">{`${row.quiz_failed + row.quiz_passed} attempted - ${row.quiz_failed} fails`}</span>
+              {`${pct}%`}
+              <span className="text-left text-xs font-normal">
+                {t('home.performanceMatrix.attemptedFails', {
+                  attempted,
+                  fails: row.quiz_failed,
+                })}
+              </span>
             </span>
           );
         },
       },
       {
         key: 'overall_status',
-        header: 'Overall status',
+        header: t('home.performanceMatrix.columns.overallStatus'),
         render: (row) => {
           const mapped = statusToBadge(row.overall_status);
           return <StatusBadge status={mapped.badge} label={mapped.label} />;
@@ -75,22 +100,22 @@ export const PerformanceMatrix = ({
             }}
             disabled={!onRowClick}
           >
-            View
+            {t('common.view')}
           </Button>
         ),
       },
     ],
-    [onRowClick],
+    [onRowClick, t],
   );
 
   return (
     <Card variant="elevated">
-      <SectionHeader title={title} subtitle={subtitle} />
+      <SectionHeader title={resolvedTitle} subtitle={subtitle} />
       <Table<CHWPerformanceRow>
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.chw_id}
-        caption={title}
+        caption={resolvedTitle}
       />
     </Card>
   );

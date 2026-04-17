@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/Card';
-import { cn } from '@/utils/cn';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/utils';
 
 /**
  * InfoCard
@@ -26,10 +27,14 @@ export const InfoCard = ({
   description,
   tone = 'info',
 }: InfoCardProps) => {
+  const { t } = useTranslation();
+
   return (
     <Card variant="bordered" className={cn(toneClassMap[tone])}>
       <h4 className="text-base font-semibold text-slate-900">{title}</h4>
-      <p className="mt-1 text-sm text-slate-700">{description || '-'}</p>
+      <p className="mt-1 text-sm text-slate-700">
+        {description || t('ui.infoCard.emptyFallback')}
+      </p>
     </Card>
   );
 };

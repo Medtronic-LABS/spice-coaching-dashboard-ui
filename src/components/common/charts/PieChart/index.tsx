@@ -1,7 +1,7 @@
 import { PieChart as RechartsPieChart, Pie, Cell, Tooltip } from 'recharts';
 
 import * as React from 'react';
-import ChartBase from '../ChartBase';
+import { ChartBase } from '../ChartBase';
 import { toLegendItems } from '../chart.utils';
 import type {
   PieChartProps,
@@ -45,7 +45,7 @@ function DefaultTooltipContent({
   );
 }
 
-export default function PieChart({
+export function PieChart({
   data,
   valueKey,
   nameKey,

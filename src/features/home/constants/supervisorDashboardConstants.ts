@@ -1,34 +1,33 @@
 export const SUPERVISOR_DASHBOARD_CONSTANTS = {
   LOADING: {
-    INITIAL_LABEL: 'Loading supervisor dashboard',
-    SUMMARY_LABEL: 'Loading summary',
-    LEADERBOARD_LABEL: 'Loading leaderboard',
-    PERFORMANCE_LABEL: 'Loading CHW matrix',
-    FLAGS_LABEL: 'Loading flags',
-    MODULES_LABEL: 'Loading modules',
+    INITIAL_LABEL: 'home.supervisorDashboard.loading.initialLabel',
+    SUMMARY_LABEL: 'home.supervisorDashboard.loading.summaryLabel',
+    LEADERBOARD_LABEL: 'home.supervisorDashboard.loading.leaderboardLabel',
+    PERFORMANCE_LABEL: 'home.supervisorDashboard.loading.performanceLabel',
+    FLAGS_LABEL: 'home.supervisorDashboard.loading.flagsLabel',
+    MODULES_LABEL: 'home.supervisorDashboard.loading.modulesLabel',
   },
   ERROR: {
-    ALL_TITLE: 'Supervisor dashboard unavailable',
-    ALL_DESCRIPTION: 'Please try again in a moment.',
-    SUMMARY_DESCRIPTION: 'We couldn’t load KPIs.',
+    ALL_TITLE: 'home.supervisorDashboard.error.allTitle',
+    ALL_DESCRIPTION: 'home.supervisorDashboard.error.allDescription',
+    SUMMARY_DESCRIPTION: 'home.supervisorDashboard.error.summaryDescription',
   },
   EMPTY: {
-    TITLE: 'No supervisor data yet',
-    DESCRIPTION:
-      'Once activity is available, you’ll see KPIs, flags, and progress here.',
+    TITLE: 'home.supervisorDashboard.empty.title',
+    DESCRIPTION: 'home.supervisorDashboard.empty.description',
   },
   HEADER: {
-    TITLE: 'Supervisor dashboard',
-    SUBTITLE: 'Quick overview of performance, flags, and module progress.',
+    TITLE: 'home.supervisorDashboard.header.title',
+    SUBTITLE: 'home.supervisorDashboard.header.subtitle',
   },
   SECTIONS: {
-    SUMMARY: 'Summary',
-    LEADERBOARD: 'Leaderboard',
-    PERFORMANCE: 'CHW matrix',
-    FLAGS: 'Flags',
-    MODULES: 'Module progress',
+    SUMMARY: 'home.supervisorDashboard.sections.summary',
+    LEADERBOARD: 'home.supervisorDashboard.sections.leaderboard',
+    PERFORMANCE: 'home.supervisorDashboard.sections.performance',
+    FLAGS: 'home.supervisorDashboard.sections.flags',
+    MODULES: 'home.supervisorDashboard.sections.modules',
   },
   ACTIONS: {
-    VIEW_ALL: 'View all',
+    VIEW_ALL: 'home.supervisorDashboard.actions.viewAll',
   },
 } as const;

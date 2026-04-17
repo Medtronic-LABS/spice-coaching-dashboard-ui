@@ -2,22 +2,22 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/common/charts/BarChart', () => ({
-  default: ({ ariaLabel }: { ariaLabel: string }) => (
+  BarChart: ({ ariaLabel }: { ariaLabel: string }) => (
     <div aria-label={ariaLabel}>BarChart</div>
   ),
 }));
 vi.mock('@/components/common/charts/LineChart', () => ({
-  default: ({ ariaLabel }: { ariaLabel: string }) => (
+  LineChart: ({ ariaLabel }: { ariaLabel: string }) => (
     <div aria-label={ariaLabel}>LineChart</div>
   ),
 }));
 vi.mock('@/components/common/charts/PieChart', () => ({
-  default: ({ ariaLabel }: { ariaLabel: string }) => (
+  PieChart: ({ ariaLabel }: { ariaLabel: string }) => (
     <div aria-label={ariaLabel}>PieChart</div>
   ),
 }));
 
-import ChartPreview from './ChartPreview';
+import { ChartPreview } from './ChartPreview';
 
 describe('ChartPreview', () => {
   it('renders preview sections and chart placeholders', () => {

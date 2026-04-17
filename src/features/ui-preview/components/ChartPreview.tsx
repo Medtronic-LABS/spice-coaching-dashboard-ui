@@ -1,8 +1,8 @@
-import BarChart from '@/components/common/charts/BarChart';
-import LineChart from '@/components/common/charts/LineChart';
-import PieChart from '@/components/common/charts/PieChart';
-import PageTitle from '@/components/common/PageTitle';
-import Table from '@/components/common/Table';
+import { BarChart } from '@/components/common/charts/BarChart';
+import { LineChart } from '@/components/common/charts/LineChart';
+import { PieChart } from '@/components/common/charts/PieChart';
+import { PageTitle } from '@/components/common/PageTitle';
+import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 
 const mockChartData = [
@@ -58,7 +58,7 @@ const tableColumns: Array<ColumnDef<TableRow>> = [
   { key: 'date', header: 'Completion Date' },
 ];
 
-export default function ChartPreview() {
+export function ChartPreview() {
   return (
     <section>
       <div className="space-y-3">

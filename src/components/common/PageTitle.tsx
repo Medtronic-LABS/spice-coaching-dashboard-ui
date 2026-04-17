@@ -9,7 +9,7 @@ export type PageTitleProps = Omit<
   as?: 'h1' | 'h2' | 'h3';
 };
 
-export default function PageTitle({
+export function PageTitle({
   title,
   as: Comp = 'h2',
   className,

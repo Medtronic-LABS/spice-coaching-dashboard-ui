@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import PieChart from '.';
+import { PieChart } from '.';
 
 type CapturedPieProps = Record<string, unknown> | null;
 let capturedPieProps: CapturedPieProps = null;
@@ -50,7 +50,7 @@ vi.mock('recharts', async () => {
 
 vi.mock('../ChartBase', async () => {
   return {
-    default: ({
+    ChartBase: ({
       children,
       legendItems,
     }: {

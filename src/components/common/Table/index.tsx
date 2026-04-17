@@ -3,7 +3,7 @@ import type { TableProps } from './Table.types';
 
 export type { ColumnDef, TableProps } from './Table.types';
 
-export default function Table<T extends object>({
+export function Table<T extends object>({
   data,
   columns,
   keyExtractor,

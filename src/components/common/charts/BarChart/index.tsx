@@ -8,13 +8,13 @@ import {
 } from 'recharts';
 
 import * as React from 'react';
-import ChartBase from '../ChartBase';
+import { ChartBase } from '../ChartBase';
 import { getDefaultTooltipContentStyle, toLegendItems } from '../chart.utils';
 import type { BarChartProps } from './BarChart.types';
 
 export type { BarChartMode, BarChartProps, BarSeries } from './BarChart.types';
 
-export default function BarChart({
+export function BarChart({
   data,
   xAxisKey,
   series,

@@ -5,6 +5,7 @@ import {
   SectionHeader,
   StatusBadge,
 } from '@/components/ui';
+import { useTranslation } from 'react-i18next';
 import { severityToBadgeStatus } from '@/features/home/utils/supervisorBadges';
 import { cn } from '@/utils';
 import type { PerformanceAlertItem } from '@/types/supervisor.types';
@@ -19,17 +20,20 @@ export interface FlagsCardProps {
 }
 
 export const FlagsCard = ({
-  title = 'Flags',
+  title,
   subtitle,
   items,
   primaryActionLabel,
   onPrimaryAction,
   onRowClick,
 }: FlagsCardProps) => {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('home.supervisorDashboard.sections.flags');
+
   return (
     <Card variant="elevated">
       <SectionHeader
-        title={title}
+        title={resolvedTitle}
         subtitle={subtitle}
         action={
           <Button variant="secondary" onClick={onPrimaryAction}>
@@ -51,7 +55,7 @@ export const FlagsCard = ({
                 ? 'cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2'
                 : 'cursor-default',
             )}
-            aria-label={`Flag: ${item.name}`}
+            aria-label={t('home.flags.rowAriaLabel', { name: item.name })}
           >
             <ListItem
               title={item.name}

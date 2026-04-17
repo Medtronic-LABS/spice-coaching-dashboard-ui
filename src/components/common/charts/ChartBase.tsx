@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ResponsiveContainer } from 'recharts';
-import ChartFrame from './ChartFrame';
+import { ChartFrame } from './ChartFrame';
 import { ResponsiveLegend, type LegendItem } from './ResponsiveLegend';
 import type { BaseChartProps } from './chart.types';
 
@@ -11,7 +11,7 @@ export type ChartBaseProps<TData> = BaseChartProps<TData> & {
   isEmpty?: boolean;
 };
 
-export default function ChartBase<TData>({
+export function ChartBase<TData>({
   data,
   loading = false,
   error,

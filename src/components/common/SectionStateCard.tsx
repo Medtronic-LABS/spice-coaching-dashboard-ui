@@ -1,4 +1,5 @@
 import { Card, ErrorState, LoadingState, SectionHeader } from '@/components/ui';
+import { useTranslation } from 'react-i18next';
 
 export interface SectionStateCardProps {
   title: string;
@@ -13,19 +14,25 @@ export const SectionStateCard = ({
   subtitle,
   state,
   loadingLabel,
-  errorDescription = 'Please try again.',
+  errorDescription,
 }: SectionStateCardProps) => {
+  const { t } = useTranslation();
+  const resolvedErrorDescription =
+    errorDescription ?? t('common.pleaseTryAgain');
+
   return (
     <Card variant="elevated">
       <SectionHeader title={title} subtitle={subtitle} />
       {state === 'loading' ? (
         <LoadingState
-          label={loadingLabel ?? `Loading ${title.toLowerCase()}`}
+          label={
+            loadingLabel ?? t('ui.sectionState.loadingWithTitle', { title })
+          }
         />
       ) : (
         <ErrorState
-          title={`${title} unavailable`}
-          description={errorDescription}
+          title={t('ui.sectionState.unavailableWithTitle', { title })}
+          description={resolvedErrorDescription}
         />
       )}
     </Card>

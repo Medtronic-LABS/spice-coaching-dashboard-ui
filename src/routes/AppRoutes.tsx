@@ -1,8 +1,9 @@
 import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { paths } from '@/constants/routes';
-import ChartPreview from '@/features/ui-preview/components/ChartPreview';
+import { ChartPreview } from '@/features/ui-preview/components/ChartPreview';
 
 const Home = lazy(() =>
   import('@/features/home/pages/Home').then((module) => ({
@@ -21,10 +22,14 @@ const UiPreviewPage = lazy(() =>
 );
 
 export const AppRoutes = () => {
+  const { t } = useTranslation();
+
   return (
     <Suspense
       fallback={
-        <div className="p-6 text-sm text-slate-600">Loading page...</div>
+        <div className="p-6 text-sm text-slate-600">
+          {t('common.loadingPage')}
+        </div>
       }
     >
       <Routes>

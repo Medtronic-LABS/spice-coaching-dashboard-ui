@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/utils';
 
@@ -20,7 +21,7 @@ export type ChartFrameProps = {
   onMouseMove?: React.MouseEventHandler<HTMLDivElement>;
 };
 
-export default function ChartFrame({
+export function ChartFrame({
   className,
   style,
   height = 300,
@@ -28,8 +29,8 @@ export default function ChartFrame({
   loading = false,
   error,
   isEmpty = false,
-  emptyTitle = 'No data',
-  emptyDescription = 'There is no data to display for the current selection.',
+  emptyTitle,
+  emptyDescription,
   children,
   legend,
   ariaLabel,
@@ -37,6 +38,11 @@ export default function ChartFrame({
   onClick,
   onMouseMove,
 }: ChartFrameProps) {
+  const { t } = useTranslation();
+  const resolvedEmptyTitle = emptyTitle ?? t('charts.emptyTitle');
+  const resolvedEmptyDescription =
+    emptyDescription ?? t('charts.emptyDescription');
+
   return (
     <div
       className={cn(
@@ -54,7 +60,9 @@ export default function ChartFrame({
       ) : error ? (
         <div className="flex h-full w-full items-center justify-center">
           <div className="max-w-sm text-center">
-            <div className="text-sm font-medium text-slate-900">Error</div>
+            <div className="text-sm font-medium text-slate-900">
+              {t('charts.errorTitle')}
+            </div>
             <div className="mt-1 text-xs text-slate-600">{error}</div>
           </div>
         </div>
@@ -62,10 +70,10 @@ export default function ChartFrame({
         <div className="flex h-full w-full items-center justify-center">
           <div className="max-w-sm text-center">
             <div className="text-sm font-medium text-slate-900">
-              {emptyTitle}
+              {resolvedEmptyTitle}
             </div>
             <div className="mt-1 text-xs text-slate-600">
-              {emptyDescription}
+              {resolvedEmptyDescription}
             </div>
           </div>
         </div>

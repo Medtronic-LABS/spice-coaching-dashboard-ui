@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * ErrorState
@@ -14,11 +15,13 @@ export interface ErrorStateProps {
 }
 
 export const ErrorState = ({ title, description, action }: ErrorStateProps) => {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-lg border border-red-200 bg-red-50 p-6">
       <h4 className="text-base font-semibold text-red-900">{title}</h4>
       <p className="mt-1 text-sm text-red-700">
-        {description ?? 'Something went wrong.'}
+        {description ?? t('common.somethingWentWrongDescription')}
       </p>
       {action ? <div className="mt-4">{action}</div> : null}
     </div>

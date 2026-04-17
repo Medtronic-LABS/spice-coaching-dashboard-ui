@@ -4,6 +4,7 @@ import {
   LoadingState,
   SectionHeader,
 } from '@/components/ui';
+import { useTranslation } from 'react-i18next';
 import { SectionStateCard } from '@/components/common/SectionStateCard';
 import { FlagsCard } from '@/features/home/components/FlagsCard';
 import { InsightCard } from '@/features/home/components/InsightCard';
@@ -15,6 +16,7 @@ import { SUPERVISOR_DASHBOARD_CONSTANTS } from '@/features/home/constants/superv
 import { useSupervisorDashboard } from '@/features/home/hooks/useSupervisorDashboard';
 
 export const SupervisorDashboard = () => {
+  const { t } = useTranslation();
   const {
     summary,
     leaderboard,
@@ -41,7 +43,7 @@ export const SupervisorDashboard = () => {
   if (isInitialLoading) {
     return (
       <LoadingState
-        label={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL}
+        label={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL)}
       />
     );
   }
@@ -50,8 +52,8 @@ export const SupervisorDashboard = () => {
   if (isAllError) {
     return (
       <ErrorState
-        title={SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.ALL_TITLE}
-        description={SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.ALL_DESCRIPTION}
+        title={t(SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.ALL_TITLE)}
+        description={t(SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.ALL_DESCRIPTION)}
       />
     );
   }
@@ -66,25 +68,25 @@ export const SupervisorDashboard = () => {
   if (isEmpty) {
     return (
       <EmptyState
-        title={SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.TITLE}
-        description={SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.DESCRIPTION}
+        title={t(SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.TITLE)}
+        description={t(SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.DESCRIPTION)}
       />
     );
   }
 
   const summaryContent = summaryState.isError ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.SUMMARY}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.SUMMARY)}
       state="error"
-      errorDescription={
-        SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.SUMMARY_DESCRIPTION
-      }
+      errorDescription={t(
+        SUPERVISOR_DASHBOARD_CONSTANTS.ERROR.SUMMARY_DESCRIPTION,
+      )}
     />
   ) : summaryState.isLoading ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.SUMMARY}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.SUMMARY)}
       state="loading"
-      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.SUMMARY_LABEL}
+      loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.SUMMARY_LABEL)}
     />
   ) : summary ? (
     <div className="space-y-6">
@@ -101,14 +103,14 @@ export const SupervisorDashboard = () => {
 
   const leaderboardContent = leaderboardState.isError ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD)}
       state="error"
     />
   ) : leaderboardState.isLoading ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD)}
       state="loading"
-      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.LEADERBOARD_LABEL}
+      loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.LEADERBOARD_LABEL)}
     />
   ) : (
     <LeaderboardCard items={leaderboard} />
@@ -116,14 +118,14 @@ export const SupervisorDashboard = () => {
 
   const performanceContent = performanceState.isError ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE)}
       state="error"
     />
   ) : performanceState.isLoading ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE)}
       state="loading"
-      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.PERFORMANCE_LABEL}
+      loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.PERFORMANCE_LABEL)}
     />
   ) : (
     <PerformanceMatrix rows={performance} />
@@ -131,33 +133,33 @@ export const SupervisorDashboard = () => {
 
   const flagsContent = alertsState.isError ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS)}
       state="error"
     />
   ) : alertsState.isLoading ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS)}
       state="loading"
-      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.FLAGS_LABEL}
+      loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.FLAGS_LABEL)}
     />
   ) : (
     <FlagsCard
       items={alerts}
-      primaryActionLabel={SUPERVISOR_DASHBOARD_CONSTANTS.ACTIONS.VIEW_ALL}
+      primaryActionLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.ACTIONS.VIEW_ALL)}
       onPrimaryAction={() => undefined}
     />
   );
 
   const modulesContent = modulesState.isError ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES)}
       state="error"
     />
   ) : modulesState.isLoading ? (
     <SectionStateCard
-      title={SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES}
+      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES)}
       state="loading"
-      loadingLabel={SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.MODULES_LABEL}
+      loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.MODULES_LABEL)}
     />
   ) : (
     <ModuleProgressCard items={modules} />
@@ -166,8 +168,8 @@ export const SupervisorDashboard = () => {
   return (
     <section className="space-y-6">
       <SectionHeader
-        title={SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE}
-        subtitle={SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.SUBTITLE}
+        title={t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
+        subtitle={t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.SUBTITLE)}
       />
 
       {summaryContent}

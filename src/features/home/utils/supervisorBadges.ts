@@ -2,6 +2,7 @@ import type {
   PerformanceAlertItem,
   SupervisorStatus,
 } from '@/types/supervisor.types';
+import { i18n } from '@/i18n/i18n';
 
 export type BadgeStatus =
   | 'success'
@@ -16,19 +17,19 @@ export function statusToBadge(status: SupervisorStatus | 'in_progress'): {
 } {
   switch (status) {
     case 'on_track':
-      return { badge: 'success', label: 'On track' };
+      return { badge: 'success', label: i18n.t('status.onTrack') };
     case 'on_time':
-      return { badge: 'success', label: 'On time' };
+      return { badge: 'success', label: i18n.t('status.onTime') };
     case 'due_soon':
-      return { badge: 'warning', label: 'Due soon' };
+      return { badge: 'warning', label: i18n.t('status.dueSoon') };
     case 'delayed':
-      return { badge: 'critical', label: 'Delayed' };
+      return { badge: 'critical', label: i18n.t('status.delayed') };
     case 'inactive':
-      return { badge: 'neutral', label: 'Inactive' };
+      return { badge: 'neutral', label: i18n.t('status.inactive') };
     case 'in_progress':
-      return { badge: 'info', label: 'In progress' };
+      return { badge: 'info', label: i18n.t('status.inProgress') };
     default:
-      return { badge: 'neutral', label: 'Unknown' };
+      return { badge: 'neutral', label: i18n.t('status.unknown') };
   }
 }
 

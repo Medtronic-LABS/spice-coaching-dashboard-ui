@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { paths } from '@/constants/routes';
 
 const linkClassName = ({ isActive }: { isActive: boolean }) =>
@@ -7,23 +8,25 @@ const linkClassName = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export const Sidebar = () => {
+  const { t } = useTranslation();
+
   return (
     <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-4">
       <h1 className="mb-6 text-lg font-semibold text-slate-900">
-        Micro Learning Analytics Dashboard
+        {t('layout.sidebar.title')}
       </h1>
       <nav className="space-y-2">
         <NavLink className={linkClassName} to={paths.home}>
-          Home
+          {t('layout.sidebar.nav.home')}
         </NavLink>
         <NavLink className={linkClassName} to={paths.chw}>
-          CHW View
+          {t('layout.sidebar.nav.chwView')}
         </NavLink>
         <NavLink className={linkClassName} to={paths.uiPreview}>
-          UI Preview
+          {t('layout.sidebar.nav.uiPreview')}
         </NavLink>
         <NavLink className={linkClassName} to={paths.chartPreview}>
-          Chart Preview
+          {t('layout.sidebar.nav.chartPreview')}
         </NavLink>
       </nav>
     </aside>
