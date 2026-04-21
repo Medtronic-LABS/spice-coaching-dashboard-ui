@@ -14,7 +14,9 @@ describe('Sidebar', () => {
       screen.getByText('Micro Learning Analytics Dashboard'),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /chw view/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /chw profiles/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /ui preview/i }),
     ).toBeInTheDocument();
@@ -25,12 +27,12 @@ describe('Sidebar', () => {
 
   it('applies active class to active link', () => {
     render(
-      <MemoryRouter initialEntries={['/chw']}>
+      <MemoryRouter initialEntries={['/chw-profiles']}>
         <Sidebar />
       </MemoryRouter>,
     );
 
-    const activeLink = screen.getByRole('link', { name: /chw view/i });
+    const activeLink = screen.getByRole('link', { name: /chw profiles/i });
     expect(activeLink).toHaveClass('bg-blue-600', 'text-white');
 
     const inactiveLink = screen.getByRole('link', { name: /home/i });

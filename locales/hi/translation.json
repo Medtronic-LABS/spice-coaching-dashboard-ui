@@ -27,7 +27,7 @@
       "title": "माइक्रो लर्निंग एनालिटिक्स डैशबोर्ड",
       "nav": {
         "home": "होम",
-        "chwView": "CHW व्यू",
+        "chwProfiles": "CHW प्रोफाइल्स",
         "uiPreview": "UI प्रीव्यू",
         "chartPreview": "चार्ट प्रीव्यू"
       }
@@ -192,7 +192,94 @@
     "errorStateTitle": "डेटा लोड नहीं हो सका",
     "errorStateDescription": "कृपया कुछ मिनट बाद फिर से कोशिश करें।"
   },
-  "chw": {
-    "title": "CHW व्यू"
+  "chwProfiles": {
+    "status": {
+      "overdue": "ओवरड्यू",
+      "flagged": "फ़्लैग्ड"
+    },
+    "deadline": {
+      "overdue": "ओवरड्यू"
+    },
+    "module": {
+      "completed": "पूर्ण",
+      "inProgress": "प्रगति में"
+    },
+    "quiz": {
+      "pass": "पास",
+      "fail": "फेल"
+    },
+    "list": {
+      "title": "CHW प्रोफाइल्स",
+      "subtitle": "मॉड्यूल प्रगति, क्विज़ परफॉर्मेंस और स्टेटस ट्रैक करें।",
+      "searchPlaceholder": "मॉड्यूल खोजें...",
+      "tableTitle": "CHW प्रोफाइल्स",
+      "empty": "कोई CHW प्रोफाइल नहीं मिला।",
+      "attempts": "{{count}} प्रयास",
+      "daysShort": "{{count}}d",
+      "columns": {
+        "chw": "CHW",
+        "modulesDone": "पूर्ण किए गए मॉड्यूल",
+        "deadline": "डेडलाइन",
+        "passRate": "पास रेट",
+        "streak": "स्ट्रीक",
+        "lastActive": "अंतिम सक्रिय",
+        "status": "स्टेटस"
+      }
+    },
+    "detail": {
+      "title": "प्रोफाइल विवरण",
+      "subtitle": "CHW प्रोफाइल्स  ›  प्रोफाइल विवरण",
+      "loading": "प्रोफाइल लोड हो रहा है...",
+      "errorTitle": "प्रोफाइल उपलब्ध नहीं है",
+      "missingIdTitle": "CHW id गायब है",
+      "missingIdDescription": "इस रूट में id पैरामीटर नहीं है।",
+      "backToList": "CHW प्रोफाइल्स पर वापस जाएँ",
+      "streakBadge": "{{days}}d स्ट्रीक",
+      "daysValue": "{{count}}d",
+      "points": "{{count}} pts",
+      "badgesCount": "{{count}} बैज",
+      "meta": {
+        "joined": "जॉइन किया",
+        "lastActive": "अंतिम सक्रिय",
+        "totalPoints": "कुल पॉइंट्स",
+        "leaderboardRank": "लीडरबोर्ड रैंक",
+        "badges": "कमाए गए बैज"
+      },
+      "actions": {
+        "assign": "मॉड्यूल असाइन करें",
+        "flag": "मेंटोरिंग के लिए फ़्लैग करें"
+      },
+      "metrics": {
+        "modulesDone": "मॉड्यूल्स किए",
+        "applicationKnowledge": "एप्लिकेशन नॉलेज",
+        "passRate": "पास रेट",
+        "totalAttempts": "कुल प्रयास",
+        "allComplete": "सभी पूर्ण",
+        "bestLabel": "सर्वश्रेष्ठ: 21 दिन",
+        "accuracyLabel": "सटीकता",
+        "attemptsLabel": "प्रयास"
+      },
+      "modules": {
+        "title": "मॉड्यूल प्रगति",
+        "empty": "कोई मॉड्यूल नहीं मिला।",
+        "columns": {
+          "title": "मॉड्यूल",
+          "status": "स्टेटस",
+          "passRate": "पास %",
+          "attempts": "प्रयास",
+          "dueDate": "ड्यू डेट"
+        }
+      },
+      "quiz": {
+        "title": "क्विज़ इतिहास",
+        "empty": "कोई क्विज़ नहीं मिला।",
+        "columns": {
+          "title": "क्विज़",
+          "score": "स्कोर",
+          "date": "तारीख",
+          "status": "स्टेटस"
+        }
+      }
+    }
   }
 }

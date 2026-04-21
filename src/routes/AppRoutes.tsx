@@ -10,10 +10,19 @@ const Home = lazy(() =>
     default: module.Home,
   })),
 );
-const CHWView = lazy(() =>
-  import('@/features/chw/components/CHWView').then((module) => ({
-    default: module.CHWView,
-  })),
+const ChwProfilesListPage = lazy(() =>
+  import('@/features/chw-profiles/pages/ChwProfilesListPage.tsx').then(
+    (module) => ({
+      default: module.ChwProfilesListPage,
+    }),
+  ),
+);
+const ChwProfileDetailPage = lazy(() =>
+  import('@/features/chw-profiles/pages/ChwProfileDetailPage.tsx').then(
+    (module) => ({
+      default: module.ChwProfileDetailPage,
+    }),
+  ),
 );
 const UiPreviewPage = lazy(() =>
   import('@/features/ui-preview/components/UiPreviewPage').then((module) => ({
@@ -35,7 +44,11 @@ export const AppRoutes = () => {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path={paths.home} element={<Home />} />
-          <Route path={paths.chw} element={<CHWView />} />
+          <Route path={paths.chwProfiles} element={<ChwProfilesListPage />} />
+          <Route
+            path={paths.chwProfileDetail}
+            element={<ChwProfileDetailPage />}
+          />
           <Route path={paths.uiPreview} element={<UiPreviewPage />} />
           <Route path={paths.chartPreview} element={<ChartPreview />} />
           <Route path="*" element={<Navigate to={paths.home} replace />} />

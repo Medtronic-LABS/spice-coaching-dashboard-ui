@@ -1,6 +1,7 @@
 export const paths = {
   home: '/',
-  chw: '/chw',
+  chwProfiles: '/chw-profiles',
+  chwProfileDetail: '/chw-profiles/:id',
   uiPreview: '/ui-preview',
   chartPreview: '/chart-preview',
 } as const;

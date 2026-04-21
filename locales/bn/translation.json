@@ -27,7 +27,7 @@
       "title": "মাইক্রো লার্নিং অ্যানালিটিক্স ড্যাশবোর্ড",
       "nav": {
         "home": "হোম",
-        "chwView": "CHW ভিউ",
+        "chwProfiles": "CHW প্রোফাইলস",
         "uiPreview": "UI প্রিভিউ",
         "chartPreview": "চার্ট প্রিভিউ"
       }
@@ -192,7 +192,94 @@
     "errorStateTitle": "ডেটা লোড করা যায়নি",
     "errorStateDescription": "অনুগ্রহ করে কয়েক মিনিট পরে আবার চেষ্টা করুন।"
   },
-  "chw": {
-    "title": "CHW ভিউ"
+  "chwProfiles": {
+    "status": {
+      "overdue": "ওভারডিউ",
+      "flagged": "ফ্ল্যাগড"
+    },
+    "deadline": {
+      "overdue": "ওভারডিউ"
+    },
+    "module": {
+      "completed": "সম্পন্ন",
+      "inProgress": "চলমান"
+    },
+    "quiz": {
+      "pass": "পাস",
+      "fail": "ফেইল"
+    },
+    "list": {
+      "title": "CHW প্রোফাইলস",
+      "subtitle": "মডিউল অগ্রগতি, কুইজ পারফরম্যান্স এবং স্ট্যাটাস ট্র্যাক করুন।",
+      "searchPlaceholder": "মডিউল সার্চ করুন...",
+      "tableTitle": "CHW প্রোফাইলস",
+      "empty": "কোনো CHW প্রোফাইল পাওয়া যায়নি।",
+      "attempts": "{{count}} বার চেষ্টা",
+      "daysShort": "{{count}}d",
+      "columns": {
+        "chw": "CHW",
+        "modulesDone": "সম্পন্ন মডিউল",
+        "deadline": "ডেডলাইন",
+        "passRate": "পাস রেট",
+        "streak": "স্ট্রিক",
+        "lastActive": "শেষ সক্রিয়",
+        "status": "স্ট্যাটাস"
+      }
+    },
+    "detail": {
+      "title": "প্রোফাইল ডিটেইল",
+      "subtitle": "CHW প্রোফাইলস  ›  প্রোফাইল ডিটেইলস",
+      "loading": "প্রোফাইল লোড হচ্ছে...",
+      "errorTitle": "প্রোফাইল উপলব্ধ নয়",
+      "missingIdTitle": "CHW id নেই",
+      "missingIdDescription": "এই রুটে একটি id প্যারামিটার অনুপস্থিত।",
+      "backToList": "CHW প্রোফাইলসে ফিরে যান",
+      "streakBadge": "{{days}}d স্ট্রিক",
+      "daysValue": "{{count}}d",
+      "points": "{{count}} pts",
+      "badgesCount": "{{count}} ব্যাজ",
+      "meta": {
+        "joined": "যোগদান",
+        "lastActive": "শেষ সক্রিয়",
+        "totalPoints": "মোট পয়েন্ট",
+        "leaderboardRank": "লিডারবোর্ড র‍্যাঙ্ক",
+        "badges": "অর্জিত ব্যাজ"
+      },
+      "actions": {
+        "assign": "মডিউল অ্যাসাইন করুন",
+        "flag": "মেন্টরিংয়ের জন্য ফ্ল্যাগ করুন"
+      },
+      "metrics": {
+        "modulesDone": "সম্পন্ন মডিউল",
+        "applicationKnowledge": "অ্যাপ্লিকেশন জ্ঞান",
+        "passRate": "পাস রেট",
+        "totalAttempts": "মোট চেষ্টা",
+        "allComplete": "সব সম্পন্ন",
+        "bestLabel": "সেরা: ২১ দিন",
+        "accuracyLabel": "একিউরেসি",
+        "attemptsLabel": "চেষ্টা"
+      },
+      "modules": {
+        "title": "মডিউল অগ্রগতি",
+        "empty": "কোনো মডিউল পাওয়া যায়নি।",
+        "columns": {
+          "title": "মডিউল",
+          "status": "স্ট্যাটাস",
+          "passRate": "পাস %",
+          "attempts": "চেষ্টা",
+          "dueDate": "ডিউ ডেট"
+        }
+      },
+      "quiz": {
+        "title": "কুইজ ইতিহাস",
+        "empty": "কোনো কুইজ পাওয়া যায়নি।",
+        "columns": {
+          "title": "কুইজ",
+          "score": "স্কোর",
+          "date": "তারিখ",
+          "status": "স্ট্যাটাস"
+        }
+      }
+    }
   }
 }
