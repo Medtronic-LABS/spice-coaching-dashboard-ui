@@ -168,6 +168,7 @@ export const SupervisorDashboard = () => {
   return (
     <section className="space-y-6">
       <SectionHeader
+        variant="h2"
         title={t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
         subtitle={t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.SUBTITLE)}
       />
