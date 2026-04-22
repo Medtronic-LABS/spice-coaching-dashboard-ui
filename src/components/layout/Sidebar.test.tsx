@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { paths } from '@/constants/routes';
 import { Sidebar } from './Sidebar';
 
 describe('Sidebar', () => {
@@ -27,7 +28,7 @@ describe('Sidebar', () => {
 
   it('applies active class to active link', () => {
     render(
-      <MemoryRouter initialEntries={['/chw-profiles']}>
+      <MemoryRouter initialEntries={[paths.chwProfiles]}>
         <Sidebar />
       </MemoryRouter>,
     );

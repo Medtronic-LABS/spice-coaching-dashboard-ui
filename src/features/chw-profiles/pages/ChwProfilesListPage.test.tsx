@@ -2,13 +2,14 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import { paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
 import { ChwProfilesListPage } from '@/features/chw-profiles/pages/ChwProfilesListPage';
 import { ChwProfileDetailPage } from '@/features/chw-profiles/pages/ChwProfileDetailPage';
 
 describe('ChwProfilesListPage', () => {
   it('renders table rows from mocked API', async () => {
-    renderWithProviders(<ChwProfilesListPage />, { route: '/chw-profiles' });
+    renderWithProviders(<ChwProfilesListPage />, { route: paths.chwProfiles });
 
     expect(
       await screen.findByRole('heading', { name: /chw profiles/i, level: 2 }),
@@ -23,7 +24,7 @@ describe('ChwProfilesListPage', () => {
 
   it('filters rows by search query', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ChwProfilesListPage />, { route: '/chw-profiles' });
+    renderWithProviders(<ChwProfilesListPage />, { route: paths.chwProfiles });
 
     await screen.findByText('Fatema Jannat');
 
@@ -38,10 +39,13 @@ describe('ChwProfilesListPage', () => {
     const user = userEvent.setup();
     renderWithProviders(
       <Routes>
-        <Route path="/chw-profiles" element={<ChwProfilesListPage />} />
-        <Route path="/chw-profiles/:id" element={<ChwProfileDetailPage />} />
+        <Route path={paths.chwProfiles} element={<ChwProfilesListPage />} />
+        <Route
+          path={paths.chwProfileDetail}
+          element={<ChwProfileDetailPage />}
+        />
       </Routes>,
-      { route: '/chw-profiles' },
+      { route: paths.chwProfiles },
     );
 
     await screen.findByText('Fatema Jannat');

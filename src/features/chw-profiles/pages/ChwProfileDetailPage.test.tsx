@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import { paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
 import { ChwProfileDetailPage } from '@/features/chw-profiles/pages/ChwProfileDetailPage';
 
@@ -8,10 +9,13 @@ describe('ChwProfileDetailPage', () => {
   it('renders profile data from mocked API', async () => {
     renderWithProviders(
       <Routes>
-        <Route path="/chw-profiles/:id" element={<ChwProfileDetailPage />} />
+        <Route
+          path={paths.chwProfileDetail}
+          element={<ChwProfileDetailPage />}
+        />
       </Routes>,
       {
-        route: '/chw-profiles/CHW001',
+        route: `${paths.chwProfiles}/CHW001`,
       },
     );
 
