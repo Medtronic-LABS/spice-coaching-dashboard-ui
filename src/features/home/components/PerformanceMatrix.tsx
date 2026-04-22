@@ -1,9 +1,15 @@
-import { Button, Card, SectionHeader, StatusBadge } from '@/components/ui';
+import {
+  Button,
+  Card,
+  SearchInput,
+  SectionHeader,
+  StatusBadge,
+} from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { statusToBadge } from '@/features/home/utils/supervisorBadges';
 import type { CHWPerformanceRow } from '@/types/supervisor.types';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export interface PerformanceMatrixProps {
@@ -21,6 +27,23 @@ export const PerformanceMatrix = ({
 }: PerformanceMatrixProps) => {
   const { t } = useTranslation();
   const resolvedTitle = title ?? t('home.performanceMatrix.title');
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<'all' | 'flagged' | 'overdue'>('all');
+
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesQuery = q.length === 0 || row.name.toLowerCase().includes(q);
+      const isOverdue = row.deadline_status === 'delayed';
+      const isFlagged =
+        row.overall_status === 'delayed' || row.deadline_status === 'delayed';
+
+      const matchesFilter =
+        filter === 'all' ? true : filter === 'overdue' ? isOverdue : isFlagged;
+
+      return matchesQuery && matchesFilter;
+    });
+  }, [filter, query, rows]);
 
   const columns: Array<ColumnDef<CHWPerformanceRow>> = useMemo(
     () => [
@@ -39,9 +62,9 @@ export const PerformanceMatrix = ({
                 });
 
           return (
-            <span className="text-left flex flex-col text-xl font-bold">
+            <span className="flex flex-col text-sm font-semibold text-slate-900">
               {`${row.modules_done}/${row.modules_total}`}
-              <span className="text-left text-xs font-normal">
+              <span className="text-xs font-normal text-slate-500">
                 {remainingLabel}
               </span>
             </span>
@@ -67,9 +90,9 @@ export const PerformanceMatrix = ({
               : ((row.quiz_passed / attempted) * 100).toFixed(2);
 
           return (
-            <span className="text-left flex flex-col text-xl font-bold">
+            <span className="flex flex-col text-sm font-semibold text-slate-900">
               {`${pct}%`}
-              <span className="text-left text-xs font-normal">
+              <span className="text-xs font-normal text-slate-500">
                 {t('home.performanceMatrix.attemptedFails', {
                   attempted,
                   fails: row.quiz_failed,
@@ -111,8 +134,51 @@ export const PerformanceMatrix = ({
   return (
     <Card variant="elevated">
       <SectionHeader title={resolvedTitle} subtitle={subtitle} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={t('home.dashboard.performance.searchPlaceholder')}
+          className="max-w-xs"
+        />
+        <div className="flex items-center gap-2">
+          {(
+            [
+              {
+                value: 'all',
+                label: t('home.dashboard.performance.filters.all'),
+              },
+              {
+                value: 'flagged',
+                label: t('home.dashboard.performance.filters.flagged'),
+              },
+              {
+                value: 'overdue',
+                label: t('home.dashboard.performance.filters.overdue'),
+              },
+            ] as const
+          ).map((item) => {
+            const isActive = item.value === filter;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setFilter(item.value)}
+                className={[
+                  'h-8 rounded-full px-3 text-xs font-semibold ring-1 transition',
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 ring-blue-200'
+                    : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50',
+                ].join(' ')}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <Table<CHWPerformanceRow>
-        data={rows}
+        data={filteredRows}
         columns={columns}
         keyExtractor={(row) => row.chw_id}
         caption={resolvedTitle}

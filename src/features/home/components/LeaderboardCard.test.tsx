@@ -20,6 +20,7 @@ describe('LeaderboardCard', () => {
     render(<LeaderboardCard items={items} onRowClick={onRowClick} />);
     fireEvent.click(screen.getByRole('button', { name: /leaderboard row/i }));
     expect(onRowClick).toHaveBeenCalledWith(items[0]);
-    expect(screen.getByText('1. A')).toBeInTheDocument();
+    expect(screen.getAllByText('A').length).toBeGreaterThan(0);
+    expect(screen.getByText('#1')).toBeInTheDocument();
   });
 });

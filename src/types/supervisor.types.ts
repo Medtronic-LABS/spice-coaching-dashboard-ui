@@ -26,6 +26,16 @@ export type KpiBase = {
   /** Semantic status from API (drives tone). */
   status: KpiStatus;
   unit?: string | null;
+  /**
+   * Optional delta, used for UI-only trend display in KPI cards.
+   * This is not required for rendering and may be omitted by the backend.
+   */
+  change?: number;
+  /**
+   * Optional supporting line displayed under the main value.
+   * This is not required for rendering and may be omitted by the backend.
+   */
+  supporting_text?: string;
 };
 
 export type NumberKpi = KpiBase & {
@@ -67,6 +77,8 @@ export interface LeaderboardItem {
   rank: number;
   completion_rate: number;
   trend: 'up' | 'down' | 'flat';
+  /** Optional tag pills shown under the row. */
+  courses?: string[];
 }
 
 export interface LeaderboardResponse {

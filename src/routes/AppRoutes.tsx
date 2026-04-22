@@ -23,14 +23,28 @@ const ChwProfileDetailPage = lazy(() =>
     }),
   ),
 );
-const UiPreviewPage = lazy(() =>
-  import('@/features/ui-preview/components/UiPreviewPage').then((module) => ({
-    default: module.UiPreviewPage,
+const ModuleLibraryPage = lazy(() =>
+  import('@/features/module-library/pages/ModuleLibraryPage').then(
+    (module) => ({
+      default: module.ModuleLibraryPage,
+    }),
+  ),
+);
+const QuizPerformancePage = lazy(() =>
+  import('@/features/quiz-performance/pages/QuizPerformancePage').then(
+    (module) => ({
+      default: module.QuizPerformancePage,
+    }),
+  ),
+);
+const LeaderboardPage = lazy(() =>
+  import('@/features/leaderboard/pages/LeaderboardPage').then((module) => ({
+    default: module.LeaderboardPage,
   })),
 );
-const ChartPreview = lazy(() =>
-  import('@/features/ui-preview/components/ChartPreview').then((module) => ({
-    default: module.ChartPreview,
+const ReportsPage = lazy(() =>
+  import('@/features/reports/pages/ReportsPage').then((module) => ({
+    default: module.ReportsPage,
   })),
 );
 
@@ -53,8 +67,13 @@ export const AppRoutes = () => {
             path={paths.chwProfileDetail}
             element={<ChwProfileDetailPage />}
           />
-          <Route path={paths.uiPreview} element={<UiPreviewPage />} />
-          <Route path={paths.chartPreview} element={<ChartPreview />} />
+          <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+          <Route
+            path={paths.quizPerformance}
+            element={<QuizPerformancePage />}
+          />
+          <Route path={paths.leaderboard} element={<LeaderboardPage />} />
+          <Route path={paths.reports} element={<ReportsPage />} />
           <Route path="*" element={<Navigate to={paths.home} replace />} />
         </Route>
       </Routes>
