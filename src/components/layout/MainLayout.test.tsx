@@ -1,15 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { paths } from '@/constants/routes';
 import { MainLayout } from './MainLayout';
 
 describe('MainLayout', () => {
   it('renders header, sidebar, and outlet content', () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={[paths.home]}>
         <Routes>
           <Route element={<MainLayout />}>
             <Route
-              path="/"
+              path={paths.home}
               element={<div data-testid="outlet-content">Outlet Content</div>}
             />
           </Route>

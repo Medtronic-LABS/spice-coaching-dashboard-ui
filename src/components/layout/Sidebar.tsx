@@ -19,8 +19,8 @@ export const Sidebar = () => {
         <NavLink className={linkClassName} to={paths.home}>
           {t('layout.sidebar.nav.home')}
         </NavLink>
-        <NavLink className={linkClassName} to={paths.chw}>
-          {t('layout.sidebar.nav.chwView')}
+        <NavLink className={linkClassName} to={paths.chwProfiles}>
+          {t('layout.sidebar.nav.chwProfiles')}
         </NavLink>
         <NavLink className={linkClassName} to={paths.uiPreview}>
           {t('layout.sidebar.nav.uiPreview')}

@@ -27,7 +27,7 @@
       "title": "Micro Learning Analytics Dashboard",
       "nav": {
         "home": "Home",
-        "chwView": "CHW View",
+        "chwProfiles": "CHW Profiles",
         "uiPreview": "UI Preview",
         "chartPreview": "Chart Preview"
       }
@@ -192,7 +192,94 @@
     "errorStateTitle": "Could not load data",
     "errorStateDescription": "Please try again in a few minutes."
   },
-  "chw": {
-    "title": "CHW View"
+  "chwProfiles": {
+    "status": {
+      "overdue": "Overdue",
+      "flagged": "Flagged"
+    },
+    "deadline": {
+      "overdue": "Overdue"
+    },
+    "module": {
+      "completed": "Completed",
+      "inProgress": "In progress"
+    },
+    "quiz": {
+      "pass": "Pass",
+      "fail": "Fail"
+    },
+    "list": {
+      "title": "CHW Profiles",
+      "subtitle": "Track module progress, quiz performance, and engagement status.",
+      "searchPlaceholder": "Search modules...",
+      "tableTitle": "CHW Profiles",
+      "empty": "No CHW profiles found.",
+      "attempts": "{{count}} attempts",
+      "daysShort": "{{count}}d",
+      "columns": {
+        "chw": "CHW",
+        "modulesDone": "Modules done",
+        "deadline": "Deadline",
+        "passRate": "Pass rate",
+        "streak": "Streak",
+        "lastActive": "Last active",
+        "status": "Status"
+      }
+    },
+    "detail": {
+      "title": "Profile Detail",
+      "subtitle": "CHW Profiles  ›  Profile Details",
+      "loading": "Loading profile...",
+      "errorTitle": "Profile unavailable",
+      "missingIdTitle": "Missing CHW id",
+      "missingIdDescription": "The profile route is missing an id parameter.",
+      "backToList": "Back to CHW profiles",
+      "streakBadge": "{{days}}d streak",
+      "daysValue": "{{count}}d",
+      "points": "{{count}} pts",
+      "badgesCount": "{{count}} badges",
+      "meta": {
+        "joined": "Joined",
+        "lastActive": "Last active",
+        "totalPoints": "Total points",
+        "leaderboardRank": "Leaderboard rank",
+        "badges": "Badges earned"
+      },
+      "actions": {
+        "assign": "Assign Module",
+        "flag": "Flag for Mentoring"
+      },
+      "metrics": {
+        "modulesDone": "Modules done",
+        "applicationKnowledge": "Application knowledge",
+        "passRate": "Pass rate",
+        "totalAttempts": "Total attempts",
+        "allComplete": "All complete",
+        "bestLabel": "Best: 21 days",
+        "accuracyLabel": "Accuracy",
+        "attemptsLabel": "Attempts"
+      },
+      "modules": {
+        "title": "Module progress",
+        "empty": "No modules found.",
+        "columns": {
+          "title": "Module",
+          "status": "Status",
+          "passRate": "Pass %",
+          "attempts": "Attempts",
+          "dueDate": "Due date"
+        }
+      },
+      "quiz": {
+        "title": "Quiz attempt history",
+        "empty": "No quizzes found.",
+        "columns": {
+          "title": "Quiz",
+          "score": "Score",
+          "date": "Date",
+          "status": "Status"
+        }
+      }
+    }
   }
 }
