@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { paths } from '@/constants/routes';
 import {
   Badge,
   Button,
@@ -108,7 +109,10 @@ export const ChwProfileDetailPage = () => {
         title={t('chwProfiles.detail.missingIdTitle')}
         description={t('chwProfiles.detail.missingIdDescription')}
         action={
-          <Button variant="secondary" onClick={() => navigate('/chw-profiles')}>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(paths.chwProfiles)}
+          >
             {t('chwProfiles.detail.backToList')}
           </Button>
         }
@@ -129,7 +133,7 @@ export const ChwProfileDetailPage = () => {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              onClick={() => navigate('/chw-profiles')}
+              onClick={() => navigate(paths.chwProfiles)}
             >
               {t('chwProfiles.detail.backToList')}
             </Button>
@@ -154,7 +158,7 @@ export const ChwProfileDetailPage = () => {
             {t('chwProfiles.detail.subtitle')}
           </p>
         </div>
-        <Button variant="ghost" onClick={() => navigate('/chw-profiles')}>
+        <Button variant="ghost" onClick={() => navigate(paths.chwProfiles)}>
           {t('chwProfiles.detail.backToList')}
         </Button>
       </div>
