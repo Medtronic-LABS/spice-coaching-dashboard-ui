@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import BarChart from '.';
+import { BarChart } from '.';
 
 let capturedXAxisProps: Record<string, unknown> | null = null;
 let capturedBarProps: Array<Record<string, unknown>> = [];
@@ -30,7 +30,7 @@ vi.mock('recharts', async () => {
 vi.mock('../ChartBase', async () => {
   const React = await import('react');
   return {
-    default: ({ children }: { children: React.ReactNode }) => (
+    ChartBase: ({ children }: { children: React.ReactNode }) => (
       <div data-testid="chart-base">{children}</div>
     ),
   };

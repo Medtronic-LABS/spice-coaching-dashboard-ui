@@ -16,9 +16,11 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /chw view/i })).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /district view/i }),
+      screen.getByRole('link', { name: /ui preview/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /alerts/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /chart preview/i }),
+    ).toBeInTheDocument();
   });
 
   it('applies active class to active link', () => {

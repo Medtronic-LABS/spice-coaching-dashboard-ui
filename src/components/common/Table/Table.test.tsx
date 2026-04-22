@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import Table, { type ColumnDef } from '.';
+import { Table, type ColumnDef } from '.';
 
 interface TestData extends Record<string, unknown> {
   id: string;

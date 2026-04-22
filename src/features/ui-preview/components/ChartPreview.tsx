@@ -1,10 +1,9 @@
-import BarChart from '@/components/common/charts/BarChart';
-import LineChart from '@/components/common/charts/LineChart';
-import PieChart from '@/components/common/charts/PieChart';
-import PageTitle from '@/components/common/PageTitle';
-import Table from '@/components/common/Table';
+import { BarChart } from '@/components/common/charts/BarChart';
+import { LineChart } from '@/components/common/charts/LineChart';
+import { PieChart } from '@/components/common/charts/PieChart';
+import { PageTitle } from '@/components/common/PageTitle';
+import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
-import { useGetHomeStatusQuery } from '@/features/home/api/homeApi';
 
 const mockChartData = [
   { month: 'Jan', completions: 40, activeUsers: 24 },
@@ -59,11 +58,9 @@ const tableColumns: Array<ColumnDef<TableRow>> = [
   { key: 'date', header: 'Completion Date' },
 ];
 
-export const Home = () => {
-  const { data, isLoading, isError } = useGetHomeStatusQuery();
-
+export function ChartPreview() {
   return (
-    <section className="space-y-6">
+    <section>
       <div className="space-y-3">
         <PageTitle title="Dashboard" />
         <p className="text-sm text-slate-700">
@@ -136,21 +133,6 @@ export const Home = () => {
           />
         </div>
       </div>
-
-      <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mt-8">
-        <PageTitle
-          as="h3"
-          title="API Connection Status:"
-          className="text-md text-slate-800 mb-2"
-        />
-        {isLoading && <p className="text-sm text-slate-600">Loading...</p>}
-        {isError && <p className="text-sm text-red-600">Request failed</p>}
-        {data && (
-          <pre className="rounded bg-white p-3 text-xs border border-slate-200">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        )}
-      </div>
     </section>
   );
-};
+}

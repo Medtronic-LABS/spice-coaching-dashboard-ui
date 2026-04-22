@@ -8,13 +8,13 @@ import {
 } from 'recharts';
 
 import * as React from 'react';
-import ChartBase from '../ChartBase';
+import { ChartBase } from '../ChartBase';
 import { getDefaultTooltipContentStyle, toLegendItems } from '../chart.utils';
 import type { LineChartProps } from './LineChart.types';
 
 export type { LineChartProps, LineSeries } from './LineChart.types';
 
-export default function LineChart({
+export function LineChart({
   data,
   xAxisKey,
   series,

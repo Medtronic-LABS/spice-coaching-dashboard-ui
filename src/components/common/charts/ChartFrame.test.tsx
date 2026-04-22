@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import ChartFrame from './ChartFrame';
+import { ChartFrame } from './ChartFrame';
 
 describe('ChartFrame', () => {
   it('renders loading skeleton when loading', () => {

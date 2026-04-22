@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 /**
  * LoadingState
  * Generic loading placeholder block with optional label.
@@ -9,7 +11,10 @@ export interface LoadingStateProps {
   label?: string;
 }
 
-export const LoadingState = ({ label = 'Loading...' }: LoadingStateProps) => {
+export const LoadingState = ({ label }: LoadingStateProps) => {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t('common.loading');
+
   return (
     <div
       className="rounded-lg border border-slate-200 bg-white p-6"
@@ -18,7 +23,7 @@ export const LoadingState = ({ label = 'Loading...' }: LoadingStateProps) => {
     >
       <div className="h-2 w-1/3 animate-pulse rounded bg-slate-200" />
       <div className="mt-3 h-2 w-2/3 animate-pulse rounded bg-slate-200" />
-      <p className="mt-4 text-sm text-slate-500">{label}</p>
+      <p className="mt-4 text-sm text-slate-500">{resolvedLabel}</p>
     </div>
   );
 };
