@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { paths } from '@/constants/routes';
-import { ChartPreview } from '@/features/ui-preview/components/ChartPreview';
 
 const Home = lazy(() =>
   import('@/features/home/pages/Home').then((module) => ({
@@ -27,6 +26,11 @@ const ChwProfileDetailPage = lazy(() =>
 const UiPreviewPage = lazy(() =>
   import('@/features/ui-preview/components/UiPreviewPage').then((module) => ({
     default: module.UiPreviewPage,
+  })),
+);
+const ChartPreview = lazy(() =>
+  import('@/features/ui-preview/components/ChartPreview').then((module) => ({
+    default: module.ChartPreview,
   })),
 );
 

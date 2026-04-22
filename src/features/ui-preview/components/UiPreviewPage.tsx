@@ -38,6 +38,7 @@ export const UiPreviewPage = () => {
   return (
     <div className="space-y-6">
       <SectionHeader
+        variant="h2"
         title={t('uiPreview.title')}
         subtitle={t('uiPreview.subtitle')}
       />
