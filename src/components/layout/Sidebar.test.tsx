@@ -10,19 +10,30 @@ describe('Sidebar', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByText('SPICE • AI COACHING')).toBeInTheDocument();
     expect(
-      screen.getByText('Micro Learning Analytics Dashboard'),
+      screen.getByRole('link', { name: /dashboard/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /chw profiles/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /ui preview/i }),
+      screen.getByRole('link', { name: /module library/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /chart preview/i }),
+      screen.getByRole('link', { name: /quiz performance/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /leaderboard/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /reports/i })).toBeInTheDocument();
+    expect(screen.getByText(/rashida khanam/i)).toBeInTheDocument();
+    expect(screen.getByText(/supervisor/i)).toBeInTheDocument();
+    expect(screen.getByText('RK')).toBeInTheDocument();
+    expect(screen.getByText('Bangladesh Pilot')).toBeInTheDocument();
+    expect(screen.getByText('OVERVIEW')).toBeInTheDocument();
+    expect(screen.getByText('LEARNING')).toBeInTheDocument();
+    expect(screen.getByText('MONITORING')).toBeInTheDocument();
   });
 
   it('applies active class to active link', () => {
@@ -33,9 +44,9 @@ describe('Sidebar', () => {
     );
 
     const activeLink = screen.getByRole('link', { name: /chw profiles/i });
-    expect(activeLink).toHaveClass('bg-blue-600', 'text-white');
+    expect(activeLink).toHaveClass('bg-blue-50', 'text-blue-700');
 
-    const inactiveLink = screen.getByRole('link', { name: /home/i });
+    const inactiveLink = screen.getByRole('link', { name: /dashboard/i });
     expect(inactiveLink).toHaveClass('text-slate-700');
   });
 });

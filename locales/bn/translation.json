@@ -34,7 +34,11 @@
     },
     "header": {
       "languageAriaLabel": "ভাষা",
-      "languageSelectSr": "ভাষা"
+      "languageSelectSr": "ভাষা",
+      "languageOptions": {
+        "en": "English",
+        "bn": "বাংলা"
+      }
     }
   },
   "errorBoundary": {

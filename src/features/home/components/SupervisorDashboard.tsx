@@ -1,11 +1,8 @@
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  SectionHeader,
-} from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
 import { SectionStateCard } from '@/components/common/SectionStateCard';
+import { Button } from '@/components/ui';
+import { DashboardEmptyState } from '@/features/home/components/DashboardEmptyState';
 import { FlagsCard } from '@/features/home/components/FlagsCard';
 import { InsightCard } from '@/features/home/components/InsightCard';
 import { KPISection } from '@/features/home/components/KPISection';
@@ -14,9 +11,12 @@ import { ModuleProgressCard } from '@/features/home/components/ModuleProgressCar
 import { PerformanceMatrix } from '@/features/home/components/PerformanceMatrix';
 import { SUPERVISOR_DASHBOARD_CONSTANTS } from '@/features/home/constants/supervisorDashboardConstants';
 import { useSupervisorDashboard } from '@/features/home/hooks/useSupervisorDashboard';
+import { paths } from '@/constants/routes';
+import { useNavigate } from 'react-router-dom';
 
 export const SupervisorDashboard = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     summary,
     leaderboard,
@@ -32,8 +32,9 @@ export const SupervisorDashboard = () => {
     modulesState,
   } = useSupervisorDashboard();
 
+  const hasSummaryData = Boolean(summary?.kpis?.length);
   const hasAnyData =
-    Boolean(summary) ||
+    hasSummaryData ||
     leaderboard.length > 0 ||
     alerts.length > 0 ||
     performance.length > 0 ||
@@ -59,19 +60,14 @@ export const SupervisorDashboard = () => {
   }
 
   const isEmpty =
-    !summary &&
+    !hasSummaryData &&
     leaderboard.length === 0 &&
     alerts.length === 0 &&
     performance.length === 0 &&
     modules.length === 0;
 
   if (isEmpty) {
-    return (
-      <EmptyState
-        title={t(SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.TITLE)}
-        description={t(SUPERVISOR_DASHBOARD_CONSTANTS.EMPTY.DESCRIPTION)}
-      />
-    );
+    return <DashboardEmptyState />;
   }
 
   const summaryContent = summaryState.isError ? (
@@ -103,75 +99,99 @@ export const SupervisorDashboard = () => {
 
   const leaderboardContent = leaderboardState.isError ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD)}
+      title={t('home.dashboard.sections.topPerformance')}
       state="error"
     />
   ) : leaderboardState.isLoading ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.LEADERBOARD)}
+      title={t('home.dashboard.sections.topPerformance')}
       state="loading"
       loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.LEADERBOARD_LABEL)}
     />
   ) : (
-    <LeaderboardCard items={leaderboard} />
+    <LeaderboardCard
+      title={t('home.dashboard.sections.topPerformance')}
+      items={leaderboard}
+      onViewAll={() => undefined}
+    />
   );
 
   const performanceContent = performanceState.isError ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE)}
+      title={t('home.dashboard.sections.performanceMatrix')}
       state="error"
     />
   ) : performanceState.isLoading ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.PERFORMANCE)}
+      title={t('home.dashboard.sections.performanceMatrix')}
       state="loading"
       loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.PERFORMANCE_LABEL)}
     />
   ) : (
-    <PerformanceMatrix rows={performance} />
+    <PerformanceMatrix
+      title={t('home.dashboard.sections.performanceMatrix')}
+      rows={performance}
+      onRowClick={(row) => {
+        navigate(`${paths.chwProfiles}/${encodeURIComponent(row.chw_id)}`);
+      }}
+    />
   );
 
   const flagsContent = alertsState.isError ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS)}
+      title={t('home.dashboard.sections.priorityFlags')}
       state="error"
     />
   ) : alertsState.isLoading ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.FLAGS)}
+      title={t('home.dashboard.sections.priorityFlags')}
       state="loading"
       loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.FLAGS_LABEL)}
     />
   ) : (
     <FlagsCard
+      title={t('home.dashboard.sections.priorityFlags')}
+      subtitle={t('home.dashboard.flags.subtitle', { count: alerts.length })}
       items={alerts}
-      primaryActionLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.ACTIONS.VIEW_ALL)}
+      primaryActionLabel={t('home.dashboard.actions.viewAll')}
       onPrimaryAction={() => undefined}
     />
   );
 
   const modulesContent = modulesState.isError ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES)}
+      title={t('home.dashboard.sections.moduleProgress')}
       state="error"
     />
   ) : modulesState.isLoading ? (
     <SectionStateCard
-      title={t(SUPERVISOR_DASHBOARD_CONSTANTS.SECTIONS.MODULES)}
+      title={t('home.dashboard.sections.moduleProgress')}
       state="loading"
       loadingLabel={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.MODULES_LABEL)}
     />
   ) : (
-    <ModuleProgressCard items={modules} />
+    <ModuleProgressCard
+      title={t('home.dashboard.sections.moduleProgress')}
+      items={modules}
+      onNew={() => undefined}
+    />
   );
 
   return (
     <section className="space-y-6">
-      <SectionHeader
-        variant="h2"
-        title={t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
-        subtitle={t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.SUBTITLE)}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900">
+          {t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
+        </h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" onClick={() => undefined}>
+            {t('home.supervisorDashboard.actions.exportReport')}
+          </Button>
+          <Button onClick={() => undefined}>
+            {t('home.supervisorDashboard.actions.assignModule')}
+          </Button>
+        </div>
+      </div>
 
       {summaryContent}
 

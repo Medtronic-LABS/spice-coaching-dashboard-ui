@@ -18,9 +18,8 @@ describe('MainLayout', () => {
     );
 
     // Verify Header and Sidebar content exists
-    expect(
-      screen.getAllByText('Micro Learning Analytics Dashboard').length,
-    ).toBeGreaterThan(0);
+    expect(screen.getByText('SPICE • AI COACHING')).toBeInTheDocument();
+    expect(screen.getByText(/welcome back/i)).toBeInTheDocument();
     expect(screen.getByTestId('outlet-content')).toBeInTheDocument();
   });
 });
