@@ -356,7 +356,7 @@ Variants:
 * Primary: `blue-600`
 * Success: `green-600`
 * Warning: `yellow-500`
-* Critical: `red-600`
+* Critical: `red-700`
 * Neutral: `gray-500`
 
 ---

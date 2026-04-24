@@ -1,0 +1,13 @@
+:root {
+  /* Tokens from provided css.c */
+  --c-shark: #1a1d23; /* primary text */
+  --c-mako: #44464f; /* secondary text */
+  --c-manatee: #8b8fa8; /* muted text */
+  --c-denim: #1565c0; /* primary */
+  --c-whisper: #eceef5; /* borders */
+}
+
+body {
+  color: var(--c-shark);
+}
+

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SupervisorDashboard } from './SupervisorDashboard';
 import type { UseSupervisorDashboardResult } from '@/features/home/hooks/useSupervisorDashboard';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/features/home/hooks/useSupervisorDashboard', () => ({
   useSupervisorDashboard: vi.fn(),
@@ -30,12 +31,20 @@ function mockResult(
   };
 }
 
+function renderDashboard() {
+  return render(
+    <MemoryRouter>
+      <SupervisorDashboard />
+    </MemoryRouter>,
+  );
+}
+
 describe('SupervisorDashboard', () => {
   it('shows initial loading state', () => {
     (
       useSupervisorDashboard as unknown as ReturnType<typeof vi.fn>
     ).mockReturnValue(mockResult({ isLoading: true }));
-    render(<SupervisorDashboard />);
+    renderDashboard();
     expect(
       screen.getByText(/loading supervisor dashboard/i),
     ).toBeInTheDocument();
@@ -45,7 +54,7 @@ describe('SupervisorDashboard', () => {
     (
       useSupervisorDashboard as unknown as ReturnType<typeof vi.fn>
     ).mockReturnValue(mockResult({ isError: true }));
-    render(<SupervisorDashboard />);
+    renderDashboard();
     expect(
       screen.getByText(/supervisor dashboard unavailable/i),
     ).toBeInTheDocument();
@@ -55,8 +64,10 @@ describe('SupervisorDashboard', () => {
     (
       useSupervisorDashboard as unknown as ReturnType<typeof vi.fn>
     ).mockReturnValue(mockResult({}));
-    render(<SupervisorDashboard />);
-    expect(screen.getByText(/no supervisor data yet/i)).toBeInTheDocument();
+    renderDashboard();
+    expect(screen.getByText(/welcome/i)).toBeInTheDocument();
+    expect(screen.getByText(/add chws/i)).toBeInTheDocument();
+    expect(screen.getByText(/create module/i)).toBeInTheDocument();
   });
 
   it('renders dashboard header when some data exists', () => {
@@ -76,9 +87,9 @@ describe('SupervisorDashboard', () => {
         ],
       }),
     );
-    render(<SupervisorDashboard />);
-    expect(screen.getByText(/supervisor dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/leaderboard/i)).toBeInTheDocument();
+    renderDashboard();
+    expect(screen.getByText(/^dashboard$/i)).toBeInTheDocument();
+    expect(screen.getByText(/top performance/i)).toBeInTheDocument();
   });
 
   it('renders per-section loading and error cards', () => {
@@ -103,9 +114,11 @@ describe('SupervisorDashboard', () => {
         ],
       }),
     );
-    render(<SupervisorDashboard />);
+    renderDashboard();
     expect(screen.getByText(/loading summary/i)).toBeInTheDocument();
-    expect(screen.getByText(/leaderboard unavailable/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/top performance unavailable/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/loading chw matrix/i)).toBeInTheDocument();
     expect(screen.getByText(/loading flags/i)).toBeInTheDocument();
     expect(
@@ -136,10 +149,12 @@ describe('SupervisorDashboard', () => {
       }),
     );
 
-    render(<SupervisorDashboard />);
+    renderDashboard();
     expect(screen.getByText(/summary unavailable/i)).toBeInTheDocument();
     expect(screen.getByText(/loading leaderboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/chw matrix unavailable/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/chw performance matrix unavailable/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/flags unavailable/i)).toBeInTheDocument();
     expect(screen.getByText(/loading modules/i)).toBeInTheDocument();
   });
@@ -171,7 +186,7 @@ describe('SupervisorDashboard', () => {
         },
       }),
     );
-    render(<SupervisorDashboard />);
+    renderDashboard();
     expect(screen.getByText('Users')).toBeInTheDocument();
     expect(screen.getByText('Insight')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();

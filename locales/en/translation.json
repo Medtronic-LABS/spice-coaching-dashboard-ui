@@ -24,18 +24,55 @@
   },
   "layout": {
     "sidebar": {
-      "title": "Micro Learning Analytics Dashboard",
+      "brand": "SPICE • AI COACHING",
+      "badge": "Bangladesh Pilot",
+      "sections": {
+        "overview": "OVERVIEW",
+        "learning": "LEARNING",
+        "monitoring": "MONITORING"
+      },
       "nav": {
-        "home": "Home",
+        "dashboard": "Dashboard",
         "chwProfiles": "CHW Profiles",
-        "uiPreview": "UI Preview",
-        "chartPreview": "Chart Preview"
+        "moduleLibrary": "Module Library",
+        "quizPerformance": "Quiz Performance",
+        "leaderboard": "Leaderboard",
+        "reports": "Reports"
+      },
+      "user": {
+        "initials": "RK",
+        "name": "Rashida Khanam",
+        "subtitle": "Supervisor • Sylhet Sadar"
       }
     },
     "header": {
+      "welcomeBack": "Welcome back, {{name}}",
+      "userName": "Subhodeep",
+      "userInitials": "S",
+      "userMenuAriaLabel": "User menu",
       "languageAriaLabel": "Language",
-      "languageSelectSr": "Language"
+      "languageSelectSr": "Language",
+      "languageOptions": {
+        "en": "English",
+        "bn": "বাংলা"
+      }
     }
+  },
+  "moduleLibrary": {
+    "title": "Module Library",
+    "description": "Browse and manage learning modules."
+  },
+  "quizPerformance": {
+    "title": "Quiz Performance",
+    "description": "Review quiz outcomes and trends."
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "description": "See top performance across CHWs."
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Export and review reporting summaries."
   },
   "errorBoundary": {
     "description": "The dashboard hit an unexpected error. You can refresh the page or go back to the home screen.",
@@ -58,6 +95,61 @@
     "unknown": "Trend"
   },
   "home": {
+    "dashboard": {
+      "actions": {
+        "viewAll": "View All →"
+      },
+      "sections": {
+        "topPerformance": "Top Performance",
+        "priorityFlags": "Priority Flags",
+        "performanceMatrix": "CHW Performance Matrix",
+        "moduleProgress": "Module Progress"
+      },
+      "topPerformance": {
+        "subtitle": "{{passRate}}% Pass Rate • {{points}} pts"
+      },
+      "flags": {
+        "subtitle": "{{count}} CHWs need attention",
+        "severity": {
+          "critical": "CRITICAL",
+          "warning": "WARNING",
+          "info": "INFO"
+        },
+        "dueToday": "Due Today",
+        "overdueDays": "{{days}}d Overdue",
+        "actions": {
+          "assignModule": "Assign Module",
+          "viewProfile": "View Profile"
+        }
+      },
+      "performance": {
+        "searchPlaceholder": "Search workers...",
+        "filters": {
+          "all": "All",
+          "flagged": "Flagged",
+          "overdue": "Overdue"
+        }
+      },
+      "modules": {
+        "actions": {
+          "new": "+ New"
+        },
+        "rowMeta": "{{completed}} / {{total}} completed",
+        "status": {
+          "complete": "Complete",
+          "inProgress": "In Progress",
+          "overdue": "Overdue"
+        }
+      }
+    },
+    "dashboardEmpty": {
+      "title": "Welcome, {{name}}",
+      "description": "Your coaching dashboard is ready. Start by adding your Community Health Workers, then create your first learning module to get started.",
+      "actions": {
+        "addChws": "Add CHWs",
+        "createModule": "Create Module"
+      }
+    },
     "supervisorDashboard": {
       "loading": {
         "initialLabel": "Loading supervisor dashboard",
@@ -77,7 +169,7 @@
         "description": "Once activity is available, you’ll see KPIs, flags, and progress here."
       },
       "header": {
-        "title": "Supervisor dashboard",
+        "title": "Dashboard",
         "subtitle": "Quick overview of performance, flags, and module progress."
       },
       "sections": {
@@ -88,7 +180,9 @@
         "modules": "Module progress"
       },
       "actions": {
-        "viewAll": "View all"
+        "viewAll": "View all",
+        "exportReport": "Export Report",
+        "assignModule": "Assign Module"
       }
     },
     "leaderboard": {

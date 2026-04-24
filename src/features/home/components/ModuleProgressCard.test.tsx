@@ -4,7 +4,7 @@ import { ModuleProgressCard } from './ModuleProgressCard';
 import type { ModuleProgressItem } from '@/types/supervisor.types';
 
 describe('ModuleProgressCard', () => {
-  it('renders module rows with progress and status badge', () => {
+  it('renders module rows with progress', () => {
     const items: ModuleProgressItem[] = [
       {
         module_id: 'm1',
@@ -19,8 +19,8 @@ describe('ModuleProgressCard', () => {
     render(<ModuleProgressCard items={items} />);
     expect(screen.getByText('Module progress')).toBeInTheDocument();
     expect(screen.getByText('Module 1')).toBeInTheDocument();
-    expect(screen.getByText(/40% completion/i)).toBeInTheDocument();
-    expect(screen.getByText(/due soon/i)).toBeInTheDocument();
+    expect(screen.getByText('40%')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+ new/i })).toBeInTheDocument();
   });
 
   it('supports custom title/subtitle and row click', () => {

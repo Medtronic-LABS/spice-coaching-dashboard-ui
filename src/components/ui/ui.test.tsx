@@ -46,7 +46,7 @@ describe('ui components', () => {
           rightContent={<Badge>R</Badge>}
         />
         <ListItem title="Row2" />
-        <StatCard label="Stat" value="42" change={5} />
+        <StatCard label="Stat" value="42" change={5} supportingText="Helper" />
         <LoadingState label="Loading..." />
         <EmptyState
           title="Empty"
@@ -83,6 +83,7 @@ describe('ui components', () => {
     expect(screen.getByText('Row2')).toBeInTheDocument();
     expect(screen.getByText('Stat')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('Helper')).toBeInTheDocument();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.getByText('Empty')).toBeInTheDocument();
     expect(screen.getByText('Nothing here')).toBeInTheDocument();

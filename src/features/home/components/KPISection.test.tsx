@@ -39,7 +39,7 @@ describe('KPISection', () => {
     expect(screen.getByText('Users')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('Completion')).toBeInTheDocument();
-    expect(screen.getByText('60% (6/10)')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
     expect(screen.getByText('Flags')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
   });
