@@ -112,7 +112,10 @@ export const SupervisorDashboard = () => {
     <LeaderboardCard
       title={t('home.dashboard.sections.topPerformance')}
       items={leaderboard}
-      onViewAll={() => undefined}
+      onViewAll={() => navigate(paths.leaderboard)}
+      onRowClick={(item) => {
+        navigate(`${paths.chwProfiles}/${encodeURIComponent(item.chw_id)}`);
+      }}
     />
   );
 
@@ -154,7 +157,13 @@ export const SupervisorDashboard = () => {
       subtitle={t('home.dashboard.flags.subtitle', { count: alerts.length })}
       items={alerts}
       primaryActionLabel={t('home.dashboard.actions.viewAll')}
-      onPrimaryAction={() => undefined}
+      onPrimaryAction={() => navigate(paths.chwProfiles)}
+      onAssignModule={(item) => {
+        navigate(paths.moduleLibrary, { state: { chwId: item.chw_id } });
+      }}
+      onViewProfile={(item) => {
+        navigate(`${paths.chwProfiles}/${encodeURIComponent(item.chw_id)}`);
+      }}
     />
   );
 
@@ -184,10 +193,10 @@ export const SupervisorDashboard = () => {
           {t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="secondary" onClick={() => undefined}>
+          <Button variant="secondary" onClick={() => navigate(paths.reports)}>
             {t('home.supervisorDashboard.actions.exportReport')}
           </Button>
-          <Button onClick={() => undefined}>
+          <Button onClick={() => navigate(paths.moduleLibrary)}>
             {t('home.supervisorDashboard.actions.assignModule')}
           </Button>
         </div>

@@ -8,8 +8,11 @@ import {
   mockDashboardSummary,
   mockFlags,
   mockLeaderboard,
+  mockModuleLibrary,
   mockModules,
   mockPerformanceMatrix,
+  mockQuizPerformance,
+  mockReports,
 } from '@/store/apis/mockData';
 import type { CHWPerformanceResponse } from '@/types/supervisor.types';
 
@@ -79,6 +82,21 @@ export const mockBaseQuery: BaseQueryFn<
       pagination: { page, total: mockPerformanceMatrix.data.length },
     };
     return { data: sliced };
+  }
+
+  // Module library endpoints
+  if (url === 'module-library') {
+    return { data: mockModuleLibrary };
+  }
+
+  // Quiz performance endpoints
+  if (url === 'quiz-performance') {
+    return { data: mockQuizPerformance };
+  }
+
+  // Reports endpoints
+  if (url === 'reports') {
+    return { data: mockReports };
   }
 
   // CHW detail endpoint: chw/{chw_id}

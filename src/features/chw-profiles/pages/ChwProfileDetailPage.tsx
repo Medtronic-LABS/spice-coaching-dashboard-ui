@@ -227,11 +227,12 @@ export const ChwProfileDetailPage = () => {
           </div>
 
           <div className="grid gap-2">
-            <Button onClick={() => {}}>
+            <Button
+              onClick={() =>
+                navigate(paths.moduleLibrary, { state: { chwId: chwId } })
+              }
+            >
               {t('chwProfiles.detail.actions.assign')}
-            </Button>
-            <Button variant="secondary" onClick={() => {}}>
-              {t('chwProfiles.detail.actions.flag')}
             </Button>
           </div>
         </Card>

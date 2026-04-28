@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { paths } from '@/constants/routes';
 
 const RocketIcon = () => (
   <svg
@@ -30,6 +32,11 @@ export const DashboardEmptyState = ({
   onCreateModule,
 }: DashboardEmptyStateProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleAddChws = onAddChws ?? (() => navigate(paths.chwProfiles));
+  const handleCreateModule =
+    onCreateModule ?? (() => navigate(paths.moduleLibrary));
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
@@ -46,10 +53,10 @@ export const DashboardEmptyState = ({
           {t('home.dashboardEmpty.description')}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button onClick={onAddChws}>
+          <Button onClick={handleAddChws}>
             {t('home.dashboardEmpty.actions.addChws')}
           </Button>
-          <Button variant="secondary" onClick={onCreateModule}>
+          <Button variant="secondary" onClick={handleCreateModule}>
             {t('home.dashboardEmpty.actions.createModule')}
           </Button>
         </div>

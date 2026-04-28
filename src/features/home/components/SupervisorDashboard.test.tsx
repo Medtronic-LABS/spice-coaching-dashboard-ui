@@ -4,6 +4,86 @@ import { SupervisorDashboard } from './SupervisorDashboard';
 import type { UseSupervisorDashboardResult } from '@/features/home/hooks/useSupervisorDashboard';
 import { MemoryRouter } from 'react-router-dom';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom',
+    );
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock('@/features/home/components/LeaderboardCard', () => ({
+  LeaderboardCard: (props: {
+    items: Array<{ chw_id: string; name: string }>;
+    onViewAll?: () => void;
+    onRowClick?: (item: { chw_id: string; name: string }) => void;
+  }) => (
+    <div>
+      <button type="button" onClick={props.onViewAll}>
+        Leaderboard view all
+      </button>
+      <button type="button" onClick={() => props.onRowClick?.(props.items[0])}>
+        Leaderboard row
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@/features/home/components/PerformanceMatrix', () => ({
+  PerformanceMatrix: (props: {
+    rows: Array<{ chw_id: string }>;
+    onRowClick?: (row: { chw_id: string }) => void;
+  }) => (
+    <div>
+      <button type="button" onClick={() => props.onRowClick?.(props.rows[0])}>
+        Performance row
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@/features/home/components/FlagsCard', () => ({
+  FlagsCard: (props: {
+    items: Array<{ chw_id: string }>;
+    onPrimaryAction: () => void;
+    onAssignModule?: (item: { chw_id: string }) => void;
+    onViewProfile?: (item: { chw_id: string }) => void;
+  }) => (
+    <div>
+      <button type="button" onClick={props.onPrimaryAction}>
+        Flags view all
+      </button>
+      <button
+        type="button"
+        onClick={() => props.onAssignModule?.(props.items[0])}
+      >
+        Flags assign
+      </button>
+      <button
+        type="button"
+        onClick={() => props.onViewProfile?.(props.items[0])}
+      >
+        Flags profile
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@/features/home/components/ModuleProgressCard', () => ({
+  ModuleProgressCard: (props: { onNew?: () => void }) => (
+    <div>
+      <button type="button" onClick={props.onNew}>
+        Modules new
+      </button>
+    </div>
+  ),
+}));
+
 vi.mock('@/features/home/hooks/useSupervisorDashboard', () => ({
   useSupervisorDashboard: vi.fn(),
 }));
@@ -32,6 +112,7 @@ function mockResult(
 }
 
 function renderDashboard() {
+  mockNavigate.mockReset();
   return render(
     <MemoryRouter>
       <SupervisorDashboard />
@@ -89,7 +170,9 @@ describe('SupervisorDashboard', () => {
     );
     renderDashboard();
     expect(screen.getByText(/^dashboard$/i)).toBeInTheDocument();
-    expect(screen.getByText(/top performance/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /leaderboard view all/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders per-section loading and error cards', () => {
@@ -190,5 +273,68 @@ describe('SupervisorDashboard', () => {
     expect(screen.getByText('Users')).toBeInTheDocument();
     expect(screen.getByText('Insight')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
+  });
+
+  it('invokes navigation handlers from action buttons and rows', () => {
+    (
+      useSupervisorDashboard as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValue(
+      mockResult({
+        leaderboard: [
+          {
+            chw_id: 'c1',
+            name: 'A',
+            score: 10,
+            rank: 1,
+            completion_rate: 70,
+            trend: 'flat',
+          },
+        ],
+        performance: [
+          {
+            chw_id: 'p1',
+            name: 'P',
+            assigned: 1,
+            completed: 1,
+            completion_rate: 100,
+            status: 'good',
+          },
+        ],
+        alerts: [
+          {
+            chw_id: 'f1',
+            name: 'F',
+            flag_type: 'inactive',
+            severity: 'high',
+          },
+        ],
+        modules: [
+          {
+            module_id: 'm1',
+            title: 'Module',
+            assigned: 1,
+            completed: 0,
+            completion_rate: 0,
+          },
+        ],
+      }),
+    );
+
+    renderDashboard();
+
+    // Header buttons
+    screen.getByRole('button', { name: /export/i }).click();
+    screen.getByRole('button', { name: /assign module/i }).click();
+
+    // Section callbacks (via mocked child components)
+    screen.getByRole('button', { name: /leaderboard view all/i }).click();
+    screen.getByRole('button', { name: /leaderboard row/i }).click();
+    screen.getByRole('button', { name: /performance row/i }).click();
+    screen.getByRole('button', { name: /flags view all/i }).click();
+    screen.getByRole('button', { name: /flags assign/i }).click();
+    screen.getByRole('button', { name: /flags profile/i }).click();
+    screen.getByRole('button', { name: /modules new/i }).click();
+
+    expect(mockNavigate).toHaveBeenCalled();
   });
 });

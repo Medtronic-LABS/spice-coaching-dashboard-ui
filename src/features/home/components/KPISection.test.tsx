@@ -43,4 +43,48 @@ describe('KPISection', () => {
     expect(screen.getByText('Flags')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
   });
+
+  it('covers KPI formatting branches (unit, supporting text, critical badge, icon selection)', () => {
+    const kpis: DashboardSummaryKpi[] = [
+      {
+        id: 'quiz-score',
+        title: 'Quiz score',
+        type: 'number',
+        status: 'good',
+        value: 90,
+        unit: '%',
+      },
+      {
+        id: 'progress-1',
+        title: 'Completion',
+        type: 'progress',
+        status: 'info',
+        value: 6,
+        total: 10,
+        percentage: 60,
+        unit: null,
+      },
+      {
+        id: 'alerts-1',
+        title: 'Alerts',
+        type: 'alert',
+        status: 'critical',
+        value: 2,
+        unit: null,
+        meta: { foo: 'bar' },
+        supporting_text: 'Custom supporting text',
+      },
+    ];
+
+    render(<KPISection kpis={kpis} />);
+
+    // unit formatting
+    expect(screen.getByText('90%')).toBeInTheDocument();
+    // progress supporting text branch
+    expect(screen.getByText(/of 10 assigned this cycle/i)).toBeInTheDocument();
+    // critical badge label branch
+    expect(screen.getByText('ALERT')).toBeInTheDocument();
+    // supporting_text override branch
+    expect(screen.getByText('Custom supporting text')).toBeInTheDocument();
+  });
 });

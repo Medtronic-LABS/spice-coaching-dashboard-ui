@@ -6,6 +6,9 @@ import type {
   ModulesProgressResponse,
 } from '@/types/supervisor.types';
 import type { ChwDetailResponse } from '@/features/chw-profiles/types/chwProfiles.types';
+import type { ModuleLibraryResponse } from '@/features/module-library/types/moduleLibrary.types';
+import type { QuizPerformanceResponse } from '@/features/quiz-performance/types/quizPerformance.types';
+import type { ReportsResponse } from '@/features/reports/types/reports.types';
 
 export const mockDashboardSummary: DashboardSummaryResponse = {
   kpis: [
@@ -197,6 +200,285 @@ export const mockModules: ModulesProgressResponse = {
       status: 'delayed',
       completed: 9,
       total: 22,
+    },
+  ],
+};
+
+export const mockModuleLibrary: ModuleLibraryResponse = {
+  modules: [
+    {
+      id: 'spice-visit',
+      title: 'SPICE App — Visit Submission',
+      category: 'SPICE App',
+      lessons: 4,
+      questions: 5,
+      durationLabel: '~20 min',
+      status: 'published',
+      lastUpdated: '12 Apr 2026',
+    },
+    {
+      id: 'htn-referral',
+      title: 'HTN Referral Thresholds',
+      category: 'Hypertension',
+      lessons: 4,
+      questions: 3,
+      durationLabel: '~18 min',
+      status: 'published',
+      lastUpdated: '8 Apr 2026',
+    },
+    {
+      id: 'community-clinic',
+      title: 'Community Clinic Referral Protocol',
+      category: 'Referral',
+      lessons: 3,
+      questions: 4,
+      durationLabel: '~15 min',
+      status: 'published',
+      lastUpdated: '5 Apr 2026',
+    },
+    {
+      id: 'fbs-rbs',
+      title: 'FBS vs RBS — Timing Rules',
+      category: 'Diabetes',
+      lessons: 3,
+      questions: 5,
+      durationLabel: '~14 min',
+      status: 'published',
+      lastUpdated: '3 Apr 2026',
+    },
+    {
+      id: 'med-adherence',
+      title: 'Medication Adherence Counseling',
+      category: 'SPICE App',
+      lessons: 3,
+      questions: 4,
+      durationLabel: '~12 min',
+      status: 'published',
+      lastUpdated: '1 Apr 2026',
+    },
+    {
+      id: 'danger-signs',
+      title: 'Danger Signs in Pregnancy',
+      category: 'Pregnancy',
+      lessons: 5,
+      questions: 6,
+      durationLabel: '~22 min',
+      status: 'published',
+      lastUpdated: 'Overdue • 15 Apr',
+    },
+    {
+      id: 'bp-technique',
+      title: 'BP Measurement Technique',
+      category: 'Hypertension',
+      lessons: 2,
+      questions: 0,
+      durationLabel: '~10 min',
+      status: 'draft',
+      lastUpdated: '2 days ago',
+      draftProgress: 'Step 2 of 4 — Lessons',
+    },
+    {
+      id: 'insulin-guidance',
+      title: 'Insulin Injection Guidance',
+      category: 'Diabetes',
+      lessons: 3,
+      questions: 3,
+      durationLabel: '~16 min',
+      status: 'draft',
+      lastUpdated: '5 days ago',
+      draftProgress: 'Step 3 of 4 — Quiz',
+    },
+    {
+      id: 'postnatal-checklist',
+      title: 'Postnatal Care Checklist',
+      category: 'Pregnancy',
+      lessons: 1,
+      questions: 0,
+      durationLabel: '~5 min',
+      status: 'draft',
+      lastUpdated: '1 week ago',
+      draftProgress: 'Step 2 of 4 — Lessons',
+    },
+  ],
+};
+
+export const mockQuizPerformance: QuizPerformanceResponse = {
+  stats: {
+    totalAttempts: 163,
+    passed: 118,
+    failed: 45,
+    overallPassRatePct: 72,
+    avgAttemptsToPass: 1.8,
+    chwsBelow70: 8,
+    totalChws: 30,
+    chwsAbove70: 22,
+    highestPassRatePct: 94,
+    highestPassRateChwName: 'Fatema Jannat',
+    totalQuestions: 28,
+    highFailRateQuestions: 4,
+    mostFailedModule: 'HTN Referral',
+    freeTextCompletionPct: 61,
+  },
+  byModule: [
+    {
+      module: 'SPICE App — Visit Submission',
+      category: 'SPICE App',
+      passRate: 91,
+      attempts: 32,
+      avgScore: 88,
+      trend: 'up',
+      trendValue: '+4%',
+    },
+    {
+      module: 'Community Clinic Referral Protocol',
+      category: 'Referral',
+      passRate: 84,
+      attempts: 38,
+      avgScore: 81,
+      trend: 'flat',
+      trendValue: '0%',
+    },
+    {
+      module: 'FBS vs RBS — Timing Rules',
+      category: 'Diabetes',
+      passRate: 78,
+      attempts: 27,
+      avgScore: 74,
+      trend: 'up',
+      trendValue: '+2%',
+    },
+    {
+      module: 'Medication Adherence Counseling',
+      category: 'SPICE App',
+      passRate: 71,
+      attempts: 24,
+      avgScore: 69,
+      trend: 'down',
+      trendValue: '-3%',
+    },
+    {
+      module: 'HTN Referral Thresholds',
+      category: 'Hypertension',
+      passRate: 62,
+      attempts: 29,
+      avgScore: 61,
+      trend: 'down',
+      trendValue: '-6%',
+    },
+    {
+      module: 'Danger Signs in Pregnancy',
+      category: 'Pregnancy',
+      passRate: 54,
+      attempts: 13,
+      avgScore: 57,
+      trend: 'down',
+      trendValue: '-8%',
+    },
+  ],
+  byChw: [
+    { name: 'Fatema Jannat', chw_id: 'CHW001', passRate: 94, attempts: 18 },
+    { name: 'Momotaj Begum', chw_id: 'CHW002', passRate: 86, attempts: 22 },
+    { name: 'Nasrin Khatun', chw_id: 'CHW003', passRate: 74, attempts: 15 },
+    { name: 'Rina Akter', chw_id: 'CHW004', passRate: 63, attempts: 20 },
+    { name: 'Sabina Khatun', chw_id: 'CHW005', passRate: 50, attempts: 28 },
+  ],
+  questions: [
+    {
+      id: 'q1',
+      module: 'HTN Referral Thresholds',
+      typeLabel: 'Multiple Choice',
+      question:
+        'At what BP reading should a CHW refer a patient to UHC immediately?',
+      failRate: 68,
+      answers: [
+        { label: '160/100 mmHg or above', pct: 32, isCorrect: true },
+        { label: '140/90 mmHg or above', pct: 46 },
+        { label: '180/110 mmHg only', pct: 22 },
+      ],
+      note: 'CHWs are confusing the 140/90 community-level threshold with the 160/100 UHC referral threshold. Consider adding a comparison table in Lesson 3.',
+    },
+    {
+      id: 'q2',
+      module: 'Danger Signs in Pregnancy',
+      typeLabel: 'Multi-Select',
+      question:
+        'Which of the following are danger signs in the third trimester? (Select all that apply)',
+      failRate: 62,
+      answers: [
+        { label: 'Severe headache', pct: 92, isCorrect: true },
+        { label: 'Blurred vision', pct: 77, isCorrect: true },
+        { label: 'Reduced fetal movement', pct: 31, isCorrect: true },
+        { label: 'Swelling of face and hands', pct: 28, isCorrect: true },
+      ],
+      note: 'Reduced fetal movement and facial swelling are being missed. These may need a dedicated lesson slide with visual examples.',
+    },
+  ],
+};
+
+export const mockReports: ReportsResponse = {
+  stats: {
+    activeChws: 30,
+    locationLabel: 'Sylhet Sadar',
+    modulesPublished: 6,
+    modulesTotal: 9,
+    modulesDrafts: 3,
+    overallPassRateLabel: '72%',
+    overallPassRateMeta: '118 / 163 attempts',
+    avgCompletionLabel: '68%',
+    avgCompletionMeta: 'across all modules',
+  },
+  available: [
+    {
+      id: 'chw-performance',
+      title: 'CHW Performance Summary',
+      description:
+        'Individual pass rates, module completion, streaks, and flags for all CHWs in your Upazila.',
+      cadenceLabel: 'Updated daily',
+      formatsLabel: 'CSV / PDF',
+      actionLabel: 'Download',
+    },
+    {
+      id: 'quiz-analytics',
+      title: 'Quiz Analytics Report',
+      description:
+        'Pass/fail rates per module, most failed questions, answer distribution, and weekly improvement suggestions.',
+      cadenceLabel: 'Updated weekly',
+      formatsLabel: 'CSV / PDF',
+      actionLabel: 'Download',
+    },
+    {
+      id: 'module-completion',
+      title: 'Module Completion Tracker',
+      description:
+        'Completion status per module per CHW, deadline adherence, overdue assignments, and time spent.',
+      cadenceLabel: 'Updated daily',
+      formatsLabel: 'CSV',
+      actionLabel: 'Download',
+    },
+    {
+      id: 'flags-resolution',
+      title: 'Flags & Resolution Log',
+      description:
+        'All flagged CHWs, severity, reasons, resolution notes, and time to resolve. Active & historical.',
+      cadenceLabel: 'Real-time',
+      formatsLabel: 'PDF',
+      actionLabel: 'Download',
+    },
+  ],
+  customCards: [
+    {
+      title: 'Date Range Report',
+      subtitle:
+        'Select a custom date range and filter by module, CHW, or status',
+    },
+    {
+      title: 'Before & After Comparison',
+      subtitle: 'Compare performance metrics between two time periods',
+    },
+    {
+      title: 'AI-Generated Insights',
+      subtitle:
+        'AI analyzes patterns and generates improvement recommendations',
     },
   ],
 };

@@ -10,14 +10,14 @@ const Home = lazy(() =>
   })),
 );
 const ChwProfilesListPage = lazy(() =>
-  import('@/features/chw-profiles/pages/ChwProfilesListPage.tsx').then(
+  import('@/features/chw-profiles/pages/ChwProfilesListPage').then(
     (module) => ({
       default: module.ChwProfilesListPage,
     }),
   ),
 );
 const ChwProfileDetailPage = lazy(() =>
-  import('@/features/chw-profiles/pages/ChwProfileDetailPage.tsx').then(
+  import('@/features/chw-profiles/pages/ChwProfileDetailPage').then(
     (module) => ({
       default: module.ChwProfileDetailPage,
     }),
@@ -27,6 +27,13 @@ const ModuleLibraryPage = lazy(() =>
   import('@/features/module-library/pages/ModuleLibraryPage').then(
     (module) => ({
       default: module.ModuleLibraryPage,
+    }),
+  ),
+);
+const ModuleAssignedPage = lazy(() =>
+  import('@/features/module-library/pages/ModuleAssignedPage').then(
+    (module) => ({
+      default: module.ModuleAssignedPage,
     }),
   ),
 );
@@ -68,6 +75,7 @@ export const AppRoutes = () => {
             element={<ChwProfileDetailPage />}
           />
           <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+          <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
           <Route
             path={paths.quizPerformance}
             element={<QuizPerformancePage />}

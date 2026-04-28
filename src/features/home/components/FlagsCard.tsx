@@ -9,6 +9,8 @@ export interface FlagsCardProps {
   primaryActionLabel: string;
   onPrimaryAction: () => void;
   onRowClick?: (item: PerformanceAlertItem) => void;
+  onAssignModule?: (item: PerformanceAlertItem) => void;
+  onViewProfile?: (item: PerformanceAlertItem) => void;
 }
 
 export const FlagsCard = ({
@@ -17,6 +19,8 @@ export const FlagsCard = ({
   items,
   primaryActionLabel,
   onPrimaryAction,
+  onAssignModule,
+  onViewProfile,
 }: FlagsCardProps) => {
   const { t } = useTranslation();
   const resolvedTitle = title ?? t('home.supervisorDashboard.sections.flags');
@@ -96,14 +100,14 @@ export const FlagsCard = ({
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
                     className="h-8 px-3 text-xs"
-                    onClick={() => undefined}
+                    onClick={() => onAssignModule?.(item)}
                   >
                     {t('home.dashboard.flags.actions.assignModule')}
                   </Button>
                   <Button
                     variant="secondary"
                     className="h-8 px-3 text-xs"
-                    onClick={() => undefined}
+                    onClick={() => onViewProfile?.(item)}
                   >
                     {t('home.dashboard.flags.actions.viewProfile')}
                   </Button>

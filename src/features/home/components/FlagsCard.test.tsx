@@ -12,15 +12,20 @@ describe('FlagsCard', () => {
         flag_type: 'inactive',
         severity: 'high',
         message: 'Inactive',
+        last_active_days: 0,
       },
     ];
     const onPrimaryAction = vi.fn();
+    const onAssignModule = vi.fn();
+    const onViewProfile = vi.fn();
 
     render(
       <FlagsCard
         items={items}
         primaryActionLabel="View all"
         onPrimaryAction={onPrimaryAction}
+        onAssignModule={onAssignModule}
+        onViewProfile={onViewProfile}
       />,
     );
 
@@ -32,6 +37,14 @@ describe('FlagsCard', () => {
       screen.getByRole('button', { name: /assign module/i }),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: /view profile/i })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: /assign module/i }));
+    expect(onAssignModule).toHaveBeenCalledWith(items[0]);
+    fireEvent.click(screen.getByRole('button', { name: /view profile/i }));
+    expect(onViewProfile).toHaveBeenCalledWith(items[0]);
+
+    // due label branch (<=0)
+    expect(screen.getByText(/due today/i)).toBeInTheDocument();
   });
 
   it('renders fallback subtitle and non-clickable rows when onRowClick is missing', () => {
@@ -43,6 +56,7 @@ describe('FlagsCard', () => {
         severity: 'low',
         message: 'Inactive',
         details: '3 days',
+        last_active_days: 3,
       },
       {
         chw_id: 'c2',
@@ -65,5 +79,29 @@ describe('FlagsCard', () => {
     expect(screen.getByText(/inactive • 3 days/i)).toBeInTheDocument();
     // fallback to flag_type branch
     expect(screen.getByText('late')).toBeInTheDocument();
+
+    // due label branch (>0)
+    expect(screen.getByText(/3d overdue/i)).toBeInTheDocument();
+  });
+
+  it('does not show due label when last_active_days is missing', () => {
+    const items: PerformanceAlertItem[] = [
+      {
+        chw_id: 'c1',
+        name: 'CHW 1',
+        flag_type: 'inactive',
+        severity: 'medium',
+      },
+    ];
+    render(
+      <FlagsCard
+        items={items}
+        primaryActionLabel="View all"
+        onPrimaryAction={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/due today/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/overdue/i)).not.toBeInTheDocument();
   });
 });

@@ -60,7 +60,36 @@
   },
   "moduleLibrary": {
     "title": "Module Library",
-    "description": "Browse and manage learning modules."
+    "description": "Browse and manage learning modules.",
+    "assigned": {
+      "badge": "ASSIGNMENT SENT",
+      "title": "Module Assigned Successfully",
+      "subtitle": "The module has been assigned. They will see it in their coaching screen immediately.",
+      "summary": {
+        "module": "MODULE",
+        "moduleMeta": "4 lessons • 3 questions • ~18 min",
+        "deadline": "DEADLINE",
+        "deadlineMeta": "14 days from today",
+        "assignedTo": "ASSIGNED TO — {{count}} CHWs"
+      },
+      "next": {
+        "title": "WHAT'S NEXT",
+        "backToLibrary": "Back to Module Library",
+        "backToLibraryHint": "View or edit the assigned module",
+        "assignMore": "Assign to more CHWs",
+        "assignMoreHint": "Add more Shasthya Kormis to this module",
+        "goDashboard": "Go to Dashboard",
+        "goDashboardHint": "Track progress in the Module Completion widget"
+      },
+      "actions": {
+        "back": "Back to Module Library",
+        "goDashboard": "Go to Dashboard"
+      },
+      "sample": {
+        "module": "HTN Referral Thresholds",
+        "deadline": "Mon, 28 Apr 2026"
+      }
+    }
   },
   "quizPerformance": {
     "title": "Quiz Performance",
