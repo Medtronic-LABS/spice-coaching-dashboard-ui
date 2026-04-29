@@ -321,7 +321,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
   },
   byModule: [
     {
-      module: 'SPICE App — Visit Submission',
+      module: 'SPICE App — Visit Submission (Daily)',
       category: 'SPICE App',
       passRate: 91,
       attempts: 32,
@@ -330,7 +330,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
       trendValue: '+4%',
     },
     {
-      module: 'Community Clinic Referral Protocol',
+      module: 'Community Clinic Referral Protocol (Weekly)',
       category: 'Referral',
       passRate: 84,
       attempts: 38,
@@ -339,7 +339,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
       trendValue: '0%',
     },
     {
-      module: 'FBS vs RBS — Timing Rules',
+      module: 'FBS vs RBS — Timing Rules (Monthly)',
       category: 'Diabetes',
       passRate: 78,
       attempts: 27,
@@ -348,7 +348,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
       trendValue: '+2%',
     },
     {
-      module: 'Medication Adherence Counseling',
+      module: 'Medication Adherence Counseling (Cohort A)',
       category: 'SPICE App',
       passRate: 71,
       attempts: 24,
@@ -357,7 +357,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
       trendValue: '-3%',
     },
     {
-      module: 'HTN Referral Thresholds',
+      module: 'HTN Referral Thresholds (Q2)',
       category: 'Hypertension',
       passRate: 62,
       attempts: 29,
@@ -366,7 +366,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
       trendValue: '-6%',
     },
     {
-      module: 'Danger Signs in Pregnancy',
+      module: 'Danger Signs in Pregnancy (Q2)',
       category: 'Pregnancy',
       passRate: 54,
       attempts: 13,

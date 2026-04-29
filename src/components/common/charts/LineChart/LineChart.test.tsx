@@ -59,7 +59,11 @@ describe('LineChart', () => {
     expect(capturedXAxisProps?.dataKey).toBe('month');
     expect(screen.getByTestId('recharts-tooltip')).toBeInTheDocument();
     expect(capturedTooltipProps?.contentStyle).toEqual(
-      expect.objectContaining({ borderRadius: '8px', border: 'none' }),
+      expect.objectContaining({
+        borderRadius: '8px',
+        border: '1px solid var(--color-border)',
+        background: 'var(--color-surface)',
+      }),
     );
     expect(capturedLineProps).toHaveLength(1);
     expect(capturedLineProps[0].type).toBe('monotone');

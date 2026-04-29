@@ -14,10 +14,10 @@ export const ProgressBar = ({
   const clamped = Math.max(0, Math.min(100, value));
 
   return (
-    <div className={cn('h-2 w-full rounded-full bg-slate-100', className)}>
+    <div className={cn('h-2 w-full rounded-full bg-spice-bg-tint', className)}>
       <div
         className={cn(
-          'h-2 rounded-full bg-blue-800 transition-all',
+          'h-2 rounded-full bg-spice-brand-primary transition-all',
           barClassName,
         )}
         style={{ width: `${clamped}%` }}

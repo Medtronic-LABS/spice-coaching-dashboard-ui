@@ -30,20 +30,20 @@ export const FlagsCard = ({
       case 'high':
         return {
           label: t('home.dashboard.flags.severity.critical'),
-          pill: 'bg-red-50 text-red-700',
-          accent: 'border-l-red-700',
+          pill: 'bg-spice-semantic-errorBg text-spice-semantic-error ring-1 ring-spice-semantic-error/25',
+          accent: 'border-l-[color:var(--color-error)]',
         };
       case 'medium':
         return {
           label: t('home.dashboard.flags.severity.warning'),
-          pill: 'bg-amber-50 text-amber-700',
-          accent: 'border-l-amber-500',
+          pill: 'bg-spice-semantic-warningBg text-spice-semantic-warning ring-1 ring-spice-semantic-warning/25',
+          accent: 'border-l-[color:var(--color-warning)]',
         };
       default:
         return {
           label: t('home.dashboard.flags.severity.info'),
-          pill: 'bg-slate-50 text-slate-700',
-          accent: 'border-l-slate-300',
+          pill: 'bg-spice-semantic-infoBg text-spice-semantic-info ring-1 ring-spice-border',
+          accent: 'border-l-spice-border-mid',
         };
     }
   };
@@ -65,7 +65,7 @@ export const FlagsCard = ({
           <Button
             variant="ghost"
             onClick={onPrimaryAction}
-            className="text-blue-700 hover:bg-blue-50"
+            className="text-spice-brand-primary hover:bg-spice-bg-tint"
           >
             {primaryActionLabel}
           </Button>
@@ -76,7 +76,7 @@ export const FlagsCard = ({
         {items.map((item) => (
           <div
             key={item.chw_id}
-            className={`rounded-xl border border-slate-200 bg-white p-3 border-l-4 ${severityMeta(item.severity).accent}`}
+            className={`rounded-xl border border-spice-border bg-spice-bg-surface p-3 border-l-4 ${severityMeta(item.severity).accent}`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -86,10 +86,10 @@ export const FlagsCard = ({
                   {severityMeta(item.severity).label}
                 </span>
 
-                <div className="mt-2 text-sm font-semibold text-slate-900">
+                <div className="mt-2 text-sm font-semibold text-spice-text-primary">
                   {item.name}
                 </div>
-                <div className="mt-1 text-xs text-slate-600">
+                <div className="mt-1 text-xs text-spice-text-medium">
                   {item.message
                     ? item.details
                       ? `${item.message} • ${item.details}`
@@ -115,7 +115,7 @@ export const FlagsCard = ({
               </div>
 
               {dueLabel(item) ? (
-                <div className="shrink-0 text-[10px] font-semibold text-slate-500">
+                <div className="shrink-0 text-[10px] font-semibold text-spice-text-muted">
                   {dueLabel(item)}
                 </div>
               ) : null}

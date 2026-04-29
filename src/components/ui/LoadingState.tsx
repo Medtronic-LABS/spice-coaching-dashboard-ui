@@ -17,13 +17,13 @@ export const LoadingState = ({ label }: LoadingStateProps) => {
 
   return (
     <div
-      className="rounded-lg border border-slate-200 bg-white p-6"
+      className="rounded-lg border border-spice-border bg-spice-bg-surface p-6"
       role="status"
       aria-live="polite"
     >
-      <div className="h-2 w-1/3 animate-pulse rounded bg-slate-200" />
-      <div className="mt-3 h-2 w-2/3 animate-pulse rounded bg-slate-200" />
-      <p className="mt-4 text-sm text-slate-500">{resolvedLabel}</p>
+      <div className="h-2 w-1/3 animate-pulse rounded bg-spice-border" />
+      <div className="mt-3 h-2 w-2/3 animate-pulse rounded bg-spice-border" />
+      <p className="mt-4 text-sm text-spice-text-muted">{resolvedLabel}</p>
     </div>
   );
 };

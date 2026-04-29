@@ -45,9 +45,12 @@ describe('Sidebar', () => {
     );
 
     const activeLink = screen.getByRole('link', { name: /chw profiles/i });
-    expect(activeLink).toHaveClass('bg-blue-50', 'text-blue-700');
+    expect(activeLink).toHaveClass(
+      'bg-spice-bg-tint',
+      'text-spice-brand-primary',
+    );
 
     const inactiveLink = screen.getByRole('link', { name: /dashboard/i });
-    expect(inactiveLink).toHaveClass('text-slate-700');
+    expect(inactiveLink).toHaveClass('text-spice-text-medium');
   });
 });

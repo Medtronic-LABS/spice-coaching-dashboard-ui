@@ -16,10 +16,13 @@ export interface BannerProps {
 }
 
 const toneClassMap: Record<NonNullable<BannerProps['tone']>, string> = {
-  info: 'bg-blue-50 text-blue-800 ring-blue-200',
-  success: 'bg-green-50 text-green-800 ring-green-200',
-  warning: 'bg-yellow-50 text-yellow-900 ring-yellow-200',
-  critical: 'bg-red-50 text-red-700 ring-red-200',
+  info: 'bg-spice-semantic-infoBg text-spice-semantic-info ring-spice-semantic-info/25',
+  success:
+    'bg-spice-semantic-successBg text-spice-semantic-success ring-spice-semantic-success/25',
+  warning:
+    'bg-spice-semantic-warningBg text-spice-semantic-warning ring-spice-semantic-warning/25',
+  critical:
+    'bg-spice-semantic-errorBg text-spice-semantic-error ring-spice-semantic-error/25',
 };
 
 export const Banner = ({ children, tone = 'info' }: BannerProps) => {

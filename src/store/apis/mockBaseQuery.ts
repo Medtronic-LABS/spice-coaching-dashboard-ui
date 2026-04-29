@@ -47,7 +47,7 @@ export const mockBaseQuery: BaseQueryFn<
   FetchBaseQueryError
 > = async (args) => {
   // Simulate real network latency.
-  await sleep(250);
+  await sleep(500);
 
   const rawUrl = withoutLeadingSlash(getUrl(args));
   const url = rawUrl.replace(/^api\/v1\//, '').replace(/^\/?api\/v1\//, '');

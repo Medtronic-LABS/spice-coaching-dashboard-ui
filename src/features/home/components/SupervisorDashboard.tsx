@@ -189,7 +189,7 @@ export const SupervisorDashboard = () => {
   return (
     <section className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-spice-text-primary">
           {t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
         </h1>
         <div className="flex flex-wrap items-center gap-3">

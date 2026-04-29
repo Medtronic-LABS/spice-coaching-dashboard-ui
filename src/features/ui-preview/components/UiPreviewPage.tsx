@@ -180,9 +180,9 @@ export const UiPreviewPage = () => {
           role="tabpanel"
           id={activeTabA11y.panelId}
           aria-labelledby={activeTabA11y.tabId}
-          className="rounded-md border border-slate-200 bg-white p-3"
+          className="rounded-md border border-spice-border bg-spice-bg-surface p-3"
         >
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-spice-text-medium">
             {t('uiPreview.tabs.activeTab', { tab: activeTab })}
           </p>
         </div>

@@ -1,4 +1,3 @@
-import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils';
 import type { ReactNode } from 'react';
 
@@ -22,6 +21,8 @@ export interface StatCardProps {
   supportingText?: string;
   /** Optional badge text (e.g. ALERT). */
   badgeLabel?: string;
+  /** Optional override for the main value color/tone. */
+  valueClassName?: string;
 }
 
 export const StatCard = ({
@@ -31,24 +32,28 @@ export const StatCard = ({
   change,
   supportingText,
   badgeLabel,
+  valueClassName,
 }: StatCardProps) => {
   const hasChange = typeof change === 'number';
-  const trendClass = hasChange
-    ? change >= 0
-      ? 'text-[color:var(--c-mako)]'
-      : 'text-[color:var(--c-mako)]'
-    : undefined;
+  const trendClass = hasChange ? 'text-spice-text-medium' : undefined;
 
   return (
-    <Card variant="elevated" className="space-y-2">
+    <section
+      className={cn(
+        'min-w-[160px] flex-1 rounded-md border border-spice-border bg-spice-bg-surface px-5 py-4 shadow-spiceKpi',
+        'space-y-1',
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon ? (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-spice-bg-tint text-spice-text-muted">
               {icon}
             </div>
           ) : null}
-          <p className="text-xs font-medium text-slate-500">{label}</p>
+          <p className="text-[11px] font-normal text-spice-text-muted">
+            {label}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {hasChange ? (
@@ -57,18 +62,25 @@ export const StatCard = ({
             </span>
           ) : null}
           {badgeLabel ? (
-            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-red-200">
+            <span className="rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
               {badgeLabel}
             </span>
           ) : null}
         </div>
       </div>
-      <p className="text-3xl font-semibold leading-none text-slate-900">
+
+      <p
+        className={cn(
+          'text-[22px] font-bold leading-[1.2] text-spice-text-primary',
+          valueClassName,
+        )}
+      >
         {value ?? '-'}
       </p>
+
       {supportingText ? (
-        <p className="text-xs text-slate-500">{supportingText}</p>
+        <p className="text-[10px] text-spice-text-muted">{supportingText}</p>
       ) : null}
-    </Card>
+    </section>
   );
 };

@@ -30,10 +30,12 @@ export const SectionHeader = ({
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div>
-        <Heading className="text-lg font-semibold text-slate-900">
+        <Heading className="text-lg font-semibold text-spice-text-primary">
           {title}
         </Heading>
-        {subtitle ? <p className="text-sm text-slate-500">{subtitle}</p> : null}
+        {subtitle ? (
+          <p className="text-sm text-spice-text-muted">{subtitle}</p>
+        ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

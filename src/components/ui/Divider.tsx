@@ -11,5 +11,5 @@ export interface DividerProps {
 }
 
 export const Divider = ({ className }: DividerProps) => {
-  return <hr className={`border-slate-200 ${className ?? ''}`.trim()} />;
+  return <hr className={`border-spice-border ${className ?? ''}`.trim()} />;
 };

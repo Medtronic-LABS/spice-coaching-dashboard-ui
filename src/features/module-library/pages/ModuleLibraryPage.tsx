@@ -19,14 +19,14 @@ type LocationState = {
 const moduleBadge = (status: ModuleStatus) => {
   if (status === 'published') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+      <span className="inline-flex items-center gap-1 rounded-full bg-spice-semantic-successBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-success ring-1 ring-spice-semantic-success/25">
+        <span className="h-1.5 w-1.5 rounded-full bg-spice-semantic-success" />
         Published
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200">
+    <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-medium ring-1 ring-spice-border">
       Draft
     </span>
   );
@@ -43,9 +43,9 @@ export const ModuleLibraryPage = () => {
   const { data } = useGetModuleLibraryQuery(DEFAULT_DASHBOARD_PARAMS, {
     selectFromResult: ({ data }) => ({ data }),
   });
-  const rows = data?.modules ?? [];
 
   const filtered = useMemo(() => {
+    const rows = data?.modules ?? [];
     const q = query.trim().toLowerCase();
     const byTab =
       tab === 'all'
@@ -59,7 +59,7 @@ export const ModuleLibraryPage = () => {
     return byTab.filter((r) =>
       `${r.title} ${r.category}`.toLowerCase().includes(q),
     );
-  }, [query, rows, tab]);
+  }, [data?.modules, query, tab]);
 
   const published = filtered.filter((r) => r.status === 'published');
   const drafts = filtered.filter((r) => r.status === 'draft');
@@ -71,10 +71,10 @@ export const ModuleLibraryPage = () => {
         header: 'Module',
         render: (row) => (
           <div className="min-w-0">
-            <div className="truncate font-semibold text-slate-900">
+            <div className="truncate font-semibold text-spice-text-primary">
               {row.title}
             </div>
-            <div className="text-xs text-slate-500">{row.category}</div>
+            <div className="text-xs text-spice-text-muted">{row.category}</div>
           </div>
         ),
       },
@@ -82,7 +82,7 @@ export const ModuleLibraryPage = () => {
         key: 'lessons',
         header: 'Content',
         render: (row) => (
-          <div className="text-xs text-slate-600">
+          <div className="text-xs text-spice-text-medium">
             <span className="inline-flex items-center gap-4">
               <span>{row.lessons} lessons</span>
               <span>
@@ -105,8 +105,8 @@ export const ModuleLibraryPage = () => {
           <span
             className={
               row.lastUpdated.toLowerCase().includes('overdue')
-                ? 'text-xs font-semibold text-red-600'
-                : 'text-xs text-slate-600'
+                ? 'text-xs font-semibold text-spice-semantic-error'
+                : 'text-xs text-spice-text-medium'
             }
           >
             {row.lastUpdated}
@@ -166,7 +166,7 @@ export const ModuleLibraryPage = () => {
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
+          <h1 className="text-2xl font-semibold text-spice-text-primary">
             {t('moduleLibrary.title')}
           </h1>
         </div>
@@ -192,10 +192,10 @@ export const ModuleLibraryPage = () => {
             className="max-w-[520px]"
           />
           <div className="hidden items-center gap-2 sm:flex">
-            <Badge className="bg-slate-50 text-slate-600 ring-1 ring-slate-200">
+            <Badge className="bg-spice-bg-tint text-spice-text-medium ring-1 ring-spice-border">
               {published.length} published
             </Badge>
-            <Badge className="bg-slate-50 text-slate-600 ring-1 ring-slate-200">
+            <Badge className="bg-spice-bg-tint text-spice-text-medium ring-1 ring-spice-border">
               {drafts.length} drafts
             </Badge>
           </div>
@@ -214,7 +214,7 @@ export const ModuleLibraryPage = () => {
 
           {tab !== 'published' ? (
             <div className="space-y-3">
-              <div className="text-xs font-semibold tracking-wider text-slate-400">
+              <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
                 Drafts
               </div>
               <Table<ModuleLibraryItem>

@@ -46,7 +46,7 @@ export function ChartFrame({
   return (
     <div
       className={cn(
-        'relative w-full rounded-xl border border-slate-200 bg-white p-3',
+        'relative w-full rounded-xl border border-spice-border bg-spice-bg-surface p-3',
         className,
       )}
       style={{ height, width, ...style }}
@@ -56,23 +56,23 @@ export function ChartFrame({
       onMouseMove={onMouseMove}
     >
       {loading ? (
-        <div className="h-full w-full animate-pulse rounded-lg bg-slate-100" />
+        <div className="h-full w-full animate-pulse rounded-lg bg-spice-bg-tint" />
       ) : error ? (
         <div className="flex h-full w-full items-center justify-center">
           <div className="max-w-sm text-center">
-            <div className="text-sm font-medium text-slate-900">
+            <div className="text-sm font-medium text-spice-text-primary">
               {t('charts.errorTitle')}
             </div>
-            <div className="mt-1 text-xs text-slate-600">{error}</div>
+            <div className="mt-1 text-xs text-spice-text-medium">{error}</div>
           </div>
         </div>
       ) : isEmpty ? (
         <div className="flex h-full w-full items-center justify-center">
           <div className="max-w-sm text-center">
-            <div className="text-sm font-medium text-slate-900">
+            <div className="text-sm font-medium text-spice-text-primary">
               {resolvedEmptyTitle}
             </div>
-            <div className="mt-1 text-xs text-slate-600">
+            <div className="mt-1 text-xs text-spice-text-medium">
               {resolvedEmptyDescription}
             </div>
           </div>

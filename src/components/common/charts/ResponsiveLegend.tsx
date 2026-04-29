@@ -31,7 +31,7 @@ export function ResponsiveLegend({
         {items.map((item) => (
           <div
             key={String(item.key)}
-            className="flex min-w-0 max-w-full items-center gap-2 text-xs text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="flex min-w-0 max-w-full items-center gap-2 text-xs text-spice-text-medium outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard"
             role="listitem"
             tabIndex={0}
             aria-label={typeof item.label === 'string' ? item.label : undefined}

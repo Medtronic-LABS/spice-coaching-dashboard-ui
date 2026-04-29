@@ -61,7 +61,7 @@ export const AppRoutes = () => {
   return (
     <Suspense
       fallback={
-        <div className="p-6 text-sm text-slate-600">
+        <div className="p-6 text-sm text-spice-text-medium">
           {t('common.loadingPage')}
         </div>
       }

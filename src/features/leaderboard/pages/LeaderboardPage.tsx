@@ -45,7 +45,7 @@ export const LeaderboardPage = () => {
         key: 'rank',
         header: '',
         render: (row) => (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm font-semibold text-slate-700">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-spice-bg-tint text-sm font-semibold text-spice-text-medium ring-1 ring-spice-border">
             {row.rank}
           </div>
         ),
@@ -55,7 +55,7 @@ export const LeaderboardPage = () => {
         header: 'CHW',
         render: (row) => (
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-spice-bg-tint text-[10px] font-semibold text-spice-text-medium ring-1 ring-spice-border">
               {row.name
                 .split(' ')
                 .filter(Boolean)
@@ -65,10 +65,10 @@ export const LeaderboardPage = () => {
                 .toUpperCase()}
             </div>
             <div className="min-w-0">
-              <div className="truncate font-semibold text-slate-900">
+              <div className="truncate font-semibold text-spice-text-primary">
                 {row.name}
               </div>
-              <div className="text-xs text-slate-500">{row.chw_id}</div>
+              <div className="text-xs text-spice-text-muted">{row.chw_id}</div>
             </div>
           </div>
         ),
@@ -77,7 +77,7 @@ export const LeaderboardPage = () => {
         key: 'points',
         header: 'Points',
         render: (row) => (
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-spice-text-primary">
             {new Intl.NumberFormat().format(row.points)}
           </span>
         ),
@@ -87,21 +87,27 @@ export const LeaderboardPage = () => {
         key: 'passRate',
         header: 'Pass rate',
         render: (row) => (
-          <span className="font-semibold text-slate-900">{row.passRate}%</span>
+          <span className="font-semibold text-spice-text-primary">
+            {row.passRate}%
+          </span>
         ),
       },
       {
         key: 'attemptsLabel',
         header: 'Attempts',
         render: (row) => (
-          <span className="text-xs text-slate-600">{row.attemptsLabel}</span>
+          <span className="text-xs text-spice-text-medium">
+            {row.attemptsLabel}
+          </span>
         ),
       },
       {
         key: 'avgScore',
         header: 'Avg. score',
         render: (row) => (
-          <span className="font-semibold text-slate-900">{row.avgScore}%</span>
+          <span className="font-semibold text-spice-text-primary">
+            {row.avgScore}%
+          </span>
         ),
       },
       {
@@ -111,10 +117,10 @@ export const LeaderboardPage = () => {
           <span
             className={
               row.trend === 'up'
-                ? 'text-xs font-semibold text-emerald-700'
+                ? 'text-xs font-semibold text-spice-semantic-success'
                 : row.trend === 'down'
-                  ? 'text-xs font-semibold text-red-700'
-                  : 'text-xs font-semibold text-slate-500'
+                  ? 'text-xs font-semibold text-spice-semantic-error'
+                  : 'text-xs font-semibold text-spice-text-muted'
             }
           >
             {row.trendValue}
@@ -144,7 +150,7 @@ export const LeaderboardPage = () => {
   return (
     <section className="space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-spice-text-primary">
           {t('leaderboard.title')}
         </h1>
         <div className="w-72">

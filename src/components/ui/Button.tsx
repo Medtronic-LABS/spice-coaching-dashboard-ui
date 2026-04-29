@@ -15,11 +15,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    'bg-blue-800 text-white hover:bg-blue-700 focus-visible:ring-blue-400 disabled:bg-blue-300',
+    'bg-spice-brand-primary text-white shadow-spicePrimary hover:opacity-95 focus-visible:ring-spice-brand-primary disabled:opacity-50',
   secondary:
-    'bg-white text-slate-800 ring-1 ring-slate-300 hover:bg-slate-100 focus-visible:ring-slate-400',
+    'bg-spice-bg-surface text-spice-text-primary ring-1 ring-spice-border-mid hover:bg-spice-bg-tint focus-visible:ring-spice-border-mid',
   ghost:
-    'bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-400',
+    'bg-transparent text-spice-text-medium hover:bg-spice-bg-tint focus-visible:ring-spice-border-mid',
 };
 
 export const Button = ({
@@ -32,7 +32,7 @@ export const Button = ({
     <button
       type={type}
       className={cn(
-        'inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard disabled:cursor-not-allowed',
         variantClasses[variant],
         className,
       )}

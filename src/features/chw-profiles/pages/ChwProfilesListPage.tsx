@@ -56,14 +56,14 @@ export const ChwProfilesListPage = () => {
         header: t('chwProfiles.list.columns.chw'),
         render: (row) => (
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-text-medium ring-1 ring-spice-border">
               {getInitials(row.name)}
             </div>
             <div className="min-w-0">
-              <div className="truncate font-semibold text-slate-900">
+              <div className="truncate font-semibold text-spice-text-primary">
                 {row.name}
               </div>
-              <div className="text-xs text-slate-500">{row.chw_id}</div>
+              <div className="text-xs text-spice-text-muted">{row.chw_id}</div>
             </div>
           </div>
         ),
@@ -81,9 +81,9 @@ export const ChwProfilesListPage = () => {
                 });
 
           return (
-            <span className="flex flex-col text-xl font-bold text-slate-900">
+            <span className="flex flex-col text-xl font-bold text-spice-text-primary">
               {`${row.modules_done}/${row.modules_total}`}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-spice-text-muted">
                 {remainingLabel}
               </span>
             </span>
@@ -104,9 +104,9 @@ export const ChwProfilesListPage = () => {
         render: (row) => {
           const attempted = row.quiz_passed + row.quiz_failed;
           return (
-            <span className="flex flex-col text-xl font-bold text-slate-900">
+            <span className="flex flex-col text-xl font-bold text-spice-text-primary">
               {`${(attempted > 0 ? (row.quiz_passed / attempted) * 100 : 0).toFixed(2)}%`}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-spice-text-muted">
                 {t('chwProfiles.list.attempts', { count: attempted })}
               </span>
             </span>
@@ -117,7 +117,7 @@ export const ChwProfilesListPage = () => {
         key: 'streak',
         header: t('chwProfiles.list.columns.streak'),
         render: (row) => (
-          <span className="text-sm font-semibold text-slate-900">
+          <span className="text-sm font-semibold text-spice-text-primary">
             {t('chwProfiles.list.daysShort', { count: row.streak })}
           </span>
         ),
@@ -126,7 +126,9 @@ export const ChwProfilesListPage = () => {
         key: 'last_active',
         header: t('chwProfiles.list.columns.lastActive'),
         render: (row) => (
-          <span className="text-sm text-slate-700">{row.last_active}</span>
+          <span className="text-sm text-spice-text-medium">
+            {row.last_active}
+          </span>
         ),
       },
       {
@@ -136,7 +138,7 @@ export const ChwProfilesListPage = () => {
           const mapped = overallStatusToTone(row.overall_status);
           if (mapped.outlined) {
             return (
-              <Badge className="bg-transparent text-red-700 ring-1 ring-inset ring-red-300">
+              <Badge className="bg-transparent text-spice-semantic-error ring-1 ring-inset ring-spice-semantic-error/35">
                 {mapped.label}
               </Badge>
             );
@@ -168,10 +170,10 @@ export const ChwProfilesListPage = () => {
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">
+          <h2 className="text-2xl font-semibold text-spice-text-primary">
             {t('chwProfiles.list.title')}
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-spice-text-muted">
             {t('chwProfiles.list.subtitle')}
           </p>
         </div>
@@ -196,11 +198,11 @@ export const ChwProfilesListPage = () => {
           }
         />
         {isLoading ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
+          <div className="rounded-lg border border-spice-border bg-spice-bg-surface p-6 text-sm text-spice-text-medium">
             {t('common.loading')}
           </div>
         ) : isError ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+          <div className="rounded-lg border border-spice-semantic-error/25 bg-spice-semantic-errorBg p-6 text-sm text-spice-semantic-error">
             {t('common.somethingWentWrong')}
           </div>
         ) : (

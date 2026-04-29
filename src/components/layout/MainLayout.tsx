@@ -4,11 +4,11 @@ import { Sidebar } from '@/components/layout/Sidebar';
 
 export const MainLayout = () => {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-spice-bg-dashboard">
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-8">
+        <main className="flex-1 overflow-y-auto bg-spice-bg-dashboard p-8">
           <Outlet />
         </main>
       </div>
