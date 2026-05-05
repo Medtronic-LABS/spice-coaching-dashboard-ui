@@ -10,10 +10,18 @@ import {
   mockLeaderboard,
   mockModuleLibrary,
   mockModules,
+  mockProgramChwRoster,
+  mockProgramEscalations,
+  mockProgramOverview,
+  mockProgramRankings,
+  mockProgramSupervisorDetails,
+  mockProgramSupervisors,
+  mockCourseDraft,
   mockPerformanceMatrix,
   mockQuizPerformance,
   mockReports,
 } from '@/store/apis/mockData';
+import type { CourseDraftData } from '@/features/program-manager/types/programManager.types';
 import type { CHWPerformanceResponse } from '@/types/supervisor.types';
 
 function sleep(ms: number): Promise<void> {
@@ -30,6 +38,16 @@ function getParams(args: string | FetchArgs): unknown {
   return args.params;
 }
 
+function getMethod(args: string | FetchArgs): string {
+  if (typeof args === 'string') return 'GET';
+  return args.method ?? 'GET';
+}
+
+function getBody(args: string | FetchArgs): unknown {
+  if (typeof args === 'string') return undefined;
+  return args.body;
+}
+
 function withoutLeadingSlash(value: string): string {
   return value.startsWith('/') ? value.slice(1) : value;
 }
@@ -40,6 +58,10 @@ function pageSlice<T>(items: T[], page: number, limit: number): T[] {
   const start = (safePage - 1) * safeLimit;
   return items.slice(start, start + safeLimit);
 }
+
+let courseDraftState: CourseDraftData = JSON.parse(
+  JSON.stringify(mockCourseDraft),
+) as CourseDraftData;
 
 export const mockBaseQuery: BaseQueryFn<
   string | FetchArgs,
@@ -52,6 +74,13 @@ export const mockBaseQuery: BaseQueryFn<
   const rawUrl = withoutLeadingSlash(getUrl(args));
   const url = rawUrl.replace(/^api\/v1\//, '').replace(/^\/?api\/v1\//, '');
   const params = getParams(args);
+  const method = getMethod(args).toUpperCase();
+  const body = getBody(args);
+  const cloneDraft = () =>
+    JSON.parse(JSON.stringify(courseDraftState)) as CourseDraftData;
+  const persistDraft = (nextDraft: CourseDraftData) => {
+    courseDraftState = nextDraft;
+  };
 
   // Dashboard endpoints
   if (url === 'dashboard/summary') {
@@ -97,6 +126,325 @@ export const mockBaseQuery: BaseQueryFn<
   // Reports endpoints
   if (url === 'reports') {
     return { data: mockReports };
+  }
+
+  // Program manager endpoints
+  if (url === 'program-manager/overview') {
+    return { data: mockProgramOverview };
+  }
+  if (url === 'program-manager/supervisors') {
+    return { data: mockProgramSupervisors };
+  }
+  if (url.startsWith('program-manager/supervisors/')) {
+    const supervisorId = decodeURIComponent(
+      url.slice('program-manager/supervisors/'.length),
+    );
+    return {
+      data: mockProgramSupervisorDetails[supervisorId] ?? {
+        ...mockProgramSupervisorDetails.SUP004,
+        id: supervisorId,
+      },
+    };
+  }
+  if (url === 'program-manager/chw-roster') {
+    return { data: mockProgramChwRoster };
+  }
+  if (url === 'program-manager/escalations') {
+    return { data: mockProgramEscalations };
+  }
+  if (url === 'program-manager/rankings') {
+    return { data: mockProgramRankings };
+  }
+  if (url === 'program-manager/courses/draft') {
+    return { data: cloneDraft() };
+  }
+  if (url === 'program-manager/courses/draft/reset' && method === 'POST') {
+    persistDraft(
+      JSON.parse(JSON.stringify(mockCourseDraft)) as CourseDraftData,
+    );
+    return { data: cloneDraft() };
+  }
+  if (url === 'program-manager/courses/draft/seed' && method === 'POST') {
+    if (typeof body === 'object' && body) {
+      const nextDraft = JSON.parse(JSON.stringify(body)) as CourseDraftData;
+      persistDraft(nextDraft);
+    }
+    return { data: cloneDraft() };
+  }
+  if (url === 'program-manager/courses/upload' && method === 'POST') {
+    const payload =
+      typeof body === 'object' && body
+        ? (body as {
+            fileName?: string;
+            title?: string;
+            topic?: string;
+            description?: string;
+          })
+        : {};
+    const nextDraft: CourseDraftData = {
+      ...cloneDraft(),
+      sourceFile: payload.fileName ?? 'uploaded_protocol.pdf',
+      title: payload.title ?? 'HTN Referral Thresholds',
+      topic: payload.topic ?? 'Hypertension',
+      description:
+        payload.description ??
+        'Auto-generated draft from uploaded protocol. Review lessons and quiz before publishing.',
+      status: 'draft',
+      generationStatus: 'generated',
+      generatedAt: new Date().toISOString(),
+      moduleDetails: {
+        description: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Learn how to measure blood pressure correctly.',
+              },
+            ],
+          },
+        ],
+        estimatedTime: 15,
+      },
+      lessons: [
+        {
+          id: 'lesson_1',
+          title: 'What is Blood Pressure?',
+          order: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Blood pressure is the force of blood against artery walls.',
+                },
+              ],
+            },
+            {
+              type: 'image',
+              attrs: {
+                url: 'https://cdn/bp-diagram.png',
+                caption: 'Blood pressure diagram',
+              },
+            },
+          ],
+        },
+        {
+          id: 'lesson_2',
+          title: 'Normal vs High Readings',
+          order: 2,
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Normal BP is ' },
+                {
+                  type: 'text',
+                  text: 'below 120/80',
+                  marks: [{ type: 'bold' }],
+                },
+              ],
+            },
+            {
+              type: 'audio',
+              attrs: {
+                url: 'https://cdn/audio1.mp3',
+                title: 'Explanation',
+                duration: 60,
+              },
+            },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'High BP is above 140/90.' }],
+            },
+          ],
+        },
+        {
+          id: 'lesson_3',
+          title: 'When to Refer',
+          order: 3,
+          content: [
+            {
+              type: 'video',
+              attrs: {
+                url: 'https://cdn/video.mp4',
+                thumbnail: 'https://cdn/thumb.png',
+              },
+            },
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Refer patient if BP >=140/90.' },
+              ],
+            },
+          ],
+        },
+      ],
+      moduleContent: {
+        fieldMessage:
+          'Hypertension is a serious condition that requires regular monitoring and management.',
+        objectives: [
+          'Understand the definition and implications of hypertension.',
+          'Identify normal and abnormal blood pressure readings.',
+          'Recognize danger signs associated with hypertension.',
+        ],
+        dangerSigns: [
+          'Severe headache',
+          'Shortness of breath',
+          'Chest pain',
+          'Vision changes',
+        ],
+        lessonContent:
+          'Blood pressure (BP) is the force of blood against artery walls. Normal BP is around 120/80 mmHg. BP >=140/90 mmHg is considered high. If danger signs are present, refer immediately.',
+      },
+      quiz: {
+        instructions: 'Select the correct answer for each question.',
+        config: {
+          shuffleQuestions: true,
+          evaluationBehavior: 'immediate',
+          explanationVisibility: 'after_answer',
+        },
+        questions: [
+          {
+            id: 1,
+            type: 'mcq',
+            question: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'What is normal BP?' }],
+              },
+            ],
+            options: [
+              {
+                id: 'opt1',
+                text: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: '120/80' }],
+                  },
+                ],
+              },
+              {
+                id: 'opt2',
+                text: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: '140/90' }],
+                  },
+                ],
+              },
+            ],
+            correctAnswers: ['opt1'],
+            difficulty: 'easy',
+            explanation: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: '120/80 is normal BP.' }],
+              },
+            ],
+            answerIndex: 0,
+            questionType: 'knowledge',
+            multi: false,
+          },
+          {
+            id: 2,
+            type: 'mcq',
+            question: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'When should you refer?' }],
+              },
+            ],
+            options: [
+              {
+                id: 'opt1',
+                text: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: '>=140/90' }],
+                  },
+                ],
+              },
+              {
+                id: 'opt2',
+                text: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: '120/80' }],
+                  },
+                ],
+              },
+            ],
+            correctAnswers: ['opt1'],
+            difficulty: 'easy',
+            explanation: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'High BP requires referral.' }],
+              },
+            ],
+            answerIndex: 0,
+            questionType: 'application',
+            multi: false,
+          },
+        ],
+      },
+      estimateMinutes: 10,
+    };
+    persistDraft(nextDraft);
+    return { data: cloneDraft() };
+  }
+  if (url === 'program-manager/courses/content' && method === 'PUT') {
+    if (typeof body === 'object' && body) {
+      const payload = body as Partial<CourseDraftData>;
+      const nextDraft: CourseDraftData = {
+        ...cloneDraft(),
+        id: payload.id ?? courseDraftState.id,
+        backendModuleId:
+          payload.backendModuleId ?? courseDraftState.backendModuleId,
+        documentId: payload.documentId ?? courseDraftState.documentId,
+        isReadOnly: payload.isReadOnly ?? courseDraftState.isReadOnly,
+        title: payload.title ?? courseDraftState.title,
+        topic: payload.topic ?? courseDraftState.topic,
+        description: payload.description ?? courseDraftState.description,
+        status: payload.status ?? courseDraftState.status,
+        generationStatus:
+          payload.generationStatus ?? courseDraftState.generationStatus,
+        generatedAt: payload.generatedAt ?? courseDraftState.generatedAt,
+        sourceFile: payload.sourceFile ?? courseDraftState.sourceFile,
+        estimateMinutes:
+          payload.estimateMinutes ?? courseDraftState.estimateMinutes,
+        moduleDetails: payload.moduleDetails ?? courseDraftState.moduleDetails,
+        lessons: payload.lessons ?? courseDraftState.lessons,
+        moduleContent: payload.moduleContent ?? courseDraftState.moduleContent,
+        quiz: payload.quiz ?? courseDraftState.quiz,
+      };
+      persistDraft(nextDraft);
+    }
+    return { data: cloneDraft() };
+  }
+  if (url === 'program-manager/courses/quiz' && method === 'PUT') {
+    if (typeof body === 'object' && body) {
+      const payload = body as { quiz?: CourseDraftData['quiz'] };
+      const nextDraft: CourseDraftData = {
+        ...cloneDraft(),
+        quiz: payload.quiz ?? courseDraftState.quiz,
+      };
+      persistDraft(nextDraft);
+    }
+    return { data: cloneDraft() };
+  }
+  if (url === 'program-manager/courses/draft/save' && method === 'POST') {
+    return { data: { status: 'draft_saved', draft: cloneDraft() } };
+  }
+  if (url === 'program-manager/courses/publish') {
+    const nextDraft: CourseDraftData = {
+      ...cloneDraft(),
+      status: 'published',
+    };
+    persistDraft(nextDraft);
+    return { data: { status: 'published', draft: cloneDraft() } };
   }
 
   // CHW detail endpoint: chw/{chw_id}

@@ -9,6 +9,15 @@ import type { ChwDetailResponse } from '@/features/chw-profiles/types/chwProfile
 import type { ModuleLibraryResponse } from '@/features/module-library/types/moduleLibrary.types';
 import type { QuizPerformanceResponse } from '@/features/quiz-performance/types/quizPerformance.types';
 import type { ReportsResponse } from '@/features/reports/types/reports.types';
+import type {
+  CourseDraftData,
+  ProgramChwRosterResponse,
+  ProgramEscalationsResponse,
+  ProgramOverviewResponse,
+  ProgramRankingsResponse,
+  ProgramSupervisorListResponse,
+  SupervisorDetailResponse,
+} from '@/features/program-manager/types/programManager.types';
 
 export const mockDashboardSummary: DashboardSummaryResponse = {
   kpis: [
@@ -481,6 +490,300 @@ export const mockReports: ReportsResponse = {
         'AI analyzes patterns and generates improvement recommendations',
     },
   ],
+};
+
+export const mockProgramOverview: ProgramOverviewResponse = {
+  kpis: [
+    { label: 'Supervisors', value: 4, meta: 'all active' },
+    { label: 'Total CHWs', value: 120, meta: 'across 4 supervisors' },
+    { label: 'Courses Published', value: 6, meta: '3 in draft' },
+    { label: 'Program Pass Rate', value: '74%', meta: '472 / 638 attempts' },
+    { label: 'Escalations', value: 7, meta: '3 supervisors' },
+  ],
+  insight: {
+    title: 'PROGRAM INSIGHT',
+    description:
+      'HTN Referral quiz scores are 18% lower under Rashida Khanam compared to other supervisors. The Danger Signs in Pregnancy module has the lowest completion rate across the program.',
+    actionLabel: 'View Analysis',
+  },
+  supervisors: [
+    {
+      id: 'SUP001',
+      initials: 'NI',
+      name: 'Nasreen Islam',
+      chws: 30,
+      completionRate: 88,
+      passRate: 81,
+      flags: 0,
+      trend: '+4% vs last month',
+      trendDirection: 'up',
+      rank: 1,
+    },
+    {
+      id: 'SUP002',
+      initials: 'AH',
+      name: 'Ayesha Hossain',
+      chws: 30,
+      completionRate: 82,
+      passRate: 79,
+      flags: 2,
+      trend: '+5% vs last month',
+      trendDirection: 'up',
+      rank: 2,
+    },
+    {
+      id: 'SUP003',
+      initials: 'SB',
+      name: 'Sharmin Begum',
+      chws: 30,
+      completionRate: 75,
+      passRate: 76,
+      flags: 1,
+      trend: '+2% vs last month',
+      trendDirection: 'up',
+      rank: 3,
+    },
+    {
+      id: 'SUP004',
+      initials: 'RK',
+      name: 'Rashida Khanam',
+      chws: 30,
+      completionRate: 68,
+      passRate: 72,
+      flags: 4,
+      trend: '-3% vs last month',
+      trendDirection: 'down',
+      rank: 4,
+    },
+  ],
+};
+
+export const mockProgramSupervisors: ProgramSupervisorListResponse = {
+  supervisors: mockProgramOverview.supervisors.map((item) => ({
+    id: item.id,
+    name: item.name,
+    location: 'Sylhet Sadar',
+    chws: item.chws,
+    completionRate: item.completionRate,
+    passRate: item.passRate,
+    flags: item.flags,
+  })),
+};
+
+export const mockProgramSupervisorDetails: Record<
+  string,
+  SupervisorDetailResponse
+> = {
+  SUP004: {
+    id: 'SUP004',
+    name: 'Rashida Khanam',
+    location: 'Sylhet Sadar',
+    stats: [
+      { label: 'CHWs Managed', value: 30, meta: 'all active' },
+      { label: 'Modules Assigned', value: 68, meta: '41 completed' },
+      { label: 'Avg. Response', value: '1.2d', meta: 'flag resolution' },
+      { label: 'Trend', value: '-3%', meta: 'vs last month' },
+    ],
+    performanceRows: [
+      {
+        chwId: 'SK-001',
+        name: 'Fatema Jannat',
+        modulesDone: '6/6',
+        passRate: '94%',
+        status: 'On Track',
+      },
+      {
+        chwId: 'SK-002',
+        name: 'Momotaj Begum',
+        modulesDone: '5/6',
+        passRate: '86%',
+        status: 'On Track',
+      },
+      {
+        chwId: 'SK-003',
+        name: 'Rina Akter',
+        modulesDone: '3/6',
+        passRate: '63%',
+        status: 'Overdue',
+      },
+      {
+        chwId: 'SK-025',
+        name: 'Sabina Khatun',
+        modulesDone: '2/6',
+        passRate: '50%',
+        status: 'Flagged',
+      },
+    ],
+    moduleRows: [
+      {
+        module: 'SPICE App - Visit Submission',
+        completed: '30/30',
+        passRate: '91%',
+        overdue: '-',
+      },
+      {
+        module: 'HTN Referral Thresholds',
+        completed: '26/30',
+        passRate: '62%',
+        overdue: '4 CHWs',
+      },
+      {
+        module: 'FBS vs RBS - Timing Rules',
+        completed: '21/30',
+        passRate: '78%',
+        overdue: '2 CHWs',
+      },
+      {
+        module: 'Danger Signs in Pregnancy',
+        completed: '8/30',
+        passRate: '54%',
+        overdue: '9 CHWs',
+      },
+    ],
+  },
+};
+
+export const mockProgramChwRoster: ProgramChwRosterResponse = {
+  rows: [
+    {
+      id: 'SK-001',
+      name: 'Fatema Jannat',
+      supervisor: 'Rashida Khanam',
+      modules: '6/6',
+      passRate: '94%',
+      status: 'On Track',
+    },
+    {
+      id: 'SK-002',
+      name: 'Momotaj Begum',
+      supervisor: 'Rashida Khanam',
+      modules: '5/6',
+      passRate: '86%',
+      status: 'On Track',
+    },
+    {
+      id: 'SK-0025',
+      name: 'Sabina Khatun',
+      supervisor: 'Rashida Khanam',
+      modules: '2/6',
+      passRate: '50%',
+      status: 'Flagged',
+    },
+    {
+      id: 'SK-0041',
+      name: 'Laila Sultana',
+      supervisor: 'Ayesha Hossain',
+      modules: '5/6',
+      passRate: '82%',
+      status: 'On Track',
+    },
+    {
+      id: 'SK-0055',
+      name: 'Zohra Rahman',
+      supervisor: 'Sharmin Begum',
+      modules: '4/6',
+      passRate: '77%',
+      status: 'In Progress',
+    },
+  ],
+};
+
+export const mockProgramEscalations: ProgramEscalationsResponse = {
+  rows: [
+    {
+      id: 'ESC-1',
+      chwName: 'Sabina Khatun',
+      supervisor: 'Rashida Khanam',
+      reason: 'Low pass rate for 2 weeks',
+      severity: 'High',
+      updatedAt: 'Today',
+    },
+    {
+      id: 'ESC-2',
+      chwName: 'Rina Akter',
+      supervisor: 'Rashida Khanam',
+      reason: 'Overdue assignments',
+      severity: 'High',
+      updatedAt: '1 day ago',
+    },
+    {
+      id: 'ESC-3',
+      chwName: 'Zohra Rahman',
+      supervisor: 'Sharmin Begum',
+      reason: 'Repeated late submissions',
+      severity: 'Medium',
+      updatedAt: '2 days ago',
+    },
+  ],
+};
+
+export const mockProgramRankings: ProgramRankingsResponse = {
+  rows: [
+    {
+      id: 'R1',
+      supervisor: 'Nasreen Islam',
+      completionRate: '88%',
+      passRate: '81%',
+      flags: '0',
+      rank: '#1',
+    },
+    {
+      id: 'R2',
+      supervisor: 'Ayesha Hossain',
+      completionRate: '82%',
+      passRate: '79%',
+      flags: '2',
+      rank: '#2',
+    },
+    {
+      id: 'R3',
+      supervisor: 'Sharmin Begum',
+      completionRate: '75%',
+      passRate: '76%',
+      flags: '1',
+      rank: '#3',
+    },
+    {
+      id: 'R4',
+      supervisor: 'Rashida Khanam',
+      completionRate: '68%',
+      passRate: '72%',
+      flags: '4',
+      rank: '#4',
+    },
+  ],
+};
+
+export const mockCourseDraft: CourseDraftData = {
+  id: 'draft-htn-referral',
+  title: '',
+  topic: '',
+  description: '',
+  sourceFile: '',
+  status: 'draft',
+  generationStatus: 'idle',
+  generatedAt: '',
+  moduleDetails: {
+    description: [],
+    estimatedTime: 0,
+  },
+  lessons: [],
+  moduleContent: {
+    fieldMessage: '',
+    objectives: [],
+    dangerSigns: [],
+    lessonContent: '',
+  },
+  quiz: {
+    instructions: '',
+    config: {
+      shuffleQuestions: true,
+      evaluationBehavior: 'immediate',
+      explanationVisibility: 'after_answer',
+    },
+    questions: [],
+  },
+  estimateMinutes: 0,
 };
 
 export function getMockChwDetail(chwId: string): ChwDetailResponse {

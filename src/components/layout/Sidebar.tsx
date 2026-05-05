@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { getCurrentRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 
 type NavIconProps = { className?: string };
@@ -112,34 +113,60 @@ const ReportIcon = ({ className }: NavIconProps) => (
   </svg>
 );
 
-const sectionTitleClassName =
-  'px-3 pt-2 text-[10px] font-semibold tracking-wider text-spice-text-muted';
-
-const linkClassName = ({ isActive }: { isActive: boolean }) =>
-  `group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-    isActive
-      ? 'bg-spice-bg-tint text-spice-brand-primary'
-      : 'text-spice-text-medium hover:bg-spice-bg-tint'
-  }`;
-
-const iconClassName = ({ isActive }: { isActive: boolean }) =>
-  `h-4 w-4 shrink-0 ${
-    isActive
-      ? 'text-spice-brand-primary'
-      : 'text-spice-text-muted group-hover:text-spice-text-medium'
-  }`;
-
 export const Sidebar = () => {
   const { t } = useTranslation();
+  const role = getCurrentRole();
+  const isProgramManager = role === 'programManager';
+  const sectionTitleClassName = `px-3 pt-2 text-[10px] font-semibold tracking-wider ${
+    isProgramManager ? 'text-spice-text-onDark-lo' : 'text-spice-text-muted'
+  }`;
+  const linkClassName = ({ isActive }: { isActive: boolean }) =>
+    `group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+      isProgramManager
+        ? isActive
+          ? 'bg-spice-brand-pm/20 text-spice-text-onDark-hi'
+          : 'text-spice-text-onDark-mid hover:bg-white/10 hover:text-spice-text-onDark-hi'
+        : isActive
+          ? 'bg-spice-bg-tint text-spice-brand-primary'
+          : 'text-spice-text-medium hover:bg-spice-bg-tint'
+    }`;
+  const iconClassName = ({ isActive }: { isActive: boolean }) =>
+    `h-4 w-4 shrink-0 ${
+      isProgramManager
+        ? isActive
+          ? 'text-spice-brand-pm'
+          : 'text-spice-text-onDark-mid group-hover:text-spice-text-onDark-hi'
+        : isActive
+          ? 'text-spice-brand-primary'
+          : 'text-spice-text-muted group-hover:text-spice-text-medium'
+    }`;
 
   return (
-    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-spice-border bg-spice-bg-surface">
+    <aside
+      className={`sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r ${
+        isProgramManager
+          ? 'border-white/10 bg-spice-brand-navy'
+          : 'border-spice-border bg-spice-bg-surface'
+      }`}
+    >
       <div className="px-5 pb-4 pt-5">
-        <div className="text-[10px] font-semibold tracking-wider text-spice-text-medium">
+        <div
+          className={`text-[10px] font-semibold tracking-wider ${
+            isProgramManager
+              ? 'text-spice-text-onDark-mid'
+              : 'text-spice-text-medium'
+          }`}
+        >
           {t('layout.sidebar.brand')}
         </div>
-        <div className="mt-2 inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-brand-primary ring-1 ring-spice-border">
-          {t('layout.sidebar.badge')}
+        <div
+          className={`mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            isProgramManager
+              ? 'bg-spice-brand-pm text-white'
+              : 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
+          }`}
+        >
+          {isProgramManager ? 'Admin Access' : t('layout.sidebar.badge')}
         </div>
       </div>
 
@@ -151,18 +178,35 @@ export const Sidebar = () => {
           {({ isActive }) => (
             <>
               <DashboardIcon className={iconClassName({ isActive })} />
-              {t('layout.sidebar.nav.dashboard')}
+              {isProgramManager
+                ? 'Overview'
+                : t('layout.sidebar.nav.dashboard')}
             </>
           )}
         </NavLink>
-        <NavLink className={linkClassName} to={paths.chwProfiles}>
+        <NavLink
+          className={linkClassName}
+          to={isProgramManager ? paths.supervisors : paths.chwProfiles}
+        >
           {({ isActive }) => (
             <>
               <UsersIcon className={iconClassName({ isActive })} />
-              {t('layout.sidebar.nav.chwProfiles')}
+              {isProgramManager
+                ? 'Supervisors'
+                : t('layout.sidebar.nav.chwProfiles')}
             </>
           )}
         </NavLink>
+        {isProgramManager ? (
+          <NavLink className={linkClassName} to={paths.chwProfiles}>
+            {({ isActive }) => (
+              <>
+                <UsersIcon className={iconClassName({ isActive })} />
+                CHW Roster
+              </>
+            )}
+          </NavLink>
+        ) : null}
 
         <div className={sectionTitleClassName}>
           {t('layout.sidebar.sections.learning')}
@@ -171,7 +215,9 @@ export const Sidebar = () => {
           {({ isActive }) => (
             <>
               <BookIcon className={iconClassName({ isActive })} />
-              {t('layout.sidebar.nav.moduleLibrary')}
+              {isProgramManager
+                ? 'Courses'
+                : t('layout.sidebar.nav.moduleLibrary')}
             </>
           )}
         </NavLink>
@@ -179,7 +225,9 @@ export const Sidebar = () => {
           {({ isActive }) => (
             <>
               <QuizIcon className={iconClassName({ isActive })} />
-              {t('layout.sidebar.nav.quizPerformance')}
+              {isProgramManager
+                ? 'Quiz Analytics'
+                : t('layout.sidebar.nav.quizPerformance')}
             </>
           )}
         </NavLink>
@@ -187,14 +235,29 @@ export const Sidebar = () => {
         <div className={sectionTitleClassName}>
           {t('layout.sidebar.sections.monitoring')}
         </div>
-        <NavLink className={linkClassName} to={paths.leaderboard}>
+        <NavLink
+          className={linkClassName}
+          to={isProgramManager ? paths.escalations : paths.leaderboard}
+        >
           {({ isActive }) => (
             <>
               <TrophyIcon className={iconClassName({ isActive })} />
-              {t('layout.sidebar.nav.leaderboard')}
+              {isProgramManager
+                ? 'Escalations'
+                : t('layout.sidebar.nav.leaderboard')}
             </>
           )}
         </NavLink>
+        {isProgramManager ? (
+          <NavLink className={linkClassName} to={paths.rankings}>
+            {({ isActive }) => (
+              <>
+                <TrophyIcon className={iconClassName({ isActive })} />
+                Rankings
+              </>
+            )}
+          </NavLink>
+        ) : null}
         <NavLink className={linkClassName} to={paths.reports}>
           {({ isActive }) => (
             <>
@@ -205,17 +268,41 @@ export const Sidebar = () => {
         </NavLink>
       </nav>
 
-      <div className="border-t border-spice-border px-4 py-4">
+      <div
+        className={`border-t px-4 py-4 ${
+          isProgramManager ? 'border-white/10' : 'border-spice-border'
+        }`}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border">
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
+              isProgramManager
+                ? 'bg-spice-brand-pm text-white'
+                : 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
+            }`}
+          >
             {t('layout.sidebar.user.initials')}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-spice-text-primary">
+            <div
+              className={`truncate text-sm font-semibold ${
+                isProgramManager
+                  ? 'text-spice-text-onDark-hi'
+                  : 'text-spice-text-primary'
+              }`}
+            >
               {t('layout.sidebar.user.name')}
             </div>
-            <div className="truncate text-xs text-spice-text-muted">
-              {t('layout.sidebar.user.subtitle')}
+            <div
+              className={`truncate text-xs ${
+                isProgramManager
+                  ? 'text-spice-text-onDark-mid'
+                  : 'text-spice-text-muted'
+              }`}
+            >
+              {isProgramManager
+                ? 'Program Manager'
+                : t('layout.sidebar.user.subtitle')}
             </div>
           </div>
         </div>
