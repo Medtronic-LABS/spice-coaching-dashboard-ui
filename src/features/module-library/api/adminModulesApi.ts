@@ -1,49 +1,109 @@
 import { adminBaseApi } from '@/store/apis/adminBase';
 
-export type AdminModuleStatus = 'auto_generated' | 'published' | 'draft';
+export type AdminModuleLifecycleStatus = 'draft' | 'published' | 'retired';
 
-export interface AdminModuleListItem {
+export type AdminModuleDifficulty = 'easy' | 'medium' | 'hard' | string;
+
+export interface AdminModulesListItem {
   id: string;
-  title: string;
-  description: string;
-  lessons_count: number;
-  questions_count: number;
-  estimated_completion_time: number;
-  status: AdminModuleStatus;
-  clinical_domain: string;
+  module_family_id: string;
+  version: number;
+  title_bn: string | null;
+  title_en: string | null;
+  description_bn: string | null;
+  domain: string;
+  module_type: string;
+  lifecycle_status: AdminModuleLifecycleStatus;
+  clinically_reviewed: boolean;
+  has_visibility_window: boolean;
+  card_count: number;
+  estimated_minutes: number;
+  published_at: string | null;
+  created_at: string;
+  quality_flags?: { flags: string[] } | null;
 }
 
-export interface FetchModulesResponse {
-  modules: AdminModuleListItem[];
-  count: number;
-  limit: number;
-  offset: number;
-  applied_filters?: { clinical_domain?: string };
+export interface AdminModuleQuizItem {
+  id: string;
+  question_order: number;
+  question_bn: string | null;
+  question_en: string | null;
+  case_setup_bn: string | null;
+  case_setup_en: string | null;
+  options_bn: string[];
+  options_en: string[];
+  correct_indices: number[];
+  explanation_bn: string | null;
+  explanation_en: string | null;
+  difficulty: AdminModuleDifficulty;
 }
 
 export interface AdminModuleDetailResponse {
-  module_id: string;
-  clinical_domain: string;
-  document_id: string;
-  difficulty_level?: string;
-  estimated_time_minutes?: number;
-  version?: number;
-  source_scenario_ids?: string[];
-  validation_status?: string;
-  confidence_score?: number;
-  module_json?: unknown;
-  created_at?: string;
-  updated_at?: string;
+  id: string;
+  module_family_id: string;
+  version: number;
+  title_bn: string | null;
+  title_en: string | null;
+  description_bn: string | null;
+  domain: string;
+  module_type: string;
+  lifecycle_status: AdminModuleLifecycleStatus;
+  clinically_reviewed: boolean;
+  has_visibility_window: boolean;
+  card_count: number;
+  estimated_minutes: number;
+  published_at: string | null;
+  created_at: string;
+  quality_flags: { flags: string[] } | null;
+  cards: unknown[];
+  quiz: AdminModuleQuizItem[];
+}
+
+export interface EditAdminModuleRequestBody {
+  title_bn?: string;
+  title_en?: string;
+  description_bn?: string;
+  module_json: { cards: unknown[]; quiz?: AdminModuleQuizItem[] };
+  editor_id?: string;
+}
+
+export interface EditAdminModuleResponse {
+  id: string;
+  module_family_id: string;
+  version: number;
+  supersedes_module_id: string;
+}
+
+export interface ClinicallyReviewedRequestBody {
+  clinically_reviewed: true;
+  reviewer_id?: string;
+}
+
+export interface ClinicallyReviewedResponse {
+  id: string;
+  clinically_reviewed: boolean;
+  clinically_reviewed_at: string;
+  clinically_reviewed_by: string;
+}
+
+export interface RetireModuleResponse {
+  id: string;
+  lifecycle_status: 'retired';
+  deprecated_at: string;
 }
 
 export const adminModulesApi = adminBaseApi.injectEndpoints({
   endpoints: (builder) => ({
     fetchModules: builder.query<
-      FetchModulesResponse,
-      { clinical_domain?: string; limit: number; offset: number }
+      AdminModulesListItem[],
+      {
+        limit: number;
+        offset: number;
+        status?: AdminModuleLifecycleStatus | null;
+      }
     >({
       query: (params) => ({
-        url: '/admin/fetch-modules',
+        url: '/admin/modules',
         method: 'GET',
         params,
       }),
@@ -55,9 +115,29 @@ export const adminModulesApi = adminBaseApi.injectEndpoints({
       }),
       keepUnusedDataFor: 0,
     }),
-    deleteModule: builder.mutation<{ status?: string }, { moduleId: string }>({
+    editModule: builder.mutation<
+      EditAdminModuleResponse,
+      { moduleId: string; body: EditAdminModuleRequestBody }
+    >({
+      query: ({ moduleId, body }) => ({
+        url: `/admin/modules/${encodeURIComponent(moduleId)}`,
+        method: 'PUT',
+        body,
+      }),
+    }),
+    setClinicallyReviewed: builder.mutation<
+      ClinicallyReviewedResponse,
+      { moduleId: string; body: ClinicallyReviewedRequestBody }
+    >({
+      query: ({ moduleId, body }) => ({
+        url: `/admin/modules/${encodeURIComponent(moduleId)}/clinically-reviewed`,
+        method: 'POST',
+        body,
+      }),
+    }),
+    deleteModule: builder.mutation<RetireModuleResponse, { moduleId: string }>({
       query: ({ moduleId }) => ({
-        url: `/admin/module/${encodeURIComponent(moduleId)}`,
+        url: `/admin/modules/${encodeURIComponent(moduleId)}`,
         method: 'DELETE',
       }),
     }),
@@ -68,5 +148,7 @@ export const adminModulesApi = adminBaseApi.injectEndpoints({
 export const {
   useFetchModulesQuery,
   useGetModuleDetailQuery,
+  useEditModuleMutation,
+  useSetClinicallyReviewedMutation,
   useDeleteModuleMutation,
 } = adminModulesApi;

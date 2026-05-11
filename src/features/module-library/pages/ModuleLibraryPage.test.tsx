@@ -4,8 +4,23 @@ import { Route, Routes } from 'react-router-dom';
 import { paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleLibraryPage } from './ModuleLibraryPage';
+import type { AppRole } from '@/constants/role';
+
+const roleState = vi.hoisted(() => ({ role: 'supervisor' as AppRole }));
+
+vi.mock('@/constants/role', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/constants/role')>();
+  return {
+    ...actual,
+    getCurrentRole: () => roleState.role,
+  };
+});
 
 describe('ModuleLibraryPage', () => {
+  beforeEach(() => {
+    roleState.role = 'supervisor';
+  });
+
   it('renders tabs and can navigate to assigned confirmation', async () => {
     const user = userEvent.setup();
     renderWithProviders(

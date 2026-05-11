@@ -17,7 +17,7 @@ export const CoursePublishedPage = () => {
           Publish the module from Review & Publish to see the live screen.
         </p>
         <div>
-          <Button onClick={() => navigate(paths.courseReview)}>
+          <Button onClick={() => navigate(paths.moduleReview)}>
             Go to Review & Publish
           </Button>
         </div>
@@ -101,7 +101,7 @@ export const CoursePublishedPage = () => {
           </button>
           <button
             type="button"
-            onClick={() => navigate(paths.courseCreate)}
+            onClick={() => navigate(paths.moduleCreate)}
             className="flex w-full items-center justify-between rounded-lg bg-spice-bg-tint px-4 py-3 text-left"
           >
             <div>

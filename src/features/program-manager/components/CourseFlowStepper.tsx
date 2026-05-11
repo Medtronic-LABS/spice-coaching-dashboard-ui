@@ -9,10 +9,10 @@ interface CourseFlowStepperProps {
 }
 
 const stepMeta: Array<{ key: StepKey; label: string; path: string }> = [
-  { key: 'details', label: 'Module Details', path: paths.courseCreate },
-  { key: 'lessons', label: 'Lessons', path: paths.courseLessons },
-  { key: 'quiz', label: 'Quiz', path: paths.courseQuiz },
-  { key: 'review', label: 'Review & Publish', path: paths.courseReview },
+  { key: 'details', label: 'Module Details', path: paths.moduleCreate },
+  { key: 'lessons', label: 'Lessons', path: paths.moduleLessons },
+  { key: 'quiz', label: 'Quiz', path: paths.moduleQuiz },
+  { key: 'review', label: 'Review & Publish', path: paths.moduleReview },
 ];
 
 export const CourseFlowStepper = ({

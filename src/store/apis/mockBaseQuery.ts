@@ -28,6 +28,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
 function getUrl(args: string | FetchArgs): string {
   if (typeof args === 'string') return args;
   return args.url;
@@ -116,6 +120,52 @@ export const mockBaseQuery: BaseQueryFn<
   // Module library endpoints
   if (url === 'module-library') {
     return { data: mockModuleLibrary };
+  }
+
+  // Admin endpoints (used by adminBaseApi in test mode)
+  if (url === 'admin/modules') {
+    const limit =
+      typeof params === 'object' && params && 'limit' in params
+        ? Number((params as { limit?: unknown }).limit)
+        : mockModuleLibrary.modules.length;
+    const offset =
+      typeof params === 'object' && params && 'offset' in params
+        ? Number((params as { offset?: unknown }).offset)
+        : 0;
+    const status = asString(
+      typeof params === 'object' && params && 'status' in params
+        ? (params as { status?: unknown }).status
+        : undefined,
+    );
+
+    const items = mockModuleLibrary.modules
+      .filter((m) => (status ? m.status === status : true))
+      .map((m, idx) => ({
+        id: m.id,
+        module_family_id: `family_${m.id}`,
+        version: 1,
+        title_bn: m.title,
+        title_en: null,
+        description_bn: m.category,
+        domain: m.category,
+        module_type: 'initial_training',
+        lifecycle_status: m.status,
+        clinically_reviewed: false,
+        has_visibility_window: false,
+        card_count: m.lessons,
+        estimated_minutes: Math.max(
+          1,
+          Math.round(
+            Number.parseInt(m.durationLabel.replace(/\D/g, ''), 10) || 10,
+          ),
+        ),
+        published_at:
+          m.status === 'published' ? new Date().toISOString() : null,
+        created_at: new Date(Date.now() - idx * 86400000).toISOString(),
+        quality_flags: { flags: [] },
+      }));
+
+    return { data: items.slice(offset, offset + limit) };
   }
 
   // Quiz performance endpoints

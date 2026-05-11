@@ -115,7 +115,7 @@ export const CourseReviewPublishPage = () => {
               <Button
                 variant="ghost"
                 className="h-8 px-2 text-xs"
-                onClick={() => navigate(paths.courseLessons)}
+                onClick={() => navigate(paths.moduleLessons)}
                 // disabled={isReadOnly}
               >
                 {isReadOnly ? 'View' : 'Edit'}
@@ -146,11 +146,11 @@ export const CourseReviewPublishPage = () => {
                 className="h-8 px-2 text-xs"
                 onClick={() => {
                   if (isReadOnly) {
-                    navigate(paths.courseQuiz, {
+                    navigate(paths.moduleQuiz, {
                       state: { viewModuleId: data?.id },
                     });
                   } else {
-                    navigate(paths.courseQuiz);
+                    navigate(paths.moduleQuiz);
                   }
                 }}
               >
@@ -233,7 +233,7 @@ export const CourseReviewPublishPage = () => {
                       }).unwrap();
                     }
                     await refetch();
-                    navigate(paths.coursePublished);
+                    navigate(paths.modulePublished);
                   } catch (error) {
                     setActionError(formatRtkQueryError(error));
                   }
@@ -242,7 +242,7 @@ export const CourseReviewPublishPage = () => {
                 {isPublishing
                   ? 'Publishing...'
                   : isAlreadyPublished
-                    ? 'Back to Courses'
+                    ? 'Back to Modules'
                     : 'Publish Module'}
               </Button>
               <Button

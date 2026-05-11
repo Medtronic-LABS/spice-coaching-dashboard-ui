@@ -40,7 +40,7 @@ export const CourseLessonsPage = () => {
           Upload a document and generate module content before editing lessons.
         </p>
         <div>
-          <Button onClick={() => navigate(paths.courseCreate)}>
+          <Button onClick={() => navigate(paths.moduleCreate)}>
             Go to Module Details
           </Button>
         </div>
@@ -112,7 +112,7 @@ export const CourseLessonsPage = () => {
                 {isLoading ? 'Saving...' : 'Save Content'}
               </Button>
             )}
-            <Button onClick={() => navigate(paths.courseQuiz)}>
+            <Button onClick={() => navigate(paths.moduleQuiz)}>
               Continue to Quiz
             </Button>
           </div>

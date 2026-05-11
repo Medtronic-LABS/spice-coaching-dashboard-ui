@@ -33,7 +33,7 @@ export const CourseQuizPage = () => {
           Complete document upload and generation before editing quiz questions.
         </p>
         <div>
-          <Button onClick={() => navigate(paths.courseCreate)}>
+          <Button onClick={() => navigate(paths.moduleCreate)}>
             Go to Module Details
           </Button>
         </div>
@@ -199,7 +199,7 @@ export const CourseQuizPage = () => {
                 {isLoading ? 'Saving...' : 'Save Quiz'}
               </Button>
             )}
-            <Button onClick={() => navigate(paths.courseReview)}>
+            <Button onClick={() => navigate(paths.moduleReview)}>
               Continue to Review
             </Button>
           </div>

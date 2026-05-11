@@ -38,6 +38,40 @@ const ModuleAssignedPage = lazy(() =>
     }),
   ),
 );
+const IngestDocumentPage = lazy(() =>
+  import('@/features/module-library/pages/IngestDocumentPage').then(
+    (module) => ({
+      default: module.IngestDocumentPage,
+    }),
+  ),
+);
+const AdminModuleReviewLayout = lazy(() =>
+  import('@/features/module-library/layout/AdminModuleReviewLayout').then(
+    (module) => ({
+      default: module.AdminModuleReviewLayout,
+    }),
+  ),
+);
+const AdminModuleDetailsStep = lazy(() =>
+  import('@/features/module-library/pages/admin-module-review/AdminModuleDetailsStep').then(
+    (module) => ({ default: module.AdminModuleDetailsStep }),
+  ),
+);
+const AdminModuleLessonsStep = lazy(() =>
+  import('@/features/module-library/pages/admin-module-review/AdminModuleLessonsStep').then(
+    (module) => ({ default: module.AdminModuleLessonsStep }),
+  ),
+);
+const AdminModuleQuizStep = lazy(() =>
+  import('@/features/module-library/pages/admin-module-review/AdminModuleQuizStep').then(
+    (module) => ({ default: module.AdminModuleQuizStep }),
+  ),
+);
+const AdminModulePublishStep = lazy(() =>
+  import('@/features/module-library/pages/admin-module-review/AdminModulePublishStep').then(
+    (module) => ({ default: module.AdminModulePublishStep }),
+  ),
+);
 const QuizPerformancePage = lazy(() =>
   import('@/features/quiz-performance/pages/QuizPerformancePage').then(
     (module) => ({
@@ -122,7 +156,6 @@ const CoursePublishedPage = lazy(() =>
     }),
   ),
 );
-
 export const AppRoutes = () => {
   const { t } = useTranslation();
   const role = getCurrentRole();
@@ -150,6 +183,32 @@ export const AppRoutes = () => {
             element={<ChwProfileDetailPage />}
           />
           <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+          <Route
+            path={paths.ingestDocument}
+            element={
+              isProgramManager ? (
+                <IngestDocumentPage />
+              ) : (
+                <Navigate to={paths.home} replace />
+              )
+            }
+          />
+          <Route
+            path={paths.adminModuleReview}
+            element={
+              isProgramManager ? (
+                <AdminModuleReviewLayout />
+              ) : (
+                <Navigate to={paths.home} replace />
+              )
+            }
+          >
+            <Route index element={<Navigate to="details" replace />} />
+            <Route path="details" element={<AdminModuleDetailsStep />} />
+            <Route path="lessons" element={<AdminModuleLessonsStep />} />
+            <Route path="quiz" element={<AdminModuleQuizStep />} />
+            <Route path="review" element={<AdminModulePublishStep />} />
+          </Route>
           <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
           <Route
             path={paths.quizPerformance}
@@ -216,6 +275,16 @@ export const AppRoutes = () => {
             <Route path="review" element={<CourseReviewPublishPage />} />
             <Route path="published" element={<CoursePublishedPage />} />
           </Route>
+          <Route
+            path={paths.moduleCreate}
+            element={
+              isProgramManager ? (
+                <CourseCreatePage />
+              ) : (
+                <Navigate to={paths.home} replace />
+              )
+            }
+          />
           <Route path="*" element={<Navigate to={paths.home} replace />} />
         </Route>
       </Routes>
