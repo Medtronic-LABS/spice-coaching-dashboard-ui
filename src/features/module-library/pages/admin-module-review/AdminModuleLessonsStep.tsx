@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import {
-  useEditModuleMutation,
-  useGetModuleDetailQuery,
-} from '@/features/module-library/api/adminModulesApi';
+import { useEditModuleMutation } from '@/features/module-library/api/adminModulesApi';
+import { useAdminModuleDetailQuery } from '@/features/module-library/hooks/useAdminModuleDetailQuery';
+import { applyEditModuleAndSyncRoute } from '@/features/module-library/utils/applyEditModuleAndSyncRoute';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -36,9 +35,10 @@ function safeString(value: unknown): string {
 
 export const AdminModuleLessonsStep = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
   const { data, isLoading, isFetching, error, refetch } =
-    useGetModuleDetailQuery(moduleId, { skip: !moduleId });
+    useAdminModuleDetailQuery(moduleId, { skip: !moduleId });
   const [editModule, { isLoading: isSaving }] = useEditModuleMutation();
 
   const [actionError, setActionError] = useState('');
@@ -296,14 +296,17 @@ export const AdminModuleLessonsStep = () => {
                 setActionError('');
                 try {
                   const nextCards = cards.map((c, idx) => cardEdits[idx] ?? c);
-                  await editModule({
-                    moduleId: data.id,
+                  await applyEditModuleAndSyncRoute({
+                    editModule,
+                    navigate,
+                    pathname,
+                    moduleEntityId: data.id,
                     body: {
                       title_en: data.title_en ?? undefined,
                       module_json: { cards: nextCards, quiz: data.quiz },
                     },
-                  }).unwrap();
-                  await refetch();
+                    refetch,
+                  });
                 } catch (err) {
                   setActionError(formatRtkQueryError(err));
                 }

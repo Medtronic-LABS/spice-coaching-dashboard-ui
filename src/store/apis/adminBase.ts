@@ -29,6 +29,9 @@ const LONG_RUNNING_MS = 20 * 60 * 1000;
 export const adminBaseApi = createApi({
   reducerPath: 'adminBaseApi',
   tagTypes: ['ModulesQueue', 'ModuleCandidate'],
+  /** Fresh data by default; opt out per-hook with `refetchOnMountOrArgChange: false` (see `useAdminModuleDetailQuery` `useCache`). */
+  refetchOnMountOrArgChange: true,
+  refetchOnFocus: true,
   baseQuery:
     import.meta.env.MODE === 'test'
       ? mockBaseQuery

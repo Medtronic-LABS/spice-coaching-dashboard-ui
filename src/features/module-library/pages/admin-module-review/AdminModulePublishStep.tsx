@@ -1,17 +1,15 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import {
-  useGetModuleDetailQuery,
-  useSetClinicallyReviewedMutation,
-} from '@/features/module-library/api/adminModulesApi';
+import { useSetClinicallyReviewedMutation } from '@/features/module-library/api/adminModulesApi';
+import { useAdminModuleDetailQuery } from '@/features/module-library/hooks/useAdminModuleDetailQuery';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
 
 export const AdminModulePublishStep = () => {
   const navigate = useNavigate();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
   const { data, isLoading, isFetching, error, refetch } =
-    useGetModuleDetailQuery(moduleId, { skip: !moduleId });
+    useAdminModuleDetailQuery(moduleId, { skip: !moduleId });
   const [setClinicallyReviewed, { isLoading: isPublishing }] =
     useSetClinicallyReviewedMutation();
 

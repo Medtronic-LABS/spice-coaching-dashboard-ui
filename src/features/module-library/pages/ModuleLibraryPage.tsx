@@ -57,7 +57,7 @@ export const ModuleLibraryPage = () => {
         title: m.title_en ?? m.title_bn ?? 'Untitled module',
         category: m.domain,
         lessons: m.card_count,
-        questions: 0,
+        questions: m.quiz_count,
         durationLabel: `~${m.estimated_minutes} min`,
         status: m.lifecycle_status === 'published' ? 'published' : 'draft',
         lastUpdated: (m.published_at ?? m.created_at)

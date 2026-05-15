@@ -21,6 +21,7 @@ export interface AdminModulesListItem {
   published_at: string | null;
   created_at: string;
   quality_flags?: { flags: string[] } | null;
+  quiz_count: number;
 }
 
 export interface AdminModuleQuizItem {
@@ -113,7 +114,8 @@ export const adminModulesApi = adminBaseApi.injectEndpoints({
         url: `/admin/modules/${encodeURIComponent(moduleId)}`,
         method: 'GET',
       }),
-      keepUnusedDataFor: 0,
+      /** Retain briefly so `useAdminModuleDetailQuery(..., { useCache: true })` can reuse across review steps. */
+      keepUnusedDataFor: 300,
     }),
     editModule: builder.mutation<
       EditAdminModuleResponse,
