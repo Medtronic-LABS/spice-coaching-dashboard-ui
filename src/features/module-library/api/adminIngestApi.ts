@@ -78,7 +78,7 @@ export const adminIngestApi = adminBaseApi.injectEndpoints({
         url: `/admin/v3/ingest/by-document/${encodeURIComponent(sourceDocumentId)}`,
         method: 'GET',
       }),
-      keepUnusedDataFor: 0,
+      keepUnusedDataFor: 60,
     }),
   }),
   overrideExisting: false,

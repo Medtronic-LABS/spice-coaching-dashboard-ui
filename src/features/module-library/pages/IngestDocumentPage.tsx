@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -8,12 +8,18 @@ import {
   type AdminV3IngestAcceptedResponse,
   type PrimaryLanguage,
 } from '@/features/module-library/api/adminIngestApi';
+import {
+  clearActiveIngestSession,
+  readActiveIngestSession,
+  writeActiveIngestSession,
+} from '@/features/module-library/utils/ingestSessionStorage';
+import {
+  isIngestInProgress,
+  isIngestRunning,
+  isIngestSucceeded,
+  shouldPollIngestStatus,
+} from '@/features/module-library/utils/ingestStatus';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
-
-function isTerminalIngestStatus(status: string | undefined): boolean {
-  const s = (status ?? '').toLowerCase();
-  return s.includes('complete') || s.includes('fail') || s.includes('error');
-}
 
 export const IngestDocumentPage = () => {
   const navigate = useNavigate();
@@ -25,35 +31,96 @@ export const IngestDocumentPage = () => {
 
   const [accepted, setAccepted] =
     useState<AdminV3IngestAcceptedResponse | null>(null);
+  const [restoredSourceDocumentId, setRestoredSourceDocumentId] = useState(
+    () => readActiveIngestSession()?.source_document_id ?? '',
+  );
   const [actionError, setActionError] = useState('');
 
   const [ingestDocument, { isLoading: isUploading }] =
     useIngestDocumentMutation();
 
-  const sourceDocumentId = accepted?.source_document_id ?? '';
+  const sourceDocumentId =
+    accepted?.source_document_id ?? restoredSourceDocumentId;
+
+  const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
+    readActiveIngestSession()?.source_document_id ? 30000 : 0,
+  );
   const {
     data: statusData,
+    isLoading: isStatusLoading,
     isFetching: isPolling,
     error: statusError,
+    refetch: refetchIngestStatus,
   } = useGetIngestStatusByDocumentQuery(sourceDocumentId, {
     skip: !sourceDocumentId,
-    pollingInterval:
-      sourceDocumentId && !isTerminalIngestStatus(statusData?.status)
-        ? 2000
-        : 0,
+    pollingInterval: statusPollIntervalMs,
+    refetchOnMountOrArgChange: true,
   });
 
-  const canSubmit = Boolean(file) && Boolean(title.trim()) && !isUploading;
+  useEffect(() => {
+    if (!sourceDocumentId) {
+      setStatusPollIntervalMs(0);
+      return;
+    }
+    setStatusPollIntervalMs(
+      shouldPollIngestStatus(sourceDocumentId, statusData?.status) ? 2000 : 0,
+    );
+  }, [sourceDocumentId, statusData?.status]);
+
+  const ingestionInProgress = isIngestInProgress(
+    sourceDocumentId,
+    statusData?.status,
+  );
+  const ingestionSucceeded = isIngestSucceeded(statusData?.status);
+
+  useEffect(() => {
+    if (!accepted?.source_document_id) return;
+    writeActiveIngestSession({
+      source_document_id: accepted.source_document_id,
+      title: accepted.title,
+    });
+    setRestoredSourceDocumentId(accepted.source_document_id);
+  }, [accepted]);
+
+  useEffect(() => {
+    if (!restoredSourceDocumentId) return;
+    const session = readActiveIngestSession();
+    if (session?.source_document_id === restoredSourceDocumentId) return;
+    writeActiveIngestSession({
+      source_document_id: restoredSourceDocumentId,
+    });
+  }, [restoredSourceDocumentId]);
+
+  const canSubmit =
+    Boolean(file) &&
+    Boolean(title.trim()) &&
+    !isUploading &&
+    !ingestionInProgress;
 
   const steps = statusData?.steps ?? [];
   const candidates = statusData?.candidates ?? [];
 
   const progressLabel = useMemo(() => {
-    if (!accepted) return 'Upload a document to start ingestion.';
-    if (!statusData) return 'Ingestion accepted. Fetching status…';
-    if (statusData.completed_at) return `Completed · ${statusData.status}`;
-    return `In progress · ${statusData.status}`;
-  }, [accepted, statusData]);
+    if (!sourceDocumentId) {
+      return 'Upload a document to start ingestion.';
+    }
+    if (!statusData) {
+      return 'Loading ingestion status…';
+    }
+    if (isIngestRunning(statusData.status)) {
+      return 'Ingestion running. Pipeline steps update below while processing.';
+    }
+    if (ingestionInProgress) {
+      return `Ingestion in progress · ${statusData.status}. Wait before uploading another document.`;
+    }
+    if (ingestionSucceeded) {
+      return `Ingestion complete · ${statusData.status}`;
+    }
+    if (statusData.completed_at) return `Finished · ${statusData.status}`;
+    return `Status · ${statusData.status}`;
+  }, [ingestionInProgress, ingestionSucceeded, sourceDocumentId, statusData]);
+
+  const uploadFieldsDisabled = isUploading || ingestionInProgress;
 
   return (
     <section className="space-y-5">
@@ -78,6 +145,20 @@ export const IngestDocumentPage = () => {
         </div>
       </div>
 
+      {ingestionInProgress ? (
+        <div
+          className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary"
+          role="status"
+        >
+          <span className="font-semibold">Ingestion in progress.</span>{' '}
+          <span className="text-spice-text-muted">
+            Document <span className="font-mono">{sourceDocumentId}</span> is
+            being processed. Upload another file after the pipeline reports
+            succeeded.
+          </span>
+        </div>
+      ) : null}
+
       {actionError ? (
         <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
           {actionError}
@@ -93,8 +174,9 @@ export const IngestDocumentPage = () => {
           <label className="block space-y-1">
             <span className="text-xs text-spice-text-muted">Title</span>
             <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               value={title}
+              disabled={uploadFieldsDisabled}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Antenatal Counseling and TT Vaccination"
             />
@@ -104,8 +186,9 @@ export const IngestDocumentPage = () => {
               Primary language
             </span>
             <select
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               value={primaryLanguage}
+              disabled={uploadFieldsDisabled}
               onChange={(e) =>
                 setPrimaryLanguage(e.target.value as PrimaryLanguage)
               }
@@ -119,8 +202,9 @@ export const IngestDocumentPage = () => {
               Authority kind
             </span>
             <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               value={authorityKind}
+              disabled={uploadFieldsDisabled}
               onChange={(e) => setAuthorityKind(e.target.value)}
               placeholder="official_training"
             />
@@ -130,8 +214,9 @@ export const IngestDocumentPage = () => {
               Authority label
             </span>
             <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               value={authorityLabel}
+              disabled={uploadFieldsDisabled}
               onChange={(e) => setAuthorityLabel(e.target.value)}
               placeholder="BRAC"
             />
@@ -143,6 +228,7 @@ export const IngestDocumentPage = () => {
           <input
             type="file"
             accept=".pdf,.ppt,.pptx,.doc,.docx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            disabled={uploadFieldsDisabled}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
           {file ? (
@@ -160,6 +246,8 @@ export const IngestDocumentPage = () => {
               if (!file) return;
               setActionError('');
               setAccepted(null);
+              setRestoredSourceDocumentId('');
+              clearActiveIngestSession();
               try {
                 const res = await ingestDocument({
                   file,
@@ -169,12 +257,17 @@ export const IngestDocumentPage = () => {
                   primary_language: primaryLanguage,
                 }).unwrap();
                 setAccepted(res);
+                setFile(null);
               } catch (err) {
                 setActionError(formatRtkQueryError(err));
               }
             }}
           >
-            {isUploading ? 'Uploading…' : 'Start ingestion'}
+            {isUploading
+              ? 'Uploading…'
+              : ingestionInProgress
+                ? 'Ingestion in progress…'
+                : 'Start ingestion'}
           </Button>
         </div>
       </Card>
@@ -182,28 +275,56 @@ export const IngestDocumentPage = () => {
       <Card variant="elevated" className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <div className="text-sm font-semibold text-spice-text-primary">
-              Status
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-semibold text-spice-text-primary">
+                Status
+              </div>
+              {statusData?.status ? (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    isIngestRunning(statusData.status)
+                      ? 'bg-spice-brand-pm/15 text-spice-brand-pm'
+                      : ingestionSucceeded
+                        ? 'bg-spice-semantic-successBg text-spice-semantic-success'
+                        : 'bg-spice-bg-tint text-spice-text-muted'
+                  }`}
+                >
+                  {statusData.status}
+                </span>
+              ) : null}
+              {isPolling && statusData ? (
+                <span className="text-[10px] text-spice-text-muted">
+                  Updating…
+                </span>
+              ) : null}
             </div>
             <div className="mt-1 text-xs text-spice-text-muted">
               {progressLabel}
             </div>
           </div>
-          {accepted ? (
+          {sourceDocumentId ? (
             <div className="text-xs text-spice-text-muted">
-              Document:{' '}
-              <span className="font-mono">{accepted.source_document_id}</span>
+              Document: <span className="font-mono">{sourceDocumentId}</span>
             </div>
           ) : null}
         </div>
 
         {statusError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {formatRtkQueryError(statusError)}
+          <div className="space-y-2">
+            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+              {formatRtkQueryError(statusError)}
+            </div>
+            <Button
+              variant="secondary"
+              className="h-8 text-xs"
+              onClick={() => void refetchIngestStatus()}
+            >
+              Retry status
+            </Button>
           </div>
         ) : null}
 
-        {accepted && !statusData ? (
+        {sourceDocumentId && !statusData && isStatusLoading ? (
           <div className="py-6">
             <LoadingState label={isPolling ? 'Polling status…' : 'Loading…'} />
           </div>
@@ -231,7 +352,9 @@ export const IngestDocumentPage = () => {
                   <br />
                   {statusData.completed_at
                     ? `Completed: ${statusData.completed_at}`
-                    : 'In progress'}
+                    : isIngestRunning(statusData.status)
+                      ? 'Running'
+                      : 'In progress'}
                 </div>
               </Card>
             </div>
@@ -323,6 +446,12 @@ export const IngestDocumentPage = () => {
                 )}
               </div>
             </div>
+
+            {ingestionSucceeded ? (
+              <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
+                Ingestion succeeded. You can upload another document.
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Card>
