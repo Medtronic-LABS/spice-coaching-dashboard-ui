@@ -1,0 +1,15 @@
+# Production-style static build served by nginx.
+# Set VITE_* in a .env file next to this compose file (see .env.example). Build args are baked into the client bundle.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_ADMIN_API_BASE_URL: ${VITE_ADMIN_API_BASE_URL:-http://localhost:8001}
+        VITE_USE_MOCK_API: ${VITE_USE_MOCK_API:-true}
+        VITE_APP_ROLE: ${VITE_APP_ROLE:-supervisor}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    restart: unless-stopped
