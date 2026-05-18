@@ -1,0 +1,187 @@
+/* SPICE Design System tokens (ported from `SPICE Design System Enhanced/colors_and_type.css`) */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* COLORS — BRAND BLUES */
+  --color-blue-supervisor: #1565c0;
+  --color-blue-pm: #2962ff;
+  --color-blue-app: #005eb8;
+  --color-blue-app-dark: #0052a2;
+  --color-navy-sidebar: #1b2a4a;
+
+  /* COLORS — TINTS & SURFACES */
+  --color-blue-tint: #eef4ff;
+  --color-blue-tint-mid: #bbd6fb;
+  --color-bg-dashboard: #f0f2f8;
+  --color-bg-app: #f7f9fc;
+  --color-bg-pm: #f9fbff;
+  --color-bg-input: #ffffff;
+  --color-surface: #ffffff;
+
+  /* COLORS — NEUTRALS */
+  --color-text-primary: #1a1d23;
+  --color-text-medium: #44464f;
+  --color-text-body: #596065;
+  --color-text-muted: #8b8fa8;
+  --color-text-subtle: #667085;
+  --color-text-placeholder: #757575;
+  --color-text-on-dark-hi: #ffffff;
+  --color-text-on-dark-mid: rgba(255, 255, 255, 0.45);
+  --color-text-on-dark-lo: rgba(255, 255, 255, 0.2);
+
+  --color-border: #eceef5;
+  --color-border-mid: #d5d7da;
+  --color-border-input: #cac4d0;
+
+  /* COLORS — SEMANTIC */
+  --color-success: #2e7d32;
+  --color-success-bg: #e8f5e9;
+  --color-error: #d32f2f;
+  --color-error-bg: #ffebee;
+  --color-error-stroke: #ffcdd2;
+  --color-warning: #e65100;
+  --color-warning-bg: #fff3e0;
+  --color-info: #1565c0;
+  --color-info-bg: #eef4ff;
+
+  /* SHADOWS */
+  --shadow-card-dashboard: 0px 4px 16px 0px rgba(30, 40, 80, 0.05),
+    0px 1px 4px 0px rgba(30, 40, 80, 0.06);
+  --shadow-btn-primary: 0px 2px 8px 0px rgba(21, 101, 192, 0.25);
+
+  /* BORDER RADIUS */
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  /* TYPOGRAPHY — FONT FAMILIES */
+  --font-dashboard: 'Noto Sans', 'Noto Sans Bengali', sans-serif;
+
+  /* Additional SPICE tokens (full set from design system) */
+  --color-neutral-100: #f0f2f8;
+  --color-neutral-200: #eceef5;
+  --color-neutral-300: #d5d7da;
+  --color-neutral-400: #cac4d0;
+  --color-neutral-500: #8b8fa8;
+  --color-neutral-600: #667085;
+  --color-neutral-700: #44464f;
+  --color-neutral-800: #1a1d23;
+
+  --color-accent-blue-light: #a0c2ff;
+  --color-accent-coral: #ff9f96;
+  --color-accent-lavender: #e8deff;
+  --color-accent-green-pale: #dcfce7;
+
+  --shadow-card-app: 0px 20px 50px 0px rgba(45, 51, 56, 0.06);
+  --shadow-hero-app: 0px 10px 30px 0px rgba(0, 94, 184, 0.2);
+  --shadow-pm-panel: 0px 0px 0px 1px rgba(255, 255, 255, 0.05),
+    0px 32px 80px 0px rgba(0, 0, 0, 0.5);
+  --shadow-overlay: 0px 0px 0px 1px rgba(0, 0, 0, 0.06),
+    0px 4px 12px 0px rgba(0, 0, 0, 0.08);
+  --shadow-kpi-card: 0px 1px 4px rgba(30, 40, 80, 0.05);
+
+  --radius-sm: 8px;
+  --radius-2xl: 32px;
+  --radius-3xl: 48px;
+  --radius-badge: 100px;
+  --radius-avatar: 10px;
+  --radius-icon: 12px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-bengali: 'Noto Sans Bengali', 'Nirmala UI', sans-serif;
+
+  --text-app-h1-family: var(--font-display);
+  --text-app-h1-size: 30px;
+  --text-app-h1-weight: 700;
+  --text-app-h1-lh: 36px;
+  --text-app-h1-ls: -0.75px;
+  --text-app-h2-family: var(--font-display);
+  --text-app-h2-size: 24px;
+  --text-app-h2-weight: 700;
+  --text-app-h2-lh: 32px;
+  --text-app-h3-family: var(--font-display);
+  --text-app-h3-size: 18px;
+  --text-app-h3-weight: 700;
+  --text-app-h3-lh: 28px;
+  --text-app-h4-family: var(--font-display);
+  --text-app-h4-size: 16px;
+  --text-app-h4-weight: 700;
+  --text-app-h4-lh: 24px;
+  --text-app-body-lg-family: var(--font-body);
+  --text-app-body-lg-size: 16px;
+  --text-app-body-lg-weight: 500;
+  --text-app-body-lg-lh: 24px;
+  --text-app-body-family: var(--font-body);
+  --text-app-body-size: 14px;
+  --text-app-body-weight: 400;
+  --text-app-body-lh: 20px;
+  --text-app-caption-family: var(--font-body);
+  --text-app-caption-size: 12px;
+  --text-app-caption-weight: 600;
+  --text-app-caption-lh: 16px;
+  --text-app-caption-ls: 1.2px;
+  --text-app-label-family: var(--font-body);
+  --text-app-label-size: 10px;
+  --text-app-label-weight: 700;
+  --text-app-label-lh: 15px;
+  --text-app-label-ls: 0.5px;
+
+  --text-dash-title-family: var(--font-dashboard);
+  --text-dash-title-size: 24px;
+  --text-dash-title-weight: 700;
+  --text-dash-title-lh: 36px;
+  --text-dash-h1-family: var(--font-dashboard);
+  --text-dash-h1-size: 18px;
+  --text-dash-h1-weight: 700;
+  --text-dash-h1-lh: 27px;
+  --text-dash-h1-ls: -0.18px;
+  --text-dash-h2-family: var(--font-dashboard);
+  --text-dash-h2-size: 14px;
+  --text-dash-h2-weight: 700;
+  --text-dash-h2-lh: 21px;
+  --text-dash-h3-family: var(--font-dashboard);
+  --text-dash-h3-size: 13px;
+  --text-dash-h3-weight: 700;
+  --text-dash-h3-lh: 19.5px;
+  --text-dash-body-family: var(--font-dashboard);
+  --text-dash-body-size: 13px;
+  --text-dash-body-weight: 500;
+  --text-dash-body-lh: 19.5px;
+  --text-dash-sm-family: var(--font-dashboard);
+  --text-dash-sm-size: 12px;
+  --text-dash-sm-weight: 400;
+  --text-dash-sm-lh: 18px;
+  --text-dash-xs-family: var(--font-dashboard);
+  --text-dash-xs-size: 11px;
+  --text-dash-xs-weight: 400;
+  --text-dash-xs-lh: 16.5px;
+  --text-dash-xxs-family: var(--font-dashboard);
+  --text-dash-xxs-size: 10px;
+  --text-dash-xxs-weight: 700;
+  --text-dash-xxs-lh: 15px;
+  --text-dash-micro-family: var(--font-dashboard);
+  --text-dash-micro-size: 9px;
+  --text-dash-micro-weight: 700;
+  --text-dash-micro-lh: 13.5px;
+  --text-dash-micro-ls: 1.26px;
+  --text-dash-nav-label-family: var(--font-dashboard);
+  --text-dash-nav-label-size: 8px;
+  --text-dash-nav-label-weight: 700;
+  --text-dash-nav-label-lh: 12px;
+  --text-dash-nav-label-ls: 1.28px;
+}
+

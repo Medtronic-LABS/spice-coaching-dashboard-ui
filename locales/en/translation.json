@@ -1,0 +1,408 @@
+{
+  "app": {
+    "title": "Micro-learning analytics dashboard"
+  },
+  "common": {
+    "language": "Language",
+    "refresh": "Refresh",
+    "goHome": "Go to home",
+    "loading": "Loading...",
+    "loadingPage": "Loading page...",
+    "noData": "No data.",
+    "somethingWentWrong": "Something went wrong",
+    "somethingWentWrongDescription": "Something went wrong.",
+    "pleaseTryAgain": "Please try again.",
+    "retry": "Retry",
+    "reset": "Reset",
+    "clearFilters": "Clear filters",
+    "view": "View"
+  },
+  "charts": {
+    "errorTitle": "Error",
+    "emptyTitle": "No data",
+    "emptyDescription": "There is no data to display for the current selection."
+  },
+  "layout": {
+    "sidebar": {
+      "brand": "SPICE • AI COACHING",
+      "badge": "Pilot",
+      "sections": {
+        "overview": "OVERVIEW",
+        "learning": "LEARNING",
+        "monitoring": "MONITORING"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "chwProfiles": "CHW Profiles",
+        "moduleLibrary": "Module Library",
+        "quizPerformance": "Quiz Performance",
+        "leaderboard": "Leaderboard",
+        "reports": "Reports"
+      },
+      "user": {
+        "initials": "RK",
+        "name": "Rashida Khanam",
+        "subtitle": "Supervisor • Sylhet Sadar"
+      }
+    },
+    "header": {
+      "welcomeBack": "Welcome back, {{name}}",
+      "userName": "Subhodeep",
+      "userInitials": "S",
+      "userMenuAriaLabel": "User menu",
+      "languageAriaLabel": "Language",
+      "languageSelectSr": "Language",
+      "languageOptions": {
+        "en": "English",
+        "bn": "বাংলা"
+      }
+    }
+  },
+  "moduleLibrary": {
+    "title": "Module Library",
+    "description": "Browse and manage learning modules.",
+    "assigned": {
+      "badge": "ASSIGNMENT SENT",
+      "title": "Module Assigned Successfully",
+      "subtitle": "The module has been assigned. They will see it in their coaching screen immediately.",
+      "summary": {
+        "module": "MODULE",
+        "moduleMeta": "4 lessons • 3 questions • ~18 min",
+        "deadline": "DEADLINE",
+        "deadlineMeta": "14 days from today",
+        "assignedTo": "ASSIGNED TO — {{count}} CHWs"
+      },
+      "next": {
+        "title": "WHAT'S NEXT",
+        "backToLibrary": "Back to Module Library",
+        "backToLibraryHint": "View or edit the assigned module",
+        "assignMore": "Assign to more CHWs",
+        "assignMoreHint": "Add more Shasthya Kormis to this module",
+        "goDashboard": "Go to Dashboard",
+        "goDashboardHint": "Track progress in the Module Completion widget"
+      },
+      "actions": {
+        "back": "Back to Module Library",
+        "goDashboard": "Go to Dashboard"
+      },
+      "sample": {
+        "module": "HTN Referral Thresholds",
+        "deadline": "Mon, 28 Apr 2026"
+      }
+    }
+  },
+  "quizPerformance": {
+    "title": "Quiz Performance",
+    "description": "Review quiz outcomes and trends."
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "description": "See top performance across CHWs."
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Export and review reporting summaries."
+  },
+  "errorBoundary": {
+    "description": "The dashboard hit an unexpected error. You can refresh the page or go back to the home screen.",
+    "detailsDevOnly": "Details (dev only)",
+    "footerHelp": "If this keeps happening, please share the steps to reproduce with the team."
+  },
+  "status": {
+    "onTrack": "On track",
+    "onTime": "On time",
+    "dueSoon": "Due soon",
+    "delayed": "Delayed",
+    "inactive": "Inactive",
+    "inProgress": "In progress",
+    "unknown": "Unknown"
+  },
+  "trend": {
+    "up": "Up",
+    "down": "Down",
+    "flat": "Flat",
+    "unknown": "Trend"
+  },
+  "home": {
+    "dashboard": {
+      "actions": {
+        "viewAll": "View All →"
+      },
+      "sections": {
+        "topPerformance": "Top Performance",
+        "priorityFlags": "Priority Flags",
+        "performanceMatrix": "CHW Performance Matrix",
+        "moduleProgress": "Module Progress"
+      },
+      "topPerformance": {
+        "subtitle": "{{passRate}}% Pass Rate • {{points}} pts"
+      },
+      "flags": {
+        "subtitle": "{{count}} CHWs need attention",
+        "severity": {
+          "critical": "CRITICAL",
+          "warning": "WARNING",
+          "info": "INFO"
+        },
+        "dueToday": "Due Today",
+        "overdueDays": "{{days}}d Overdue",
+        "actions": {
+          "assignModule": "Assign Module",
+          "viewProfile": "View Profile"
+        }
+      },
+      "performance": {
+        "searchPlaceholder": "Search workers...",
+        "filters": {
+          "all": "All",
+          "flagged": "Flagged",
+          "overdue": "Overdue"
+        }
+      },
+      "modules": {
+        "actions": {
+          "new": "+ New"
+        },
+        "rowMeta": "{{completed}} / {{total}} completed",
+        "status": {
+          "complete": "Complete",
+          "inProgress": "In Progress",
+          "overdue": "Overdue"
+        }
+      }
+    },
+    "dashboardEmpty": {
+      "title": "Welcome, {{name}}",
+      "description": "Your coaching dashboard is ready. Start by adding your Community Health Workers, then create your first learning module to get started.",
+      "actions": {
+        "addChws": "Add CHWs",
+        "createModule": "Create Module"
+      }
+    },
+    "supervisorDashboard": {
+      "loading": {
+        "initialLabel": "Loading supervisor dashboard",
+        "summaryLabel": "Loading summary",
+        "leaderboardLabel": "Loading leaderboard",
+        "performanceLabel": "Loading CHW matrix",
+        "flagsLabel": "Loading flags",
+        "modulesLabel": "Loading modules"
+      },
+      "error": {
+        "allTitle": "Supervisor dashboard unavailable",
+        "allDescription": "Please try again in a moment.",
+        "summaryDescription": "We couldn’t load KPIs."
+      },
+      "empty": {
+        "title": "No supervisor data yet",
+        "description": "Once activity is available, you’ll see KPIs, flags, and progress here."
+      },
+      "header": {
+        "title": "Dashboard",
+        "subtitle": "Quick overview of performance, flags, and module progress."
+      },
+      "sections": {
+        "summary": "Summary",
+        "leaderboard": "Leaderboard",
+        "performance": "CHW matrix",
+        "flags": "Flags",
+        "modules": "Module progress"
+      },
+      "actions": {
+        "viewAll": "View all",
+        "exportReport": "Export Report",
+        "assignModule": "Assign Module"
+      }
+    },
+    "leaderboard": {
+      "rowAriaLabel": "Leaderboard row: {{name}}",
+      "subtitle": "Score: {{score}} • Completion: {{completion}}% • {{trend}}"
+    },
+    "flags": {
+      "rowAriaLabel": "Flag: {{name}}"
+    },
+    "modules": {
+      "rowAriaLabel": "Module: {{name}}",
+      "progressLine": "{{progress}}% completion - {{completed}}/{{total}}"
+    },
+    "performanceMatrix": {
+      "title": "Performance matrix",
+      "columns": {
+        "name": "Name",
+        "modulesDone": "Modules done",
+        "deadlineStatus": "Deadline status",
+        "passFail": "Pass/Fail",
+        "overallStatus": "Overall status"
+      },
+      "allCompleted": "All Completed",
+      "remaining": "{{count}} remaining",
+      "attemptedFails": "{{attempted}} attempted - {{fails}} fails"
+    }
+  },
+  "ui": {
+    "search": {
+      "placeholder": "Search...",
+      "ariaLabel": "Search"
+    },
+    "sectionState": {
+      "loadingWithTitle": "Loading {{title}}",
+      "unavailableWithTitle": "{{title}} unavailable"
+    },
+    "infoCard": {
+      "emptyFallback": "-"
+    }
+  },
+  "uiPreview": {
+    "title": "UI Components Preview",
+    "subtitle": "Reusable components with variants and edge states",
+    "cardsAndHeaders": "Cards and Headers",
+    "defaultCardSurface": "Default card surface",
+    "borderedCardSurface": "Bordered card surface",
+    "elevatedCardSurface": "Elevated card surface",
+    "statsAndInfo": "Stats and Info",
+    "completionRate": "Completion Rate",
+    "aiUsage": "AI Usage",
+    "monthlySessions": "Monthly Sessions",
+    "longContentTitle": "Long content",
+    "longContentDescription": "This card demonstrates handling long descriptions safely without breaking layouts in narrow containers.",
+    "successTitle": "Success",
+    "successDescription": "Performance improved this week.",
+    "warningTitle": "Warning",
+    "warningDescription": "Drop detected in one district.",
+    "criticalTitle": "Critical",
+    "criticalDescription": "Data sync failure needs attention.",
+    "filtersAndInputs": "Filters and Inputs",
+    "regionFilterAriaLabel": "Region filter",
+    "searchPlaceholder": "Search CHW or district",
+    "allRegions": "All Regions",
+    "north": "North",
+    "south": "South",
+    "badgesListKeyValue": "Badges, List, and KeyValue",
+    "defaultBadge": "Default Badge",
+    "status": {
+      "active": "Active",
+      "atRisk": "At Risk",
+      "blocked": "Blocked",
+      "pending": "Pending"
+    },
+    "region": "Region",
+    "cluster": "Cluster",
+    "supervisor": "Supervisor",
+    "regionValue": "Dhaka",
+    "clusterValue": "North 03",
+    "personOneName": "Anika Rahman",
+    "personOneSubtitle": "12 completions this week",
+    "personTwoName": "Extremely Long Name To Validate Text Truncation In Narrow Rows",
+    "personTwoSubtitle": "Subtitle with long metadata that should truncate safely",
+    "newBadge": "New",
+    "actionsTabsStates": "Actions, Tabs, and States",
+    "button": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "ghost": "Ghost",
+      "disabled": "Disabled"
+    },
+    "tabs": {
+      "summary": "Summary",
+      "details": "Details",
+      "history": "History",
+      "activeTab": "Active tab: {{tab}}"
+    },
+    "warningBanner": "This is a warning banner for high-priority communication.",
+    "emptyStateTitle": "No records found",
+    "emptyStateDescription": "Try broadening your filters.",
+    "loadingMetrics": "Loading dashboard metrics...",
+    "errorStateTitle": "Could not load data",
+    "errorStateDescription": "Please try again in a few minutes."
+  },
+  "chwProfiles": {
+    "status": {
+      "overdue": "Overdue",
+      "flagged": "Flagged"
+    },
+    "deadline": {
+      "overdue": "Overdue"
+    },
+    "module": {
+      "completed": "Completed",
+      "inProgress": "In progress"
+    },
+    "quiz": {
+      "pass": "Pass",
+      "fail": "Fail"
+    },
+    "list": {
+      "title": "CHW Profiles",
+      "subtitle": "Track module progress, quiz performance, and engagement status.",
+      "searchPlaceholder": "Search modules...",
+      "tableTitle": "CHW Profiles",
+      "empty": "No CHW profiles found.",
+      "attempts": "{{count}} attempts",
+      "daysShort": "{{count}}d",
+      "columns": {
+        "chw": "CHW",
+        "modulesDone": "Modules done",
+        "deadline": "Deadline",
+        "passRate": "Pass rate",
+        "streak": "Streak",
+        "lastActive": "Last active",
+        "status": "Status"
+      }
+    },
+    "detail": {
+      "title": "Profile Detail",
+      "subtitle": "CHW Profiles  ›  Profile Details",
+      "loading": "Loading profile...",
+      "errorTitle": "Profile unavailable",
+      "missingIdTitle": "Missing CHW id",
+      "missingIdDescription": "The profile route is missing an id parameter.",
+      "backToList": "Back to CHW profiles",
+      "streakBadge": "{{days}}d streak",
+      "daysValue": "{{count}}d",
+      "points": "{{count}} pts",
+      "badgesCount": "{{count}} badges",
+      "meta": {
+        "joined": "Joined",
+        "lastActive": "Last active",
+        "totalPoints": "Total points",
+        "leaderboardRank": "Leaderboard rank",
+        "badges": "Badges earned"
+      },
+      "actions": {
+        "assign": "Assign Module",
+        "flag": "Flag for Mentoring"
+      },
+      "metrics": {
+        "modulesDone": "Modules done",
+        "applicationKnowledge": "Application knowledge",
+        "passRate": "Pass rate",
+        "totalAttempts": "Total attempts",
+        "allComplete": "All complete",
+        "bestLabel": "Best: 21 days",
+        "accuracyLabel": "Accuracy",
+        "attemptsLabel": "Attempts"
+      },
+      "modules": {
+        "title": "Module progress",
+        "empty": "No modules found.",
+        "columns": {
+          "title": "Module",
+          "status": "Status",
+          "passRate": "Pass %",
+          "attempts": "Attempts",
+          "dueDate": "Due date"
+        }
+      },
+      "quiz": {
+        "title": "Quiz attempt history",
+        "empty": "No quizzes found.",
+        "columns": {
+          "title": "Quiz",
+          "score": "Score",
+          "date": "Date",
+          "status": "Status"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+# Lint + format staged files, then verify whole project
+npx lint-staged || exit 1
+npm run lint || exit 1
+
+# Qodo AI review — optional, best-effort. The script exits 0 if `qodo` is not
+# installed, so external contributors don't need it to commit.
+. "$(dirname -- "$0")/scripts/qodo-review.sh" || exit 1
