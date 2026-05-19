@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { paths } from '@/constants/routes';
 
 type ErrorBoundaryProps = {
   children: ReactNode;
@@ -48,7 +49,7 @@ const ErrorBoundaryFallback = ({ message }: { message: string | null }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.location.assign('/')}
+                  onClick={() => window.location.assign(paths.home)}
                   className="rounded-lg border border-spice-border-mid bg-spice-bg-surface px-4 py-2 text-sm font-medium text-spice-text-primary hover:bg-spice-bg-tint"
                 >
                   {t('common.goHome')}

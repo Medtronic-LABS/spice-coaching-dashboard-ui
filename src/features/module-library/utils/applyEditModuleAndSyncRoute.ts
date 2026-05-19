@@ -5,7 +5,10 @@ import type {
   EditAdminModuleResponse,
 } from '@/features/module-library/api/adminModulesApi';
 
-const ADMIN_MODULE_REVIEW_PREFIX = '/module-library/review/';
+const ADMIN_MODULE_REVIEW_PREFIX = paths.adminModuleReview.replace(
+  ':moduleId',
+  '',
+);
 
 export function buildAdminModuleReviewPath(
   currentPathname: string,

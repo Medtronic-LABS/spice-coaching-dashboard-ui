@@ -1,33 +1,49 @@
+export const ROUTE_PREFIX = '/medtronics-ui';
+
+function withRoutePrefix(path: string): string {
+  if (path === '/') return `${ROUTE_PREFIX}/`;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${ROUTE_PREFIX}${normalized}`;
+}
+
 export const paths = {
-  home: '/',
-  chwProfiles: '/chw-profiles',
-  chwProfileDetail: '/chw-profiles/:id',
-  moduleLibrary: '/module-library',
-  moduleAssigned: '/module-library/assigned',
-  ingestDocument: '/module-library/ingest',
-  adminModuleReview: '/module-library/review/:moduleId',
-  adminModuleReviewDetails: '/module-library/review/:moduleId/details',
-  adminModuleReviewLessons: '/module-library/review/:moduleId/lessons',
-  adminModuleReviewQuiz: '/module-library/review/:moduleId/quiz',
-  adminModuleReviewPublish: '/module-library/review/:moduleId/review',
-  quizPerformance: '/quiz-performance',
-  leaderboard: '/leaderboard',
-  reports: '/reports',
-  supervisors: '/supervisors',
-  supervisorDetail: '/supervisors/:id',
-  escalations: '/escalations',
-  rankings: '/rankings',
-  courseCreate: '/courses/new',
-  courseLessons: '/courses/new/lessons',
-  courseQuiz: '/courses/new/quiz',
-  courseReview: '/courses/new/review',
-  coursePublished: '/courses/new/published',
+  home: withRoutePrefix('/'),
+  chwProfiles: withRoutePrefix('/chw-profiles'),
+  chwProfileDetail: withRoutePrefix('/chw-profiles/:id'),
+  moduleLibrary: withRoutePrefix('/module-library'),
+  moduleAssigned: withRoutePrefix('/module-library/assigned'),
+  ingestDocument: withRoutePrefix('/module-library/ingest'),
+  adminModuleReview: withRoutePrefix('/module-library/review/:moduleId'),
+  adminModuleReviewDetails: withRoutePrefix(
+    '/module-library/review/:moduleId/details',
+  ),
+  adminModuleReviewLessons: withRoutePrefix(
+    '/module-library/review/:moduleId/lessons',
+  ),
+  adminModuleReviewQuiz: withRoutePrefix(
+    '/module-library/review/:moduleId/quiz',
+  ),
+  adminModuleReviewPublish: withRoutePrefix(
+    '/module-library/review/:moduleId/review',
+  ),
+  quizPerformance: withRoutePrefix('/quiz-performance'),
+  leaderboard: withRoutePrefix('/leaderboard'),
+  reports: withRoutePrefix('/reports'),
+  supervisors: withRoutePrefix('/supervisors'),
+  supervisorDetail: withRoutePrefix('/supervisors/:id'),
+  escalations: withRoutePrefix('/escalations'),
+  rankings: withRoutePrefix('/rankings'),
+  courseCreate: withRoutePrefix('/courses/new'),
+  courseLessons: withRoutePrefix('/courses/new/lessons'),
+  courseQuiz: withRoutePrefix('/courses/new/quiz'),
+  courseReview: withRoutePrefix('/courses/new/review'),
+  coursePublished: withRoutePrefix('/courses/new/published'),
   /** Module creation flow (preferred). `course*` routes are kept for backwards compatibility. */
-  moduleCreate: '/modules/new',
-  moduleLessons: '/modules/new/lessons',
-  moduleQuiz: '/modules/new/quiz',
-  moduleReview: '/modules/new/review',
-  modulePublished: '/modules/new/published',
-  uiPreview: '/ui-preview',
-  chartPreview: '/chart-preview',
+  moduleCreate: withRoutePrefix('/modules/new'),
+  moduleLessons: withRoutePrefix('/modules/new/lessons'),
+  moduleQuiz: withRoutePrefix('/modules/new/quiz'),
+  moduleReview: withRoutePrefix('/modules/new/review'),
+  modulePublished: withRoutePrefix('/modules/new/published'),
+  uiPreview: withRoutePrefix('/ui-preview'),
+  chartPreview: withRoutePrefix('/chart-preview'),
 } as const;
