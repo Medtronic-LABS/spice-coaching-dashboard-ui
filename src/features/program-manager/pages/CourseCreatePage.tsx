@@ -1,6 +1,20 @@
-import { useMemo, useRef, useState } from 'react';
-import { Button, Card } from '@/components/ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { useGetIngestStatusByDocumentQuery } from '@/features/module-library/api/adminIngestApi';
+import { INGEST_FORM_DEFAULTS } from '@/features/module-library/constants/ingestFormDefaults';
+import {
+  clearActiveIngestSession,
+  readActiveIngestSession,
+  writeActiveIngestSession,
+} from '@/features/module-library/utils/ingestSessionStorage';
+import {
+  isIngestInProgress,
+  isIngestRunning,
+  isIngestSucceeded,
+  shouldPollIngestStatus,
+} from '@/features/module-library/utils/ingestStatus';
+import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
 import { adminApiBaseUrl, adminApiCommonHeaders } from '@/store/apis/adminBase';
 
 const V3_ACCEPT =
@@ -87,117 +101,153 @@ function parseSseEventBlock(block: string): IngestStreamEvent | null {
   }
 }
 
+function redirectToModuleLibrary(): void {
+  window.location.assign(paths.moduleLibrary);
+}
+
 export const CourseCreatePage = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState('');
   const [stageState, setStageState] = useState<Record<string, string>>({});
-  const [completed, setCompleted] = useState(false);
+  const [sourceDocumentId, setSourceDocumentId] = useState(
+    () => readActiveIngestSession()?.source_document_id ?? '',
+  );
 
-  const [form, setForm] = useState({
-    title: '',
-    authority_kind: 'official_training',
-    authority_label: 'BRAC',
-    primary_language: 'bn',
+  const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
+    readActiveIngestSession()?.source_document_id ? 2000 : 0,
+  );
+
+  const {
+    data: statusData,
+    isLoading: isStatusLoading,
+    isFetching: isPolling,
+    error: statusError,
+    refetch: refetchIngestStatus,
+  } = useGetIngestStatusByDocumentQuery(sourceDocumentId, {
+    skip: !sourceDocumentId,
+    pollingInterval: statusPollIntervalMs,
+    refetchOnMountOrArgChange: true,
   });
 
-  const v3DocumentTitle = useMemo(() => {
-    const fromForm = form.title.trim();
-    if (fromForm) return fromForm;
-    if (selectedFile?.name) {
-      return selectedFile.name.replace(/\.[^.]+$/, '') || selectedFile.name;
+  useEffect(() => {
+    if (!sourceDocumentId) {
+      setStatusPollIntervalMs(0);
+      return;
     }
-    return '';
-  }, [form.title, selectedFile]);
+    setStatusPollIntervalMs(
+      shouldPollIngestStatus(sourceDocumentId, statusData?.status) ? 2000 : 0,
+    );
+  }, [sourceDocumentId, statusData?.status]);
+
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isIngestSucceeded(statusData?.status)) return;
+    clearActiveIngestSession();
+    redirectToModuleLibrary();
+  }, [statusData?.status]);
+
+  const ingestionInProgress = isIngestInProgress(
+    sourceDocumentId,
+    statusData?.status,
+  );
+  const ingestionSucceeded = isIngestSucceeded(statusData?.status);
+  const uploadFieldsDisabled = isStreaming || ingestionInProgress;
+
+  const progressLabel = useMemo(() => {
+    if (isStreaming) {
+      return 'Ingestion running. Live updates stream while you stay on this page.';
+    }
+    if (!sourceDocumentId) {
+      return 'Upload a document to start ingestion.';
+    }
+    if (!statusData) {
+      return 'Loading ingestion status…';
+    }
+    if (isIngestRunning(statusData.status)) {
+      return 'Ingestion running. Status updates while processing.';
+    }
+    if (ingestionInProgress) {
+      return `Ingestion in progress · ${statusData.status}`;
+    }
+    if (ingestionSucceeded) {
+      return `Ingestion complete · ${statusData.status}`;
+    }
+    return `Status · ${statusData.status}`;
+  }, [
+    ingestionInProgress,
+    ingestionSucceeded,
+    isStreaming,
+    sourceDocumentId,
+    statusData,
+  ]);
+
+  const displayStages = useMemo(() => {
+    if (statusData?.steps?.length) {
+      return statusData.steps.map((step) => ({
+        key: `${step.stage}-${step.started_at ?? ''}`,
+        stage: step.stage,
+        status: step.status,
+      }));
+    }
+    return Object.entries(stageState).map(([stage, status]) => ({
+      key: stage,
+      stage,
+      status,
+    }));
+  }, [stageState, statusData?.steps]);
+
+  const persistIngestSession = (documentId: string) => {
+    writeActiveIngestSession({
+      source_document_id: documentId,
+      title: INGEST_FORM_DEFAULTS.title,
+    });
+    setSourceDocumentId(documentId);
+  };
 
   return (
-    <section className="space-y-4" aria-busy={isStreaming}>
+    <section
+      className="space-y-4"
+      aria-busy={isStreaming || ingestionInProgress}
+    >
       <h1 className="text-3xl font-semibold text-spice-brand-pm">
         Create module
       </h1>
       <p className="text-sm text-spice-text-muted">
         Upload a source document and track ingestion progress (stage-wise). When
         the pipeline completes successfully, you’ll be redirected to the Module
-        Library to claim and review.
+        Library to claim and review. If you leave this page while ingestion
+        runs, progress continues and status is restored when you return.
       </p>
 
-      <Card variant="elevated" className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Title (required)
-            </label>
-            <input
-              className="h-11 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none"
-              value={form.title}
-              disabled={isStreaming}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              placeholder="e.g. গর্ভকালীন রক্ষণাবেক্ষণ"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Authority kind
-            </label>
-            <input
-              className="h-11 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none"
-              value={form.authority_kind}
-              disabled={isStreaming}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  authority_kind: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Authority label
-            </label>
-            <input
-              className="h-11 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none"
-              value={form.authority_label}
-              disabled={isStreaming}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  authority_label: event.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Primary language
-            </label>
-            <input
-              className="h-11 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none"
-              value={form.primary_language}
-              disabled={isStreaming}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  primary_language: event.target.value,
-                }))
-              }
-            />
-          </div>
+      {ingestionInProgress && sourceDocumentId ? (
+        <div
+          className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary"
+          role="status"
+        >
+          <span className="font-semibold">Ingestion in progress.</span>{' '}
+          <span className="text-spice-text-muted">
+            Document <span className="font-mono">{sourceDocumentId}</span> is
+            being processed.
+            {isStreaming
+              ? ' Live stream updates appear below.'
+              : ' Status is polled from the server.'}
+          </span>
         </div>
+      ) : null}
 
+      <Card variant="elevated" className="space-y-4">
         <div className="rounded-xl border border-dashed border-spice-border-mid bg-spice-bg-tint p-8 text-center">
           <div className="text-sm font-semibold text-spice-text-primary">
             Upload document
-          </div>
-          <div className="text-xs text-spice-text-muted">
-            PDF, PowerPoint, or Word —{' '}
-            <code className="text-[11px]">POST /admin/v3/ingest/stream</code>
           </div>
           <div className="mt-3">
             <input
@@ -205,6 +255,7 @@ export const CourseCreatePage = () => {
               type="file"
               accept={V3_ACCEPT}
               className="hidden"
+              disabled={uploadFieldsDisabled}
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
                 setSelectedFile(file);
@@ -213,28 +264,43 @@ export const CourseCreatePage = () => {
             />
             <Button
               variant="secondary"
-              disabled={isStreaming}
+              disabled={uploadFieldsDisabled}
               onClick={() => fileInputRef.current?.click()}
             >
               Browse Files
             </Button>
             <Button
               className="ml-2"
-              disabled={isStreaming || !selectedFile || !v3DocumentTitle.trim()}
+              disabled={uploadFieldsDisabled || !selectedFile}
               onClick={async () => {
                 setStreamError('');
-                setCompleted(false);
                 setStageState({});
-                if (!selectedFile || !v3DocumentTitle.trim()) return;
+                if (!selectedFile) return;
 
+                streamAbortRef.current?.abort();
+                clearActiveIngestSession();
+                setSourceDocumentId('');
+
+                const abortController = new AbortController();
+                streamAbortRef.current = abortController;
                 setIsStreaming(true);
+
                 try {
                   const formData = new FormData();
                   formData.append('file', selectedFile, selectedFile.name);
-                  formData.append('title', v3DocumentTitle.trim());
-                  formData.append('authority_kind', form.authority_kind);
-                  formData.append('authority_label', form.authority_label);
-                  formData.append('primary_language', form.primary_language);
+                  formData.append('title', INGEST_FORM_DEFAULTS.title);
+                  formData.append(
+                    'authority_kind',
+                    INGEST_FORM_DEFAULTS.authority_kind,
+                  );
+                  formData.append(
+                    'authority_label',
+                    INGEST_FORM_DEFAULTS.authority_label,
+                  );
+                  formData.append(
+                    'primary_language',
+                    INGEST_FORM_DEFAULTS.primary_language,
+                  );
 
                   const res = await fetch(
                     `${adminApiBaseUrl}/admin/v3/ingest/stream`,
@@ -245,6 +311,7 @@ export const CourseCreatePage = () => {
                         Accept: 'text/event-stream',
                       },
                       body: formData,
+                      signal: abortController.signal,
                     },
                   );
 
@@ -271,6 +338,11 @@ export const CourseCreatePage = () => {
                     for (const part of parts) {
                       const evt = parseSseEventBlock(part);
                       if (!evt) continue;
+
+                      if (evt.source_document_id) {
+                        persistIngestSession(evt.source_document_id);
+                      }
+
                       if (evt.stage) {
                         const stage = evt.stage;
                         setStageState((prev) => ({
@@ -278,29 +350,38 @@ export const CourseCreatePage = () => {
                           [stage]: evt.event,
                         }));
                       }
+
                       if (evt.event === 'pipeline_complete') {
-                        setCompleted(true);
-                        setIsStreaming(false);
-                        // Successful end: redirect per requirements.
-                        // Use hard redirect to ensure any open SSE is torn down cleanly.
-                        window.location.assign(paths.moduleLibrary);
+                        clearActiveIngestSession();
+                        redirectToModuleLibrary();
                         return;
                       }
+
                       if (evt.event === 'stage_failed') {
                         setIsStreaming(false);
                       }
                     }
                   }
                 } catch (err) {
+                  if (abortController.signal.aborted) {
+                    return;
+                  }
                   setStreamError(
                     err instanceof Error ? err.message : String(err),
                   );
                 } finally {
+                  if (streamAbortRef.current === abortController) {
+                    streamAbortRef.current = null;
+                  }
                   setIsStreaming(false);
                 }
               }}
             >
-              {isStreaming ? 'Uploading…' : 'Upload & start ingestion'}
+              {isStreaming
+                ? 'Uploading…'
+                : ingestionInProgress
+                  ? 'Ingestion in progress…'
+                  : 'Upload & start ingestion'}
             </Button>
           </div>
           <div className="mt-4 text-xs text-spice-text-medium">
@@ -314,33 +395,93 @@ export const CourseCreatePage = () => {
           </div>
         ) : null}
 
-        {Object.keys(stageState).length ? (
-          <Card variant="bordered" className="space-y-2">
-            <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Ingestion status
+        {statusError ? (
+          <div className="space-y-2">
+            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+              {formatRtkQueryError(statusError)}
             </div>
-            <div className="space-y-2">
-              {Object.entries(stageState).map(([stage, status]) => (
-                <div
-                  key={stage}
-                  className="flex items-center justify-between rounded-lg bg-spice-bg-tint px-3 py-2 text-xs"
-                >
-                  <span className="font-semibold text-spice-text-primary">
-                    {stage}
-                  </span>
-                  <span className="text-spice-text-medium">{status}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ) : null}
-
-        {completed ? (
-          <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
-            Pipeline complete. Redirecting to Module Library…
+            <Button
+              variant="secondary"
+              className="h-8 text-xs"
+              onClick={() => void refetchIngestStatus()}
+            >
+              Retry status
+            </Button>
           </div>
         ) : null}
       </Card>
+
+      {sourceDocumentId ? (
+        <Card variant="elevated" className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-semibold text-spice-text-primary">
+                  Ingestion status
+                </div>
+                {statusData?.status ? (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                      isIngestRunning(statusData.status)
+                        ? 'bg-spice-brand-pm/15 text-spice-brand-pm'
+                        : ingestionSucceeded
+                          ? 'bg-spice-semantic-successBg text-spice-semantic-success'
+                          : 'bg-spice-bg-tint text-spice-text-muted'
+                    }`}
+                  >
+                    {statusData.status}
+                  </span>
+                ) : null}
+                {isPolling && statusData ? (
+                  <span className="text-[10px] text-spice-text-muted">
+                    Updating…
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-1 text-xs text-spice-text-muted">
+                {progressLabel}
+              </div>
+            </div>
+            <div className="text-xs text-spice-text-muted">
+              Document: <span className="font-mono">{sourceDocumentId}</span>
+            </div>
+          </div>
+
+          {!statusData && isStatusLoading ? (
+            <div className="py-4">
+              <LoadingState
+                label={isPolling ? 'Polling status…' : 'Loading status…'}
+              />
+            </div>
+          ) : null}
+
+          {displayStages.length ? (
+            <div className="space-y-2">
+              {displayStages.map((step) => (
+                <div
+                  key={step.key}
+                  className="flex items-center justify-between rounded-lg bg-spice-bg-tint px-3 py-2 text-xs"
+                >
+                  <span className="font-semibold text-spice-text-primary">
+                    {step.stage}
+                  </span>
+                  <span className="text-spice-text-medium">{step.status}</span>
+                </div>
+              ))}
+            </div>
+          ) : isStreaming ? (
+            <div className="text-xs text-spice-text-muted">
+              Waiting for pipeline stages…
+            </div>
+          ) : null}
+
+          {ingestionSucceeded ? (
+            <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
+              Ingestion succeeded. Redirecting to Module Library…
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
     </section>
   );
 };

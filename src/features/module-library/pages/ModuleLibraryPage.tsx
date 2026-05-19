@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Badge, Button, Card, SearchInput, Tabs } from '@/components/ui';
+import { Button, Card, SearchInput, Tabs } from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { paths } from '@/constants/routes';
@@ -79,8 +79,15 @@ export const ModuleLibraryPage = () => {
     );
   }, [adminModules, query, tab]);
 
-  const published = filtered.filter((r) => r.status === 'published');
-  const drafts = filtered.filter((r) => r.status === 'draft');
+  const tableCaption =
+    tab === 'published'
+      ? 'Published modules'
+      : tab === 'drafts'
+        ? 'Draft modules'
+        : 'All modules';
+
+  const emptyMessage =
+    tab === 'drafts' ? 'No drafts found.' : 'No modules found.';
 
   const columns: Array<ColumnDef<ModuleLibraryItem>> = useMemo(
     () => [
@@ -221,53 +228,24 @@ export const ModuleLibraryPage = () => {
       </div>
 
       <Card variant="elevated" className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <Tabs
-            items={[
-              { label: 'All', value: 'all' },
-              { label: 'Published', value: 'published' },
-              { label: 'Drafts', value: 'drafts' },
-            ]}
-            value={tab}
-            onChange={(value) => setTab(value as typeof tab)}
-            className="max-w-[520px]"
-          />
-          <div className="hidden items-center gap-2 sm:flex">
-            <Badge className="bg-spice-bg-tint text-spice-text-medium ring-1 ring-spice-border">
-              {published.length} published
-            </Badge>
-            <Badge className="bg-spice-bg-tint text-spice-text-medium ring-1 ring-spice-border">
-              {drafts.length} drafts
-            </Badge>
-          </div>
-        </div>
+        <Tabs
+          items={[
+            { label: 'All', value: 'all' },
+            { label: 'Published', value: 'published' },
+            { label: 'Drafts', value: 'drafts' },
+          ]}
+          value={tab}
+          onChange={(value) => setTab(value as typeof tab)}
+          className="max-w-[520px]"
+        />
 
-        <div className="space-y-6">
-          {tab !== 'drafts' ? (
-            <Table<ModuleLibraryItem>
-              data={published}
-              columns={columns}
-              keyExtractor={(r) => r.id}
-              caption="Published modules"
-              emptyMessage="No modules found."
-            />
-          ) : null}
-
-          {tab !== 'published' ? (
-            <div className="space-y-3">
-              <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-                Drafts
-              </div>
-              <Table<ModuleLibraryItem>
-                data={drafts}
-                columns={columns}
-                keyExtractor={(r) => r.id}
-                caption="Draft modules"
-                emptyMessage="No drafts found."
-              />
-            </div>
-          ) : null}
-        </div>
+        <Table<ModuleLibraryItem>
+          data={filtered}
+          columns={columns}
+          keyExtractor={(r) => r.id}
+          caption={tableCaption}
+          emptyMessage={emptyMessage}
+        />
       </Card>
     </section>
   );

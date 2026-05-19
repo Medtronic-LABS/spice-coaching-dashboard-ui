@@ -6,8 +6,8 @@ import {
   useGetIngestStatusByDocumentQuery,
   useIngestDocumentMutation,
   type AdminV3IngestAcceptedResponse,
-  type PrimaryLanguage,
 } from '@/features/module-library/api/adminIngestApi';
+import { INGEST_FORM_DEFAULTS } from '@/features/module-library/constants/ingestFormDefaults';
 import {
   clearActiveIngestSession,
   readActiveIngestSession,
@@ -24,10 +24,6 @@ import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQ
 export const IngestDocumentPage = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState('');
-  const [authorityKind, setAuthorityKind] = useState('official_training');
-  const [authorityLabel, setAuthorityLabel] = useState('BRAC');
-  const [primaryLanguage, setPrimaryLanguage] = useState<PrimaryLanguage>('bn');
 
   const [accepted, setAccepted] =
     useState<AdminV3IngestAcceptedResponse | null>(null);
@@ -91,11 +87,7 @@ export const IngestDocumentPage = () => {
     });
   }, [restoredSourceDocumentId]);
 
-  const canSubmit =
-    Boolean(file) &&
-    Boolean(title.trim()) &&
-    !isUploading &&
-    !ingestionInProgress;
+  const canSubmit = Boolean(file) && !isUploading && !ingestionInProgress;
 
   const steps = statusData?.steps ?? [];
   const candidates = statusData?.candidates ?? [];
@@ -170,61 +162,7 @@ export const IngestDocumentPage = () => {
           Upload
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">Title</span>
-            <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              value={title}
-              disabled={uploadFieldsDisabled}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Antenatal Counseling and TT Vaccination"
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
-              Primary language
-            </span>
-            <select
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              value={primaryLanguage}
-              disabled={uploadFieldsDisabled}
-              onChange={(e) =>
-                setPrimaryLanguage(e.target.value as PrimaryLanguage)
-              }
-            >
-              <option value="bn">Bangla (bn)</option>
-              <option value="en">English (en)</option>
-            </select>
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
-              Authority kind
-            </span>
-            <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              value={authorityKind}
-              disabled={uploadFieldsDisabled}
-              onChange={(e) => setAuthorityKind(e.target.value)}
-              placeholder="official_training"
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
-              Authority label
-            </span>
-            <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              value={authorityLabel}
-              disabled={uploadFieldsDisabled}
-              onChange={(e) => setAuthorityLabel(e.target.value)}
-              placeholder="BRAC"
-            />
-          </label>
-        </div>
-
         <label className="block space-y-1">
-          <span className="text-xs text-spice-text-muted">File</span>
           <input
             type="file"
             accept=".pdf,.ppt,.pptx,.doc,.docx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -251,10 +189,7 @@ export const IngestDocumentPage = () => {
               try {
                 const res = await ingestDocument({
                   file,
-                  title: title.trim(),
-                  authority_kind: authorityKind.trim(),
-                  authority_label: authorityLabel.trim(),
-                  primary_language: primaryLanguage,
+                  ...INGEST_FORM_DEFAULTS,
                 }).unwrap();
                 setAccepted(res);
                 setFile(null);

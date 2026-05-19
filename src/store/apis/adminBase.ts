@@ -6,7 +6,7 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 }
 
-const defaultBaseUrl = 'http://127.0.0.1:8000';
+const defaultBaseUrl = 'https://agent-qa.beehyv.com/medtronics-api';
 
 /**
  * Custom headers for all admin requests.
