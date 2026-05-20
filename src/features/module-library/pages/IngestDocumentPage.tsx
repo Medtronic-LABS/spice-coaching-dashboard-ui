@@ -7,6 +7,10 @@ import {
   useIngestDocumentMutation,
   type AdminV3IngestAcceptedResponse,
 } from '@/features/module-library/api/adminIngestApi';
+import {
+  INGEST_ACCEPTED_FILE_TYPES_LABEL,
+  INGEST_FILE_INPUT_ACCEPT,
+} from '@/features/module-library/constants/ingestAcceptedFileTypes';
 import { INGEST_FORM_DEFAULTS } from '@/features/module-library/constants/ingestFormDefaults';
 import {
   clearActiveIngestSession,
@@ -161,11 +165,14 @@ export const IngestDocumentPage = () => {
         <div className="text-sm font-semibold text-spice-text-primary">
           Upload
         </div>
+        <p className="text-xs text-spice-text-muted">
+          Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL}
+        </p>
 
         <label className="block space-y-1">
           <input
             type="file"
-            accept=".pdf,.ppt,.pptx,.doc,.docx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept={INGEST_FILE_INPUT_ACCEPT}
             disabled={uploadFieldsDisabled}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />

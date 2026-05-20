@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetIngestStatusByDocumentQuery } from '@/features/module-library/api/adminIngestApi';
+import {
+  INGEST_ACCEPTED_FILE_TYPES_LABEL,
+  INGEST_FILE_INPUT_ACCEPT,
+} from '@/features/module-library/constants/ingestAcceptedFileTypes';
 import { INGEST_FORM_DEFAULTS } from '@/features/module-library/constants/ingestFormDefaults';
 import {
   clearActiveIngestSession,
@@ -16,9 +20,6 @@ import {
 } from '@/features/module-library/utils/ingestStatus';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
 import { adminApiBaseUrl, adminApiCommonHeaders } from '@/store/apis/adminBase';
-
-const V3_ACCEPT =
-  '.pdf,.pptx,.docx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 type IngestStreamEventName =
   | 'run_started'
@@ -249,11 +250,14 @@ export const CourseCreatePage = () => {
           <div className="text-sm font-semibold text-spice-text-primary">
             Upload document
           </div>
+          <p className="mt-1 text-xs text-spice-text-muted">
+            Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL}
+          </p>
           <div className="mt-3">
             <input
               ref={fileInputRef}
               type="file"
-              accept={V3_ACCEPT}
+              accept={INGEST_FILE_INPUT_ACCEPT}
               className="hidden"
               disabled={uploadFieldsDisabled}
               onChange={(event) => {
