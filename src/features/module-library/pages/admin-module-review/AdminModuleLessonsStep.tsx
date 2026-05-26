@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import { useEditModuleMutation } from '@/features/module-library/api/adminModulesApi';
-import { useAdminModuleDetailQuery } from '@/features/module-library/hooks/useAdminModuleDetailQuery';
-import { applyEditModuleAndSyncRoute } from '@/features/module-library/utils/applyEditModuleAndSyncRoute';
-import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
+import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
+import {
+  selectAdminModuleBaseline,
+  updateCardAtIndex,
+} from '@/features/module-library/store/adminModuleReviewSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -35,28 +37,41 @@ function safeString(value: unknown): string {
 
 export const AdminModuleLessonsStep = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const { data, isLoading, isFetching, error, refetch } =
-    useAdminModuleDetailQuery(moduleId, { skip: !moduleId });
-  const [editModule, { isLoading: isSaving }] = useEditModuleMutation();
+  const baseline = useAppSelector(selectAdminModuleBaseline);
+  const {
+    working,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    isSaving,
+    save,
+    formatError,
+  } = useAdminModuleReviewEditor(moduleId);
 
   const [actionError, setActionError] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [cardEdits, setCardEdits] = useState<Record<number, unknown>>({});
 
   useEffect(() => {
-    if (!data) return;
     setSelectedIndex(0);
-    setCardEdits({});
-  }, [data]);
+  }, [working?.id]);
 
-  const cards = (data?.cards ?? []) as unknown[];
-  const selectedCard = cards[selectedIndex];
-  const mergedSelectedCard = (cardEdits[selectedIndex] ??
-    selectedCard) as unknown;
+  const cards = (working?.cards ?? []) as unknown[];
+  const selectedCard = cards[selectedIndex] as unknown;
 
-  if (isLoading && !data) {
+  const patchSelectedCard = (patch: Record<string, unknown>) => {
+    if (!isPlainObject(selectedCard)) return;
+    dispatch(
+      updateCardAtIndex({
+        index: selectedIndex,
+        card: { ...selectedCard, ...patch },
+      }),
+    );
+  };
+
+  if (isLoading && !working) {
     return (
       <Card variant="elevated" className="p-10">
         <LoadingState label="Loading module…" />
@@ -64,11 +79,11 @@ export const AdminModuleLessonsStep = () => {
     );
   }
 
-  if (error || !data) {
+  if (error || !working) {
     return (
       <Card variant="elevated" className="space-y-3 p-6">
         <p className="text-sm text-spice-semantic-error">
-          {error ? formatRtkQueryError(error) : 'Module not found.'}
+          {error ? formatError(error) : 'Module not found.'}
         </p>
         <Button variant="secondary" onClick={() => void refetch()}>
           Retry
@@ -94,10 +109,10 @@ export const AdminModuleLessonsStep = () => {
               Module
             </div>
             <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-              {data.title_en ?? data.title_bn ?? 'Untitled module'}
+              {working.title_en ?? working.title_bn ?? 'Untitled module'}
             </div>
             <div className="mt-1 text-xs text-spice-text-muted">
-              {cards.length} cards · ~{data.estimated_minutes} min
+              {cards.length} cards · ~{working.estimated_minutes} min
             </div>
           </div>
 
@@ -123,11 +138,6 @@ export const AdminModuleLessonsStep = () => {
                 ) : null}
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
                   <span>Card {idx + 1}</span>
-                  {cardEdits[idx] ? (
-                    <span className="rounded-full bg-spice-bg-surface px-2 py-0.5 font-semibold ring-1 ring-spice-border">
-                      Edited
-                    </span>
-                  ) : null}
                 </div>
               </button>
             ))}
@@ -155,11 +165,15 @@ export const AdminModuleLessonsStep = () => {
                 disabled={busy || !cards.length}
                 onClick={() => {
                   setActionError('');
-                  setCardEdits((prev) => {
-                    const next = { ...prev };
-                    delete next[selectedIndex];
-                    return next;
-                  });
+                  const baselineCard = (baseline?.cards ?? [])[selectedIndex];
+                  if (baselineCard) {
+                    dispatch(
+                      updateCardAtIndex({
+                        index: selectedIndex,
+                        card: baselineCard,
+                      }),
+                    );
+                  }
                 }}
               >
                 Reset card
@@ -177,20 +191,12 @@ export const AdminModuleLessonsStep = () => {
                   <input
                     className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
                     value={
-                      isPlainObject(mergedSelectedCard)
-                        ? safeString(mergedSelectedCard.title_bn)
+                      isPlainObject(selectedCard)
+                        ? safeString(selectedCard.title_bn)
                         : ''
                     }
                     onChange={(e) =>
-                      setCardEdits((prev) => ({
-                        ...prev,
-                        [selectedIndex]: {
-                          ...(isPlainObject(mergedSelectedCard)
-                            ? mergedSelectedCard
-                            : {}),
-                          title_bn: e.target.value,
-                        },
-                      }))
+                      patchSelectedCard({ title_bn: e.target.value })
                     }
                     placeholder="Bangla title…"
                   />
@@ -202,23 +208,14 @@ export const AdminModuleLessonsStep = () => {
                   <input
                     className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
                     value={
-                      isPlainObject(mergedSelectedCard)
+                      isPlainObject(selectedCard)
                         ? safeString(
-                            mergedSelectedCard.title_en ??
-                              mergedSelectedCard.title,
+                            selectedCard.title_en ?? selectedCard.title,
                           )
                         : ''
                     }
                     onChange={(e) =>
-                      setCardEdits((prev) => ({
-                        ...prev,
-                        [selectedIndex]: {
-                          ...(isPlainObject(mergedSelectedCard)
-                            ? mergedSelectedCard
-                            : {}),
-                          title_en: e.target.value,
-                        },
-                      }))
+                      patchSelectedCard({ title_en: e.target.value })
                     }
                     placeholder="English title…"
                   />
@@ -233,20 +230,12 @@ export const AdminModuleLessonsStep = () => {
                   <textarea
                     className="min-h-[220px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
                     value={
-                      isPlainObject(mergedSelectedCard)
-                        ? safeString(mergedSelectedCard.body_bn)
+                      isPlainObject(selectedCard)
+                        ? safeString(selectedCard.body_bn)
                         : ''
                     }
                     onChange={(e) =>
-                      setCardEdits((prev) => ({
-                        ...prev,
-                        [selectedIndex]: {
-                          ...(isPlainObject(mergedSelectedCard)
-                            ? mergedSelectedCard
-                            : {}),
-                          body_bn: e.target.value,
-                        },
-                      }))
+                      patchSelectedCard({ body_bn: e.target.value })
                     }
                     placeholder="Bangla content…"
                   />
@@ -258,23 +247,12 @@ export const AdminModuleLessonsStep = () => {
                   <textarea
                     className="min-h-[220px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
                     value={
-                      isPlainObject(mergedSelectedCard)
-                        ? safeString(
-                            mergedSelectedCard.body_en ??
-                              mergedSelectedCard.body,
-                          )
+                      isPlainObject(selectedCard)
+                        ? safeString(selectedCard.body_en ?? selectedCard.body)
                         : ''
                     }
                     onChange={(e) =>
-                      setCardEdits((prev) => ({
-                        ...prev,
-                        [selectedIndex]: {
-                          ...(isPlainObject(mergedSelectedCard)
-                            ? mergedSelectedCard
-                            : {}),
-                          body_en: e.target.value,
-                        },
-                      }))
+                      patchSelectedCard({ body_en: e.target.value })
                     }
                     placeholder="English content…"
                   />
@@ -295,20 +273,9 @@ export const AdminModuleLessonsStep = () => {
               onClick={async () => {
                 setActionError('');
                 try {
-                  const nextCards = cards.map((c, idx) => cardEdits[idx] ?? c);
-                  await applyEditModuleAndSyncRoute({
-                    editModule,
-                    navigate,
-                    pathname,
-                    moduleEntityId: data.id,
-                    body: {
-                      title_en: data.title_en ?? undefined,
-                      module_json: { cards: nextCards, quiz: data.quiz },
-                    },
-                    refetch,
-                  });
+                  await save();
                 } catch (err) {
-                  setActionError(formatRtkQueryError(err));
+                  setActionError(formatError(err));
                 }
               }}
             >
@@ -321,7 +288,7 @@ export const AdminModuleLessonsStep = () => {
                 navigate(
                   paths.adminModuleReviewQuiz.replace(
                     ':moduleId',
-                    encodeURIComponent(data.id),
+                    encodeURIComponent(working.id),
                   ),
                 )
               }

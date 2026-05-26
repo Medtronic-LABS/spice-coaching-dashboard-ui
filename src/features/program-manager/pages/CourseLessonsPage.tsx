@@ -4,33 +4,43 @@ import { Button, Card } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { CourseFlowStepper } from '@/features/program-manager/components/CourseFlowStepper';
 import { RichTextEditor } from '@/features/program-manager/components/RichTextEditor';
-import {
-  useGetCourseDraftQuery,
-  useSaveCourseContentMutation,
-} from '@/features/program-manager/api/programManagerApi';
+import { useCourseModuleEditor } from '@/features/program-manager/hooks/useCourseModuleEditor';
+import { setCourseLessons } from '@/features/program-manager/store/courseModuleEditSlice';
 import type { RichBlock } from '@/features/program-manager/types/programManager.types';
+import { useAppDispatch } from '@/store/hooks';
 
 export const CourseLessonsPage = () => {
   const navigate = useNavigate();
-  const { data, refetch } = useGetCourseDraftQuery();
-  const [saveCourseContent, { isLoading }] = useSaveCourseContentMutation();
-  const [lessonContent, setLessonContent] = useState<RichBlock[]>([]);
+  const dispatch = useAppDispatch();
+  const { working, isLoading, saveContent, isSavingContent, formatError } =
+    useCourseModuleEditor();
   const [selectedLessonId, setSelectedLessonId] = useState('');
-  const isReadOnly = Boolean(data?.isReadOnly);
+  const [actionError, setActionError] = useState('');
+  const isReadOnly = Boolean(working?.isReadOnly);
+
+  const selectedLesson = working?.lessons.find(
+    (lesson) => lesson.id === selectedLessonId,
+  );
+  const lessonContent = selectedLesson?.content ?? [];
 
   useEffect(() => {
-    const selectedLesson = data?.lessons.find(
-      (lesson) => lesson.id === selectedLessonId,
-    );
-    setLessonContent(selectedLesson?.content ?? []);
-  }, [data?.lessons, selectedLessonId]);
-  useEffect(() => {
-    if (!selectedLessonId && data?.lessons?.[0]?.id) {
-      setSelectedLessonId(data.lessons[0].id);
+    if (!selectedLessonId && working?.lessons?.[0]?.id) {
+      setSelectedLessonId(working.lessons[0].id);
     }
-  }, [data?.lessons, selectedLessonId]);
+  }, [working?.lessons, selectedLessonId]);
 
-  if (data?.generationStatus !== 'generated') {
+  const updateLessonContent = (content: RichBlock[]) => {
+    if (!working || !selectedLessonId) return;
+    dispatch(
+      setCourseLessons(
+        working.lessons.map((lesson) =>
+          lesson.id === selectedLessonId ? { ...lesson, content } : lesson,
+        ),
+      ),
+    );
+  };
+
+  if (working?.generationStatus !== 'generated') {
     return (
       <Card variant="elevated" className="space-y-3">
         <div className="text-lg font-semibold text-spice-text-primary">
@@ -48,6 +58,10 @@ export const CourseLessonsPage = () => {
     );
   }
 
+  if (!working) {
+    return isLoading ? null : null;
+  }
+
   return (
     <section className="space-y-4">
       <CourseFlowStepper currentStep="lessons" isGenerated />
@@ -57,10 +71,10 @@ export const CourseLessonsPage = () => {
             Module
           </div>
           <div className="text-sm font-semibold text-spice-text-primary">
-            {data?.title}
+            {working.title}
           </div>
           <div className="space-y-2 pt-2">
-            {(data?.lessons ?? []).map((lesson) => (
+            {working.lessons.map((lesson) => (
               <button
                 key={lesson.id}
                 type="button"
@@ -81,69 +95,42 @@ export const CourseLessonsPage = () => {
         </Card>
 
         <Card variant="elevated" className="space-y-4">
+          {actionError ? (
+            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+              {actionError}
+            </div>
+          ) : null}
           <div className="text-4xl font-semibold text-spice-text-primary">
             Lesson Content
           </div>
           <RichTextEditor
             value={lessonContent}
-            onChange={setLessonContent}
+            onChange={updateLessonContent}
             minHeightClassName="min-h-[320px]"
             readOnly={isReadOnly}
           />
-          {/* <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          A single high reading does not confirm hypertension. Always confirm with two readings on separate occasions.
-        </div> */}
           <div className="flex justify-end gap-2">
-            {!isReadOnly && (
+            {!isReadOnly ? (
               <Button
                 variant="secondary"
-                disabled={isLoading || isReadOnly}
+                disabled={isSavingContent || isReadOnly}
                 onClick={async () => {
-                  await saveCourseContent({
-                    lessons: (data?.lessons ?? []).map((lesson) =>
-                      lesson.id === selectedLessonId
-                        ? { ...lesson, content: lessonContent }
-                        : lesson,
-                    ),
-                  });
-                  await refetch();
+                  setActionError('');
+                  try {
+                    await saveContent();
+                  } catch (err) {
+                    setActionError(formatError(err));
+                  }
                 }}
               >
-                {isLoading ? 'Saving...' : 'Save Content'}
+                {isSavingContent ? 'Saving...' : 'Save Content'}
               </Button>
-            )}
+            ) : null}
             <Button onClick={() => navigate(paths.moduleQuiz)}>
               Continue to Quiz
             </Button>
           </div>
         </Card>
-
-        {/* <Card variant="elevated" className="space-y-3">
-        <div className="text-sm font-semibold text-spice-text-primary">AI Assistant</div>
-        {[
-          data?.moduleContent.fieldMessage ?? 'Normal blood pressure is below 120/80 mmHg.',
-          'Use a validated digital BP monitor.',
-          ...(data?.moduleContent.objectives ?? []),
-          ...(data?.moduleContent.dangerSigns ?? []),
-        ].map((item) => (
-          <div key={item} className="rounded-lg border border-spice-border bg-spice-bg-surface p-3">
-            <div className="text-xs text-spice-text-medium">{item}</div>
-            <button
-              type="button"
-              className="mt-2 text-xs font-semibold text-spice-brand-primary"
-              disabled={isReadOnly}
-              onClick={() =>
-                setLessonContent((current) => [
-                  ...current,
-                  { type: 'paragraph', content: [{ type: 'text', text: item }] },
-                ])
-              }
-            >
-              + Insert
-            </button>
-          </div>
-        ))}
-      </Card> */}
       </div>
     </section>
   );

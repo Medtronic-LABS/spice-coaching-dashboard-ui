@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import { useEditModuleMutation } from '@/features/module-library/api/adminModulesApi';
-import { useAdminModuleDetailQuery } from '@/features/module-library/hooks/useAdminModuleDetailQuery';
-import { applyEditModuleAndSyncRoute } from '@/features/module-library/utils/applyEditModuleAndSyncRoute';
-import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
+import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
+import { updateDetails } from '@/features/module-library/store/adminModuleReviewSlice';
+import { useAppDispatch } from '@/store/hooks';
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—';
@@ -16,25 +15,22 @@ function formatDateTime(value: string | null | undefined): string {
 
 export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const { data, isLoading, isFetching, error, refetch } =
-    useAdminModuleDetailQuery(moduleId, { skip: !moduleId });
-  const [editModule, { isLoading: isSaving }] = useEditModuleMutation();
+  const {
+    working,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    isSaving,
+    save,
+    formatError,
+  } = useAdminModuleReviewEditor(moduleId);
 
   const [actionError, setActionError] = useState('');
-  const [titleBn, setTitleBn] = useState('');
-  const [titleEn, setTitleEn] = useState('');
-  const [descriptionBn, setDescriptionBn] = useState('');
 
-  useEffect(() => {
-    if (!data) return;
-    setTitleBn((prev) => (prev ? prev : (data.title_bn ?? '')));
-    setTitleEn((prev) => (prev ? prev : (data.title_en ?? '')));
-    setDescriptionBn((prev) => (prev ? prev : (data.description_bn ?? '')));
-  }, [data]);
-
-  if (isLoading && !data) {
+  if (isLoading && !working) {
     return (
       <Card variant="elevated" className="p-10">
         <LoadingState label="Loading module…" />
@@ -42,11 +38,11 @@ export const AdminModuleDetailsStep = () => {
     );
   }
 
-  if (error || !data) {
+  if (error || !working) {
     return (
       <Card variant="elevated" className="space-y-3 p-6">
         <p className="text-sm text-spice-semantic-error">
-          {error ? formatRtkQueryError(error) : 'Module not found.'}
+          {error ? formatError(error) : 'Module not found.'}
         </p>
         <Button variant="secondary" onClick={() => void refetch()}>
           Retry
@@ -56,6 +52,7 @@ export const AdminModuleDetailsStep = () => {
   }
 
   const busy = isFetching || isSaving;
+  const qualityFlagLabels: string[] = working.quality_flags?.flags ?? [];
 
   return (
     <section className="space-y-4">
@@ -71,8 +68,8 @@ export const AdminModuleDetailsStep = () => {
             Module details
           </div>
           <div className="mt-1 text-xs text-spice-text-muted">
-            {data.domain} · {data.module_type} · v{data.version} ·{' '}
-            {data.lifecycle_status}
+            {working.domain} · {working.module_type} · v{working.version} ·{' '}
+            {working.lifecycle_status}
           </div>
         </div>
 
@@ -84,11 +81,11 @@ export const AdminModuleDetailsStep = () => {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-spice-text-muted">Module ID</div>
               <div className="col-span-2 break-all text-spice-text-primary">
-                {data.id}
+                {working.id}
               </div>
               <div className="text-spice-text-muted">Family ID</div>
               <div className="col-span-2 break-all text-spice-text-primary">
-                {data.module_family_id}
+                {working.module_family_id}
               </div>
             </div>
           </div>
@@ -100,15 +97,15 @@ export const AdminModuleDetailsStep = () => {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-spice-text-muted">Lifecycle</div>
               <div className="col-span-2 text-spice-text-primary">
-                {data.lifecycle_status}
+                {working.lifecycle_status}
               </div>
               <div className="text-spice-text-muted">Clinically reviewed</div>
               <div className="col-span-2 text-spice-text-primary">
-                {data.clinically_reviewed ? 'Yes' : 'No'}
+                {working.clinically_reviewed ? 'Yes' : 'No'}
               </div>
               <div className="text-spice-text-muted">Visibility window</div>
               <div className="col-span-2 text-spice-text-primary">
-                {data.has_visibility_window ? 'Yes' : 'No'}
+                {working.has_visibility_window ? 'Yes' : 'No'}
               </div>
             </div>
           </div>
@@ -120,15 +117,15 @@ export const AdminModuleDetailsStep = () => {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-spice-text-muted">Cards</div>
               <div className="col-span-2 text-spice-text-primary">
-                {data.card_count}
+                {working.card_count}
               </div>
               <div className="text-spice-text-muted">Estimated minutes</div>
               <div className="col-span-2 text-spice-text-primary">
-                {data.estimated_minutes}
+                {working.estimated_minutes}
               </div>
               <div className="text-spice-text-muted">Quiz questions</div>
               <div className="col-span-2 text-spice-text-primary">
-                {data.quiz.length}
+                {working.quiz.length}
               </div>
             </div>
           </div>
@@ -140,23 +137,23 @@ export const AdminModuleDetailsStep = () => {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-spice-text-muted">Created</div>
               <div className="col-span-2 text-spice-text-primary">
-                {formatDateTime(data.created_at)}
+                {formatDateTime(working.created_at)}
               </div>
               <div className="text-spice-text-muted">Published</div>
               <div className="col-span-2 text-spice-text-primary">
-                {formatDateTime(data.published_at)}
+                {formatDateTime(working.published_at)}
               </div>
             </div>
           </div>
         </div>
 
-        {data.quality_flags?.flags?.length ? (
+        {qualityFlagLabels.length > 0 ? (
           <div className="space-y-2">
             <div className="text-xs font-semibold text-spice-text-primary">
               Quality flags
             </div>
             <div className="flex flex-wrap gap-2">
-              {data.quality_flags.flags.map((flag) => (
+              {qualityFlagLabels.map((flag) => (
                 <span
                   key={flag}
                   className="rounded-full bg-spice-bg-tint px-2 py-1 text-[11px] font-semibold text-spice-text-medium ring-1 ring-spice-border"
@@ -173,16 +170,30 @@ export const AdminModuleDetailsStep = () => {
             <span className="text-xs text-spice-text-muted">Title (BN)</span>
             <input
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={titleBn}
-              onChange={(e) => setTitleBn(e.target.value)}
+              value={working.title_bn ?? ''}
+              disabled={busy}
+              onChange={(e) =>
+                dispatch(
+                  updateDetails({
+                    title_bn: e.target.value,
+                  }),
+                )
+              }
             />
           </label>
           <label className="block space-y-1">
             <span className="text-xs text-spice-text-muted">Title (EN)</span>
             <input
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={titleEn}
-              onChange={(e) => setTitleEn(e.target.value)}
+              value={working.title_en ?? ''}
+              disabled={busy}
+              onChange={(e) =>
+                dispatch(
+                  updateDetails({
+                    title_en: e.target.value,
+                  }),
+                )
+              }
             />
           </label>
         </div>
@@ -193,8 +204,15 @@ export const AdminModuleDetailsStep = () => {
           </span>
           <textarea
             className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-            value={descriptionBn}
-            onChange={(e) => setDescriptionBn(e.target.value)}
+            value={working.description_bn ?? ''}
+            disabled={busy}
+            onChange={(e) =>
+              dispatch(
+                updateDetails({
+                  description_bn: e.target.value,
+                }),
+              )
+            }
           />
         </label>
 
@@ -206,21 +224,9 @@ export const AdminModuleDetailsStep = () => {
             onClick={async () => {
               setActionError('');
               try {
-                await applyEditModuleAndSyncRoute({
-                  editModule,
-                  navigate,
-                  pathname,
-                  moduleEntityId: data.id,
-                  body: {
-                    title_bn: titleBn || undefined,
-                    title_en: titleEn || undefined,
-                    description_bn: descriptionBn || undefined,
-                    module_json: { cards: data.cards, quiz: data.quiz },
-                  },
-                  refetch,
-                });
+                await save();
               } catch (err) {
-                setActionError(formatRtkQueryError(err));
+                setActionError(formatError(err));
               }
             }}
           >
@@ -233,7 +239,7 @@ export const AdminModuleDetailsStep = () => {
               navigate(
                 paths.adminModuleReviewLessons.replace(
                   ':moduleId',
-                  encodeURIComponent(data.id),
+                  encodeURIComponent(working.id),
                 ),
               )
             }

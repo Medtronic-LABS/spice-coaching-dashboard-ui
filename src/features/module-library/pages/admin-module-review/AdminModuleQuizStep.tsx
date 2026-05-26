@@ -1,79 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/module-library/api/adminModulesApi';
-import { useEditModuleMutation } from '@/features/module-library/api/adminModulesApi';
-import { useAdminModuleDetailQuery } from '@/features/module-library/hooks/useAdminModuleDetailQuery';
-import { applyEditModuleAndSyncRoute } from '@/features/module-library/utils/applyEditModuleAndSyncRoute';
-import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
-
-function clampCorrectIndex(
-  optionsLength: number,
-  indices: number[] | null | undefined,
-): number {
-  if (optionsLength <= 0) return 0;
-  const first = (indices ?? []).find((n) => Number.isFinite(n) && n >= 0);
-  const safe = typeof first === 'number' ? first : 0;
-  return Math.min(Math.max(0, safe), optionsLength - 1);
-}
+import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
+import { setQuiz } from '@/features/module-library/store/adminModuleReviewSlice';
+import {
+  addQuizItem,
+  clampCorrectIndex,
+  clearAllQuizItems,
+  removeQuizItem,
+  sortQuizItems,
+  updateQuizItem,
+} from '@/features/module-library/utils/adminModuleQuizUtils';
+import { useAppDispatch } from '@/store/hooks';
 
 export const AdminModuleQuizStep = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const { data, isLoading, isFetching, error, refetch } =
-    useAdminModuleDetailQuery(moduleId, { skip: !moduleId });
-  const [editModule, { isLoading: isSaving }] = useEditModuleMutation();
+  const {
+    working,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    isSaving,
+    save,
+    formatError,
+  } = useAdminModuleReviewEditor(moduleId);
 
   const [actionError, setActionError] = useState('');
-  const [quizEdits, setQuizEdits] = useState<
-    Record<string, AdminModuleQuizItem>
-  >({});
-  const [addedQuiz, setAddedQuiz] = useState<AdminModuleQuizItem[]>([]);
-  const [deletedQuizIds, setDeletedQuizIds] = useState<Set<string>>(new Set());
-  const resetKey = data ? `${data.id}:${data.version}` : null;
 
-  const baseQuiz = useMemo(() => {
-    return (data?.quiz ?? []).filter((q) => !deletedQuizIds.has(q.id));
-  }, [data?.quiz, deletedQuizIds]);
+  const sortedQuiz = useMemo(
+    () => (working ? sortQuizItems(working.quiz) : []),
+    [working],
+  );
 
-  const mergedQuiz = useMemo(() => {
-    const map = new Map<string, AdminModuleQuizItem>();
-    for (const q of baseQuiz) map.set(q.id, q);
-    for (const q of addedQuiz) map.set(q.id, q);
-    for (const [id, q] of Object.entries(quizEdits)) map.set(id, q);
-    return map;
-  }, [addedQuiz, baseQuiz, quizEdits]);
-
-  const sortedQuiz = useMemo(() => {
-    return Array.from(mergedQuiz.values()).sort(
-      (a, b) => a.question_order - b.question_order,
-    );
-  }, [mergedQuiz]);
-
-  const getQuizItem = (id: string) => mergedQuiz.get(id);
-
-  const updateQuiz = (id: string, patch: Partial<AdminModuleQuizItem>) => {
-    const base = getQuizItem(id);
-    if (!base) return;
-    if (addedQuiz.some((q) => q.id === id)) {
-      setAddedQuiz((prev) =>
-        prev.map((q) => (q.id === id ? { ...q, ...patch } : q)),
-      );
-      return;
-    }
-    setQuizEdits((prev) => ({ ...prev, [id]: { ...base, ...patch } }));
+  const applyQuiz = (nextQuiz: AdminModuleQuizItem[]) => {
+    dispatch(setQuiz(nextQuiz));
   };
 
-  useEffect(() => {
-    if (!resetKey) return;
-    setQuizEdits({});
-    setAddedQuiz([]);
-    setDeletedQuizIds(new Set());
-  }, [resetKey]);
+  const updateQuiz = (id: string, patch: Partial<AdminModuleQuizItem>) => {
+    if (!working) return;
+    applyQuiz(updateQuizItem(working.quiz, id, patch));
+  };
 
-  if (isLoading && !data) {
+  if (isLoading && !working) {
     return (
       <Card variant="elevated" className="p-10">
         <LoadingState label="Loading module…" />
@@ -81,11 +54,11 @@ export const AdminModuleQuizStep = () => {
     );
   }
 
-  if (error || !data) {
+  if (error || !working) {
     return (
       <Card variant="elevated" className="space-y-3 p-6">
         <p className="text-sm text-spice-semantic-error">
-          {error ? formatRtkQueryError(error) : 'Module not found.'}
+          {error ? formatError(error) : 'Module not found.'}
         </p>
         <Button variant="secondary" onClick={() => void refetch()}>
           Retry
@@ -112,38 +85,27 @@ export const AdminModuleQuizStep = () => {
             </div>
             <div className="mt-1 text-xs text-spice-text-muted">
               {sortedQuiz.length} questions ·{' '}
-              {data.title_en ?? data.title_bn ?? 'Module'}
+              {working.title_en ?? working.title_bn ?? 'Module'}
             </div>
           </div>
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            disabled={busy}
-            onClick={() => {
-              const nextOrder =
-                Math.max(0, ...sortedQuiz.map((q) => q.question_order ?? 0)) +
-                1;
-              setAddedQuiz((prev) => [
-                ...prev,
-                {
-                  id: '',
-                  question_order: nextOrder,
-                  question_bn: null,
-                  question_en: '',
-                  case_setup_bn: null,
-                  case_setup_en: null,
-                  options_bn: [''],
-                  options_en: ['Option 1', 'Option 2'],
-                  correct_indices: [0],
-                  explanation_bn: null,
-                  explanation_en: '',
-                  difficulty: 'medium',
-                },
-              ]);
-            }}
-          >
-            Add Question
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              className="h-9 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+              disabled={busy || sortedQuiz.length === 0}
+              onClick={() => applyQuiz(clearAllQuizItems())}
+            >
+              Remove all
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-9 text-xs"
+              disabled={busy}
+              onClick={() => applyQuiz(addQuizItem(working.quiz))}
+            >
+              Add Question
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -167,19 +129,9 @@ export const AdminModuleQuizStep = () => {
                         variant="secondary"
                         className="h-8 px-2 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
                         disabled={busy}
-                        onClick={() => {
-                          if (addedQuiz.some((q) => q.id === m.id)) {
-                            setAddedQuiz((prev) =>
-                              prev.filter((q) => q.id !== m.id),
-                            );
-                            return;
-                          }
-                          setDeletedQuizIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(m.id);
-                            return next;
-                          });
-                        }}
+                        onClick={() =>
+                          applyQuiz(removeQuizItem(working.quiz, m.id))
+                        }
                       >
                         Remove
                       </Button>
@@ -305,20 +257,9 @@ export const AdminModuleQuizStep = () => {
             onClick={async () => {
               setActionError('');
               try {
-                const nextQuiz = sortedQuiz;
-                await applyEditModuleAndSyncRoute({
-                  editModule,
-                  navigate,
-                  pathname,
-                  moduleEntityId: data.id,
-                  body: {
-                    title_en: data.title_en ?? undefined,
-                    module_json: { cards: data.cards, quiz: nextQuiz },
-                  },
-                  refetch,
-                });
+                await save();
               } catch (err) {
-                setActionError(formatRtkQueryError(err));
+                setActionError(formatError(err));
               }
             }}
           >
@@ -331,7 +272,7 @@ export const AdminModuleQuizStep = () => {
               navigate(
                 paths.adminModuleReviewPublish.replace(
                   ':moduleId',
-                  encodeURIComponent(data.id),
+                  encodeURIComponent(working.id),
                 ),
               )
             }

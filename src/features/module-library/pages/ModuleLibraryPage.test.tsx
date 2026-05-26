@@ -21,29 +21,48 @@ describe('ModuleLibraryPage', () => {
     roleState.role = 'supervisor';
   });
 
-  it('renders tabs and can navigate to assigned confirmation', async () => {
+  it('shows Edit on published tab and no Assign action', async () => {
     const user = userEvent.setup();
     renderWithProviders(
       <Routes>
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
         <Route
-          path={paths.moduleAssigned}
-          element={<div data-testid="assigned" />}
+          path={paths.adminModuleReviewDetails}
+          element={<div data-testid="module-review" />}
         />
       </Routes>,
       { route: paths.moduleLibrary },
     );
 
-    expect(
-      screen.getByRole('heading', { name: /module library/i }),
-    ).toBeInTheDocument();
-
-    // Switch to published tab and click an Assign action.
     await user.click(screen.getByRole('tab', { name: /published/i }));
-    const assignButtons = await screen.findAllByRole('button', {
-      name: /^assign$/i,
+    const editButtons = await screen.findAllByRole('button', {
+      name: /^edit$/i,
     });
-    await user.click(assignButtons[0]);
-    expect(screen.getByTestId('assigned')).toBeInTheDocument();
+    expect(editButtons.length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /^assign$/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(editButtons[0]);
+    expect(screen.getByTestId('module-review')).toBeInTheDocument();
+  });
+
+  it('shows Review on drafts tab', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <Routes>
+        <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+      </Routes>,
+      { route: paths.moduleLibrary },
+    );
+
+    await user.click(screen.getByRole('tab', { name: /drafts/i }));
+    const reviewButtons = await screen.findAllByRole('button', {
+      name: /^review$/i,
+    });
+    expect(reviewButtons.length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /^edit$/i }),
+    ).not.toBeInTheDocument();
   });
 });

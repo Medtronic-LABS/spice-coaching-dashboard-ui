@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, SearchInput, Tabs } from '@/components/ui';
 import { Table } from '@/components/common/Table';
@@ -11,10 +11,6 @@ import type {
   ModuleLibraryItem,
   ModuleStatus,
 } from '@/features/module-library/types/moduleLibrary.types';
-
-type LocationState = {
-  chwId?: string;
-};
 
 const moduleBadge = (status: ModuleStatus) => {
   if (status === 'published') {
@@ -37,8 +33,6 @@ export const ModuleLibraryPage = () => {
   const isProgramManager = role === 'programManager';
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const state = (location.state ?? {}) as LocationState;
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'all' | 'published' | 'drafts'>('all');
 
@@ -142,59 +136,26 @@ export const ModuleLibraryPage = () => {
         key: 'id',
         header: '',
         className: 'text-right',
-        render: (row) =>
-          row.status === 'published' ? (
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                className="h-8 px-3 text-xs"
-                onClick={() =>
-                  navigate(
-                    paths.adminModuleReviewDetails.replace(
-                      ':moduleId',
-                      encodeURIComponent(row.id),
-                    ),
-                  )
-                }
-              >
-                Review
-              </Button>
-              <Button
-                className="h-8 px-3 text-xs"
-                onClick={() =>
-                  navigate(paths.moduleAssigned, {
-                    state: {
-                      moduleName: row.title,
-                      deadlineLabel: 'Mon, 28 Apr 2026',
-                      assignedCount: state.chwId ? 1 : 8,
-                      assignedNames: state.chwId ? ['Selected CHW'] : undefined,
-                    },
-                  })
-                }
-              >
-                Assign
-              </Button>
-            </div>
-          ) : (
-            <div className="flex justify-end gap-2">
-              <Button
-                className="h-8 px-3 text-xs"
-                onClick={() =>
-                  navigate(
-                    paths.adminModuleReviewDetails.replace(
-                      ':moduleId',
-                      encodeURIComponent(row.id),
-                    ),
-                  )
-                }
-              >
-                Review
-              </Button>
-            </div>
-          ),
+        render: (row) => (
+          <div className="flex justify-end">
+            <Button
+              className="h-8 px-3 text-xs"
+              onClick={() =>
+                navigate(
+                  paths.adminModuleReviewDetails.replace(
+                    ':moduleId',
+                    encodeURIComponent(row.id),
+                  ),
+                )
+              }
+            >
+              {row.status === 'published' ? 'Edit' : 'Review'}
+            </Button>
+          </div>
+        ),
       },
     ],
-    [navigate, state.chwId],
+    [navigate],
   );
 
   return (

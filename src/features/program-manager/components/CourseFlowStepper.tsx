@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { paths } from '@/constants/routes';
+import { useCourseModuleNavigation } from '@/features/program-manager/hooks/useCourseModuleNavigation';
 
 type StepKey = 'details' | 'lessons' | 'quiz' | 'review';
 
@@ -19,7 +19,7 @@ export const CourseFlowStepper = ({
   currentStep,
   isGenerated,
 }: CourseFlowStepperProps) => {
-  const navigate = useNavigate();
+  const { navigateTo, isDirty } = useCourseModuleNavigation();
   const currentIndex = stepMeta.findIndex((step) => step.key === currentStep);
 
   return (
@@ -34,7 +34,7 @@ export const CourseFlowStepper = ({
             <button
               type="button"
               disabled={isLocked}
-              onClick={() => navigate(step.path)}
+              onClick={() => navigateTo(step.path)}
               className={`inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold transition ${
                 isActive
                   ? 'bg-spice-brand-pm text-white'
@@ -55,6 +55,9 @@ export const CourseFlowStepper = ({
                 {isComplete ? '✓' : index + 1}
               </span>
               {step.label}
+              {isDirty && !isActive ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              ) : null}
             </button>
             {index < stepMeta.length - 1 ? (
               <span className="text-xs text-spice-text-muted">-</span>
