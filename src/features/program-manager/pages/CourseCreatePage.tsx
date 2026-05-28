@@ -307,7 +307,7 @@ export const CourseCreatePage = () => {
                   );
 
                   const res = await fetch(
-                    `${adminApiBaseUrl}/admin/v3/ingest/stream`,
+                    `${adminApiBaseUrl}/admin/ingest/stream`,
                     {
                       method: 'POST',
                       headers: {

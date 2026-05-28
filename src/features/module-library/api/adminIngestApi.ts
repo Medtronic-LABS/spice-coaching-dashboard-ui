@@ -64,7 +64,7 @@ export const adminIngestApi = adminBaseApi.injectEndpoints({
         form.append('authority_label', payload.authority_label);
         form.append('primary_language', payload.primary_language);
         return {
-          url: '/admin/v3/ingest',
+          url: '/admin/ingest',
           method: 'POST',
           body: form,
         };
@@ -75,7 +75,7 @@ export const adminIngestApi = adminBaseApi.injectEndpoints({
       string
     >({
       query: (sourceDocumentId) => ({
-        url: `/admin/v3/ingest/by-document/${encodeURIComponent(sourceDocumentId)}`,
+        url: `/admin/ingest/by-document/${encodeURIComponent(sourceDocumentId)}`,
         method: 'GET',
       }),
       keepUnusedDataFor: 60,
