@@ -94,7 +94,7 @@ export const IngestDocumentPage = () => {
   const canSubmit = Boolean(file) && !isUploading && !ingestionInProgress;
 
   const steps = statusData?.steps ?? [];
-  const candidates = statusData?.candidates ?? [];
+  // const candidates = statusData?.candidates ?? [];
 
   const progressLabel = useMemo(() => {
     if (!sourceDocumentId) {
@@ -342,7 +342,7 @@ export const IngestDocumentPage = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-spice-text-primary">
                   Candidates
@@ -387,7 +387,7 @@ export const IngestDocumentPage = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </div> */}
 
             {ingestionSucceeded ? (
               <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
