@@ -18,6 +18,12 @@ function clampCorrectIndex(
   return Math.min(Math.max(0, safe), optionsLength - 1);
 }
 
+function safeText(value: string | null | undefined): string {
+  return typeof value === 'string' ? value : '';
+}
+
+// Quiz editing is BN-only for now. EN UI is intentionally hidden.
+
 export const AdminModuleQuizStep = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -128,11 +134,11 @@ export const AdminModuleQuizStep = () => {
                 {
                   id: '',
                   question_order: nextOrder,
-                  question_bn: null,
-                  question_en: '',
+                  question_bn: '',
+                  question_en: null,
                   case_setup_bn: null,
                   case_setup_en: null,
-                  options_bn: [''],
+                  options_bn: ['', ''],
                   options_en: ['Option 1', 'Option 2'],
                   correct_indices: [0],
                   explanation_bn: null,
@@ -149,8 +155,9 @@ export const AdminModuleQuizStep = () => {
         <div className="space-y-3">
           {sortedQuiz.length ? (
             sortedQuiz.map((m, index) => {
+              const options = m.options_bn ?? [''];
               const correctIndex = clampCorrectIndex(
-                m.options_en.length,
+                options.length,
                 m.correct_indices,
               );
               return (
@@ -188,16 +195,20 @@ export const AdminModuleQuizStep = () => {
 
                   <input
                     className="w-full rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
-                    value={m.question_en ?? ''}
+                    value={safeText(m.question_bn)}
                     disabled={busy}
                     onChange={(event) =>
-                      updateQuiz(m.id, { question_en: event.target.value })
+                      updateQuiz(m.id, { question_bn: event.target.value })
                     }
                     placeholder="Type your question…"
                   />
 
+                  {/*
+                  Question (EN) intentionally hidden.
+                  */}
+
                   <div className="space-y-2">
-                    {m.options_en.map((option, optionIndex) => {
+                    {options.map((option, optionIndex) => {
                       const isCorrect = optionIndex === correctIndex;
                       return (
                         <label
@@ -224,19 +235,19 @@ export const AdminModuleQuizStep = () => {
                             value={option}
                             disabled={busy}
                             onChange={(event) => {
-                              const next = m.options_en.map((o, i) =>
+                              const next = (m.options_bn ?? []).map((o, i) =>
                                 i === optionIndex ? event.target.value : o,
                               );
-                              updateQuiz(m.id, { options_en: next });
+                              updateQuiz(m.id, { options_bn: next });
                             }}
                             placeholder={`Option ${optionIndex + 1}`}
                           />
                           <button
                             type="button"
                             className="text-xs font-semibold text-spice-semantic-error"
-                            disabled={busy || m.options_en.length <= 2}
+                            disabled={busy || options.length <= 2}
                             onClick={() => {
-                              const next = m.options_en.filter(
+                              const next = options.filter(
                                 (_, i) => i !== optionIndex,
                               );
                               const nextCorrect = clampCorrectIndex(
@@ -246,7 +257,7 @@ export const AdminModuleQuizStep = () => {
                                   : [correctIndex],
                               );
                               updateQuiz(m.id, {
-                                options_en: next,
+                                options_bn: next,
                                 correct_indices: [nextCorrect],
                               });
                             }}
@@ -264,11 +275,9 @@ export const AdminModuleQuizStep = () => {
                       className="h-8 text-xs"
                       disabled={busy}
                       onClick={() => {
-                        const next = [
-                          ...m.options_en,
-                          `Option ${m.options_en.length + 1}`,
-                        ];
-                        updateQuiz(m.id, { options_en: next });
+                        const base = m.options_bn ?? [];
+                        const next = [...base, ''];
+                        updateQuiz(m.id, { options_bn: next });
                       }}
                     >
                       Add Option
@@ -281,14 +290,18 @@ export const AdminModuleQuizStep = () => {
                     </div>
                     <textarea
                       className="min-h-[100px] w-full resize-y rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
-                      value={m.explanation_en ?? ''}
+                      value={safeText(m.explanation_bn)}
                       disabled={busy}
                       onChange={(event) =>
-                        updateQuiz(m.id, { explanation_en: event.target.value })
+                        updateQuiz(m.id, { explanation_bn: event.target.value })
                       }
                       placeholder="Add explanation…"
                     />
                   </div>
+
+                  {/*
+                  Explanation (EN) intentionally hidden.
+                  */}
                 </Card>
               );
             })

@@ -41,11 +41,13 @@ export const ModuleLibraryPage = () => {
   const state = (location.state ?? {}) as LocationState;
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'all' | 'published' | 'drafts'>('all');
+  const [page, setPage] = useState(0);
+  const pageSize = 15;
 
   const lifecycleStatus =
     tab === 'published' ? 'published' : tab === 'drafts' ? 'draft' : undefined;
   const { data: adminModules } = useFetchModulesQuery(
-    { limit: 50, offset: 0, status: lifecycleStatus },
+    { limit: pageSize, offset: page * pageSize, status: lifecycleStatus },
     {},
   );
 
@@ -157,7 +159,7 @@ export const ModuleLibraryPage = () => {
                   )
                 }
               >
-                Review
+                Edit
               </Button>
               <Button
                 className="h-8 px-3 text-xs"
@@ -209,7 +211,10 @@ export const ModuleLibraryPage = () => {
           <div className="w-full sm:w-72">
             <SearchInput
               value={query}
-              onChange={setQuery}
+              onChange={(next) => {
+                setQuery(next);
+                setPage(0);
+              }}
               placeholder="Search modules..."
             />
           </div>
@@ -235,7 +240,10 @@ export const ModuleLibraryPage = () => {
             { label: 'Drafts', value: 'drafts' },
           ]}
           value={tab}
-          onChange={(value) => setTab(value as typeof tab)}
+          onChange={(value) => {
+            setTab(value as typeof tab);
+            setPage(0);
+          }}
           className="max-w-[520px]"
         />
 
@@ -246,6 +254,46 @@ export const ModuleLibraryPage = () => {
           caption={tableCaption}
           emptyMessage={emptyMessage}
         />
+
+        <div className="flex flex-col gap-2 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs text-spice-text-muted">
+            Page{' '}
+            <span className="font-semibold text-spice-text-medium">
+              {page + 1}
+            </span>
+            {filtered.length ? (
+              <>
+                {' '}
+                · Showing{' '}
+                <span className="font-semibold text-spice-text-medium">
+                  {page * pageSize + 1}
+                </span>
+                –
+                <span className="font-semibold text-spice-text-medium">
+                  {page * pageSize + filtered.length}
+                </span>
+              </>
+            ) : null}
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="h-8 px-3 text-xs"
+              disabled={page <= 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-8 px-3 text-xs"
+              disabled={(adminModules?.length ?? 0) < pageSize}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </Card>
     </section>
   );

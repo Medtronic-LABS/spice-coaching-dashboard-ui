@@ -11,6 +11,7 @@ export interface AdminModulesListItem {
   title_bn: string | null;
   title_en: string | null;
   description_bn: string | null;
+  description_en?: string | null;
   domain: string;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
@@ -46,6 +47,7 @@ export interface AdminModuleDetailResponse {
   title_bn: string | null;
   title_en: string | null;
   description_bn: string | null;
+  description_en: string | null;
   domain: string;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
@@ -64,6 +66,7 @@ export interface EditAdminModuleRequestBody {
   title_bn?: string;
   title_en?: string;
   description_bn?: string;
+  description_en?: string;
   module_json: { cards: unknown[]; quiz?: AdminModuleQuizItem[] };
   editor_id?: string;
 }

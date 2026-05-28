@@ -2,21 +2,44 @@ import { adminBaseApi } from '@/store/apis/adminBase';
 
 export type PrimaryLanguage = 'en' | 'bn';
 
-export interface AdminV3IngestFormPayload {
-  file: File;
+export type IngestSourceType = 'pdf' | 'pptx' | 'docx' | 'audio' | 'video';
+
+export type IngestContentDomain =
+  | 'digital'
+  | 'clinical'
+  | 'clinical_with_app_action'
+  | 'supervisor_update';
+
+export type IngestAssessmentMode = 'with_quiz' | 'read_only';
+
+export type IngestBatchMode = 'append' | 'new';
+
+export interface AdminV3IngestBatchFormPayload {
+  files: File[];
+  titles?: string[] | null;
+  fuse_sources?: boolean;
+  content_domain?: IngestContentDomain;
+  assessment_mode?: IngestAssessmentMode;
+  authority_label?: string;
+  primary_language?: PrimaryLanguage;
+  mode?: IngestBatchMode;
+}
+
+export interface AdminV3IngestAcceptedSource {
+  source_document_id: string;
   title: string;
-  authority_kind: string;
-  authority_label: string;
-  primary_language: PrimaryLanguage;
+  source_type: IngestSourceType;
+  stored_path: string;
+  poll_url: string;
 }
 
 export interface AdminV3IngestAcceptedResponse {
-  source_document_id: string;
-  title: string;
-  source_type: string;
-  stored_path: string;
-  status: string;
-  poll_url: string;
+  status: 'batch_queued';
+  fuse_sources: boolean;
+  mode: IngestBatchMode;
+  modules_retired: number;
+  sources: AdminV3IngestAcceptedSource[];
+  note?: string;
 }
 
 export interface AdminV3IngestStep {
@@ -52,17 +75,36 @@ export interface AdminV3IngestStatusResponse {
 
 export const adminIngestApi = adminBaseApi.injectEndpoints({
   endpoints: (builder) => ({
-    ingestDocument: builder.mutation<
+    ingestDocuments: builder.mutation<
       AdminV3IngestAcceptedResponse,
-      AdminV3IngestFormPayload
+      AdminV3IngestBatchFormPayload
     >({
       query: (payload) => {
         const form = new FormData();
-        form.append('file', payload.file, payload.file.name);
-        form.append('title', payload.title);
-        form.append('authority_kind', payload.authority_kind);
-        form.append('authority_label', payload.authority_label);
-        form.append('primary_language', payload.primary_language);
+        for (const file of payload.files) {
+          form.append('files', file, file.name);
+        }
+        if (payload.titles && payload.titles.length) {
+          form.append('titles', JSON.stringify(payload.titles));
+        }
+        if (typeof payload.fuse_sources === 'boolean') {
+          form.append('fuse_sources', String(payload.fuse_sources));
+        }
+        if (payload.content_domain) {
+          form.append('content_domain', payload.content_domain);
+        }
+        if (payload.assessment_mode) {
+          form.append('assessment_mode', payload.assessment_mode);
+        }
+        if (payload.authority_label) {
+          form.append('authority_label', payload.authority_label);
+        }
+        if (payload.primary_language) {
+          form.append('primary_language', payload.primary_language);
+        }
+        if (payload.mode) {
+          form.append('mode', payload.mode);
+        }
         return {
           url: '/admin/ingest',
           method: 'POST',
@@ -80,9 +122,19 @@ export const adminIngestApi = adminBaseApi.injectEndpoints({
       }),
       keepUnusedDataFor: 60,
     }),
+    getIngestStatusByRunId: builder.query<AdminV3IngestStatusResponse, string>({
+      query: (runId) => ({
+        url: `/admin/ingest/${encodeURIComponent(runId)}`,
+        method: 'GET',
+      }),
+      keepUnusedDataFor: 60,
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useIngestDocumentMutation, useGetIngestStatusByDocumentQuery } =
-  adminIngestApi;
+export const {
+  useIngestDocumentsMutation,
+  useGetIngestStatusByDocumentQuery,
+  useGetIngestStatusByRunIdQuery,
+} = adminIngestApi;

@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import { useGetIngestStatusByDocumentQuery } from '@/features/module-library/api/adminIngestApi';
+import {
+  useGetIngestStatusByDocumentQuery,
+  useIngestDocumentsMutation,
+} from '@/features/module-library/api/adminIngestApi';
 import {
   INGEST_ACCEPTED_FILE_TYPES_LABEL,
   INGEST_FILE_INPUT_ACCEPT,
@@ -19,88 +22,6 @@ import {
   shouldPollIngestStatus,
 } from '@/features/module-library/utils/ingestStatus';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
-import { adminApiBaseUrl, adminApiCommonHeaders } from '@/store/apis/adminBase';
-
-type IngestStreamEventName =
-  | 'run_started'
-  | 'stage_started'
-  | 'stage_succeeded'
-  | 'stage_skipped'
-  | 'stage_failed'
-  | 'pipeline_complete';
-
-type IngestStreamEvent = {
-  event: IngestStreamEventName | 'message';
-  stage?: string;
-  message?: string;
-  run_id?: string;
-  source_document_id?: string;
-  raw?: string;
-};
-
-function parseSseEventBlock(block: string): IngestStreamEvent | null {
-  const lines = block
-    .split('\n')
-    .map((l) => l.trimEnd())
-    .filter(Boolean);
-  if (!lines.length) return null;
-
-  let eventName: string | undefined;
-  const dataLines: string[] = [];
-
-  for (const line of lines) {
-    if (line.startsWith('event:')) {
-      eventName = line.slice('event:'.length).trim();
-    } else if (line.startsWith('data:')) {
-      dataLines.push(line.slice('data:'.length).trim());
-    }
-  }
-
-  const dataRaw = dataLines.join('\n').trim();
-  if (!dataRaw) {
-    return { event: (eventName ?? 'message') as IngestStreamEvent['event'] };
-  }
-
-  try {
-    const parsed: unknown = JSON.parse(dataRaw);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      const obj = parsed as Record<string, unknown>;
-      const event =
-        typeof obj.event === 'string' ? obj.event : (eventName ?? 'message');
-      const stage = typeof obj.stage === 'string' ? obj.stage : undefined;
-      const run_id = typeof obj.run_id === 'string' ? obj.run_id : undefined;
-      const source_document_id =
-        typeof obj.source_document_id === 'string'
-          ? obj.source_document_id
-          : undefined;
-      const message =
-        typeof obj.message === 'string'
-          ? obj.message
-          : typeof obj.detail === 'string'
-            ? obj.detail
-            : undefined;
-      return {
-        event: event as IngestStreamEvent['event'],
-        stage,
-        message,
-        run_id,
-        source_document_id,
-        raw: dataRaw,
-      };
-    }
-    return {
-      event: (eventName ?? 'message') as IngestStreamEvent['event'],
-      message: dataRaw,
-      raw: dataRaw,
-    };
-  } catch {
-    return {
-      event: (eventName ?? 'message') as IngestStreamEvent['event'],
-      message: dataRaw,
-      raw: dataRaw,
-    };
-  }
-}
 
 function redirectToModuleLibrary(): void {
   window.location.assign(paths.moduleLibrary);
@@ -108,15 +29,15 @@ function redirectToModuleLibrary(): void {
 
 export const CourseCreatePage = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const streamAbortRef = useRef<AbortController | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamError, setStreamError] = useState('');
-  const [stageState, setStageState] = useState<Record<string, string>>({});
+  const [uploadError, setUploadError] = useState('');
   const [sourceDocumentId, setSourceDocumentId] = useState(
     () => readActiveIngestSession()?.source_document_id ?? '',
   );
+
+  const [ingestDocuments, { isLoading: isUploading }] =
+    useIngestDocumentsMutation();
 
   const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
     readActiveIngestSession()?.source_document_id ? 2000 : 0,
@@ -145,12 +66,6 @@ export const CourseCreatePage = () => {
   }, [sourceDocumentId, statusData?.status]);
 
   useEffect(() => {
-    return () => {
-      streamAbortRef.current?.abort();
-    };
-  }, []);
-
-  useEffect(() => {
     if (!isIngestSucceeded(statusData?.status)) return;
     clearActiveIngestSession();
     redirectToModuleLibrary();
@@ -161,12 +76,9 @@ export const CourseCreatePage = () => {
     statusData?.status,
   );
   const ingestionSucceeded = isIngestSucceeded(statusData?.status);
-  const uploadFieldsDisabled = isStreaming || ingestionInProgress;
+  const uploadFieldsDisabled = isUploading || ingestionInProgress;
 
   const progressLabel = useMemo(() => {
-    if (isStreaming) {
-      return 'Ingestion running. Live updates stream while you stay on this page.';
-    }
     if (!sourceDocumentId) {
       return 'Upload a document to start ingestion.';
     }
@@ -183,33 +95,19 @@ export const CourseCreatePage = () => {
       return `Ingestion complete · ${statusData.status}`;
     }
     return `Status · ${statusData.status}`;
-  }, [
-    ingestionInProgress,
-    ingestionSucceeded,
-    isStreaming,
-    sourceDocumentId,
-    statusData,
-  ]);
+  }, [ingestionInProgress, ingestionSucceeded, sourceDocumentId, statusData]);
 
   const displayStages = useMemo(() => {
-    if (statusData?.steps?.length) {
-      return statusData.steps.map((step) => ({
-        key: `${step.stage}-${step.started_at ?? ''}`,
-        stage: step.stage,
-        status: step.status,
-      }));
-    }
-    return Object.entries(stageState).map(([stage, status]) => ({
-      key: stage,
-      stage,
-      status,
+    return (statusData?.steps ?? []).map((step) => ({
+      key: `${step.stage}-${step.started_at ?? ''}`,
+      stage: step.stage,
+      status: step.status,
     }));
-  }, [stageState, statusData?.steps]);
+  }, [statusData?.steps]);
 
   const persistIngestSession = (documentId: string) => {
     writeActiveIngestSession({
       source_document_id: documentId,
-      title: INGEST_FORM_DEFAULTS.title,
     });
     setSourceDocumentId(documentId);
   };
@@ -217,7 +115,7 @@ export const CourseCreatePage = () => {
   return (
     <section
       className="space-y-4"
-      aria-busy={isStreaming || ingestionInProgress}
+      aria-busy={isUploading || ingestionInProgress}
     >
       <h1 className="text-3xl font-semibold text-spice-brand-pm">
         Create module
@@ -238,9 +136,7 @@ export const CourseCreatePage = () => {
           <span className="text-spice-text-muted">
             Document <span className="font-mono">{sourceDocumentId}</span> is
             being processed.
-            {isStreaming
-              ? ' Live stream updates appear below.'
-              : ' Status is polled from the server.'}
+            {' Status is polled from the server.'}
           </span>
         </div>
       ) : null}
@@ -263,7 +159,7 @@ export const CourseCreatePage = () => {
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
                 setSelectedFile(file);
-                setStreamError('');
+                setUploadError('');
               }}
             />
             <Button
@@ -277,111 +173,38 @@ export const CourseCreatePage = () => {
               className="ml-2"
               disabled={uploadFieldsDisabled || !selectedFile}
               onClick={async () => {
-                setStreamError('');
-                setStageState({});
+                setUploadError('');
                 if (!selectedFile) return;
 
-                streamAbortRef.current?.abort();
                 clearActiveIngestSession();
                 setSourceDocumentId('');
 
-                const abortController = new AbortController();
-                streamAbortRef.current = abortController;
-                setIsStreaming(true);
-
                 try {
-                  const formData = new FormData();
-                  formData.append('file', selectedFile, selectedFile.name);
-                  formData.append('title', INGEST_FORM_DEFAULTS.title);
-                  formData.append(
-                    'authority_kind',
-                    INGEST_FORM_DEFAULTS.authority_kind,
-                  );
-                  formData.append(
-                    'authority_label',
-                    INGEST_FORM_DEFAULTS.authority_label,
-                  );
-                  formData.append(
-                    'primary_language',
-                    INGEST_FORM_DEFAULTS.primary_language,
-                  );
-
-                  const res = await fetch(
-                    `${adminApiBaseUrl}/admin/ingest/stream`,
-                    {
-                      method: 'POST',
-                      headers: {
-                        ...adminApiCommonHeaders,
-                        Accept: 'text/event-stream',
-                      },
-                      body: formData,
-                      signal: abortController.signal,
-                    },
-                  );
-
-                  if (!res.ok) {
-                    const text = await res.text().catch(() => '');
-                    throw new Error(text || `Ingest failed (${res.status})`);
+                  const accepted = await ingestDocuments({
+                    files: [selectedFile],
+                    titles: null,
+                    fuse_sources: false,
+                    content_domain: INGEST_FORM_DEFAULTS.content_domain,
+                    assessment_mode: INGEST_FORM_DEFAULTS.assessment_mode,
+                    authority_label: INGEST_FORM_DEFAULTS.authority_label,
+                    primary_language: INGEST_FORM_DEFAULTS.primary_language,
+                    mode: INGEST_FORM_DEFAULTS.mode,
+                  }).unwrap();
+                  const first = accepted.sources?.[0]?.source_document_id ?? '';
+                  if (!first) {
+                    throw new Error(
+                      'Ingest accepted but no source ID was returned.',
+                    );
                   }
-                  if (!res.body) {
-                    throw new Error('Streaming response body missing.');
-                  }
-
-                  const reader = res.body.getReader();
-                  const decoder = new TextDecoder('utf-8');
-                  let buffer = '';
-
-                  while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-
-                    const parts = buffer.split('\n\n');
-                    buffer = parts.pop() ?? '';
-
-                    for (const part of parts) {
-                      const evt = parseSseEventBlock(part);
-                      if (!evt) continue;
-
-                      if (evt.source_document_id) {
-                        persistIngestSession(evt.source_document_id);
-                      }
-
-                      if (evt.stage) {
-                        const stage = evt.stage;
-                        setStageState((prev) => ({
-                          ...prev,
-                          [stage]: evt.event,
-                        }));
-                      }
-
-                      if (evt.event === 'pipeline_complete') {
-                        clearActiveIngestSession();
-                        redirectToModuleLibrary();
-                        return;
-                      }
-
-                      if (evt.event === 'stage_failed') {
-                        setIsStreaming(false);
-                      }
-                    }
-                  }
+                  persistIngestSession(first);
                 } catch (err) {
-                  if (abortController.signal.aborted) {
-                    return;
-                  }
-                  setStreamError(
+                  setUploadError(
                     err instanceof Error ? err.message : String(err),
                   );
-                } finally {
-                  if (streamAbortRef.current === abortController) {
-                    streamAbortRef.current = null;
-                  }
-                  setIsStreaming(false);
                 }
               }}
             >
-              {isStreaming
+              {isUploading
                 ? 'Uploading…'
                 : ingestionInProgress
                   ? 'Ingestion in progress…'
@@ -393,9 +216,9 @@ export const CourseCreatePage = () => {
           </div>
         </div>
 
-        {streamError ? (
+        {uploadError ? (
           <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {streamError}
+            {uploadError}
           </div>
         ) : null}
 
@@ -472,10 +295,6 @@ export const CourseCreatePage = () => {
                   <span className="text-spice-text-medium">{step.status}</span>
                 </div>
               ))}
-            </div>
-          ) : isStreaming ? (
-            <div className="text-xs text-spice-text-muted">
-              Waiting for pipeline stages…
             </div>
           ) : null}
 

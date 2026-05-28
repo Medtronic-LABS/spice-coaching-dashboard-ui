@@ -4,7 +4,7 @@ import { Button, Card, LoadingState } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
   useGetIngestStatusByDocumentQuery,
-  useIngestDocumentMutation,
+  useIngestDocumentsMutation,
   type AdminV3IngestAcceptedResponse,
 } from '@/features/module-library/api/adminIngestApi';
 import {
@@ -25,22 +25,47 @@ import {
 } from '@/features/module-library/utils/ingestStatus';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
 
+function filenameStem(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return 'Untitled';
+  const lastDot = trimmed.lastIndexOf('.');
+  if (lastDot <= 0) return trimmed;
+  return trimmed.slice(0, lastDot);
+}
+
 export const IngestDocumentPage = () => {
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [titles, setTitles] = useState<string[]>([]);
+  const [authorityLabel, setAuthorityLabel] = useState<string>(
+    INGEST_FORM_DEFAULTS.authority_label,
+  );
+  const [primaryLanguage, setPrimaryLanguage] = useState<'bn' | 'en'>(
+    INGEST_FORM_DEFAULTS.primary_language,
+  );
+  const [contentDomain, setContentDomain] = useState<
+    'digital' | 'clinical' | 'clinical_with_app_action' | 'supervisor_update'
+  >(INGEST_FORM_DEFAULTS.content_domain);
+  const [assessmentMode, setAssessmentMode] = useState<
+    'with_quiz' | 'read_only'
+  >(INGEST_FORM_DEFAULTS.assessment_mode);
+  const [mode, setMode] = useState<'append' | 'new'>(INGEST_FORM_DEFAULTS.mode);
+  const [fuseSources, setFuseSources] = useState<boolean>(
+    INGEST_FORM_DEFAULTS.fuse_sources,
+  );
 
   const [accepted, setAccepted] =
     useState<AdminV3IngestAcceptedResponse | null>(null);
+  const [activeSourceDocumentId, setActiveSourceDocumentId] = useState('');
   const [restoredSourceDocumentId, setRestoredSourceDocumentId] = useState(
     () => readActiveIngestSession()?.source_document_id ?? '',
   );
   const [actionError, setActionError] = useState('');
 
-  const [ingestDocument, { isLoading: isUploading }] =
-    useIngestDocumentMutation();
+  const [ingestDocuments, { isLoading: isUploading }] =
+    useIngestDocumentsMutation();
 
-  const sourceDocumentId =
-    accepted?.source_document_id ?? restoredSourceDocumentId;
+  const sourceDocumentId = activeSourceDocumentId || restoredSourceDocumentId;
 
   const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
     readActiveIngestSession()?.source_document_id ? 30000 : 0,
@@ -74,12 +99,13 @@ export const IngestDocumentPage = () => {
   const ingestionSucceeded = isIngestSucceeded(statusData?.status);
 
   useEffect(() => {
-    if (!accepted?.source_document_id) return;
+    const first = accepted?.sources?.[0];
+    if (!first?.source_document_id) return;
     writeActiveIngestSession({
-      source_document_id: accepted.source_document_id,
-      title: accepted.title,
+      source_document_id: first.source_document_id,
+      title: first.title,
     });
-    setRestoredSourceDocumentId(accepted.source_document_id);
+    setRestoredSourceDocumentId(first.source_document_id);
   }, [accepted]);
 
   useEffect(() => {
@@ -91,10 +117,10 @@ export const IngestDocumentPage = () => {
     });
   }, [restoredSourceDocumentId]);
 
-  const canSubmit = Boolean(file) && !isUploading && !ingestionInProgress;
+  const canSubmit = files.length > 0 && !isUploading && !ingestionInProgress;
 
   const steps = statusData?.steps ?? [];
-  const candidates = statusData?.candidates ?? [];
+  // const candidates = statusData?.candidates ?? [];
 
   const progressLabel = useMemo(() => {
     if (!sourceDocumentId) {
@@ -173,33 +199,180 @@ export const IngestDocumentPage = () => {
           <input
             type="file"
             accept={INGEST_FILE_INPUT_ACCEPT}
+            multiple
             disabled={uploadFieldsDisabled}
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              const nextFiles = Array.from(e.target.files ?? []).slice(0, 10);
+              setFiles(nextFiles);
+              setTitles(nextFiles.map((f) => filenameStem(f.name)));
+            }}
           />
-          {file ? (
+          {files.length ? (
             <div className="text-xs text-spice-text-muted">
-              Selected: <span className="font-semibold">{file.name}</span>
+              Selected:{' '}
+              <span className="font-semibold">
+                {files.length} file{files.length === 1 ? '' : 's'}
+              </span>
             </div>
           ) : null}
         </label>
+
+        {files.length ? (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-spice-text-primary">
+              Titles (optional)
+            </div>
+            <div className="space-y-2">
+              {files.map((f, idx) => (
+                <label
+                  key={`${f.name}-${f.size}-${f.lastModified}`}
+                  className="block space-y-1"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
+                    <span className="truncate font-mono">{f.name}</span>
+                    <span>{Math.round(f.size / 1024)} KB</span>
+                  </div>
+                  <input
+                    className="h-9 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                    value={titles[idx] ?? ''}
+                    disabled={uploadFieldsDisabled}
+                    onChange={(e) =>
+                      setTitles((prev) => {
+                        const next = [...prev];
+                        next[idx] = e.target.value;
+                        return next;
+                      })
+                    }
+                    placeholder="Title…"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Assessment mode
+            </span>
+            <select
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              value={assessmentMode}
+              disabled={uploadFieldsDisabled}
+              onChange={(e) =>
+                setAssessmentMode(e.target.value as typeof assessmentMode)
+              }
+            >
+              <option value="with_quiz">with_quiz</option>
+              <option value="read_only">read_only</option>
+            </select>
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Authority label
+            </span>
+            <input
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              value={authorityLabel}
+              disabled={uploadFieldsDisabled}
+              onChange={(e) => setAuthorityLabel(e.target.value)}
+              placeholder="BRAC"
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Content domain
+            </span>
+            <select
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              value={contentDomain}
+              disabled={uploadFieldsDisabled}
+              onChange={(e) =>
+                setContentDomain(e.target.value as typeof contentDomain)
+              }
+            >
+              <option value="digital">digital</option>
+              <option value="clinical">clinical</option>
+              <option value="clinical_with_app_action">
+                clinical_with_app_action
+              </option>
+              <option value="supervisor_update">supervisor_update</option>
+            </select>
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Primary language
+            </span>
+            <select
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              value={primaryLanguage}
+              disabled={uploadFieldsDisabled}
+              onChange={(e) =>
+                setPrimaryLanguage(e.target.value as typeof primaryLanguage)
+              }
+            >
+              <option value="bn">bn</option>
+              <option value="en">en</option>
+            </select>
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">Mode</span>
+            <select
+              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+              value={mode}
+              disabled={uploadFieldsDisabled}
+              onChange={(e) => setMode(e.target.value as typeof mode)}
+            >
+              <option value="append">append</option>
+              <option value="new">new</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-spice-text-medium">
+            <input
+              type="checkbox"
+              disabled={uploadFieldsDisabled}
+              checked={fuseSources}
+              onChange={(e) => setFuseSources(e.target.checked)}
+            />
+            Fuse sources (requires 2+ files)
+          </label>
+        </div>
 
         <div className="flex flex-wrap justify-end gap-2">
           <Button
             className="h-9 text-xs"
             disabled={!canSubmit}
             onClick={async () => {
-              if (!file) return;
+              if (!files.length) return;
               setActionError('');
               setAccepted(null);
               setRestoredSourceDocumentId('');
+              setActiveSourceDocumentId('');
               clearActiveIngestSession();
               try {
-                const res = await ingestDocument({
-                  file,
-                  ...INGEST_FORM_DEFAULTS,
+                const effectiveTitles =
+                  titles.length === files.length ? titles : null;
+                const res = await ingestDocuments({
+                  files,
+                  titles: effectiveTitles,
+                  fuse_sources: fuseSources,
+                  content_domain: contentDomain,
+                  assessment_mode: assessmentMode,
+                  authority_label: authorityLabel,
+                  primary_language: primaryLanguage,
+                  mode,
                 }).unwrap();
                 setAccepted(res);
-                setFile(null);
+                const first = res.sources?.[0]?.source_document_id ?? '';
+                setActiveSourceDocumentId(first);
+                setFiles([]);
+                setTitles([]);
               } catch (err) {
                 setActionError(formatRtkQueryError(err));
               }
@@ -212,6 +385,47 @@ export const IngestDocumentPage = () => {
                 : 'Start ingestion'}
           </Button>
         </div>
+
+        {accepted?.sources?.length ? (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-spice-text-primary">
+              Queued sources
+            </div>
+            <div className="space-y-2">
+              {accepted.sources.map((s) => (
+                <button
+                  key={s.source_document_id}
+                  type="button"
+                  className={`w-full rounded-lg border px-3 py-2 text-left text-xs ${
+                    activeSourceDocumentId === s.source_document_id
+                      ? 'border-spice-border bg-spice-bg-tint text-spice-text-primary'
+                      : 'border-spice-border bg-spice-bg-surface text-spice-text-medium'
+                  }`}
+                  onClick={() =>
+                    setActiveSourceDocumentId(s.source_document_id)
+                  }
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">{s.title}</div>
+                      <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
+                        {s.source_document_id}
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-spice-text-muted">
+                      {s.source_type}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {accepted.note ? (
+              <div className="rounded-lg bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-muted">
+                {accepted.note}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </Card>
 
       <Card variant="elevated" className="space-y-4 p-4">
@@ -342,7 +556,7 @@ export const IngestDocumentPage = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-spice-text-primary">
                   Candidates
@@ -387,7 +601,7 @@ export const IngestDocumentPage = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </div> */}
 
             {ingestionSucceeded ? (
               <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">

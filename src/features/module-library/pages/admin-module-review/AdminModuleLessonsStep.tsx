@@ -33,6 +33,14 @@ function safeString(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
+function hasEnglishContent(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  const titleEn =
+    typeof value.title_en === 'string' ? value.title_en.trim() : '';
+  const bodyEn = typeof value.body_en === 'string' ? value.body_en.trim() : '';
+  return Boolean(titleEn || bodyEn);
+}
+
 export const AdminModuleLessonsStep = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -78,6 +86,11 @@ export const AdminModuleLessonsStep = () => {
   }
 
   const busy = isFetching || isSaving;
+  const showEnglishFields =
+    Boolean(data.title_en && data.title_en.trim()) ||
+    cards.some((c) => hasEnglishContent(c));
+  const showCardTitleEn =
+    showEnglishFields || hasEnglishContent(mergedSelectedCard);
 
   return (
     <section className="space-y-4">
@@ -169,7 +182,11 @@ export const AdminModuleLessonsStep = () => {
 
           {cards.length ? (
             <>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div
+                className={`grid gap-3 ${
+                  showCardTitleEn ? 'md:grid-cols-2' : 'md:grid-cols-1'
+                }`}
+              >
                 <label className="block space-y-1">
                   <span className="text-xs font-semibold text-spice-text-primary">
                     Title (BN)
@@ -195,37 +212,39 @@ export const AdminModuleLessonsStep = () => {
                     placeholder="Bangla title…"
                   />
                 </label>
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Title (EN)
-                  </span>
-                  <input
-                    className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-                    value={
-                      isPlainObject(mergedSelectedCard)
-                        ? safeString(
-                            mergedSelectedCard.title_en ??
-                              mergedSelectedCard.title,
-                          )
-                        : ''
-                    }
-                    onChange={(e) =>
-                      setCardEdits((prev) => ({
-                        ...prev,
-                        [selectedIndex]: {
-                          ...(isPlainObject(mergedSelectedCard)
-                            ? mergedSelectedCard
-                            : {}),
-                          title_en: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="English title…"
-                  />
-                </label>
+                {showCardTitleEn ? (
+                  <label className="block space-y-1">
+                    <span className="text-xs font-semibold text-spice-text-primary">
+                      Title (EN)
+                    </span>
+                    <input
+                      className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                      value={
+                        isPlainObject(mergedSelectedCard)
+                          ? safeString(
+                              mergedSelectedCard.title_en ??
+                                mergedSelectedCard.title,
+                            )
+                          : ''
+                      }
+                      onChange={(e) =>
+                        setCardEdits((prev) => ({
+                          ...prev,
+                          [selectedIndex]: {
+                            ...(isPlainObject(mergedSelectedCard)
+                              ? mergedSelectedCard
+                              : {}),
+                            title_en: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="English title…"
+                    />
+                  </label>
+                ) : null}
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-1">
                 <label className="block space-y-1">
                   <span className="text-xs font-semibold text-spice-text-primary">
                     Body/content (BN)
@@ -251,34 +270,9 @@ export const AdminModuleLessonsStep = () => {
                     placeholder="Bangla content…"
                   />
                 </label>
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Body/content (EN)
-                  </span>
-                  <textarea
-                    className="min-h-[220px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-                    value={
-                      isPlainObject(mergedSelectedCard)
-                        ? safeString(
-                            mergedSelectedCard.body_en ??
-                              mergedSelectedCard.body,
-                          )
-                        : ''
-                    }
-                    onChange={(e) =>
-                      setCardEdits((prev) => ({
-                        ...prev,
-                        [selectedIndex]: {
-                          ...(isPlainObject(mergedSelectedCard)
-                            ? mergedSelectedCard
-                            : {}),
-                          body_en: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="English content…"
-                  />
-                </label>
+                {/*
+                Card body (EN) intentionally hidden.
+                */}
               </div>
             </>
           ) : (
@@ -302,7 +296,9 @@ export const AdminModuleLessonsStep = () => {
                     pathname,
                     moduleEntityId: data.id,
                     body: {
-                      title_en: data.title_en ?? undefined,
+                      title_en: showEnglishFields
+                        ? (data.title_en ?? undefined)
+                        : undefined,
                       module_json: { cards: nextCards, quiz: data.quiz },
                     },
                     refetch,

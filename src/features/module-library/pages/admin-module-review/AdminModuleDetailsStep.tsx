@@ -26,12 +26,14 @@ export const AdminModuleDetailsStep = () => {
   const [titleBn, setTitleBn] = useState('');
   const [titleEn, setTitleEn] = useState('');
   const [descriptionBn, setDescriptionBn] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
 
   useEffect(() => {
     if (!data) return;
     setTitleBn((prev) => (prev ? prev : (data.title_bn ?? '')));
     setTitleEn((prev) => (prev ? prev : (data.title_en ?? '')));
     setDescriptionBn((prev) => (prev ? prev : (data.description_bn ?? '')));
+    setDescriptionEn((prev) => (prev ? prev : (data.description_en ?? '')));
   }, [data]);
 
   if (isLoading && !data) {
@@ -187,16 +189,28 @@ export const AdminModuleDetailsStep = () => {
           </label>
         </div>
 
-        <label className="block space-y-1">
-          <span className="text-xs text-spice-text-muted">
-            Description (BN)
-          </span>
-          <textarea
-            className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-            value={descriptionBn}
-            onChange={(e) => setDescriptionBn(e.target.value)}
-          />
-        </label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Description (BN)
+            </span>
+            <textarea
+              className="min-h-[120px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+              value={descriptionBn}
+              onChange={(e) => setDescriptionBn(e.target.value)}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Description (EN)
+            </span>
+            <textarea
+              className="min-h-[120px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+              value={descriptionEn}
+              onChange={(e) => setDescriptionEn(e.target.value)}
+            />
+          </label>
+        </div>
 
         <div className="flex justify-end gap-2">
           <Button
@@ -215,6 +229,7 @@ export const AdminModuleDetailsStep = () => {
                     title_bn: titleBn || undefined,
                     title_en: titleEn || undefined,
                     description_bn: descriptionBn || undefined,
+                    description_en: descriptionEn || undefined,
                     module_json: { cards: data.cards, quiz: data.quiz },
                   },
                   refetch,
