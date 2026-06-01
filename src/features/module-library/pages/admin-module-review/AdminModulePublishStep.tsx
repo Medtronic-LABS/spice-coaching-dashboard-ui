@@ -1,19 +1,61 @@
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, LoadingState } from '@/components/ui';
+import {
+  Button,
+  Card,
+  LoadingState,
+  ModulePublishedSuccessModal,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { ModuleReviewPublishView } from '@/features/module-library/components/ModuleReviewPublishView';
 import { useSetClinicallyReviewedMutation } from '@/features/module-library/api/adminModulesApi';
-import { useAdminModuleDetailQuery } from '@/features/module-library/hooks/useAdminModuleDetailQuery';
-import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
+import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
+import {
+  countMediaTagsFromCards,
+  mapAdminCardsToLessonRows,
+  mapAdminQuizToRows,
+} from '@/features/module-library/utils/moduleReviewPublishMappers';
 
 export const AdminModulePublishStep = () => {
   const navigate = useNavigate();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const { data, isLoading, isFetching, error, refetch } =
-    useAdminModuleDetailQuery(moduleId, { skip: !moduleId });
+  const {
+    working,
+    isDirty,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+    isSaving,
+    save,
+    formatError,
+  } = useAdminModuleReviewEditor(moduleId);
   const [setClinicallyReviewed, { isLoading: isPublishing }] =
     useSetClinicallyReviewedMutation();
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [publishError, setPublishError] = useState('');
+  const [saveError, setSaveError] = useState('');
 
-  if (isLoading && !data) {
+  const goToModuleLibrary = useCallback(() => {
+    setPublishSuccessOpen(false);
+    navigate(paths.moduleLibrary);
+  }, [navigate]);
+
+  const modulePath = (suffix: string) =>
+    `${paths.adminModuleReview.replace(':moduleId', encodeURIComponent(moduleId))}${suffix}`;
+
+  const publishSummary = useMemo(() => {
+    if (!working) return null;
+    return {
+      title: working.title_en ?? working.title_bn ?? 'Untitled module',
+      topic: working.domain,
+      lessonCount: working.cards.length,
+      quizCount: working.quiz.length,
+      estimateMinutes: working.estimated_minutes,
+    };
+  }, [working]);
+
+  if (isLoading && !working) {
     return (
       <Card variant="elevated" className="p-10">
         <LoadingState label="Loading module…" />
@@ -21,11 +63,11 @@ export const AdminModulePublishStep = () => {
     );
   }
 
-  if (error || !data) {
+  if (error || !working) {
     return (
       <Card variant="elevated" className="space-y-3 p-6">
         <p className="text-sm text-spice-semantic-error">
-          {error ? formatRtkQueryError(error) : 'Module not found.'}
+          {error ? formatError(error) : 'Module not found.'}
         </p>
         <Button variant="secondary" onClick={() => void refetch()}>
           Retry
@@ -34,89 +76,90 @@ export const AdminModulePublishStep = () => {
     );
   }
 
-  const busy = isFetching || isPublishing;
+  const lessonRows = mapAdminCardsToLessonRows(working.cards);
+  const quizRows = mapAdminQuizToRows(working.quiz);
+  const mediaCount = countMediaTagsFromCards(working.cards);
+  const isAlreadyPublished =
+    working.clinically_reviewed || working.lifecycle_status === 'published';
+  const busy = isFetching || isPublishing || isSaving;
 
   return (
     <section className="space-y-4">
-      <Card variant="elevated" className="space-y-4 p-4">
-        <div>
-          <div className="text-lg font-semibold text-spice-text-primary">
-            Review & publish
+      {publishSummary ? (
+        <ModulePublishedSuccessModal
+          open={publishSuccessOpen}
+          summary={publishSummary}
+          onRedirect={goToModuleLibrary}
+        />
+      ) : null}
+      {saveError ? (
+        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+          {saveError}
+        </div>
+      ) : null}
+      <ModuleReviewPublishView
+        title={working.title_en ?? working.title_bn ?? 'Untitled module'}
+        topic={working.domain}
+        description={working.description_bn ?? ''}
+        lessons={lessonRows}
+        quizQuestions={quizRows}
+        lessonCount={working.cards.length}
+        quizCount={working.quiz.length}
+        mediaFileCount={mediaCount}
+        estimateMinutes={working.estimated_minutes}
+        isAlreadyPublished={isAlreadyPublished}
+        isPublishing={busy}
+        publishError={publishError}
+        isSaving={isSaving}
+        unsavedChangesMessage={
+          isDirty
+            ? 'You have unsaved changes. Save here or on any step before leaving this review flow.'
+            : undefined
+        }
+        onEditDetails={() => navigate(modulePath('/details'))}
+        onEditLessons={() => navigate(modulePath('/lessons'))}
+        onEditQuiz={() => navigate(modulePath('/quiz'))}
+        onSave={async () => {
+          setSaveError('');
+          try {
+            await save();
+          } catch (err) {
+            setSaveError(formatError(err));
+          }
+        }}
+        onPublish={async () => {
+          setPublishError('');
+          if (isAlreadyPublished) {
+            goToModuleLibrary();
+            return;
+          }
+          try {
+            if (isDirty) {
+              await save();
+            }
+            await setClinicallyReviewed({
+              moduleId: working.id,
+              body: { clinically_reviewed: true },
+            }).unwrap();
+            await refetch();
+            setPublishSuccessOpen(true);
+          } catch (err) {
+            setPublishError(formatError(err));
+          }
+        }}
+      />
+      {working.quality_flags?.flags?.length ? (
+        <Card variant="bordered" className="space-y-2 p-4">
+          <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
+            Quality flags
           </div>
-          <div className="mt-1 text-sm text-spice-text-muted">
-            {data.title_en ?? data.title_bn ?? 'Untitled module'}
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <Card variant="bordered" className="space-y-1 p-3">
-            <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-              Status
-            </div>
-            <div className="text-xs text-spice-text-medium">
-              {data.lifecycle_status}
-              {data.clinically_reviewed ? ' · clinically reviewed' : ''}
-            </div>
-          </Card>
-          <Card variant="bordered" className="space-y-1 p-3">
-            <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-              Content
-            </div>
-            <div className="text-xs text-spice-text-medium">
-              {data.card_count} cards · {data.quiz.length} quiz questions · ~
-              {data.estimated_minutes} min
-            </div>
-          </Card>
-        </div>
-
-        {data.quality_flags?.flags?.length ? (
-          <Card variant="bordered" className="space-y-2 p-3">
-            <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-              Quality flags
-            </div>
-            <ul className="list-inside list-disc text-xs text-spice-text-medium">
-              {data.quality_flags.flags.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            disabled={busy}
-            onClick={() => navigate(paths.moduleLibrary)}
-          >
-            Back to modules
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            disabled={busy || data.clinically_reviewed}
-            onClick={async () => {
-              await setClinicallyReviewed({
-                moduleId: data.id,
-                body: { clinically_reviewed: true },
-              }).unwrap();
-              await refetch();
-            }}
-          >
-            {isPublishing ? 'Publishing…' : 'Publish'}
-          </Button>
-          {/* <Button
-            variant="secondary"
-            className="h-9 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
-            disabled={busy}
-            onClick={async () => {
-              await retireModule({ moduleId: data.id }).unwrap();
-              navigate(paths.moduleLibrary);
-            }}
-          >
-            {isRetiring ? 'Retiring…' : 'Retire'}
-          </Button> */}
-        </div>
-      </Card>
+          <ul className="list-inside list-disc text-xs text-spice-text-medium">
+            {working.quality_flags.flags.map((flag) => (
+              <li key={flag}>{flag}</li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
     </section>
   );
 };

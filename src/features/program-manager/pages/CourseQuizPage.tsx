@@ -1,29 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { CourseFlowStepper } from '@/features/program-manager/components/CourseFlowStepper';
-import {
-  useGetCourseDraftQuery,
-  useSaveCourseQuizMutation,
-} from '@/features/program-manager/api/programManagerApi';
+import { useCourseModuleEditor } from '@/features/program-manager/hooks/useCourseModuleEditor';
+import { setCourseQuiz } from '@/features/program-manager/store/courseModuleEditSlice';
 import type { CourseDraftData } from '@/features/program-manager/types/programManager.types';
 import { blocksToPlainText } from '@/features/program-manager/utils/richText';
+import { useAppDispatch } from '@/store/hooks';
 
 export const CourseQuizPage = () => {
   const navigate = useNavigate();
-  const { data, refetch } = useGetCourseDraftQuery();
-  const [saveCourseQuiz, { isLoading }] = useSaveCourseQuizMutation();
-  const [quiz, setQuiz] = useState<CourseDraftData['quiz'] | null>(null);
-  const isReadOnly = Boolean(data?.isReadOnly);
+  const dispatch = useAppDispatch();
+  const { working, isSavingQuiz, saveQuiz, formatError } =
+    useCourseModuleEditor();
+  const [actionError, setActionError] = useState('');
+  const isReadOnly = Boolean(working?.isReadOnly);
+  const quiz = working?.quiz;
 
-  useEffect(() => {
-    if (data?.quiz) {
-      setQuiz(data.quiz);
-    }
-  }, [data?.quiz]);
+  const updateQuiz = (next: CourseDraftData['quiz']) => {
+    dispatch(setCourseQuiz(next));
+  };
 
-  if (data?.generationStatus !== 'generated') {
+  if (working?.generationStatus !== 'generated') {
     return (
       <Card variant="elevated" className="space-y-3">
         <div className="text-lg font-semibold text-spice-text-primary">
@@ -46,9 +45,24 @@ export const CourseQuizPage = () => {
       <CourseFlowStepper currentStep="quiz" isGenerated />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
         <Card variant="elevated" className="space-y-4">
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
-            Build Quiz Questions
-          </h1>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-2xl font-semibold text-spice-text-primary">
+              Build Quiz Questions
+            </h1>
+            {!isReadOnly ? (
+              <Button
+                variant="secondary"
+                className="h-9 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+                disabled={isSavingQuiz || !quiz || quiz.questions.length === 0}
+                onClick={() => {
+                  if (!quiz) return;
+                  updateQuiz({ ...quiz, questions: [] });
+                }}
+              >
+                Remove all
+              </Button>
+            ) : null}
+          </div>
           {(quiz?.questions ?? []).map((question, index) => (
             <div
               key={question.id}
@@ -63,7 +77,7 @@ export const CourseQuizPage = () => {
                 disabled={isReadOnly}
                 onChange={(event) => {
                   if (!quiz) return;
-                  setQuiz({
+                  updateQuiz({
                     ...quiz,
                     questions: quiz.questions.map((item) =>
                       item.id === question.id
@@ -96,7 +110,7 @@ export const CourseQuizPage = () => {
                       disabled={isReadOnly}
                       onChange={() => {
                         if (!quiz) return;
-                        setQuiz({
+                        updateQuiz({
                           ...quiz,
                           questions: quiz.questions.map((item) =>
                             item.id === question.id
@@ -118,7 +132,7 @@ export const CourseQuizPage = () => {
                       disabled={isReadOnly}
                       onChange={(event) => {
                         if (!quiz) return;
-                        setQuiz({
+                        updateQuiz({
                           ...quiz,
                           questions: quiz.questions.map((item) =>
                             item.id === question.id
@@ -162,7 +176,7 @@ export const CourseQuizPage = () => {
                   disabled={isReadOnly}
                   onChange={(event) => {
                     if (!quiz) return;
-                    setQuiz({
+                    updateQuiz({
                       ...quiz,
                       questions: quiz.questions.map((item) =>
                         item.id === question.id
@@ -185,20 +199,28 @@ export const CourseQuizPage = () => {
               </div>
             </div>
           ))}
+          {actionError ? (
+            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+              {actionError}
+            </div>
+          ) : null}
           <div className="flex justify-end gap-2">
-            {!isReadOnly && (
+            {!isReadOnly ? (
               <Button
                 variant="secondary"
-                disabled={isLoading || !quiz || isReadOnly}
+                disabled={isSavingQuiz || !quiz || isReadOnly}
                 onClick={async () => {
-                  if (!quiz) return;
-                  await saveCourseQuiz({ quiz });
-                  await refetch();
+                  setActionError('');
+                  try {
+                    await saveQuiz();
+                  } catch (err) {
+                    setActionError(formatError(err));
+                  }
                 }}
               >
-                {isLoading ? 'Saving...' : 'Save Quiz'}
+                {isSavingQuiz ? 'Saving...' : 'Save Quiz'}
               </Button>
-            )}
+            ) : null}
             <Button onClick={() => navigate(paths.moduleReview)}>
               Continue to Review
             </Button>
@@ -222,7 +244,7 @@ export const CourseQuizPage = () => {
                 if (!quiz) return;
                 const nextId =
                   Math.max(0, ...quiz.questions.map((question) => question.id)) + 1;
-                setQuiz({
+                updateQuiz({
                   ...quiz,
                   questions: [
                     ...quiz.questions,
