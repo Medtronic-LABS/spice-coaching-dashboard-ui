@@ -20,15 +20,15 @@ function parseRole(value: string | null | undefined): AppRole | null {
 }
 
 export function getCurrentRole(): AppRole {
-  const envRole = parseRole(import.meta.env.VITE_APP_ROLE);
-  if (envRole) return envRole;
-
   try {
-    const storedRole = parseRole(window.localStorage.getItem(ROLE_STORAGE_KEY));
+    const storedRole = parseRole(
+      window.sessionStorage.getItem(ROLE_STORAGE_KEY),
+    );
     if (storedRole) return storedRole;
+    else window.sessionStorage.setItem(ROLE_STORAGE_KEY, 'programManager');
+    return 'programManager';
   } catch {
-    // ignore storage access failures
+    window.sessionStorage.setItem(ROLE_STORAGE_KEY, 'programManager');
+    return 'programManager';
   }
-
-  return 'supervisor';
 }
