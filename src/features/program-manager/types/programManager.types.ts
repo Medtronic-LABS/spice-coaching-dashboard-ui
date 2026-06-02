@@ -98,9 +98,13 @@ export interface ProgramRankingsResponse {
   }>;
 }
 
-export interface RichTextMark {
-  type: 'bold';
-}
+export type RichTextMark =
+  | { type: 'bold' }
+  | { type: 'italic' }
+  | { type: 'underline' }
+  | { type: 'strike' }
+  | { type: 'code' }
+  | { type: 'link'; attrs: { href: string } };
 
 export interface RichTextLeaf {
   type: 'text';
@@ -111,6 +115,41 @@ export interface RichTextLeaf {
 export interface RichParagraphBlock {
   type: 'paragraph';
   content: RichTextLeaf[];
+}
+
+export interface RichHeadingBlock {
+  type: 'heading';
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  content: RichTextLeaf[];
+}
+
+export interface RichBlockquoteBlock {
+  type: 'blockquote';
+  content: RichBlock[];
+}
+
+export interface RichCodeBlock {
+  type: 'code_block';
+  text: string;
+}
+
+export interface RichHorizontalRuleBlock {
+  type: 'horizontal_rule';
+}
+
+export type RichListItemContent =
+  | RichParagraphBlock
+  | RichHeadingBlock
+  | RichBlockquoteBlock
+  | RichCodeBlock
+  | RichHorizontalRuleBlock
+  | RichListBlock
+  | RichImageBlock
+  | RichVideoBlock
+  | RichAudioBlock;
+
+export interface RichListItem {
+  content: RichListItemContent[];
 }
 
 export interface RichListBlock {
@@ -135,6 +174,10 @@ export interface RichVideoBlock {
 
 export type RichBlock =
   | RichParagraphBlock
+  | RichHeadingBlock
+  | RichBlockquoteBlock
+  | RichCodeBlock
+  | RichHorizontalRuleBlock
   | RichListBlock
   | RichImageBlock
   | RichAudioBlock
