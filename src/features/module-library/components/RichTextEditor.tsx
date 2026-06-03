@@ -165,6 +165,8 @@ export const RichTextEditor = ({
     extensions: [
       StarterKit.configure({
         link: false,
+        code: false,
+        codeBlock: false,
       }),
       TextStyle,
       Underline,
@@ -385,11 +387,6 @@ export const RichTextEditor = ({
                   <MantineRichTextEditor.OrderedList />
                   <MantineRichTextEditor.Blockquote />
                   <MantineRichTextEditor.Hr />
-                </MantineRichTextEditor.ControlsGroup>
-
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.Code />
-                  <MantineRichTextEditor.CodeBlock />
                 </MantineRichTextEditor.ControlsGroup>
 
                 <MantineRichTextEditor.ControlsGroup>
