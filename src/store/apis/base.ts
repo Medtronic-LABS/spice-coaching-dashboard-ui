@@ -1,5 +1,7 @@
+import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
+import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
 
 function normalizeBaseUrl(baseUrl: string): string {
   if (!baseUrl) return '';
@@ -29,10 +31,20 @@ const realFetchBaseQuery = fetchBaseQuery({
   // credentials: 'include',
 });
 
+const hybridBaseQuery: BaseQueryFn = (args, api, extraOptions) => {
+  if (import.meta.env.MODE === 'test') {
+    return mockBaseQuery(args, api, extraOptions);
+  }
+  if (!useMockApi || shouldUseRealFetchForRequest(args)) {
+    return realFetchBaseQuery(args, api, extraOptions);
+  }
+  return mockBaseQuery(args, api, extraOptions);
+};
+
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
-  baseQuery: useMockApi ? mockBaseQuery : realFetchBaseQuery,
+  baseQuery: hybridBaseQuery,
   endpoints: () => ({}),
 });

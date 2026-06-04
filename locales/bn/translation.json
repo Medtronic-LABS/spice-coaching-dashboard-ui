@@ -59,6 +59,12 @@
       "languageOptions": {
         "en": "English",
         "bn": "বাংলা"
+      },
+      "switchRole": "{{role}}-এ স্যুইচ করুন",
+      "switchRoleAriaLabel": "ভূমিকা {{role}}-এ পরিবর্তন করুন",
+      "roles": {
+        "supervisor": "সুপারভাইজার",
+        "programManager": "প্রোগ্রাম ম্যানেজার"
       }
     }
   },

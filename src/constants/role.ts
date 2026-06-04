@@ -32,3 +32,15 @@ export function getCurrentRole(): AppRole {
     return 'programManager';
   }
 }
+
+export function setCurrentRole(role: AppRole): void {
+  try {
+    window.sessionStorage.setItem(ROLE_STORAGE_KEY, role);
+  } catch {
+    // ignore storage access failures
+  }
+}
+
+export function getAlternateRole(role: AppRole): AppRole {
+  return role === 'programManager' ? 'supervisor' : 'programManager';
+}

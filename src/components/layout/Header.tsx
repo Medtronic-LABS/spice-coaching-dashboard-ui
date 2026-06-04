@@ -1,12 +1,26 @@
 import { useTranslation } from 'react-i18next';
-import { SearchInput } from '@/components/ui';
-import { getCurrentRole } from '@/constants/role';
+import { Button, SearchInput } from '@/components/ui';
+import {
+  getAlternateRole,
+  getCurrentRole,
+  setCurrentRole,
+} from '@/constants/role';
+import { paths } from '@/constants/routes';
 
 export const Header = () => {
   const { t, i18n } = useTranslation();
-  const isProgramManager = getCurrentRole() === 'programManager';
+  const role = getCurrentRole();
+  const isProgramManager = role === 'programManager';
+  const alternateRole = getAlternateRole(role);
 
-  const currentLanguage = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const handleRoleSwitch = () => {
+    setCurrentRole(alternateRole);
+    window.location.assign(paths.home);
+  };
+
+  const currentLanguage = isProgramManager
+    ? 'en'
+    : (i18n.resolvedLanguage ?? i18n.language ?? 'en');
 
   return (
     <header className="border-b border-spice-border bg-spice-bg-surface px-6 py-4">
@@ -19,6 +33,19 @@ export const Header = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-9 whitespace-nowrap px-3 text-xs"
+            aria-label={t('layout.header.switchRoleAriaLabel', {
+              role: t(`layout.header.roles.${alternateRole}`),
+            })}
+            onClick={handleRoleSwitch}
+          >
+            {t('layout.header.switchRole', {
+              role: t(`layout.header.roles.${alternateRole}`),
+            })}
+          </Button>
           {isProgramManager ? (
             <div className="w-60">
               <SearchInput

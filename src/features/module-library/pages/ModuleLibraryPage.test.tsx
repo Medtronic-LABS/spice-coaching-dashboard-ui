@@ -16,23 +16,62 @@ vi.mock('@/constants/role', async (importOriginal) => {
   };
 });
 
+function renderModuleLibraryPage() {
+  return renderWithProviders(
+    <Routes>
+      <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+      <Route
+        path={paths.adminModuleReviewDetails}
+        element={<div data-testid="module-review" />}
+      />
+      <Route
+        path={paths.moduleAssigned}
+        element={<div data-testid="module-assigned" />}
+      />
+    </Routes>,
+    { route: paths.moduleLibrary },
+  );
+}
+
 describe('ModuleLibraryPage', () => {
   beforeEach(() => {
     roleState.role = 'supervisor';
   });
 
-  it('shows Edit on published tab and no Assign action', async () => {
+  it('shows only Assign for supervisor on published modules', async () => {
+    renderModuleLibraryPage();
+
+    const assignButtons = await screen.findAllByRole('button', {
+      name: /^assign$/i,
+    });
+    expect(assignButtons.length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /^edit$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^review$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', { name: /drafts/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /all/i })).not.toBeInTheDocument();
+  });
+
+  it('navigates to assign flow for supervisor', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <Routes>
-        <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
-        <Route
-          path={paths.adminModuleReviewDetails}
-          element={<div data-testid="module-review" />}
-        />
-      </Routes>,
-      { route: paths.moduleLibrary },
-    );
+    renderModuleLibraryPage();
+
+    const assignButtons = await screen.findAllByRole('button', {
+      name: /^assign$/i,
+    });
+    await user.click(assignButtons[0]);
+    expect(screen.getByTestId('module-assigned')).toBeInTheDocument();
+  });
+
+  it('shows Edit and Assign on published tab for program manager', async () => {
+    roleState.role = 'programManager';
+    const user = userEvent.setup();
+    renderModuleLibraryPage();
 
     await user.click(screen.getByRole('tab', { name: /published/i }));
     const editButtons = await screen.findAllByRole('button', {
@@ -47,14 +86,10 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByTestId('module-review')).toBeInTheDocument();
   });
 
-  it('shows Review on drafts tab', async () => {
+  it('shows Review on drafts tab for program manager', async () => {
+    roleState.role = 'programManager';
     const user = userEvent.setup();
-    renderWithProviders(
-      <Routes>
-        <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
-      </Routes>,
-      { route: paths.moduleLibrary },
-    );
+    renderModuleLibraryPage();
 
     await user.click(screen.getByRole('tab', { name: /drafts/i }));
     const reviewButtons = await screen.findAllByRole('button', {

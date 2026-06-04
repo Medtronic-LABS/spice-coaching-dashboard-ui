@@ -34,12 +34,19 @@ export const ModuleLibraryPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'all' | 'published' | 'drafts'>('all');
+  const [tab, setTab] = useState<'all' | 'published' | 'drafts'>(
+    isProgramManager ? 'all' : 'published',
+  );
   const [page, setPage] = useState(0);
   const pageSize = 15;
 
-  const lifecycleStatus =
-    tab === 'published' ? 'published' : tab === 'drafts' ? 'draft' : undefined;
+  const lifecycleStatus = isProgramManager
+    ? tab === 'published'
+      ? 'published'
+      : tab === 'drafts'
+        ? 'draft'
+        : undefined
+    : 'published';
   const { data: adminModules } = useFetchModulesQuery(
     { limit: pageSize, offset: page * pageSize, status: lifecycleStatus },
     {},
@@ -61,29 +68,37 @@ export const ModuleLibraryPage = () => {
           .replaceAll('-', ' '),
       }));
     const q = query.trim().toLowerCase();
-    const byTab =
-      tab === 'all'
-        ? rows
-        : rows.filter((r) =>
+    const publishedOnly = isProgramManager
+      ? rows
+      : rows.filter((r) => r.status === 'published');
+    const byTab = isProgramManager
+      ? tab === 'all'
+        ? publishedOnly
+        : publishedOnly.filter((r) =>
             tab === 'published'
               ? r.status === 'published'
               : r.status === 'draft',
-          );
+          )
+      : publishedOnly;
     if (!q) return byTab;
     return byTab.filter((r) =>
       `${r.title} ${r.category}`.toLowerCase().includes(q),
     );
-  }, [adminModules, query, tab]);
+  }, [adminModules, isProgramManager, query, tab]);
 
-  const tableCaption =
-    tab === 'published'
+  const tableCaption = isProgramManager
+    ? tab === 'published'
       ? 'Published modules'
       : tab === 'drafts'
         ? 'Draft modules'
-        : 'All modules';
+        : 'All modules'
+    : 'Published modules';
 
-  const emptyMessage =
-    tab === 'drafts' ? 'No drafts found.' : 'No modules found.';
+  const emptyMessage = isProgramManager
+    ? tab === 'drafts'
+      ? 'No drafts found.'
+      : 'No modules found.'
+    : 'No published modules found.';
 
   const columns: Array<ColumnDef<ModuleLibraryItem>> = useMemo(
     () => [
@@ -138,26 +153,68 @@ export const ModuleLibraryPage = () => {
         key: 'id',
         header: '',
         className: 'text-right',
-        render: (row) => (
-          <div className="flex justify-end">
-            <Button
-              className="h-8 px-3 text-xs"
-              onClick={() =>
-                navigate(
-                  paths.adminModuleReviewDetails.replace(
-                    ':moduleId',
-                    encodeURIComponent(row.id),
-                  ),
-                )
-              }
-            >
-              {row.status === 'published' ? 'Edit' : 'Review'}
-            </Button>
-          </div>
-        ),
+        render: (row) => {
+          if (row.status === 'published') {
+            return (
+              <div className="flex justify-end gap-2">
+                {isProgramManager ? (
+                  <Button
+                    variant="secondary"
+                    className="h-8 px-3 text-xs"
+                    onClick={() =>
+                      navigate(
+                        paths.adminModuleReviewDetails.replace(
+                          ':moduleId',
+                          encodeURIComponent(row.id),
+                        ),
+                      )
+                    }
+                  >
+                    Edit
+                  </Button>
+                ) : null}
+                <Button
+                  className="h-8 px-3 text-xs"
+                  onClick={() =>
+                    navigate(paths.moduleAssigned, {
+                      state: {
+                        moduleName: row.title,
+                        deadlineLabel: 'Mon, 28 Apr 2026',
+                        assignedCount: chwId ? 1 : 8,
+                        assignedNames: chwId ? ['Selected CHW'] : undefined,
+                      },
+                    })
+                  }
+                >
+                  Assign
+                </Button>
+              </div>
+            );
+          }
+          if (!isProgramManager) {
+            return null;
+          }
+          return (
+            <div className="flex justify-end gap-2">
+              <Button
+                className="h-8 px-3 text-xs"
+                onClick={() =>
+                  navigate(
+                    paths.adminModuleReviewDetails.replace(
+                      ':moduleId',
+                      encodeURIComponent(row.id),
+                    ),
+                  )
+                }
+              >
+                Review
+              </Button>
+            </div>
+          );
+        },
       },
     ],
-    [navigate],
+    [chwId, isProgramManager, navigate],
   );
 
   return (
@@ -194,19 +251,21 @@ export const ModuleLibraryPage = () => {
       </div>
 
       <Card variant="elevated" className="space-y-4">
-        <Tabs
-          items={[
-            { label: 'All', value: 'all' },
-            { label: 'Published', value: 'published' },
-            { label: 'Drafts', value: 'drafts' },
-          ]}
-          value={tab}
-          onChange={(value) => {
-            setTab(value as typeof tab);
-            setPage(0);
-          }}
-          className="max-w-[520px]"
-        />
+        {isProgramManager ? (
+          <Tabs
+            items={[
+              { label: 'All', value: 'all' },
+              { label: 'Published', value: 'published' },
+              { label: 'Drafts', value: 'drafts' },
+            ]}
+            value={tab}
+            onChange={(value) => {
+              setTab(value as typeof tab);
+              setPage(0);
+            }}
+            className="max-w-[520px]"
+          />
+        ) : null}
 
         <Table<ModuleLibraryItem>
           data={filtered}

@@ -55,6 +55,12 @@
       "languageOptions": {
         "en": "English",
         "bn": "বাংলা"
+      },
+      "switchRole": "Switch to {{role}}",
+      "switchRoleAriaLabel": "Switch role to {{role}}",
+      "roles": {
+        "supervisor": "Supervisor",
+        "programManager": "Program Manager"
       }
     }
   },
