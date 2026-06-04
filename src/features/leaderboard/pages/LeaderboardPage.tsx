@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Card, SearchInput } from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
-import { paths } from '@/constants/routes';
+import { paths, buildPath } from '@/constants/routes';
 import { useGetLeaderboardQuery } from '@/features/chw/api/chwApi';
 import { DEFAULT_DASHBOARD_PARAMS } from '@/features/home/constants/supervisorDashboard';
 import type { LeaderboardItem } from '@/types/supervisor.types';
@@ -136,7 +136,7 @@ export const LeaderboardPage = () => {
             variant="secondary"
             className="h-8 px-3 text-xs"
             onClick={() =>
-              navigate(`${paths.chwProfiles}/${encodeURIComponent(row.chw_id)}`)
+              navigate(buildPath(paths.chwProfileDetail, { id: row.chw_id }))
             }
           >
             Profile

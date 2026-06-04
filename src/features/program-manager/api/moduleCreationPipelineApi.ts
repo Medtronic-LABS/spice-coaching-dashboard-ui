@@ -1,10 +1,10 @@
-import { adminBaseApi } from '@/store/apis/adminBase';
+import { baseApi } from '@/store/apis/base';
 import type {
   ModuleCreationPipelineRequest,
   ModuleCreationPipelineResponse,
 } from '@/features/program-manager/types/modulePipeline.types';
 
-export const moduleCreationPipelineApi = adminBaseApi.injectEndpoints({
+export const moduleCreationPipelineApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createModuleFromDocument: builder.mutation<
       ModuleCreationPipelineResponse,

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
-import { paths } from '@/constants/routes';
+import { paths, buildPath } from '@/constants/routes';
 import { useGetQuizPerformanceQuery } from '@/features/quiz-performance/api/quizPerformanceApi';
 import { DEFAULT_DASHBOARD_PARAMS } from '@/features/home/constants/supervisorDashboard';
 import type {
@@ -208,7 +208,7 @@ export const QuizPerformancePage = () => {
                     type="button"
                     onClick={() =>
                       navigate(
-                        `${paths.chwProfiles}/${encodeURIComponent(c.chw_id)}`,
+                        buildPath(paths.chwProfileDetail, { id: c.chw_id }),
                       )
                     }
                     className="flex w-full items-center justify-between gap-3 rounded-xl bg-spice-bg-surface px-4 py-3 ring-1 ring-spice-border/70 transition hover:bg-spice-bg-tint"

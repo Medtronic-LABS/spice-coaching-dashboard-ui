@@ -11,6 +11,7 @@ import {
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
+import { paths, buildPath } from '@/constants/routes';
 import { useGetChwProfilesListQuery } from '@/features/chw-profiles/api/chwProfilesApi';
 import type { ChwProfilesListRow } from '@/features/chw-profiles/types/chwProfiles.types';
 import {
@@ -155,7 +156,7 @@ export const ChwProfilesListPage = () => {
             variant="ghost"
             onClick={(e) => {
               e.preventDefault();
-              navigate(`/chw-profiles/${encodeURIComponent(row.chw_id)}`);
+              navigate(buildPath(paths.chwProfileDetail, { id: row.chw_id }));
             }}
           >
             {t('common.view')}

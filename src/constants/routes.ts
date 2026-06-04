@@ -6,6 +6,17 @@ function withRoutePrefix(path: string): string {
   return `${ROUTE_PREFIX}${normalized}`;
 }
 
+/** Replace `:param` segments in a path template (e.g. `paths.chwProfileDetail`). */
+export function buildPath(
+  pathTemplate: string,
+  params: Record<string, string>,
+): string {
+  return Object.entries(params).reduce(
+    (path, [key, value]) => path.replace(`:${key}`, encodeURIComponent(value)),
+    pathTemplate,
+  );
+}
+
 export const paths = {
   home: withRoutePrefix('/'),
   chwProfiles: withRoutePrefix('/chw-profiles'),

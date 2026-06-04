@@ -6,7 +6,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { adminModuleReviewReducer } from '@/features/module-library/store/adminModuleReviewSlice';
 import { courseModuleEditReducer } from '@/features/program-manager/store/courseModuleEditSlice';
 import { baseApi } from '@/store/apis/base';
-import { adminBaseApi } from '@/store/apis/adminBase';
 
 export function renderWithProviders(
   ui: ReactElement,
@@ -17,15 +16,11 @@ export function renderWithProviders(
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
-      [adminBaseApi.reducerPath]: adminBaseApi.reducer,
       adminModuleReview: adminModuleReviewReducer,
       courseModuleEdit: courseModuleEditReducer,
     },
     middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(
-        baseApi.middleware,
-        adminBaseApi.middleware,
-      ),
+      getDefaultMiddleware().concat(baseApi.middleware),
   });
 
   const route = options?.route ?? '/';

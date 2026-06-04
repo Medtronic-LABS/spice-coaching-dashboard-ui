@@ -11,7 +11,7 @@ import { ModuleProgressCard } from '@/features/home/components/ModuleProgressCar
 import { PerformanceMatrix } from '@/features/home/components/PerformanceMatrix';
 import { SUPERVISOR_DASHBOARD_CONSTANTS } from '@/features/home/constants/supervisorDashboardConstants';
 import { useSupervisorDashboard } from '@/features/home/hooks/useSupervisorDashboard';
-import { paths } from '@/constants/routes';
+import { paths, buildPath } from '@/constants/routes';
 import { useNavigate } from 'react-router-dom';
 
 export const SupervisorDashboard = () => {
@@ -114,7 +114,7 @@ export const SupervisorDashboard = () => {
       items={leaderboard}
       onViewAll={() => navigate(paths.leaderboard)}
       onRowClick={(item) => {
-        navigate(`${paths.chwProfiles}/${encodeURIComponent(item.chw_id)}`);
+        navigate(buildPath(paths.chwProfileDetail, { id: item.chw_id }));
       }}
     />
   );
@@ -135,7 +135,7 @@ export const SupervisorDashboard = () => {
       title={t('home.dashboard.sections.performanceMatrix')}
       rows={performance}
       onRowClick={(row) => {
-        navigate(`${paths.chwProfiles}/${encodeURIComponent(row.chw_id)}`);
+        navigate(buildPath(paths.chwProfileDetail, { id: row.chw_id }));
       }}
     />
   );
@@ -162,7 +162,7 @@ export const SupervisorDashboard = () => {
         navigate(paths.moduleLibrary, { state: { chwId: item.chw_id } });
       }}
       onViewProfile={(item) => {
-        navigate(`${paths.chwProfiles}/${encodeURIComponent(item.chw_id)}`);
+        navigate(buildPath(paths.chwProfileDetail, { id: item.chw_id }));
       }}
     />
   );

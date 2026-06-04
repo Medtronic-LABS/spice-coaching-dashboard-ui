@@ -122,7 +122,43 @@ export const mockBaseQuery: BaseQueryFn<
     return { data: mockModuleLibrary };
   }
 
-  // Admin endpoints (used by adminBaseApi in test mode)
+  // Admin endpoints (mocked when VITE_USE_MOCK_API or in tests)
+  if (url === 'admin/v3/files/presigned-url' && method === 'GET') {
+    const object_name = asString(
+      typeof params === 'object' && params && 'object_name' in params
+        ? (params as { object_name?: unknown }).object_name
+        : undefined,
+    );
+    const encoded = encodeURIComponent(object_name ?? 'unknown');
+    return {
+      data: {
+        presigned_url: `https://mock-storage.example/${encoded}`,
+        expires_seconds: 600,
+      },
+    };
+  }
+
+  if (url === 'admin/v3/files' && method === 'POST') {
+    const body = getBody(args);
+    const file = body instanceof FormData ? body.get('file') : null;
+    const name = file instanceof File ? file.name : 'upload.bin';
+    const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+    const objectName = `media/mock-${Date.now()}${ext}`;
+    return {
+      data: {
+        bucket_name: 'microcoaching-uploads',
+        object_name: objectName,
+        storage_path: `microcoaching-uploads/${objectName}`,
+        content_type:
+          file instanceof File
+            ? file.type || 'application/octet-stream'
+            : 'application/octet-stream',
+        size_bytes: file instanceof File ? file.size : 0,
+        original_filename: name,
+      },
+    };
+  }
+
   if (url === 'admin/modules') {
     const limit =
       typeof params === 'object' && params && 'limit' in params

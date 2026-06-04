@@ -8,12 +8,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG VITE_API_BASE_URL=
-ARG VITE_ADMIN_API_BASE_URL=https://agent-qa.beehyv.com/medtronics-api
+ARG VITE_API_BASE_URL=https://agent-qa.beehyv.com/medtronics-api
 ARG VITE_USE_MOCK_API=true
 
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
-    VITE_ADMIN_API_BASE_URL=$VITE_ADMIN_API_BASE_URL \
     VITE_USE_MOCK_API=$VITE_USE_MOCK_API
 
 RUN npm run build

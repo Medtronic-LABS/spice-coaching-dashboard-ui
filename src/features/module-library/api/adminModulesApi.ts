@@ -1,4 +1,6 @@
-import { adminBaseApi } from '@/store/apis/adminBase';
+import type { AdminModuleCard } from '@/features/module-library/types/adminModule.types';
+import { normalizeAdminModuleCard } from '@/features/module-library/utils/cardBody';
+import { baseApi } from '@/store/apis/base';
 
 export type AdminModuleLifecycleStatus = 'draft' | 'published' | 'retired';
 
@@ -96,7 +98,7 @@ export interface RetireModuleResponse {
   deprecated_at: string;
 }
 
-export const adminModulesApi = adminBaseApi.injectEndpoints({
+export const adminModulesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     fetchModules: builder.query<
       AdminModulesListItem[],

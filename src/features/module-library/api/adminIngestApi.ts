@@ -1,4 +1,4 @@
-import { adminBaseApi } from '@/store/apis/adminBase';
+import { baseApi } from '@/store/apis/base';
 
 export type PrimaryLanguage = 'en' | 'bn';
 
@@ -73,7 +73,7 @@ export interface AdminV3IngestStatusResponse {
   candidates: AdminV3IngestCandidate[];
 }
 
-export const adminIngestApi = adminBaseApi.injectEndpoints({
+export const adminIngestApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     ingestDocuments: builder.mutation<
       AdminV3IngestAcceptedResponse,
