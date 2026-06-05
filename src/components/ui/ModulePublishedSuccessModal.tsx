@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 
 export interface ModulePublishedSuccessSummary {
   title: string;
@@ -61,12 +62,7 @@ export const ModulePublishedSuccessModal = ({
     summary.quizCount === 1 ? '1 question' : `${summary.quizCount} questions`;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-spice-text-primary/45 p-4 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="module-published-title"
-    >
+    <Modal open={open} labelledBy="module-published-title">
       <Card
         variant="elevated"
         className="w-full max-w-xl space-y-5 border-spice-border p-6 shadow-lg"
@@ -190,6 +186,6 @@ export const ModulePublishedSuccessModal = ({
           {primaryLabel}
         </Button>
       </Card>
-    </div>
+    </Modal>
   );
 };

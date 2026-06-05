@@ -1,12 +1,22 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, SearchInput, Tabs } from '@/components/ui';
+import {
+  Button,
+  Card,
+  Loader,
+  Modal,
+  SearchInput,
+  Tabs,
+} from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { paths } from '@/constants/routes';
 import { getCurrentRole } from '@/constants/role';
-import { useFetchModulesQuery } from '@/features/module-library/api/adminModulesApi';
+import {
+  useCreateModuleMutation,
+  useFetchModulesQuery,
+} from '@/features/module-library/api/adminModulesApi';
 import type {
   ModuleLibraryItem,
   ModuleStatus,
@@ -39,6 +49,20 @@ export const ModuleLibraryPage = () => {
   );
   const [page, setPage] = useState(0);
   const pageSize = 15;
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createForm, setCreateForm] = useState({
+    title_bn: '',
+    title_en: '',
+    description_bn: '',
+    description_en: '',
+    domain: 'clinical',
+    sub_domain: 'immunization',
+    module_type: 'refresher',
+    estimated_minutes: 10,
+    difficulty_level: 'moderate',
+  });
+  const [createModule, { isLoading: isCreating }] = useCreateModuleMutation();
 
   const lifecycleStatus = isProgramManager
     ? tab === 'published'
@@ -172,7 +196,22 @@ export const ModuleLibraryPage = () => {
                   >
                     Edit
                   </Button>
-                ) : null}
+                ) : (
+                  <Button
+                    variant="secondary"
+                    className="h-8 px-3 text-xs"
+                    onClick={() =>
+                      navigate(
+                        paths.adminModuleReviewDetails.replace(
+                          ':moduleId',
+                          encodeURIComponent(row.id),
+                        ),
+                      )
+                    }
+                  >
+                    Review
+                  </Button>
+                )}
                 <Button
                   className="h-8 px-3 text-xs"
                   onClick={() =>
@@ -219,6 +258,278 @@ export const ModuleLibraryPage = () => {
 
   return (
     <section className="space-y-5">
+      <Loader open={isCreating} label="Creating module…" />
+      {createOpen ? (
+        <Modal
+          open={createOpen}
+          labelledBy="create-module-title"
+          onClose={() => {
+            if (isCreating) return;
+            setCreateError('');
+            setCreateOpen(false);
+          }}
+        >
+          <Card
+            variant="elevated"
+            className="w-full max-w-2xl space-y-4 border-spice-border p-6 shadow-lg"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2
+                  id="create-module-title"
+                  className="text-xl font-semibold text-spice-text-primary"
+                >
+                  Create module
+                </h2>
+                <p className="mt-1 text-xs text-spice-text-muted">
+                  Creates a draft module in the admin module library.
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                className="h-9 px-3 text-xs"
+                disabled={isCreating}
+                onClick={() => {
+                  setCreateError('');
+                  setCreateOpen(false);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+
+            {createError ? (
+              <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+                {createError}
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Title (BN)
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.title_bn}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      title_bn: e.target.value,
+                    }))
+                  }
+                  placeholder="বাংলা শিরোনাম…"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Title (EN)
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.title_en}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      title_en: e.target.value,
+                    }))
+                  }
+                  placeholder="English title…"
+                />
+              </label>
+              <label className="block space-y-1 md:col-span-2">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Description (BN)
+                </span>
+                <textarea
+                  className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+                  value={createForm.description_bn}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      description_bn: e.target.value,
+                    }))
+                  }
+                  placeholder="মডিউল বিবরণ…"
+                />
+              </label>
+              <label className="block space-y-1 md:col-span-2">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Description (EN)
+                </span>
+                <textarea
+                  className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+                  value={createForm.description_en}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      description_en: e.target.value,
+                    }))
+                  }
+                  placeholder="Module description…"
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Domain
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.domain}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      domain: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Sub-domain
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.sub_domain}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      sub_domain: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Module type
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.module_type}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      module_type: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Estimated minutes
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.estimated_minutes}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      estimated_minutes: Number(e.target.value || 0),
+                    }))
+                  }
+                />
+              </label>
+              <label className="block space-y-1 md:col-span-2">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Difficulty level
+                </span>
+                <input
+                  className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  value={createForm.difficulty_level}
+                  disabled={isCreating}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      difficulty_level: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                className="h-9 text-xs"
+                disabled={isCreating}
+                onClick={() => {
+                  setCreateError('');
+                  setCreateOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-9 text-xs"
+                disabled={isCreating}
+                onClick={async () => {
+                  setCreateError('');
+                  try {
+                    const created = await createModule({
+                      title_bn: createForm.title_bn.trim() || null,
+                      title_en: createForm.title_en.trim() || null,
+                      description_bn: createForm.description_bn.trim() || null,
+                      description_en: createForm.description_en.trim() || null,
+                      domain: createForm.domain.trim(),
+                      sub_domain: createForm.sub_domain.trim() || null,
+                      module_type: createForm.module_type.trim(),
+                      estimated_minutes: Math.max(
+                        0,
+                        Number.isFinite(createForm.estimated_minutes)
+                          ? createForm.estimated_minutes
+                          : 0,
+                      ),
+                      difficulty_level:
+                        createForm.difficulty_level.trim() || null,
+                      module_json: {
+                        cards: [
+                          {
+                            id: 'card-0',
+                            title_bn: null,
+                            body_bn: [
+                              {
+                                type: 'paragraph',
+                                content: [{ type: 'text', text: '' }],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    }).unwrap();
+                    setCreateOpen(false);
+                    navigate(
+                      paths.adminModuleReviewDetails.replace(
+                        ':moduleId',
+                        encodeURIComponent(created.id),
+                      ),
+                    );
+                  } catch {
+                    setCreateError(
+                      'Failed to create module. Please try again.',
+                    );
+                  }
+                }}
+              >
+                {isCreating ? 'Creating…' : 'Create draft'}
+              </Button>
+            </div>
+          </Card>
+        </Modal>
+      ) : null}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-spice-text-primary">
@@ -240,7 +551,8 @@ export const ModuleLibraryPage = () => {
             <>
               <Button
                 onClick={async () => {
-                  navigate(paths.moduleCreate);
+                  setCreateError('');
+                  setCreateOpen(true);
                 }}
               >
                 Create Module

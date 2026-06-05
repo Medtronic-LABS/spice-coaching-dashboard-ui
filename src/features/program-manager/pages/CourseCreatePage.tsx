@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card, LoadingState } from '@/components/ui';
+import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
   useGetIngestStatusByDocumentQuery,
@@ -274,13 +274,10 @@ export const CourseCreatePage = () => {
             </div>
           </div>
 
-          {!statusData && isStatusLoading ? (
-            <div className="py-4">
-              <LoadingState
-                label={isPolling ? 'Polling status…' : 'Loading status…'}
-              />
-            </div>
-          ) : null}
+          <Loader
+            open={!statusData && isStatusLoading}
+            label={isPolling ? 'Polling status…' : 'Loading status…'}
+          />
 
           {displayStages.length ? (
             <div className="space-y-2">

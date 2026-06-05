@@ -12,7 +12,7 @@ import {
   InfoCard,
   KeyValue,
   ListItem,
-  LoadingState,
+  Loader,
   SearchInput,
   SectionHeader,
   Select,
@@ -197,7 +197,7 @@ export const UiPreviewPage = () => {
               <Button variant="secondary">{t('common.clearFilters')}</Button>
             }
           />
-          <LoadingState label={t('uiPreview.loadingMetrics')} />
+          <Loader label={t('uiPreview.loadingMetrics')} />
           <ErrorState
             title={t('uiPreview.errorStateTitle')}
             description={t('uiPreview.errorStateDescription')}

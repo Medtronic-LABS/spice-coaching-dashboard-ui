@@ -3,6 +3,7 @@ import type {
   AdminModuleDetailResponse,
   AdminModuleQuizItem,
 } from '@/features/module-library/api/adminModulesApi';
+import type { AdminModuleCard } from '@/features/module-library/types/adminModule.types';
 import type { RootState } from '@/store/store';
 
 export interface AdminModuleReviewState {
@@ -87,17 +88,38 @@ export const adminModuleReviewSlice = createSlice({
       if (!state.working) return;
       state.working = { ...state.working, ...action.payload };
     },
-    setCards(state, action: PayloadAction<unknown[]>) {
+    setCards(state, action: PayloadAction<AdminModuleCard[]>) {
       if (!state.working) return;
       state.working = { ...state.working, cards: action.payload };
     },
     updateCardAtIndex(
       state,
-      action: PayloadAction<{ index: number; card: unknown }>,
+      action: PayloadAction<{ index: number; card: AdminModuleCard }>,
     ) {
       if (!state.working) return;
       const cards = [...state.working.cards];
       cards[action.payload.index] = action.payload.card;
+      state.working = { ...state.working, cards };
+    },
+    insertCardAtIndex(
+      state,
+      action: PayloadAction<{ index: number; card: AdminModuleCard }>,
+    ) {
+      if (!state.working) return;
+      const cards = [...state.working.cards];
+      const clampedIndex = Math.max(
+        0,
+        Math.min(action.payload.index, cards.length),
+      );
+      cards.splice(clampedIndex, 0, action.payload.card);
+      state.working = { ...state.working, cards };
+    },
+    removeCardAtIndex(state, action: PayloadAction<{ index: number }>) {
+      if (!state.working) return;
+      const cards = [...state.working.cards];
+      if (action.payload.index < 0 || action.payload.index >= cards.length)
+        return;
+      cards.splice(action.payload.index, 1);
       state.working = { ...state.working, cards };
     },
     setQuiz(state, action: PayloadAction<AdminModuleQuizItem[]>) {
@@ -118,6 +140,8 @@ export const {
   updateDetails,
   setCards,
   updateCardAtIndex,
+  insertCardAtIndex,
+  removeCardAtIndex,
   setQuiz,
   discardChanges,
 } = adminModuleReviewSlice.actions;

@@ -1,4 +1,4 @@
-import { Card, ErrorState, LoadingState, SectionHeader } from '@/components/ui';
+import { Card, ErrorState, Loader, SectionHeader } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
 
 export interface SectionStateCardProps {
@@ -24,7 +24,7 @@ export const SectionStateCard = ({
     <Card variant="elevated">
       <SectionHeader title={title} subtitle={subtitle} />
       {state === 'loading' ? (
-        <LoadingState
+        <Loader
           label={
             loadingLabel ?? t('ui.sectionState.loadingWithTitle', { title })
           }

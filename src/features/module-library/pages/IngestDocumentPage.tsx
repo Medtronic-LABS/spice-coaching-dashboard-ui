@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, LoadingState } from '@/components/ui';
+import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
   useGetIngestStatusByDocumentQuery,
@@ -480,11 +480,10 @@ export const IngestDocumentPage = () => {
           </div>
         ) : null}
 
-        {sourceDocumentId && !statusData && isStatusLoading ? (
-          <div className="py-6">
-            <LoadingState label={isPolling ? 'Polling status…' : 'Loading…'} />
-          </div>
-        ) : null}
+        <Loader
+          open={Boolean(sourceDocumentId && !statusData && isStatusLoading)}
+          label={isPolling ? 'Polling status…' : 'Loading…'}
+        />
 
         {statusData ? (
           <div className="space-y-4">

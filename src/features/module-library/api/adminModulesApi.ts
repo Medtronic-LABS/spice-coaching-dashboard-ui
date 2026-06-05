@@ -73,6 +73,80 @@ export interface EditAdminModuleRequestBody {
   editor_id?: string;
 }
 
+export type AdminModuleRefresherType = 'refresher' | string;
+
+export interface CreateAdminModuleRequestBody {
+  title_bn: string | null;
+  title_en: string | null;
+  description_bn: string | null;
+  description_en: string | null;
+  domain: string;
+  sub_domain?: string | null;
+  module_type: AdminModuleRefresherType;
+  estimated_minutes: number;
+  difficulty_level?: string | null;
+  module_json: AdminModuleModuleJson;
+}
+
+export interface CreateAdminModuleResponse {
+  id: string;
+}
+
+function normalizeSourceDocuments(value: unknown): AdminModuleSourceDocument[] {
+  if (!Array.isArray(value)) return [];
+  const documents: AdminModuleSourceDocument[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const record = entry as Record<string, unknown>;
+    const source_document_id = record.source_document_id;
+    const presigned_url = record.presigned_url;
+    if (
+      typeof source_document_id !== 'string' ||
+      !source_document_id.trim() ||
+      typeof presigned_url !== 'string' ||
+      !presigned_url.trim()
+    ) {
+      continue;
+    }
+    documents.push({
+      source_document_id: source_document_id.trim(),
+      presigned_url: presigned_url.trim(),
+      presigned_expires_seconds:
+        typeof record.presigned_expires_seconds === 'number'
+          ? record.presigned_expires_seconds
+          : 0,
+    });
+  }
+  return documents;
+}
+
+function normalizeModuleDetail(
+  response: {
+    module_json?: Partial<AdminModuleModuleJson>;
+    cards?: unknown[];
+    quiz?: AdminModuleQuizItem[];
+    source_documents?: unknown;
+  } & Omit<
+    AdminModuleDetailResponse,
+    'module_json' | 'cards' | 'quiz' | 'source_documents'
+  >,
+): AdminModuleDetailResponse {
+  const rawCards = response.module_json?.cards ?? response.cards ?? [];
+  const cards = rawCards.map((card, index) =>
+    normalizeAdminModuleCard(card, index),
+  );
+  const quiz = response.module_json?.quiz ?? response.quiz ?? [];
+  const source_documents = normalizeSourceDocuments(response.source_documents);
+
+  return {
+    ...response,
+    cards,
+    quiz,
+    source_documents,
+    module_json: { cards, quiz },
+  };
+}
+
 export interface EditAdminModuleResponse {
   id: string;
   module_family_id: string;
@@ -112,6 +186,16 @@ export const adminModulesApi = baseApi.injectEndpoints({
         url: '/admin/modules',
         method: 'GET',
         params,
+      }),
+    }),
+    createModule: builder.mutation<
+      CreateAdminModuleResponse,
+      CreateAdminModuleRequestBody
+    >({
+      query: (body) => ({
+        url: '/admin/modules',
+        method: 'POST',
+        body,
       }),
     }),
     getModuleDetail: builder.query<AdminModuleDetailResponse, string>({
@@ -154,6 +238,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
 
 export const {
   useFetchModulesQuery,
+  useCreateModuleMutation,
   useGetModuleDetailQuery,
   useEditModuleMutation,
   useSetClinicallyReviewedMutation,

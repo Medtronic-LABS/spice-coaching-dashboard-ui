@@ -93,10 +93,10 @@ import { Button, Card, SectionHeader, StatCard } from '@/components/ui';
 - **Props:** `title: string`, `description?: string`, `action?: ReactNode`
 - **Variants:** none
 
-### `LoadingState`
+### `Loader`
 
-- **Props:** `label?: string`
-- **Variants:** none
+- **Props:** `open?: boolean`, `label?: string`
+- Full-screen grey overlay with circular spinner
 
 ### `ErrorState`
 

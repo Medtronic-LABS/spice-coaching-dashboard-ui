@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 
 export interface UnsavedChangesDialogProps {
   open: boolean;
@@ -23,11 +24,10 @@ export const UnsavedChangesDialog = ({
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-spice-text-primary/45 p-4 backdrop-blur-[2px]"
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="unsaved-changes-title"
+    <Modal
+      open={open}
+      labelledBy="unsaved-changes-title"
+      zIndexClassName="z-[110]"
     >
       <Card
         variant="elevated"
@@ -56,6 +56,6 @@ export const UnsavedChangesDialog = ({
           ) : null}
         </div>
       </Card>
-    </div>
+    </Modal>
   );
 };

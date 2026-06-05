@@ -39,21 +39,25 @@ export interface ModuleReviewPublishViewProps {
   unsavedChangesMessage?: string;
   /** When true, publish is blocked until draft is saved. */
   publishDisabled?: boolean;
+  /** When true, hides publish/save actions and shows read-only navigation links. */
+  readonly?: boolean;
 }
 
 const EditLinkButton = ({
   label,
   onClick,
+  showIcon = true,
 }: {
   label: string;
   onClick: () => void;
+  showIcon?: boolean;
 }) => (
   <button
     type="button"
     onClick={onClick}
     className="inline-flex items-center gap-1 text-xs font-semibold text-spice-brand-primary hover:underline"
   >
-    <span aria-hidden="true">✎</span>
+    {showIcon && <span aria-hidden="true">✎</span>}
     {label}
   </button>
 );
@@ -94,7 +98,9 @@ export const ModuleReviewPublishView = ({
   editActionLabel = 'Edit',
   unsavedChangesMessage,
   publishDisabled = false,
+  readonly = false,
 }: ModuleReviewPublishViewProps) => {
+  const sectionActionLabel = readonly ? 'View' : editActionLabel;
   const lessonLabel = lessonCount === 1 ? '1 lesson' : `${lessonCount} lessons`;
   const quizLabel = quizCount === 1 ? '1 question' : `${quizCount} questions`;
 
@@ -112,7 +118,11 @@ export const ModuleReviewPublishView = ({
               <h2 className="text-base font-semibold text-spice-text-primary">
                 Module Details
               </h2>
-              <EditLinkButton label={editActionLabel} onClick={onEditDetails} />
+              <EditLinkButton
+                label={sectionActionLabel}
+                onClick={onEditDetails}
+                showIcon={!readonly}
+              />
             </div>
             <div className="space-y-3">
               <div>
@@ -145,7 +155,11 @@ export const ModuleReviewPublishView = ({
                   {lessonLabel}
                 </span>
               </div>
-              <EditLinkButton label={editActionLabel} onClick={onEditLessons} />
+              <EditLinkButton
+                label={sectionActionLabel}
+                onClick={onEditLessons}
+                showIcon={!readonly}
+              />
             </div>
             <ol className="space-y-2">
               {lessons.map((lesson, index) => (
@@ -181,7 +195,11 @@ export const ModuleReviewPublishView = ({
                   {quizLabel}
                 </span>
               </div>
-              <EditLinkButton label={editActionLabel} onClick={onEditQuiz} />
+              <EditLinkButton
+                label={sectionActionLabel}
+                onClick={onEditQuiz}
+                showIcon={!readonly}
+              />
             </div>
             <ul className="space-y-2">
               {quizQuestions.map((question) => (
@@ -267,10 +285,19 @@ export const ModuleReviewPublishView = ({
           ) : null}
 
           <div className="rounded-xl bg-spice-brand-primary p-5 text-white shadow-spiceCard">
-            <div className="text-base font-semibold">Ready to publish?</div>
+            <div className="text-base font-semibold">
+              {readonly
+                ? 'Module review'
+                : isAlreadyPublished
+                  ? 'Published module'
+                  : 'Ready to publish?'}
+            </div>
             <p className="mt-1 text-xs leading-relaxed text-white/90">
-              This module will be added to the library. You can assign it to
-              CHWs after publishing.
+              {readonly
+                ? 'Review module content before assigning it to CHWs.'
+                : isAlreadyPublished
+                  ? 'This module is already published. Assign it to CHWs or return to the module library.'
+                  : 'This module will be added to the library. You can assign it to CHWs after publishing.'}
             </p>
             {publishError ? (
               <div className="mt-3 rounded-lg bg-white/15 px-3 py-2 text-xs text-white">
@@ -278,19 +305,38 @@ export const ModuleReviewPublishView = ({
               </div>
             ) : null}
             <div className="mt-4 space-y-2">
-              <Button
-                variant="secondary"
-                className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"
-                disabled={isPublishing || publishDisabled}
-                onClick={onPublish}
-              >
-                {isPublishing
-                  ? 'Publishing…'
-                  : isAlreadyPublished
-                    ? 'Back to Module Library'
-                    : '↑ Publish Module'}
-              </Button>
-              {onSave ? (
+              {readonly || isAlreadyPublished ? (
+                <>
+                  {onAssign ? (
+                    <Button
+                      variant="secondary"
+                      className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"
+                      disabled={isPublishing}
+                      onClick={onAssign}
+                    >
+                      Assign to CHWs
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="ghost"
+                    className="h-10 w-full text-white ring-1 ring-white/40 hover:bg-white/10"
+                    disabled={isPublishing}
+                    onClick={onBackToLibrary ?? onPublish}
+                  >
+                    Back to Module Library
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"
+                  disabled={isPublishing || publishDisabled}
+                  onClick={onPublish}
+                >
+                  {isPublishing ? 'Publishing…' : '↑ Publish Module'}
+                </Button>
+              )}
+              {!readonly && onSave ? (
                 <Button
                   variant="ghost"
                   className="h-10 w-full text-white ring-1 ring-white/40 hover:bg-white/10"

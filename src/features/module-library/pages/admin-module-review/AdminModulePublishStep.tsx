@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
   Card,
-  LoadingState,
+  Loader,
   ModulePublishedSuccessModal,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleReviewPublishView } from '@/features/module-library/components/ModuleReviewPublishView';
 import { useSetClinicallyReviewedMutation } from '@/features/module-library/api/adminModulesApi';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
+import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
 import {
   countMediaTagsFromCards,
   mapAdminCardsToLessonRows,
@@ -35,6 +36,7 @@ export const AdminModulePublishStep = () => {
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [saveError, setSaveError] = useState('');
+  const isReadonly = useAdminModuleReviewReadonly();
 
   const goToModuleLibrary = useCallback(() => {
     setPublishSuccessOpen(false);
@@ -56,11 +58,7 @@ export const AdminModulePublishStep = () => {
   }, [working]);
 
   if (isLoading && !working) {
-    return (
-      <Card variant="elevated" className="p-10">
-        <LoadingState label="Loading module…" />
-      </Card>
-    );
+    return <Loader label="Loading module…" />;
   }
 
   if (error || !working) {
@@ -111,23 +109,39 @@ export const AdminModulePublishStep = () => {
         isPublishing={busy}
         publishError={publishError}
         isSaving={isSaving}
+        readonly={isReadonly}
         unsavedChangesMessage={
-          isDirty
+          !isReadonly && isDirty
             ? 'You have unsaved changes. Save here or on any step before leaving this review flow.'
             : undefined
         }
         onEditDetails={() => navigate(modulePath('/details'))}
         onEditLessons={() => navigate(modulePath('/lessons'))}
         onEditQuiz={() => navigate(modulePath('/quiz'))}
-        onSave={async () => {
-          setSaveError('');
-          try {
-            await save();
-          } catch (err) {
-            setSaveError(formatError(err));
-          }
-        }}
+        onAssign={() =>
+          navigate(paths.moduleAssigned, {
+            state: {
+              moduleName: moduleDisplayTitle,
+              deadlineLabel: 'Mon, 28 Apr 2026',
+              assignedCount: 8,
+            },
+          })
+        }
+        onBackToLibrary={goToModuleLibrary}
+        onSave={
+          isReadonly
+            ? undefined
+            : async () => {
+                setSaveError('');
+                try {
+                  await save();
+                } catch (err) {
+                  setSaveError(formatError(err));
+                }
+              }
+        }
         onPublish={async () => {
+          if (isReadonly) return;
           setPublishError('');
           if (isAlreadyPublished) {
             goToModuleLibrary();

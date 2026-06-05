@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 
 export interface SuccessModalProps {
   open: boolean;
@@ -51,12 +52,7 @@ export const SuccessModal = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-spice-text-primary/45 p-4 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="success-modal-title"
-    >
+    <Modal open={open} labelledBy="success-modal-title">
       <Card
         variant="elevated"
         className="w-full max-w-md space-y-5 border-spice-border p-6 shadow-lg"
@@ -80,6 +76,6 @@ export const SuccessModal = ({
           {primaryLabel}
         </Button>
       </Card>
-    </div>
+    </Modal>
   );
 };

@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { Loader } from '@/components/ui/Loader';
 import { getCurrentRole } from '@/constants/role';
 
 export const MainLayout = () => {
@@ -16,7 +18,9 @@ export const MainLayout = () => {
             isProgramManager ? 'p-6' : 'p-8'
           }`}
         >
-          <Outlet />
+          <Suspense fallback={<Loader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

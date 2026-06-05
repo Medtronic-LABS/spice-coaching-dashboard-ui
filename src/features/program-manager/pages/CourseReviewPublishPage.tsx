@@ -1,10 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  LoadingState,
-  ModulePublishedSuccessModal,
-} from '@/components/ui';
+import { Card, Loader, ModulePublishedSuccessModal } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleReviewPublishView } from '@/features/module-library/components/ModuleReviewPublishView';
 import { CourseFlowStepper } from '@/features/program-manager/components/CourseFlowStepper';
@@ -119,20 +115,7 @@ export const CourseReviewPublishPage = () => {
         />
       ) : null}
       <CourseFlowStepper currentStep="review" isGenerated />
-      {isBusy ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-spice-text-primary/45 p-4 backdrop-blur-[2px]"
-          role="alertdialog"
-          aria-modal="true"
-        >
-          <Card
-            variant="elevated"
-            className="w-full max-w-md border-spice-border shadow-lg"
-          >
-            <LoadingState label={loaderLabel} />
-          </Card>
-        </div>
-      ) : null}
+      <Loader open={isBusy} label={loaderLabel} />
       {working ? (
         <ModuleReviewPublishView
           title={working.title}
@@ -190,7 +173,7 @@ export const CourseReviewPublishPage = () => {
           }}
         />
       ) : isLoading ? (
-        <LoadingState label="Loading module…" />
+        <Loader label="Loading module…" />
       ) : null}
     </section>
   );

@@ -7,7 +7,7 @@ import {
   Button,
   Card,
   ErrorState,
-  LoadingState,
+  Loader,
   SectionHeader,
   StatusBadge,
 } from '@/components/ui';
@@ -125,7 +125,7 @@ export const ChwProfileDetailPage = () => {
   }
 
   if (isLoading) {
-    return <LoadingState label={t('chwProfiles.detail.loading')} />;
+    return <Loader label={t('chwProfiles.detail.loading')} />;
   }
 
   if (isError || !data) {

@@ -38,23 +38,35 @@ describe('ModuleLibraryPage', () => {
     roleState.role = 'supervisor';
   });
 
-  it('shows only Assign for supervisor on published modules', async () => {
+  it('shows Review and Assign for supervisor on published modules', async () => {
     renderModuleLibraryPage();
 
     const assignButtons = await screen.findAllByRole('button', {
       name: /^assign$/i,
     });
+    const reviewButtons = await screen.findAllByRole('button', {
+      name: /^review$/i,
+    });
     expect(assignButtons.length).toBeGreaterThan(0);
+    expect(reviewButtons.length).toBeGreaterThan(0);
     expect(
       screen.queryByRole('button', { name: /^edit$/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^review$/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('tab', { name: /drafts/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /all/i })).not.toBeInTheDocument();
+  });
+
+  it('navigates to read-only review for supervisor', async () => {
+    const user = userEvent.setup();
+    renderModuleLibraryPage();
+
+    const reviewButtons = await screen.findAllByRole('button', {
+      name: /^review$/i,
+    });
+    await user.click(reviewButtons[0]);
+    expect(screen.getByTestId('module-review')).toBeInTheDocument();
   });
 
   it('navigates to assign flow for supervisor', async () => {

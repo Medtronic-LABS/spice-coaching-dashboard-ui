@@ -12,7 +12,7 @@ import {
   InfoCard,
   KeyValue,
   ListItem,
-  LoadingState,
+  Loader,
   SearchInput,
   SectionHeader,
   Select,
@@ -47,7 +47,7 @@ describe('ui components', () => {
         />
         <ListItem title="Row2" />
         <StatCard label="Stat" value="42" change={5} supportingText="Helper" />
-        <LoadingState label="Loading..." />
+        <Loader label="Loading..." />
         <EmptyState
           title="Empty"
           description="Nothing here"

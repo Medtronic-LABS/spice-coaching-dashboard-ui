@@ -1,6 +1,5 @@
-import { Suspense, lazy } from 'react';
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getCurrentRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
@@ -157,137 +156,119 @@ const CoursePublishedPage = lazy(() =>
   ),
 );
 export const AppRoutes = () => {
-  const { t } = useTranslation();
   const role = getCurrentRole();
   const isProgramManager = role === 'programManager';
 
   return (
-    <Suspense
-      fallback={
-        <div className="p-6 text-sm text-spice-text-medium">
-          {t('common.loadingPage')}
-        </div>
-      }
-    >
-      <Routes>
-        <Route element={<MainLayout />}>
-          <Route path={paths.home} element={<Home />} />
-          <Route
-            path={paths.chwProfiles}
-            element={
-              isProgramManager ? <ChwRosterPage /> : <ChwProfilesListPage />
-            }
-          />
-          <Route
-            path={paths.chwProfileDetail}
-            element={<ChwProfileDetailPage />}
-          />
-          <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
-          <Route
-            path={paths.ingestDocument}
-            element={
-              isProgramManager ? (
-                <IngestDocumentPage />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          />
-          <Route
-            path={paths.adminModuleReview}
-            element={
-              isProgramManager ? (
-                <AdminModuleReviewLayout />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          >
-            <Route index element={<Navigate to="details" replace />} />
-            <Route path="details" element={<AdminModuleDetailsStep />} />
-            <Route path="lessons" element={<AdminModuleLessonsStep />} />
-            <Route path="quiz" element={<AdminModuleQuizStep />} />
-            <Route path="review" element={<AdminModulePublishStep />} />
-          </Route>
-          <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
-          <Route
-            path={paths.quizPerformance}
-            element={<QuizPerformancePage />}
-          />
-          <Route
-            path={paths.leaderboard}
-            element={isProgramManager ? <RankingsPage /> : <LeaderboardPage />}
-          />
-          <Route path={paths.reports} element={<ReportsPage />} />
-          <Route
-            path={paths.supervisors}
-            element={
-              isProgramManager ? (
-                <SupervisorsPage />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          />
-          <Route
-            path={paths.supervisorDetail}
-            element={
-              isProgramManager ? (
-                <SupervisorDetailPage />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          />
-          <Route
-            path={paths.escalations}
-            element={
-              isProgramManager ? (
-                <EscalationsPage />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          />
-          <Route
-            path={paths.rankings}
-            element={
-              isProgramManager ? (
-                <RankingsPage />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          />
-          <Route
-            path={paths.courseCreate}
-            element={
-              isProgramManager ? (
-                <CourseFlowLayout />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          >
-            <Route index element={<CourseCreatePage />} />
-            <Route path="lessons" element={<CourseLessonsPage />} />
-            <Route path="quiz" element={<CourseQuizPage />} />
-            <Route path="review" element={<CourseReviewPublishPage />} />
-            <Route path="published" element={<CoursePublishedPage />} />
-          </Route>
-          <Route
-            path={paths.moduleCreate}
-            element={
-              isProgramManager ? (
-                <CourseCreatePage />
-              ) : (
-                <Navigate to={paths.home} replace />
-              )
-            }
-          />
-          <Route path="*" element={<Navigate to={paths.home} replace />} />
+    <Routes>
+      <Route element={<MainLayout />}>
+        <Route path={paths.home} element={<Home />} />
+        <Route
+          path={paths.chwProfiles}
+          element={
+            isProgramManager ? <ChwRosterPage /> : <ChwProfilesListPage />
+          }
+        />
+        <Route
+          path={paths.chwProfileDetail}
+          element={<ChwProfileDetailPage />}
+        />
+        <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+        <Route
+          path={paths.ingestDocument}
+          element={
+            isProgramManager ? (
+              <IngestDocumentPage />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        />
+        <Route
+          path={paths.adminModuleReview}
+          element={<AdminModuleReviewLayout />}
+        >
+          <Route index element={<Navigate to="details" replace />} />
+          <Route path="details" element={<AdminModuleDetailsStep />} />
+          <Route path="lessons" element={<AdminModuleLessonsStep />} />
+          <Route path="quiz" element={<AdminModuleQuizStep />} />
+          <Route path="review" element={<AdminModulePublishStep />} />
         </Route>
-      </Routes>
-    </Suspense>
+        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+        <Route path={paths.quizPerformance} element={<QuizPerformancePage />} />
+        <Route
+          path={paths.leaderboard}
+          element={isProgramManager ? <RankingsPage /> : <LeaderboardPage />}
+        />
+        <Route path={paths.reports} element={<ReportsPage />} />
+        <Route
+          path={paths.supervisors}
+          element={
+            isProgramManager ? (
+              <SupervisorsPage />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        />
+        <Route
+          path={paths.supervisorDetail}
+          element={
+            isProgramManager ? (
+              <SupervisorDetailPage />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        />
+        <Route
+          path={paths.escalations}
+          element={
+            isProgramManager ? (
+              <EscalationsPage />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        />
+        <Route
+          path={paths.rankings}
+          element={
+            isProgramManager ? (
+              <RankingsPage />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        />
+        <Route
+          path={paths.courseCreate}
+          element={
+            isProgramManager ? (
+              <CourseFlowLayout />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        >
+          <Route index element={<CourseCreatePage />} />
+          <Route path="lessons" element={<CourseLessonsPage />} />
+          <Route path="quiz" element={<CourseQuizPage />} />
+          <Route path="review" element={<CourseReviewPublishPage />} />
+          <Route path="published" element={<CoursePublishedPage />} />
+        </Route>
+        <Route
+          path={paths.moduleCreate}
+          element={
+            isProgramManager ? (
+              <CourseCreatePage />
+            ) : (
+              <Navigate to={paths.home} replace />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to={paths.home} replace />} />
+      </Route>
+    </Routes>
   );
 };

@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import { Button, UnsavedChangesDialog } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewNavigation } from '@/features/module-library/hooks/useAdminModuleReviewNavigation';
+import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
 import { clearAdminModuleReview } from '@/features/module-library/store/adminModuleReviewSlice';
 import { useAppDispatch } from '@/store/hooks';
 
@@ -62,9 +63,19 @@ function stepFromPathname(pathname: string): StepKey {
 export const AdminModuleReviewLayout = () => {
   const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
+  const isReadonly = useAdminModuleReviewReadonly();
+  const steps = useMemo(
+    () =>
+      stepMeta.map((step) =>
+        step.key === 'review' && isReadonly
+          ? { ...step, label: 'Review' }
+          : step,
+      ),
+    [isReadonly],
+  );
 
   const currentStep = stepFromPathname(window.location.pathname);
-  const currentIndex = stepMeta.findIndex((s) => s.key === currentStep);
+  const currentIndex = steps.findIndex((s) => s.key === currentStep);
 
   const {
     isDirty,
@@ -93,7 +104,12 @@ export const AdminModuleReviewLayout = () => {
       />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-spice-bg-surface px-4 py-3 ring-1 ring-spice-border">
-          {stepMeta.map((step, index) => {
+          {isReadonly ? (
+            <span className="rounded-full bg-spice-bg-tint px-2.5 py-1 text-[11px] font-semibold text-spice-text-medium ring-1 ring-spice-border">
+              Read-only review
+            </span>
+          ) : null}
+          {steps.map((step, index) => {
             const isActive = step.key === currentStep;
             const isComplete = index < currentIndex;
             return (
@@ -125,7 +141,7 @@ export const AdminModuleReviewLayout = () => {
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                   ) : null}
                 </button>
-                {index < stepMeta.length - 1 ? (
+                {index < steps.length - 1 ? (
                   <span className="text-xs text-spice-text-muted">-</span>
                 ) : null}
               </div>

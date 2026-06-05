@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, LoadingState } from '@/components/ui';
+import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
+import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
 import { updateDetails } from '@/features/module-library/store/adminModuleReviewSlice';
 import { useAppDispatch } from '@/store/hooks';
 
@@ -29,13 +30,10 @@ export const AdminModuleDetailsStep = () => {
   } = useAdminModuleReviewEditor(moduleId);
 
   const [actionError, setActionError] = useState('');
+  const isReadonly = useAdminModuleReviewReadonly();
 
   if (isLoading && !working) {
-    return (
-      <Card variant="elevated" className="p-10">
-        <LoadingState label="Loading module…" />
-      </Card>
-    );
+    return <Loader label="Loading module…" />;
   }
 
   if (error || !working) {
@@ -171,7 +169,7 @@ export const AdminModuleDetailsStep = () => {
             <input
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={working.title_bn ?? ''}
-              disabled={busy}
+              disabled={busy || isReadonly}
               onChange={(e) =>
                 dispatch(
                   updateDetails({
@@ -186,7 +184,7 @@ export const AdminModuleDetailsStep = () => {
             <input
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={working.title_en ?? ''}
-              disabled={busy}
+              disabled={busy || isReadonly}
               onChange={(e) =>
                 dispatch(
                   updateDetails({
@@ -198,40 +196,61 @@ export const AdminModuleDetailsStep = () => {
           </label>
         </div>
 
-        <label className="block space-y-1">
-          <span className="text-xs text-spice-text-muted">
-            Description (BN)
-          </span>
-          <textarea
-            className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-            value={working.description_bn ?? ''}
-            disabled={busy}
-            onChange={(e) =>
-              dispatch(
-                updateDetails({
-                  description_bn: e.target.value,
-                }),
-              )
-            }
-          />
-        </label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Description (BN)
+            </span>
+            <textarea
+              className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+              value={working.description_bn ?? ''}
+              disabled={busy || isReadonly}
+              onChange={(e) =>
+                dispatch(
+                  updateDetails({
+                    description_bn: e.target.value,
+                  }),
+                )
+              }
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-spice-text-muted">
+              Description (EN)
+            </span>
+            <textarea
+              className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+              value={working.description_en ?? ''}
+              disabled={busy || isReadonly}
+              onChange={(e) =>
+                dispatch(
+                  updateDetails({
+                    description_en: e.target.value,
+                  }),
+                )
+              }
+            />
+          </label>
+        </div>
 
         <div className="flex justify-end gap-2">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            disabled={busy}
-            onClick={async () => {
-              setActionError('');
-              try {
-                await save();
-              } catch (err) {
-                setActionError(formatError(err));
-              }
-            }}
-          >
-            {isSaving ? 'Saving…' : 'Save'}
-          </Button>
+          {!isReadonly ? (
+            <Button
+              variant="secondary"
+              className="h-9 text-xs"
+              disabled={busy || isReadonly}
+              onClick={async () => {
+                setActionError('');
+                try {
+                  await save();
+                } catch (err) {
+                  setActionError(formatError(err));
+                }
+              }}
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </Button>
+          ) : null}
           <Button
             className="h-9 text-xs"
             disabled={busy}

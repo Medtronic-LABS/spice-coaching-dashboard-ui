@@ -1,4 +1,4 @@
-import { ErrorState, LoadingState } from '@/components/ui';
+import { ErrorState, Loader } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
 import { SectionStateCard } from '@/components/common/SectionStateCard';
 import { Button } from '@/components/ui';
@@ -43,9 +43,7 @@ export const SupervisorDashboard = () => {
   const isInitialLoading = isLoading && !hasAnyData;
   if (isInitialLoading) {
     return (
-      <LoadingState
-        label={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL)}
-      />
+      <Loader label={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL)} />
     );
   }
 
