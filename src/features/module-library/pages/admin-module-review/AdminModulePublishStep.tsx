@@ -24,7 +24,6 @@ export const AdminModulePublishStep = () => {
     working,
     isDirty,
     isLoading,
-    isFetching,
     error,
     refetch,
     isSaving,
@@ -79,7 +78,6 @@ export const AdminModulePublishStep = () => {
   const mediaCount = countMediaTagsFromCards(working.cards);
   const isAlreadyPublished =
     working.clinically_reviewed || working.lifecycle_status === 'published';
-  const busy = isFetching || isPublishing || isSaving;
 
   return (
     <section className="space-y-4">
@@ -106,7 +104,7 @@ export const AdminModulePublishStep = () => {
         mediaFileCount={mediaCount}
         estimateMinutes={working.estimated_minutes}
         isAlreadyPublished={isAlreadyPublished}
-        isPublishing={busy}
+        isPublishing={isPublishing}
         publishError={publishError}
         isSaving={isSaving}
         readonly={isReadonly}

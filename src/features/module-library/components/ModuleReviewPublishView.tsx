@@ -311,7 +311,7 @@ export const ModuleReviewPublishView = ({
                     <Button
                       variant="secondary"
                       className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"
-                      disabled={isPublishing}
+                      disabled={isPublishing || isSaving}
                       onClick={onAssign}
                     >
                       Assign to CHWs
@@ -320,7 +320,7 @@ export const ModuleReviewPublishView = ({
                   <Button
                     variant="ghost"
                     className="h-10 w-full text-white ring-1 ring-white/40 hover:bg-white/10"
-                    disabled={isPublishing}
+                    disabled={isPublishing || isSaving}
                     onClick={onBackToLibrary ?? onPublish}
                   >
                     Back to Module Library
@@ -330,7 +330,7 @@ export const ModuleReviewPublishView = ({
                 <Button
                   variant="secondary"
                   className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"
-                  disabled={isPublishing || publishDisabled}
+                  disabled={isPublishing || isSaving || publishDisabled}
                   onClick={onPublish}
                 >
                   {isPublishing ? 'Publishing…' : '↑ Publish Module'}
