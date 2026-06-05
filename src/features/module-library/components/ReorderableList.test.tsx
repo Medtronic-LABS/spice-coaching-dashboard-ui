@@ -69,4 +69,23 @@ describe('ReorderableList', () => {
       expect(button).toBeDisabled();
     }
   });
+
+  it('hides move buttons when readOnly is true', () => {
+    render(
+      <ReorderableList
+        items={['A', 'B']}
+        getItemId={(item) => item}
+        onReorder={vi.fn()}
+        readOnly
+        renderItem={(item) => <span>{item}</span>}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Move up' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Move down' }),
+    ).not.toBeInTheDocument();
+  });
 });

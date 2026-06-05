@@ -42,6 +42,8 @@ export interface ReorderableListProps<T> {
     controls: ReorderableItemControls,
   ) => ReactNode;
   disabled?: boolean;
+  /** When true, reordering is disabled and move controls are hidden (e.g. supervisor read-only). */
+  readOnly?: boolean;
   /** `plain` omits the outer row chrome when the child supplies its own card border. */
   rowVariant?: ReorderableListRowVariant;
 }
@@ -51,6 +53,7 @@ interface SortableRowProps<T> {
   index: number;
   itemId: string;
   disabled: boolean;
+  readOnly: boolean;
   itemCount: number;
   rowVariant: ReorderableListRowVariant;
   onReorder: (fromIndex: number, toIndex: number) => void;
@@ -62,11 +65,13 @@ function SortableRow<T>({
   index,
   itemId,
   disabled,
+  readOnly,
   itemCount,
   rowVariant,
   onReorder,
   renderItem,
 }: SortableRowProps<T>) {
+  const reorderDisabled = disabled || readOnly;
   const {
     attributes,
     listeners,
@@ -75,15 +80,15 @@ function SortableRow<T>({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: itemId, disabled });
+  } = useSortable({ id: itemId, disabled: reorderDisabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  const canMoveUp = !disabled && index > 0;
-  const canMoveDown = !disabled && index < itemCount - 1;
+  const canMoveUp = !reorderDisabled && index > 0;
+  const canMoveDown = !reorderDisabled && index < itemCount - 1;
 
   const controls: ReorderableItemControls = {
     dragHandleProps: {
@@ -93,7 +98,7 @@ function SortableRow<T>({
       'aria-label': 'Drag to reorder',
       className: cn(
         'cursor-grab touch-none active:cursor-grabbing',
-        disabled && 'pointer-events-none cursor-not-allowed opacity-50',
+        reorderDisabled && 'pointer-events-none cursor-not-allowed opacity-50',
       ),
     },
     moveUp: () => {
@@ -125,22 +130,24 @@ function SortableRow<T>({
         <div className="min-w-0 flex-1">
           {renderItem(item, index, controls)}
         </div>
-        <div className="flex shrink-0 flex-col gap-1">
-          <MoveButton
-            label="Move up"
-            disabled={!canMoveUp}
-            onClick={controls.moveUp}
-          >
-            <ChevronUpIcon />
-          </MoveButton>
-          <MoveButton
-            label="Move down"
-            disabled={!canMoveDown}
-            onClick={controls.moveDown}
-          >
-            <ChevronDownIcon />
-          </MoveButton>
-        </div>
+        {!readOnly ? (
+          <div className="flex shrink-0 flex-col gap-1">
+            <MoveButton
+              label="Move up"
+              disabled={!canMoveUp}
+              onClick={controls.moveUp}
+            >
+              <ChevronUpIcon />
+            </MoveButton>
+            <MoveButton
+              label="Move down"
+              disabled={!canMoveDown}
+              onClick={controls.moveDown}
+            >
+              <ChevronDownIcon />
+            </MoveButton>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -254,8 +261,10 @@ export function ReorderableList<T>({
   onReorder,
   renderItem,
   disabled = false,
+  readOnly = false,
   rowVariant = 'default',
 }: ReorderableListProps<T>) {
+  const reorderDisabled = disabled || readOnly;
   const itemIds = items.map((item, index) => getItemId(item, index));
 
   const sensors = useSensors(
@@ -267,7 +276,7 @@ export function ReorderableList<T>({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || disabled) return;
+    if (!over || active.id === over.id || reorderDisabled) return;
 
     const fromIndex = itemIds.indexOf(String(active.id));
     const toIndex = itemIds.indexOf(String(over.id));
@@ -291,6 +300,7 @@ export function ReorderableList<T>({
               index={index}
               itemId={itemIds[index]}
               disabled={disabled}
+              readOnly={readOnly}
               itemCount={items.length}
               rowVariant={rowVariant}
               onReorder={onReorder}

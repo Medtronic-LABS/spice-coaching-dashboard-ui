@@ -124,6 +124,7 @@ export const AdminModuleQuizStep = () => {
             <ReorderableList
               items={sortedQuiz}
               disabled={busy}
+              readOnly={isReadonly}
               rowVariant="plain"
               getItemId={(item) => item.id}
               onReorder={(fromIndex, toIndex) =>
@@ -139,9 +140,11 @@ export const AdminModuleQuizStep = () => {
                   <Card variant="bordered" className="space-y-3 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <ReorderDragHandle
-                          dragHandleProps={controls.dragHandleProps}
-                        />
+                        {!isReadonly ? (
+                          <ReorderDragHandle
+                            dragHandleProps={controls.dragHandleProps}
+                          />
+                        ) : null}
                         <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
                           QUESTION {index + 1}
                         </div>

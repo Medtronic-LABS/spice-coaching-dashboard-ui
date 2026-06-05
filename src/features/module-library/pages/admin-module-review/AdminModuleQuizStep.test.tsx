@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { setCurrentRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import type { AdminModuleDetailResponse } from '@/features/module-library/api/adminModulesApi';
 import { adminModuleReviewReducer } from '@/features/module-library/store/adminModuleReviewSlice';
@@ -132,6 +133,7 @@ function renderQuizStep() {
 
 describe('AdminModuleQuizStep reorder', () => {
   it('moves the first question down and renumbers question_order', async () => {
+    setCurrentRole('programManager');
     const user = userEvent.setup();
     const { store } = renderQuizStep();
 
@@ -147,5 +149,17 @@ describe('AdminModuleQuizStep reorder', () => {
       'Question C',
     ]);
     expect(quiz.map((item) => item.question_order)).toEqual([1, 2, 3]);
+  });
+
+  it('hides reorder controls for supervisor read-only role', () => {
+    setCurrentRole('supervisor');
+    renderQuizStep();
+
+    expect(
+      screen.queryByRole('button', { name: 'Move down' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Drag to reorder' }),
+    ).not.toBeInTheDocument();
   });
 });

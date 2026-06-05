@@ -194,6 +194,7 @@ export const AdminModuleLessonsStep = () => {
               <ReorderableList
                 items={cards}
                 disabled={busy}
+                readOnly={isReadonly}
                 getItemId={(card, index) => cardSortableId(cards, card, index)}
                 onReorder={(fromIndex, toIndex) => {
                   const newCards = reorderCards(cards, fromIndex, toIndex);
@@ -215,9 +216,11 @@ export const AdminModuleLessonsStep = () => {
                   const edited = baselineMatch && !cardsEqual(c, baselineMatch);
                   return (
                     <div className="flex min-w-0 items-start gap-2">
-                      <ReorderDragHandle
-                        dragHandleProps={controls.dragHandleProps}
-                      />
+                      {!isReadonly ? (
+                        <ReorderDragHandle
+                          dragHandleProps={controls.dragHandleProps}
+                        />
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => {

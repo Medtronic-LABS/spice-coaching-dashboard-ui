@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { setCurrentRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import type { AdminModuleDetailResponse } from '@/features/module-library/api/adminModulesApi';
 import { adminModuleReviewReducer } from '@/features/module-library/store/adminModuleReviewSlice';
@@ -97,6 +98,7 @@ function renderLessonsStep() {
 
 describe('AdminModuleLessonsStep reorder', () => {
   it('moves the first card down via Move Down control', async () => {
+    setCurrentRole('programManager');
     const user = userEvent.setup();
     const { store } = renderLessonsStep();
 
@@ -111,5 +113,17 @@ describe('AdminModuleLessonsStep reorder', () => {
       'Card One',
       'Card Three',
     ]);
+  });
+
+  it('hides reorder controls for supervisor read-only role', () => {
+    setCurrentRole('supervisor');
+    renderLessonsStep();
+
+    expect(
+      screen.queryByRole('button', { name: 'Move down' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Drag to reorder' }),
+    ).not.toBeInTheDocument();
   });
 });
