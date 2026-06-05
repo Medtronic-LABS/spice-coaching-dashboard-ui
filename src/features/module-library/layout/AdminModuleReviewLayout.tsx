@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { Button, UnsavedChangesDialog } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewNavigation } from '@/features/module-library/hooks/useAdminModuleReviewNavigation';
@@ -62,6 +62,7 @@ function stepFromPathname(pathname: string): StepKey {
 
 export const AdminModuleReviewLayout = () => {
   const dispatch = useAppDispatch();
+  const { pathname } = useLocation();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
   const isReadonly = useAdminModuleReviewReadonly();
   const steps = useMemo(
@@ -74,7 +75,7 @@ export const AdminModuleReviewLayout = () => {
     [isReadonly],
   );
 
-  const currentStep = stepFromPathname(window.location.pathname);
+  const currentStep = stepFromPathname(pathname);
   const currentIndex = steps.findIndex((s) => s.key === currentStep);
 
   const {

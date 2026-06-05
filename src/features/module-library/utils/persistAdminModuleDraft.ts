@@ -12,6 +12,24 @@ type EditModuleTrigger = (args: {
   body: EditAdminModuleRequestBody;
 }) => { unwrap: () => Promise<EditAdminModuleResponse> };
 
+function isAdminModuleDetailResponse(
+  value: unknown,
+): value is AdminModuleDetailResponse {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' && typeof record.module_family_id === 'string'
+  );
+}
+
+function readRefetchedModuleDetail(
+  value: unknown,
+): AdminModuleDetailResponse | null {
+  if (!value || typeof value !== 'object' || !('data' in value)) return null;
+  const data = (value as { data: unknown }).data;
+  return isAdminModuleDetailResponse(data) ? data : null;
+}
+
 export async function persistAdminModuleDraft(options: {
   working: AdminModuleDetailResponse;
   editModule: EditModuleTrigger;
@@ -40,13 +58,9 @@ export async function persistAdminModuleDraft(options: {
   });
 
   const refreshed = await options.refetch();
-  if (
-    refreshed &&
-    typeof refreshed === 'object' &&
-    'data' in refreshed &&
-    refreshed.data
-  ) {
-    options.onSaved(refreshed.data as AdminModuleDetailResponse);
+  const refetchedModule = readRefetchedModuleDetail(refreshed);
+  if (refetchedModule) {
+    options.onSaved(refetchedModule);
     return;
   }
   options.onSaved({
