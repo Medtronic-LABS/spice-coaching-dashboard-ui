@@ -1,4 +1,5 @@
 import type { AdminModuleCard } from '@/features/module-library/types/adminModule.types';
+import { sortQuizItems } from '@/features/module-library/utils/adminModuleQuizUtils';
 import { normalizeAdminModuleCard } from '@/features/module-library/utils/cardBody';
 import { baseApi } from '@/store/apis/base';
 
@@ -135,7 +136,7 @@ function normalizeModuleDetail(
   const cards = rawCards.map((card, index) =>
     normalizeAdminModuleCard(card, index),
   );
-  const quiz = response.module_json?.quiz ?? response.quiz ?? [];
+  const quiz = sortQuizItems(response.module_json?.quiz ?? response.quiz ?? []);
   const source_documents = normalizeSourceDocuments(response.source_documents);
 
   return {

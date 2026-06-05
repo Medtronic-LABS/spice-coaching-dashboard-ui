@@ -3,6 +3,7 @@ import type {
   ModuleReviewPublishLessonRow,
   ModuleReviewPublishQuizRow,
 } from '@/features/module-library/components/ModuleReviewPublishView';
+import { sortQuizItems } from '@/features/module-library/utils/adminModuleQuizUtils';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -40,7 +41,7 @@ export function mapAdminCardsToLessonRows(
 export function mapAdminQuizToRows(
   quiz: AdminModuleQuizItem[],
 ): ModuleReviewPublishQuizRow[] {
-  return quiz.map((item) => ({
+  return sortQuizItems(quiz).map((item) => ({
     id: item.id,
     question: item.question_en ?? item.question_bn ?? '',
     answerSet:

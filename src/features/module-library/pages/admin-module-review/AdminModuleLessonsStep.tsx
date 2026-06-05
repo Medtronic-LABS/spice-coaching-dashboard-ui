@@ -1,14 +1,34 @@
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { ModuleSourceDocumentPanel } from '@/features/module-library/components/ModuleSourceDocumentPanel';
+import {
+  ReorderableList,
+  ReorderDragHandle,
+} from '@/features/module-library/components/ReorderableList';
+import { RichTextEditor } from '@/features/module-library/components/RichTextEditor';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
 import {
   selectAdminModuleBaseline,
   insertCardAtIndex,
   removeCardAtIndex,
+  setCards,
   updateCardAtIndex,
 } from '@/features/module-library/store/adminModuleReviewSlice';
+import {
+  adjustSelectedIndexAfterReorder,
+  cardSortableId,
+  reorderCards,
+} from '@/features/module-library/utils/adminModuleCardUtils';
+import type { AdminModuleCard } from '@/features/module-library/types/adminModule.types';
+import {
+  hasEnglishCardContent,
+  normalizeAdminModuleCard,
+  normalizeCardBody,
+} from '@/features/module-library/utils/cardBody';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -91,8 +111,30 @@ export const AdminModuleLessonsStep = () => {
   const cards = (working?.cards ?? []) as unknown[];
   const selectedCard = cards[selectedIndex] as unknown;
 
-  const patchSelectedCard = (patch: Record<string, unknown>) => {
-    if (!isPlainObject(selectedCard)) return;
+  const selectedCard = cards[selectedIndex];
+  const baselineCard = selectedCard
+    ? (baselineCards.find((card) => card.id === selectedCard.id) ??
+      baselineCards[selectedIndex])
+    : undefined;
+  const selectedBody = normalizeCardBody(selectedCard?.body_bn);
+  const sourceDocuments = working?.source_documents ?? [];
+  const hasSourceDocuments = sourceDocuments.length > 0;
+  const showSourcePanel = hasSourceDocuments && sourceDocOpen;
+
+  useEffect(() => {
+    setSelectedIndex(0);
+    setEditorRevision((revision) => revision + 1);
+  }, [moduleId]);
+
+  useEffect(() => {
+    setSelectedIndex((current) => {
+      if (cards.length === 0) return 0;
+      return current >= cards.length ? cards.length - 1 : current;
+    });
+  }, [cards.length]);
+
+  const updateSelectedCard = (patch: Partial<AdminModuleCard>) => {
+    if (!selectedCard) return;
     dispatch(
       updateCardAtIndex({
         index: selectedIndex,
@@ -148,33 +190,70 @@ export const AdminModuleLessonsStep = () => {
           </div>
 
           <div className="space-y-2 pt-2">
-            {cards.map((c, idx) => (
-              <button
-                key={String(
-                  isPlainObject(c) && typeof c.id === 'string' ? c.id : idx,
-                )}
-                type="button"
-                onClick={() => setSelectedIndex(idx)}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm ${
-                  selectedIndex === idx
-                    ? 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
-                    : 'text-spice-text-medium'
-                }`}
-              >
-                <div className="truncate font-semibold">{cardTitle(c)}</div>
-                {cardSubtitle(c) ? (
-                  <div className="truncate text-[11px] text-spice-text-muted">
-                    {cardSubtitle(c)}
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
-                  <span>Card {idx + 1}</span>
-                </div>
-              </button>
-            ))}
-            {!cards.length ? (
+            {cards.length ? (
+              <ReorderableList
+                items={cards}
+                disabled={busy}
+                getItemId={(card, index) => cardSortableId(cards, card, index)}
+                onReorder={(fromIndex, toIndex) => {
+                  const newCards = reorderCards(cards, fromIndex, toIndex);
+                  dispatch(setCards(newCards));
+                  const nextSelected = adjustSelectedIndexAfterReorder(
+                    selectedIndex,
+                    fromIndex,
+                    toIndex,
+                  );
+                  if (nextSelected !== selectedIndex) {
+                    setSelectedIndex(nextSelected);
+                    setEditorRevision((revision) => revision + 1);
+                  }
+                }}
+                renderItem={(c, idx, controls) => {
+                  const baselineMatch = baselineCards.find(
+                    (card) => card.id === c.id,
+                  );
+                  const edited = baselineMatch && !cardsEqual(c, baselineMatch);
+                  return (
+                    <div className="flex min-w-0 items-start gap-2">
+                      <ReorderDragHandle
+                        dragHandleProps={controls.dragHandleProps}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIndex(idx);
+                          setEditorRevision((revision) => revision + 1);
+                        }}
+                        className={`min-w-0 flex-1 rounded-lg px-2 py-1 text-left text-sm ${
+                          selectedIndex === idx
+                            ? 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
+                            : 'text-spice-text-medium'
+                        }`}
+                      >
+                        <div className="truncate font-semibold">
+                          {cardTitle(c)}
+                        </div>
+                        {cardSubtitle(c) ? (
+                          <div className="truncate text-[11px] text-spice-text-muted">
+                            {cardSubtitle(c)}
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
+                          <span>Card {idx + 1}</span>
+                          {edited ? (
+                            <span className="rounded-full bg-spice-bg-surface px-2 py-0.5 font-semibold ring-1 ring-spice-border">
+                              Edited
+                            </span>
+                          ) : null}
+                        </div>
+                      </button>
+                    </div>
+                  );
+                }}
+              />
+            ) : (
               <div className="text-xs text-spice-text-muted">No cards.</div>
-            ) : null}
+            )}
           </div>
         </Card>
 
