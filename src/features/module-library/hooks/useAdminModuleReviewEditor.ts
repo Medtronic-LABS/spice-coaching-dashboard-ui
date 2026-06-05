@@ -1,6 +1,9 @@
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useEditModuleMutation } from '@/features/module-library/api/adminModulesApi';
+import {
+  useEditModuleMutation,
+  type AdminModuleDetailResponse,
+} from '@/features/module-library/api/adminModulesApi';
 import {
   hydrateFromServer,
   markSaved,
@@ -32,19 +35,25 @@ export function useAdminModuleReviewEditor(moduleId: string) {
     }
   }, [dispatch, moduleId, query.data]);
 
-  const save = useCallback(async () => {
-    if (!working) {
-      throw new Error('Module is not loaded.');
-    }
-    await persistAdminModuleDraft({
-      working,
-      editModule,
-      navigate,
-      pathname,
-      refetch: query.refetch,
-      onSaved: (data) => dispatch(markSaved(data)),
-    });
-  }, [dispatch, editModule, navigate, pathname, query.refetch, working]);
+  const save = useCallback(
+    async (detailsOverride?: Partial<AdminModuleDetailResponse>) => {
+      if (!working) {
+        throw new Error('Module is not loaded.');
+      }
+      const nextWorking = detailsOverride
+        ? { ...working, ...detailsOverride }
+        : working;
+      await persistAdminModuleDraft({
+        working: nextWorking,
+        editModule,
+        navigate,
+        pathname,
+        refetch: query.refetch,
+        onSaved: (data) => dispatch(markSaved(data)),
+      });
+    },
+    [dispatch, editModule, navigate, pathname, query.refetch, working],
+  );
 
   const isSaving = editState.isLoading;
 

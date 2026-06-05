@@ -26,6 +26,9 @@ export interface AdminModulesListItem {
   created_at: string;
   quality_flags?: { flags: string[] } | null;
   quiz_count: number;
+  thumbnail_storage_path?: string | null;
+  thumbnail_presigned_url?: string | null;
+  thumbnail_presigned_expires_seconds?: number | null;
 }
 
 export interface AdminModuleQuizItem {
@@ -63,6 +66,10 @@ export interface AdminModuleDetailResponse {
   quality_flags: { flags: string[] } | null;
   cards: unknown[];
   quiz: AdminModuleQuizItem[];
+  source_documents?: AdminModuleSourceDocument[];
+  thumbnail_storage_path?: string | null;
+  thumbnail_presigned_url?: string | null;
+  thumbnail_presigned_expires_seconds?: number | null;
 }
 
 export interface EditAdminModuleRequestBody {
@@ -72,6 +79,7 @@ export interface EditAdminModuleRequestBody {
   description_en?: string;
   module_json: { cards: unknown[]; quiz?: AdminModuleQuizItem[] };
   editor_id?: string;
+  thumbnail_storage_path?: string | null;
 }
 
 export type AdminModuleRefresherType = 'refresher' | string;

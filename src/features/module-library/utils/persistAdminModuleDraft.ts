@@ -1,6 +1,7 @@
 import type {
   AdminModuleDetailResponse,
   EditAdminModuleRequestBody,
+  EditAdminModuleResponse,
 } from '@/features/module-library/api/adminModulesApi';
 import { applyEditModuleAndSyncRoute } from '@/features/module-library/utils/applyEditModuleAndSyncRoute';
 import { prepareModuleJsonForSave } from '@/features/module-library/utils/prepareModuleJsonForSave';
@@ -9,7 +10,7 @@ import type { NavigateFunction } from 'react-router-dom';
 type EditModuleTrigger = (args: {
   moduleId: string;
   body: EditAdminModuleRequestBody;
-}) => { unwrap: () => Promise<unknown> };
+}) => { unwrap: () => Promise<EditAdminModuleResponse> };
 
 export async function persistAdminModuleDraft(options: {
   working: AdminModuleDetailResponse;
@@ -33,6 +34,7 @@ export async function persistAdminModuleDraft(options: {
       description_bn: working.description_bn ?? undefined,
       description_en: working.description_en ?? undefined,
       module_json: { cards, quiz },
+      thumbnail_storage_path: working.thumbnail_storage_path,
     },
     refetch: options.refetch,
   });

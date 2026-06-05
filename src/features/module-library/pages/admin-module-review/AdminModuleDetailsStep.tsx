@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -6,13 +6,11 @@ import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useA
 import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
 import { updateDetails } from '@/features/module-library/store/adminModuleReviewSlice';
 import { useAppDispatch } from '@/store/hooks';
-
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
-}
+import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  useUploadAdminFileMutation,
+  useLazyGetAdminFilePresignedUrlQuery,
+} from '@/features/module-library/api/adminFilesApi';
 
 export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
@@ -32,6 +30,41 @@ export const AdminModuleDetailsStep = () => {
   const [actionError, setActionError] = useState('');
   const isReadonly = useAdminModuleReviewReadonly();
 
+  const [uploadAdminFile, { isLoading: isUploading }] =
+    useUploadAdminFileMutation();
+  const [getPresignedUrl] = useLazyGetAdminFilePresignedUrlQuery();
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError('');
+    try {
+      const uploadResponse = await uploadAdminFile({
+        file,
+        prefix: 'uploads',
+      }).unwrap();
+
+      const presignedResponse = await getPresignedUrl({
+        object_name: uploadResponse.object_name,
+        expires_seconds: 600,
+      }).unwrap();
+
+      const updates = {
+        thumbnail_storage_path: uploadResponse.storage_path,
+        thumbnail_presigned_url: presignedResponse.presigned_url,
+      };
+
+      dispatch(updateDetails(updates));
+      await save(updates);
+    } catch (err) {
+      console.error('Failed to upload thumbnail:', err);
+      setUploadError('Failed to upload image. Please try again.');
+    }
+  };
+
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
   }
@@ -49,7 +82,7 @@ export const AdminModuleDetailsStep = () => {
     );
   }
 
-  const busy = isFetching || isSaving;
+  const busy = isFetching || isSaving || isUploading;
   const qualityFlagLabels: string[] = working.quality_flags?.flags ?? [];
 
   return (
@@ -71,77 +104,137 @@ export const AdminModuleDetailsStep = () => {
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-xl bg-spice-bg-surface p-3 ring-1 ring-spice-border md:grid-cols-2">
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-              Identifiers
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="text-spice-text-muted">Module ID</div>
-              <div className="col-span-2 break-all text-spice-text-primary">
-                {working.id}
-              </div>
-              <div className="text-spice-text-muted">Family ID</div>
-              <div className="col-span-2 break-all text-spice-text-primary">
-                {working.module_family_id}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-              Status
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="text-spice-text-muted">Lifecycle</div>
-              <div className="col-span-2 text-spice-text-primary">
+        <div className="flex flex-col md:flex-row gap-4 items-stretch">
+          <div className="flex-1 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border text-xs min-h-[180px]">
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">Status</span>
+              <span className="font-semibold capitalize text-spice-text-primary">
                 {working.lifecycle_status}
-              </div>
-              <div className="text-spice-text-muted">Clinically reviewed</div>
-              <div className="col-span-2 text-spice-text-primary">
-                {working.clinically_reviewed ? 'Yes' : 'No'}
-              </div>
-              <div className="text-spice-text-muted">Visibility window</div>
-              <div className="col-span-2 text-spice-text-primary">
-                {working.has_visibility_window ? 'Yes' : 'No'}
-              </div>
+              </span>
             </div>
-          </div>
-
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-              Counts
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="text-spice-text-muted">Cards</div>
-              <div className="col-span-2 text-spice-text-primary">
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">Cards</span>
+              <span className="font-semibold text-spice-text-primary">
                 {working.card_count}
-              </div>
-              <div className="text-spice-text-muted">Estimated minutes</div>
-              <div className="col-span-2 text-spice-text-primary">
-                {working.estimated_minutes}
-              </div>
-              <div className="text-spice-text-muted">Quiz questions</div>
-              <div className="col-span-2 text-spice-text-primary">
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">
+                Estimated minutes
+              </span>
+              <span className="font-semibold text-spice-text-primary">
+                {working.estimated_minutes}{' '}
+                {working.estimated_minutes === 1 ? 'minute' : 'minutes'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">
+                Quiz questions
+              </span>
+              <span className="font-semibold text-spice-text-primary">
                 {working.quiz.length}
-              </div>
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">Created</span>
+              <span className="font-semibold text-spice-text-primary">
+                {formatDisplayDateTime(working.created_at)}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">
+                Published
+              </span>
+              <span className="font-semibold text-spice-text-primary">
+                {working.published_at
+                  ? formatDisplayDateTime(working.published_at)
+                  : 'N/A'}
+              </span>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-              Timestamps
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="text-spice-text-muted">Created</div>
-              <div className="col-span-2 text-spice-text-primary">
-                {formatDateTime(working.created_at)}
+          <div className="w-full md:w-[300px] h-[250px] flex-shrink-0 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+                  Thumbnail
+                </div>
+                {working.thumbnail_presigned_url && !isReadonly && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={busy}
+                    className="p-1 rounded-md text-spice-text-muted hover:text-spice-text-primary hover:bg-spice-bg-tint transition-colors"
+                    title="Change thumbnail"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </button>
+                )}
               </div>
-              <div className="text-spice-text-muted">Published</div>
-              <div className="col-span-2 text-spice-text-primary">
-                {formatDateTime(working.published_at)}
-              </div>
+
+              {working.thumbnail_presigned_url ? (
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+                  <img
+                    src={working.thumbnail_presigned_url}
+                    alt="Module thumbnail"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy || isReadonly}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-[180px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint hover:bg-spice-border p-2 text-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed group"
+                >
+                  <svg
+                    className="mx-auto h-6 w-6 text-spice-text-muted opacity-60 group-hover:opacity-100 transition-opacity"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
+                    Add thumbnail
+                  </span>
+                </button>
+              )}
             </div>
+
+            {!isReadonly && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png, image/jpeg, image/jpg, image/webp"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            )}
+
+            {uploadError && (
+              <div className="mt-1 text-[10px] text-spice-semantic-error">
+                {uploadError}
+              </div>
+            )}
           </div>
         </div>
 

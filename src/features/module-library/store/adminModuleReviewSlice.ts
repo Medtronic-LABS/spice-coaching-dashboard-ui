@@ -47,6 +47,7 @@ export function editableSnapshot(module: AdminModuleDetailResponse): string {
     description_bn: module.description_bn,
     cards: module.cards,
     quiz: module.quiz,
+    thumbnail_storage_path: module.thumbnail_storage_path,
   });
 }
 
@@ -93,6 +94,10 @@ export const adminModuleReviewSlice = createSlice({
         description_bn: state.working.description_bn,
         cards: state.working.cards,
         quiz: state.working.quiz,
+        thumbnail_storage_path: state.working.thumbnail_storage_path,
+        thumbnail_presigned_url: state.working.thumbnail_presigned_url,
+        thumbnail_presigned_expires_seconds:
+          state.working.thumbnail_presigned_expires_seconds,
       };
     },
     markSaved(state, action: PayloadAction<AdminModuleDetailResponse>) {
@@ -105,6 +110,9 @@ export const adminModuleReviewSlice = createSlice({
         title_bn?: string;
         title_en?: string;
         description_bn?: string;
+        description_en?: string;
+        thumbnail_storage_path?: string | null;
+        thumbnail_presigned_url?: string | null;
       }>,
     ) {
       if (!state.working) return;

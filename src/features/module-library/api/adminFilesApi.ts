@@ -74,5 +74,8 @@ export const adminFilesApi = baseApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useUploadAdminFileMutation, useGetAdminFilePresignedUrlQuery } =
-  adminFilesApi;
+export const {
+  useUploadAdminFileMutation,
+  useGetAdminFilePresignedUrlQuery,
+  useLazyGetAdminFilePresignedUrlQuery,
+} = adminFilesApi;

@@ -474,7 +474,10 @@ export const ModuleLibraryPage = () => {
               </Button>
               <Button
                 className="h-9 text-xs"
-                disabled={isCreating}
+                disabled={
+                  isCreating ||
+                  (!createForm.title_bn.trim() && !createForm.title_en.trim())
+                }
                 onClick={async () => {
                   setCreateError('');
                   try {
