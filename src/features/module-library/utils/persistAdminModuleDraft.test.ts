@@ -32,14 +32,19 @@ const working: AdminModuleDetailResponse = {
 describe('persistAdminModuleDraft', () => {
   it('persists draft and calls onSaved with refetched module data', async () => {
     const editModule = vi.fn(() => ({
-      unwrap: vi.fn().mockResolvedValue({ id: 'mod-1' }),
+      unwrap: vi.fn().mockResolvedValue({
+        id: 'mod-1',
+        module_family_id: 'family-1',
+        version: 1,
+        supersedes_module_id: 'mod-0',
+      }),
     }));
     const navigate = vi.fn();
     const refetched: AdminModuleDetailResponse = {
       ...working,
       title_bn: 'Saved BN',
     };
-    const refetch = vi.fn().mockResolvedValue({ data: refetched });
+    const refetchModule = vi.fn().mockResolvedValue({ data: refetched });
     const onSaved = vi.fn();
 
     await persistAdminModuleDraft({
@@ -47,7 +52,7 @@ describe('persistAdminModuleDraft', () => {
       editModule,
       navigate,
       pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-      refetch,
+      refetchModule,
       onSaved,
     });
 
@@ -58,15 +63,21 @@ describe('persistAdminModuleDraft', () => {
         module_json: { cards: working.cards, quiz: [] },
       }),
     });
+    expect(refetchModule).toHaveBeenCalledWith('mod-1');
     expect(onSaved).toHaveBeenCalledWith(refetched);
   });
 
-  it('falls back to local working copy when refetch has no data', async () => {
+  it('syncs the new module id before refetch when save supersedes the draft', async () => {
     const editModule = vi.fn(() => ({
-      unwrap: vi.fn().mockResolvedValue({ id: 'mod-1' }),
+      unwrap: vi.fn().mockResolvedValue({
+        id: 'mod-2',
+        module_family_id: 'family-1',
+        version: 2,
+        supersedes_module_id: 'mod-1',
+      }),
     }));
     const navigate = vi.fn();
-    const refetch = vi.fn().mockResolvedValue(undefined);
+    const refetchModule = vi.fn().mockResolvedValue(undefined);
     const onSaved = vi.fn();
 
     await persistAdminModuleDraft({
@@ -74,7 +85,40 @@ describe('persistAdminModuleDraft', () => {
       editModule,
       navigate,
       pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-      refetch,
+      refetchModule,
+      onSaved,
+    });
+
+    expect(onSaved).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ id: 'mod-2', version: 2 }),
+    );
+    expect(refetchModule).toHaveBeenCalledWith('mod-2');
+    expect(navigate).toHaveBeenCalledWith(
+      paths.adminModuleReviewDetails.replace(':moduleId', 'mod-2'),
+      { replace: true },
+    );
+  });
+
+  it('falls back to local working copy when refetch has no data', async () => {
+    const editModule = vi.fn(() => ({
+      unwrap: vi.fn().mockResolvedValue({
+        id: 'mod-1',
+        module_family_id: 'family-1',
+        version: 1,
+        supersedes_module_id: 'mod-0',
+      }),
+    }));
+    const navigate = vi.fn();
+    const refetchModule = vi.fn().mockResolvedValue(undefined);
+    const onSaved = vi.fn();
+
+    await persistAdminModuleDraft({
+      working,
+      editModule,
+      navigate,
+      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      refetchModule,
       onSaved,
     });
 

@@ -23,46 +23,46 @@ describe('buildAdminModuleReviewPath', () => {
 });
 
 describe('applyEditModuleAndSyncRoute', () => {
-  it('refetches when module id is unchanged', async () => {
+  it('returns the edit response when module id is unchanged', async () => {
     const editModule = vi.fn(() => ({
       unwrap: vi.fn().mockResolvedValue({ id: 'mod-1' }),
     }));
     const navigate = vi.fn();
-    const refetch = vi.fn().mockResolvedValue(undefined);
 
-    await applyEditModuleAndSyncRoute({
+    const response = await applyEditModuleAndSyncRoute({
       editModule,
       navigate,
       pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
       moduleEntityId: 'mod-1',
-      body: { title_bn: 'Updated' },
-      refetch,
+      body: { title_bn: 'Updated', module_json: { cards: [] } },
     });
 
-    expect(refetch).toHaveBeenCalled();
+    expect(response.id).toBe('mod-1');
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('navigates to updated module path when save returns a new id', async () => {
     const editModule = vi.fn(() => ({
-      unwrap: vi.fn().mockResolvedValue({ id: 'mod-2' }),
+      unwrap: vi.fn().mockResolvedValue({
+        id: 'mod-2',
+        module_family_id: 'family-1',
+        version: 2,
+        supersedes_module_id: 'mod-1',
+      }),
     }));
     const navigate = vi.fn();
-    const refetch = vi.fn();
 
     await applyEditModuleAndSyncRoute({
       editModule,
       navigate,
       pathname: paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
       moduleEntityId: 'mod-1',
-      body: { title_bn: 'Updated' },
-      refetch,
+      body: { title_bn: 'Updated', module_json: { cards: [] } },
     });
 
     expect(navigate).toHaveBeenCalledWith(
       paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-2'),
       { replace: true },
     );
-    expect(refetch).not.toHaveBeenCalled();
   });
 });

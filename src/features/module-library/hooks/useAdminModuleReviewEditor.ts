@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  adminModulesApi,
   useEditModuleMutation,
   type AdminModuleDetailResponse,
 } from '@/features/module-library/api/adminModulesApi';
@@ -21,6 +22,8 @@ export function useAdminModuleReviewEditor(moduleId: string) {
   const { pathname } = useLocation();
   const working = useAppSelector(selectAdminModuleWorking);
   const isDirty = useAppSelector(selectAdminModuleReviewIsDirty);
+  const saveInFlightRef = useRef<Promise<void> | null>(null);
+  const [isPersisting, setIsPersisting] = useState(false);
 
   const query = useAdminModuleDetailQuery(moduleId, {
     skip: !moduleId,
@@ -35,27 +38,63 @@ export function useAdminModuleReviewEditor(moduleId: string) {
     }
   }, [dispatch, moduleId, query.data]);
 
-  const save = useCallback(
-    async (detailsOverride?: Partial<AdminModuleDetailResponse>) => {
-      if (!working) {
-        throw new Error('Module is not loaded.');
+  const refetchModule = useCallback(
+    async (targetModuleId: string) => {
+      const subscription = dispatch(
+        adminModulesApi.endpoints.getModuleDetail.initiate(targetModuleId, {
+          forceRefetch: true,
+        }),
+      );
+      try {
+        return await subscription;
+      } finally {
+        subscription.unsubscribe();
       }
-      const nextWorking = detailsOverride
-        ? { ...working, ...detailsOverride }
-        : working;
-      await persistAdminModuleDraft({
-        working: nextWorking,
-        editModule,
-        navigate,
-        pathname,
-        refetch: query.refetch,
-        onSaved: (data) => dispatch(markSaved(data)),
-      });
     },
-    [dispatch, editModule, navigate, pathname, query.refetch, working],
+    [dispatch],
   );
 
-  const isSaving = editState.isLoading;
+  const save = useCallback(
+    async (detailsOverride?: Partial<AdminModuleDetailResponse>) => {
+      if (saveInFlightRef.current) {
+        return saveInFlightRef.current;
+      }
+
+      const saveTask = (async () => {
+        setIsPersisting(true);
+        try {
+          if (!working) {
+            throw new Error('Module is not loaded.');
+          }
+          const nextWorking = detailsOverride
+            ? { ...working, ...detailsOverride }
+            : working;
+          await persistAdminModuleDraft({
+            working: nextWorking,
+            editModule,
+            navigate,
+            pathname,
+            refetchModule,
+            onSaved: (data) => dispatch(markSaved(data)),
+          });
+        } finally {
+          setIsPersisting(false);
+        }
+      })();
+
+      saveInFlightRef.current = saveTask;
+      try {
+        await saveTask;
+      } finally {
+        if (saveInFlightRef.current === saveTask) {
+          saveInFlightRef.current = null;
+        }
+      }
+    },
+    [dispatch, editModule, navigate, pathname, refetchModule, working],
+  );
+
+  const isSaving = editState.isLoading || isPersisting;
 
   return {
     working,

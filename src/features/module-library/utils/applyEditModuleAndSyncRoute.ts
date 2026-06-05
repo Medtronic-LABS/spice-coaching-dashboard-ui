@@ -32,7 +32,6 @@ export async function applyEditModuleAndSyncRoute(options: {
   pathname: string;
   moduleEntityId: string;
   body: EditAdminModuleRequestBody;
-  refetch: () => Promise<unknown>;
 }): Promise<EditAdminModuleResponse> {
   const response = await options
     .editModule({ moduleId: options.moduleEntityId, body: options.body })
@@ -51,9 +50,7 @@ export async function applyEditModuleAndSyncRoute(options: {
       ),
       { replace: true },
     );
-    return response;
   }
 
-  await options.refetch();
   return response;
 }

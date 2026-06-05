@@ -35,13 +35,13 @@ export async function persistAdminModuleDraft(options: {
   editModule: EditModuleTrigger;
   navigate: NavigateFunction;
   pathname: string;
-  refetch: () => Promise<unknown>;
+  refetchModule: (moduleId: string) => Promise<unknown>;
   onSaved: (data: AdminModuleDetailResponse) => void;
 }): Promise<void> {
   const { working } = options;
   const { cards, quiz } = prepareModuleJsonForSave(working.cards, working.quiz);
 
-  await applyEditModuleAndSyncRoute({
+  const response = await applyEditModuleAndSyncRoute({
     editModule: options.editModule,
     navigate: options.navigate,
     pathname: options.pathname,
@@ -54,19 +54,28 @@ export async function persistAdminModuleDraft(options: {
       module_json: { cards, quiz },
       thumbnail_storage_path: working.thumbnail_storage_path,
     },
-    refetch: options.refetch,
   });
 
-  const refreshed = await options.refetch();
+  const savedModuleId = response.id;
+  const savedSnapshot: AdminModuleDetailResponse = {
+    ...working,
+    id: savedModuleId,
+    module_family_id: response.module_family_id,
+    version: response.version,
+    cards,
+    quiz,
+    module_json: { cards, quiz },
+  };
+
+  if (savedModuleId !== working.id) {
+    options.onSaved(savedSnapshot);
+  }
+
+  const refreshed = await options.refetchModule(savedModuleId);
   const refetchedModule = readRefetchedModuleDetail(refreshed);
   if (refetchedModule) {
     options.onSaved(refetchedModule);
     return;
   }
-  options.onSaved({
-    ...working,
-    cards,
-    quiz,
-    module_json: { cards, quiz },
-  });
+  options.onSaved(savedSnapshot);
 }

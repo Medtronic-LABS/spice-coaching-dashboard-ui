@@ -101,6 +101,7 @@ export const adminModuleReviewSlice = createSlice({
       };
     },
     markSaved(state, action: PayloadAction<AdminModuleDetailResponse>) {
+      state.moduleId = action.payload.id;
       state.working = action.payload;
       state.baseline = action.payload;
     },
