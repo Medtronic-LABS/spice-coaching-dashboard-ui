@@ -3,7 +3,11 @@ import type { AdminModuleQuizItem } from '@/features/module-library/api/adminMod
 export function sortQuizItems(
   quiz: AdminModuleQuizItem[],
 ): AdminModuleQuizItem[] {
-  return [...quiz].sort((a, b) => a.question_order - b.question_order);
+  return [...quiz].sort((a, b) => {
+    const orderDiff = a.question_order - b.question_order;
+    if (orderDiff !== 0) return orderDiff;
+    return a.id.localeCompare(b.id);
+  });
 }
 
 export function clampCorrectIndex(
@@ -24,11 +28,71 @@ export function updateQuizItem(
   return quiz.map((item) => (item.id === id ? { ...item, ...patch } : item));
 }
 
+function reorderSortedItems<T>(
+  items: T[],
+  fromIndex: number,
+  toIndex: number,
+): T[] {
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length ||
+    fromIndex === toIndex
+  ) {
+    return [...items];
+  }
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+export function renumberQuestionOrders(
+  quiz: AdminModuleQuizItem[],
+): AdminModuleQuizItem[] {
+  return quiz.map((item, index) => ({
+    ...item,
+    question_order: index + 1,
+  }));
+}
+
+export function reorderQuizItems(
+  quiz: AdminModuleQuizItem[],
+  fromIndex: number,
+  toIndex: number,
+): AdminModuleQuizItem[] {
+  const sorted = sortQuizItems(quiz);
+  return renumberQuestionOrders(reorderSortedItems(sorted, fromIndex, toIndex));
+}
+
+export function moveQuizUp(
+  quiz: AdminModuleQuizItem[],
+  index: number,
+): AdminModuleQuizItem[] {
+  if (index <= 0 || index >= quiz.length) {
+    return quiz;
+  }
+  return reorderQuizItems(quiz, index, index - 1);
+}
+
+export function moveQuizDown(
+  quiz: AdminModuleQuizItem[],
+  index: number,
+): AdminModuleQuizItem[] {
+  if (index < 0 || index >= quiz.length - 1) {
+    return quiz;
+  }
+  return reorderQuizItems(quiz, index, index + 1);
+}
+
 export function removeQuizItem(
   quiz: AdminModuleQuizItem[],
   id: string,
 ): AdminModuleQuizItem[] {
-  return quiz.filter((item) => item.id !== id);
+  return renumberQuestionOrders(
+    sortQuizItems(quiz).filter((item) => item.id !== id),
+  );
 }
 
 export function addQuizItem(

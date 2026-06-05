@@ -3,6 +3,7 @@ import type {
   EditAdminModuleRequestBody,
 } from '@/features/module-library/api/adminModulesApi';
 import { applyEditModuleAndSyncRoute } from '@/features/module-library/utils/applyEditModuleAndSyncRoute';
+import { prepareModuleJsonForSave } from '@/features/module-library/utils/prepareModuleJsonForSave';
 import type { NavigateFunction } from 'react-router-dom';
 
 type EditModuleTrigger = (args: {
@@ -19,6 +20,7 @@ export async function persistAdminModuleDraft(options: {
   onSaved: (data: AdminModuleDetailResponse) => void;
 }): Promise<void> {
   const { working } = options;
+  const { cards, quiz } = prepareModuleJsonForSave(working.cards, working.quiz);
 
   await applyEditModuleAndSyncRoute({
     editModule: options.editModule,
@@ -29,7 +31,8 @@ export async function persistAdminModuleDraft(options: {
       title_bn: working.title_bn ?? undefined,
       title_en: working.title_en ?? undefined,
       description_bn: working.description_bn ?? undefined,
-      module_json: { cards: working.cards, quiz: working.quiz },
+      description_en: working.description_en ?? undefined,
+      module_json: { cards, quiz },
     },
     refetch: options.refetch,
   });
@@ -44,5 +47,10 @@ export async function persistAdminModuleDraft(options: {
     options.onSaved(refreshed.data as AdminModuleDetailResponse);
     return;
   }
-  options.onSaved(working);
+  options.onSaved({
+    ...working,
+    cards,
+    quiz,
+    module_json: { cards, quiz },
+  });
 }

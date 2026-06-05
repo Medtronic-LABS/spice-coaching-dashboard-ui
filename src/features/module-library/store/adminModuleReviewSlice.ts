@@ -18,6 +18,28 @@ const initialState: AdminModuleReviewState = {
   baseline: null,
 };
 
+function withSyncedCards(
+  working: AdminModuleDetailResponse,
+  cards: AdminModuleCard[],
+): AdminModuleDetailResponse {
+  return {
+    ...working,
+    cards,
+    module_json: { ...working.module_json, cards, quiz: working.quiz },
+  };
+}
+
+function withSyncedQuiz(
+  working: AdminModuleDetailResponse,
+  quiz: AdminModuleQuizItem[],
+): AdminModuleDetailResponse {
+  return {
+    ...working,
+    quiz,
+    module_json: { ...working.module_json, cards: working.cards, quiz },
+  };
+}
+
 export function editableSnapshot(module: AdminModuleDetailResponse): string {
   return JSON.stringify({
     title_bn: module.title_bn,
@@ -90,7 +112,7 @@ export const adminModuleReviewSlice = createSlice({
     },
     setCards(state, action: PayloadAction<AdminModuleCard[]>) {
       if (!state.working) return;
-      state.working = { ...state.working, cards: action.payload };
+      state.working = withSyncedCards(state.working, action.payload);
     },
     updateCardAtIndex(
       state,
@@ -99,7 +121,7 @@ export const adminModuleReviewSlice = createSlice({
       if (!state.working) return;
       const cards = [...state.working.cards];
       cards[action.payload.index] = action.payload.card;
-      state.working = { ...state.working, cards };
+      state.working = withSyncedCards(state.working, cards);
     },
     insertCardAtIndex(
       state,
@@ -112,7 +134,7 @@ export const adminModuleReviewSlice = createSlice({
         Math.min(action.payload.index, cards.length),
       );
       cards.splice(clampedIndex, 0, action.payload.card);
-      state.working = { ...state.working, cards };
+      state.working = withSyncedCards(state.working, cards);
     },
     removeCardAtIndex(state, action: PayloadAction<{ index: number }>) {
       if (!state.working) return;
@@ -120,11 +142,11 @@ export const adminModuleReviewSlice = createSlice({
       if (action.payload.index < 0 || action.payload.index >= cards.length)
         return;
       cards.splice(action.payload.index, 1);
-      state.working = { ...state.working, cards };
+      state.working = withSyncedCards(state.working, cards);
     },
     setQuiz(state, action: PayloadAction<AdminModuleQuizItem[]>) {
       if (!state.working) return;
-      state.working = { ...state.working, quiz: action.payload };
+      state.working = withSyncedQuiz(state.working, action.payload);
     },
     discardChanges(state) {
       if (!state.baseline) return;
