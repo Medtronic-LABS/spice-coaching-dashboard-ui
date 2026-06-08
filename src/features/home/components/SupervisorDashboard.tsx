@@ -1,4 +1,4 @@
-import { ErrorState, LoadingState } from '@/components/ui';
+import { ErrorState, Loader } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
 import { SectionStateCard } from '@/components/common/SectionStateCard';
 import { Button } from '@/components/ui';
@@ -11,7 +11,7 @@ import { ModuleProgressCard } from '@/features/home/components/ModuleProgressCar
 import { PerformanceMatrix } from '@/features/home/components/PerformanceMatrix';
 import { SUPERVISOR_DASHBOARD_CONSTANTS } from '@/features/home/constants/supervisorDashboardConstants';
 import { useSupervisorDashboard } from '@/features/home/hooks/useSupervisorDashboard';
-import { paths } from '@/constants/routes';
+import { paths, buildPath } from '@/constants/routes';
 import { useNavigate } from 'react-router-dom';
 
 export const SupervisorDashboard = () => {
@@ -43,9 +43,7 @@ export const SupervisorDashboard = () => {
   const isInitialLoading = isLoading && !hasAnyData;
   if (isInitialLoading) {
     return (
-      <LoadingState
-        label={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL)}
-      />
+      <Loader label={t(SUPERVISOR_DASHBOARD_CONSTANTS.LOADING.INITIAL_LABEL)} />
     );
   }
 
@@ -112,7 +110,10 @@ export const SupervisorDashboard = () => {
     <LeaderboardCard
       title={t('home.dashboard.sections.topPerformance')}
       items={leaderboard}
-      onViewAll={() => undefined}
+      onViewAll={() => navigate(paths.leaderboard)}
+      onRowClick={(item) => {
+        navigate(buildPath(paths.chwProfileDetail, { id: item.chw_id }));
+      }}
     />
   );
 
@@ -132,7 +133,7 @@ export const SupervisorDashboard = () => {
       title={t('home.dashboard.sections.performanceMatrix')}
       rows={performance}
       onRowClick={(row) => {
-        navigate(`${paths.chwProfiles}/${encodeURIComponent(row.chw_id)}`);
+        navigate(buildPath(paths.chwProfileDetail, { id: row.chw_id }));
       }}
     />
   );
@@ -154,7 +155,13 @@ export const SupervisorDashboard = () => {
       subtitle={t('home.dashboard.flags.subtitle', { count: alerts.length })}
       items={alerts}
       primaryActionLabel={t('home.dashboard.actions.viewAll')}
-      onPrimaryAction={() => undefined}
+      onPrimaryAction={() => navigate(paths.chwProfiles)}
+      onAssignModule={(item) => {
+        navigate(paths.moduleLibrary, { state: { chwId: item.chw_id } });
+      }}
+      onViewProfile={(item) => {
+        navigate(buildPath(paths.chwProfileDetail, { id: item.chw_id }));
+      }}
     />
   );
 
@@ -180,14 +187,14 @@ export const SupervisorDashboard = () => {
   return (
     <section className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-spice-text-primary">
           {t(SUPERVISOR_DASHBOARD_CONSTANTS.HEADER.TITLE)}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="secondary" onClick={() => undefined}>
+          <Button variant="secondary" onClick={() => navigate(paths.reports)}>
             {t('home.supervisorDashboard.actions.exportReport')}
           </Button>
-          <Button onClick={() => undefined}>
+          <Button onClick={() => navigate(paths.moduleLibrary)}>
             {t('home.supervisorDashboard.actions.assignModule')}
           </Button>
         </div>

@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { paths } from '@/constants/routes';
+import { buildPath, paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
 import { ChwProfileDetailPage } from '@/features/chw-profiles/pages/ChwProfileDetailPage';
 
@@ -15,7 +15,7 @@ describe('ChwProfileDetailPage', () => {
         />
       </Routes>,
       {
-        route: `${paths.chwProfiles}/CHW001`,
+        route: buildPath(paths.chwProfileDetail, { id: 'CHW001' }),
       },
     );
 

@@ -1,8 +1,8 @@
+@import './theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import './theme.css';
 
 html,
 body,
@@ -11,5 +11,5 @@ body,
 }
 
 body {
-  @apply m-0 overflow-hidden bg-slate-50 font-sans text-slate-900 antialiased;
+  @apply m-0 overflow-hidden bg-spice-bg-dashboard font-sans text-spice-text-primary antialiased;
 }

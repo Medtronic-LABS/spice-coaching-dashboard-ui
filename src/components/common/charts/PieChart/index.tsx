@@ -11,12 +11,12 @@ import type {
 export type { PieChartProps, PieVariant } from './PieChart.types';
 
 const DEFAULT_COLORS = [
-  '#3b82f6',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
-  '#ec4899',
+  '#1565C0', // Supervisor blue
+  '#2E7D32', // Success
+  '#E65100', // Warning
+  '#D32F2F', // Error
+  '#2962FF', // PM blue
+  '#8B8FA8', // Neutral muted
 ];
 
 function DefaultTooltipContent({
@@ -26,7 +26,7 @@ function DefaultTooltipContent({
 }: RechartsTooltipContentProps) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg bg-white p-2 text-xs shadow-md ring-1 ring-slate-200">
+    <div className="rounded-lg bg-spice-bg-surface p-2 text-xs shadow-spiceCard ring-1 ring-spice-border">
       <div className="font-medium">
         {typeof label === 'string' ? label : ''}
       </div>
@@ -36,7 +36,7 @@ function DefaultTooltipContent({
             key={String(p.dataKey ?? p.name ?? '')}
             className="flex items-center justify-between gap-3"
           >
-            <span className="text-slate-600">{p.name}</span>
+            <span className="text-spice-text-medium">{p.name}</span>
             <span className="font-medium">{String(p.value ?? '')}</span>
           </div>
         ))}

@@ -111,7 +111,7 @@ export const Tabs = ({
   return (
     <div
       className={cn(
-        'flex w-full overflow-x-auto rounded-lg bg-slate-100 p-1',
+        'flex w-full overflow-x-auto rounded-lg bg-spice-bg-tint p-1',
         className,
       )}
       role="tablist"
@@ -137,8 +137,8 @@ export const Tabs = ({
             className={cn(
               'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition',
               isActive
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900',
+                ? 'bg-spice-bg-surface text-spice-text-primary shadow-sm'
+                : 'text-spice-text-muted hover:text-spice-text-primary',
             )}
           >
             {item.label}

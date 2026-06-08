@@ -25,21 +25,93 @@
   "layout": {
     "sidebar": {
       "title": "মাইক্রো লার্নিং অ্যানালিটিক্স ড্যাশবোর্ড",
+      "brand": "SPICE • AI COACHING",
+      "badge": "Bangladesh Pilot",
+      "sections": {
+        "overview": "OVERVIEW",
+        "learning": "LEARNING",
+        "monitoring": "MONITORING"
+      },
       "nav": {
         "home": "হোম",
+        "dashboard": "ড্যাশবোর্ড",
         "chwProfiles": "CHW প্রোফাইলস",
+        "moduleLibrary": "মডিউল লাইব্রেরি",
+        "quizPerformance": "কুইজ পারফরম্যান্স",
+        "leaderboard": "লিডারবোর্ড",
+        "reports": "রিপোর্টস",
         "uiPreview": "UI প্রিভিউ",
         "chartPreview": "চার্ট প্রিভিউ"
+      },
+      "user": {
+        "initials": "RK",
+        "name": "রাশিদা খানাম",
+        "subtitle": "সুপারভাইজার • সিলেট সদর"
       }
     },
     "header": {
+      "welcomeBack": "আবার স্বাগতম, {{name}}",
+      "userName": "সুভোদীপ",
+      "userInitials": "S",
+      "userMenuAriaLabel": "ইউজার মেনু",
       "languageAriaLabel": "ভাষা",
       "languageSelectSr": "ভাষা",
       "languageOptions": {
         "en": "English",
         "bn": "বাংলা"
+      },
+      "switchRole": "{{role}}-এ স্যুইচ করুন",
+      "switchRoleAriaLabel": "ভূমিকা {{role}}-এ পরিবর্তন করুন",
+      "roles": {
+        "supervisor": "সুপারভাইজার",
+        "programManager": "প্রোগ্রাম ম্যানেজার"
       }
     }
+  },
+  "moduleLibrary": {
+    "title": "মডিউল লাইব্রেরি",
+    "description": "লার্নিং মডিউল ব্রাউজ এবং ম্যানেজ করুন।",
+    "assigned": {
+      "badge": "অ্যাসাইনমেন্ট পাঠানো হয়েছে",
+      "title": "মডিউল সফলভাবে অ্যাসাইন হয়েছে",
+      "subtitle": "মডিউলটি অ্যাসাইন করা হয়েছে। তারা তাদের কোচিং স্ক্রিনে সাথে সাথে দেখতে পাবে।",
+      "summary": {
+        "module": "মডিউল",
+        "moduleMeta": "৪টি লেসন • ৩টি প্রশ্ন • ~১৮ মিনিট",
+        "deadline": "ডেডলাইন",
+        "deadlineMeta": "আজ থেকে ১৪ দিন",
+        "assignedTo": "অ্যাসাইনড টু — {{count}} জন CHW"
+      },
+      "next": {
+        "title": "পরবর্তী পদক্ষেপ",
+        "backToLibrary": "মডিউল লাইব্রেরিতে ফিরে যান",
+        "backToLibraryHint": "অ্যাসাইন করা মডিউল দেখুন বা এডিট করুন",
+        "assignMore": "আরও CHW-কে অ্যাসাইন করুন",
+        "assignMoreHint": "এই মডিউলে আরও শাস্ত্য কর্মী যোগ করুন",
+        "goDashboard": "ড্যাশবোর্ডে যান",
+        "goDashboardHint": "মডিউল কমপ্লিশন উইজেটে অগ্রগতি ট্র্যাক করুন"
+      },
+      "actions": {
+        "back": "মডিউল লাইব্রেরিতে ফিরে যান",
+        "goDashboard": "ড্যাশবোর্ডে যান"
+      },
+      "sample": {
+        "module": "HTN রেফারাল থ্রেশহোল্ডস",
+        "deadline": "সোম, ২৮ এপ্রি ২০২৬"
+      }
+    }
+  },
+  "quizPerformance": {
+    "title": "কুইজ পারফরম্যান্স",
+    "description": "কুইজ ফলাফল এবং ট্রেন্ড রিভিউ করুন।"
+  },
+  "leaderboard": {
+    "title": "লিডারবোর্ড",
+    "description": "CHW-দের মধ্যে সেরা পারফরম্যান্স দেখুন।"
+  },
+  "reports": {
+    "title": "রিপোর্টস",
+    "description": "রিপোর্ট এক্সপোর্ট এবং সারাংশ রিভিউ করুন।"
   },
   "errorBoundary": {
     "description": "ড্যাশবোর্ডে অনাকাঙ্ক্ষিত একটি ত্রুটি হয়েছে। আপনি পৃষ্ঠা রিফ্রেশ করতে পারেন অথবা হোম স্ক্রিনে ফিরে যেতে পারেন।",

@@ -24,14 +24,16 @@ export const ListItem = ({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3',
+        'flex items-center justify-between gap-3 rounded-lg border border-spice-border bg-spice-bg-surface p-3',
         className,
       )}
     >
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-slate-900">{title}</p>
+        <p className="truncate text-sm font-medium text-spice-text-primary">
+          {title}
+        </p>
         {subtitle ? (
-          <p className="truncate text-xs text-slate-500">{subtitle}</p>
+          <p className="truncate text-xs text-spice-text-muted">{subtitle}</p>
         ) : null}
       </div>
       {rightContent ? <div className="shrink-0">{rightContent}</div> : null}

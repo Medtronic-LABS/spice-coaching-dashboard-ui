@@ -16,16 +16,19 @@ export function Table<T extends object>({
   return (
     <div
       className={cn(
-        'w-full overflow-x-auto rounded-lg border border-slate-200',
+        'w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
         containerClassName,
       )}
     >
       <table
-        className={cn('w-full text-left text-sm text-slate-700', className)}
+        className={cn(
+          'w-full text-left text-sm text-spice-text-medium',
+          className,
+        )}
         {...tableProps}
       >
         {caption ? <caption className="sr-only">{caption}</caption> : null}
-        <thead className="bg-slate-50 text-xs uppercase text-slate-700">
+        <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium">
           <tr>
             {columns.map((col) => (
               <th
@@ -38,12 +41,12 @@ export function Table<T extends object>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 bg-white">
+        <tbody className="divide-y divide-spice-border bg-spice-bg-surface">
           {data.length > 0 ? (
             data.map((row) => (
               <tr
                 key={keyExtractor(row)}
-                className="transition-colors hover:bg-slate-50"
+                className="transition-colors hover:bg-spice-semantic-warningBg"
               >
                 {columns.map((col) => (
                   <td
@@ -59,7 +62,7 @@ export function Table<T extends object>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-6 py-8 text-center text-slate-500"
+                className="px-6 py-8 text-center text-spice-text-muted"
               >
                 {emptyMessage}
               </td>

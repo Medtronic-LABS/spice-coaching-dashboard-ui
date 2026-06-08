@@ -17,7 +17,10 @@ export function PageTitle({
 }: PageTitleProps) {
   return (
     <Comp
-      className={cn('text-2xl font-semibold text-slate-900', className)}
+      className={cn(
+        'text-2xl font-semibold text-spice-text-primary',
+        className,
+      )}
       {...props}
     >
       {title}

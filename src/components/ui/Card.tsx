@@ -18,9 +18,9 @@ export interface CardProps {
 }
 
 const variantClasses: Record<NonNullable<CardProps['variant']>, string> = {
-  default: 'bg-white',
-  bordered: 'bg-white border border-slate-200',
-  elevated: 'bg-white shadow-sm ring-1 ring-slate-200/70',
+  default: 'bg-spice-bg-surface',
+  bordered: 'bg-spice-bg-surface border border-spice-border',
+  elevated: 'bg-spice-bg-surface shadow-spiceCard',
 };
 
 export const Card = ({

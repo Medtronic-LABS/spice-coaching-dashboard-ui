@@ -38,8 +38,8 @@ describe('ChartPreview', () => {
     expect(screen.getByText(/recent modules \(table\)/i)).toBeInTheDocument();
 
     // Score rendering branches (>=90 green, >=80 yellow, else red).
-    expect(screen.getByText('95%')).toHaveClass('text-green-600');
-    expect(screen.getByText('88%')).toHaveClass('text-yellow-600');
-    expect(screen.getByText('72%')).toHaveClass('text-red-600');
+    expect(screen.getByText('95%')).toHaveClass('text-spice-semantic-success');
+    expect(screen.getByText('88%')).toHaveClass('text-spice-semantic-warning');
+    expect(screen.getByText('72%')).toHaveClass('text-spice-semantic-error');
   });
 });

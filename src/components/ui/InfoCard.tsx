@@ -16,10 +16,10 @@ export interface InfoCardProps {
 }
 
 const toneClassMap: Record<NonNullable<InfoCardProps['tone']>, string> = {
-  info: 'border-blue-200 bg-blue-50',
-  success: 'border-green-200 bg-green-50',
-  warning: 'border-yellow-200 bg-yellow-50',
-  critical: 'border-red-200 bg-red-50',
+  info: 'border-spice-semantic-info/25 bg-spice-semantic-infoBg',
+  success: 'border-spice-semantic-success/25 bg-spice-semantic-successBg',
+  warning: 'border-spice-semantic-warning/25 bg-spice-semantic-warningBg',
+  critical: 'border-spice-semantic-error/25 bg-spice-semantic-errorBg',
 };
 
 export const InfoCard = ({
@@ -31,8 +31,10 @@ export const InfoCard = ({
 
   return (
     <Card variant="bordered" className={cn(toneClassMap[tone])}>
-      <h4 className="text-base font-semibold text-slate-900">{title}</h4>
-      <p className="mt-1 text-sm text-slate-700">
+      <h4 className="text-base font-semibold text-spice-text-primary">
+        {title}
+      </h4>
+      <p className="mt-1 text-sm text-spice-text-medium">
         {description || t('ui.infoCard.emptyFallback')}
       </p>
     </Card>

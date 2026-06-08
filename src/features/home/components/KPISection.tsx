@@ -5,57 +5,6 @@ export interface KPISectionProps {
   kpis: DashboardSummaryKpi[];
 }
 
-const CheckIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
-
-const CapIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M12 3 2 8l10 5 10-5-10-5Z" />
-    <path d="M6 10v6c0 2 3 4 6 4s6-2 6-4v-6" />
-  </svg>
-);
-
-const AlertIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M12 9v4" />
-    <path d="M12 17h.01" />
-    <path d="M10.3 3.6 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z" />
-  </svg>
-);
-
 function kpiValue(kpi: DashboardSummaryKpi): string | number {
   const unit = kpi.unit ?? '';
   if (kpi.type === 'progress') return kpi.value;
@@ -73,25 +22,29 @@ function kpiBadgeLabel(kpi: DashboardSummaryKpi): string | undefined {
   return kpi.status === 'critical' ? 'ALERT' : undefined;
 }
 
-function kpiIcon(kpi: DashboardSummaryKpi) {
-  if (kpi.type === 'alert') return <AlertIcon />;
-  if (kpi.id.toLowerCase().includes('quiz')) return <CapIcon />;
-  return <CheckIcon />;
+function kpiValueClassName(kpi: DashboardSummaryKpi): string | undefined {
+  // Matches design system examples: highlight some KPIs in brand blue,
+  // escalations/critical alerts in red, otherwise default text.
+  if (kpi.status === 'critical') return 'text-spice-semantic-error';
+  if (kpi.type === 'alert' && kpi.status === 'warning')
+    return 'text-spice-semantic-error';
+  if (kpi.status === 'good') return 'text-spice-semantic-success';
+  if (kpi.status === 'info') return 'text-spice-brand-primary';
+  return undefined;
 }
 
 export const KPISection = ({ kpis }: KPISectionProps) => {
   const visibleKpis = kpis.slice(0, 3);
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-wrap gap-3">
       {visibleKpis.map((kpi) => (
         <StatCard
           key={kpi.id}
-          icon={kpiIcon(kpi)}
           label={kpi.title}
           value={kpiValue(kpi)}
-          change={kpi.change}
           supportingText={kpiSupportingText(kpi)}
           badgeLabel={kpiBadgeLabel(kpi)}
+          valueClassName={kpiValueClassName(kpi)}
         />
       ))}
     </div>

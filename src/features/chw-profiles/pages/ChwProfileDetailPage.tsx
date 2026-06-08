@@ -7,7 +7,7 @@ import {
   Button,
   Card,
   ErrorState,
-  LoadingState,
+  Loader,
   SectionHeader,
   StatusBadge,
 } from '@/components/ui';
@@ -57,7 +57,9 @@ export const ChwProfileDetailPage = () => {
         header: t('chwProfiles.detail.modules.columns.passRate'),
         className: 'text-right',
         render: (row) => (
-          <span className="font-semibold text-slate-900">{`${row.pass_rate}%`}</span>
+          <span className="font-semibold text-spice-text-primary">
+            {`${row.pass_rate}%`}
+          </span>
         ),
       },
       {
@@ -82,7 +84,9 @@ export const ChwProfileDetailPage = () => {
         header: t('chwProfiles.detail.quiz.columns.score'),
         className: 'text-right',
         render: (row) => (
-          <span className="font-semibold text-slate-900">{`${row.score}%`}</span>
+          <span className="font-semibold text-spice-text-primary">
+            {`${row.score}%`}
+          </span>
         ),
       },
       {
@@ -121,7 +125,7 @@ export const ChwProfileDetailPage = () => {
   }
 
   if (isLoading) {
-    return <LoadingState label={t('chwProfiles.detail.loading')} />;
+    return <Loader label={t('chwProfiles.detail.loading')} />;
   }
 
   if (isError || !data) {
@@ -151,10 +155,10 @@ export const ChwProfileDetailPage = () => {
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">
+          <h2 className="text-2xl font-semibold text-spice-text-primary">
             {t('chwProfiles.detail.title')}
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-spice-text-muted">
             {t('chwProfiles.detail.subtitle')}
           </p>
         </div>
@@ -166,17 +170,17 @@ export const ChwProfileDetailPage = () => {
       <div className="grid gap-4 lg:grid-cols-[360px,1fr]">
         <Card variant="elevated" className="space-y-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-sm font-bold text-slate-700">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-spice-bg-tint text-sm font-bold text-spice-text-medium ring-1 ring-spice-border">
               {getInitials(data.name)}
             </div>
             <div className="min-w-0">
-              <div className="truncate text-lg font-semibold text-slate-900">
+              <div className="truncate text-lg font-semibold text-spice-text-primary">
                 {data.name}
               </div>
-              <div className="text-sm text-slate-500">{data.chw_id}</div>
+              <div className="text-sm text-spice-text-muted">{data.chw_id}</div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusBadge status="success" label={t('status.onTrack')} />
-                <Badge className="bg-yellow-100 text-yellow-800">
+                <Badge className="bg-spice-semantic-warningBg text-spice-semantic-warning ring-1 ring-spice-semantic-warning/25">
                   {t('chwProfiles.detail.streakBadge', {
                     days: performance.application_days,
                   })}
@@ -187,51 +191,54 @@ export const ChwProfileDetailPage = () => {
 
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">
+              <span className="text-spice-text-muted">
                 {t('chwProfiles.detail.meta.joined')}
               </span>
-              <span className="font-medium text-slate-900">{meta.joined}</span>
+              <span className="font-medium text-spice-text-primary">
+                {meta.joined}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">
+              <span className="text-spice-text-muted">
                 {t('chwProfiles.detail.meta.lastActive')}
               </span>
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-spice-text-primary">
                 {meta.last_active}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">
+              <span className="text-spice-text-muted">
                 {t('chwProfiles.detail.meta.totalPoints')}
               </span>
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-spice-text-primary">
                 {t('chwProfiles.detail.points', { count: meta.total_points })}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">
+              <span className="text-spice-text-muted">
                 {t('chwProfiles.detail.meta.leaderboardRank')}
               </span>
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-spice-text-primary">
                 #{meta.leaderboard_rank}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-500">
+              <span className="text-spice-text-muted">
                 {t('chwProfiles.detail.meta.badges')}
               </span>
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-spice-text-primary">
                 {t('chwProfiles.detail.badgesCount', { count: meta.badges })}
               </span>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Button onClick={() => {}}>
+            <Button
+              onClick={() =>
+                navigate(paths.moduleLibrary, { state: { chwId: chwId } })
+              }
+            >
               {t('chwProfiles.detail.actions.assign')}
-            </Button>
-            <Button variant="secondary" onClick={() => {}}>
-              {t('chwProfiles.detail.actions.flag')}
             </Button>
           </div>
         </Card>
@@ -239,48 +246,48 @@ export const ChwProfileDetailPage = () => {
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Card variant="bordered" className="space-y-1">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">
+              <p className="text-xs font-semibold tracking-wide text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.modulesDone')}
               </p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold text-spice-text-primary">
                 {`${performance.modules_completed}/${performance.modules_total}`}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.allComplete')}
               </p>
             </Card>
             <Card variant="bordered" className="space-y-1">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">
+              <p className="text-xs font-semibold tracking-wide text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.applicationKnowledge')}
               </p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold text-spice-text-primary">
                 {t('chwProfiles.detail.daysValue', {
                   count: performance.application_days,
                 })}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.bestLabel')}
               </p>
             </Card>
             <Card variant="bordered" className="space-y-1">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">
+              <p className="text-xs font-semibold tracking-wide text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.passRate')}
               </p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold text-spice-text-primary">
                 {`${performance.quiz_accuracy}%`}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.accuracyLabel')}
               </p>
             </Card>
             <Card variant="bordered" className="space-y-1">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">
+              <p className="text-xs font-semibold tracking-wide text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.totalAttempts')}
               </p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold text-spice-text-primary">
                 {performance.total_attempts}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-spice-text-muted">
                 {t('chwProfiles.detail.metrics.attemptsLabel')}
               </p>
             </Card>

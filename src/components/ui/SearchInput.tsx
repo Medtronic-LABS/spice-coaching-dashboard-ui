@@ -43,7 +43,7 @@ export const SearchInput = ({
         ariaLabel ?? (ariaLabelledBy ? undefined : t('ui.search.ariaLabel'))
       }
       className={cn(
-        'h-10 w-full min-w-0 sm:min-w-56 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200',
+        'h-10 w-full min-w-0 sm:min-w-56 rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25',
         className,
       )}
       {...props}

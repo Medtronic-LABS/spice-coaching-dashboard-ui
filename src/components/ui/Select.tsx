@@ -37,7 +37,7 @@ export const Select = ({
   return (
     <select
       className={cn(
-        'h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200',
+        'h-10 rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25',
         className,
       )}
       value={value}

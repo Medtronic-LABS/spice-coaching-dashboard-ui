@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
+import { paths } from '@/constants/routes';
 import { ErrorBoundary } from './ErrorBoundary';
 
 // Components that throw errors for testing
@@ -119,6 +120,6 @@ describe('ErrorBoundary', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /go to home/i }));
-    expect(assignMock).toHaveBeenCalledWith('/');
+    expect(assignMock).toHaveBeenCalledWith(paths.home);
   });
 });

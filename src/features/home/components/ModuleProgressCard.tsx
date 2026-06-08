@@ -43,30 +43,37 @@ export const ModuleProgressCard = ({
         title={resolvedTitle}
         subtitle={subtitle}
         action={
-          <Button variant="primary" onClick={onNew}>
+          <Button
+            variant="secondary"
+            onClick={() => (onNew ? onNew() : undefined)}
+          >
             {t('home.dashboard.modules.actions.new')}
           </Button>
         }
       />
 
-      <div className="divide-y divide-slate-200">
+      <div className="divide-y divide-spice-border">
         {items.map((item) => {
           const pctClass =
-            item.status === 'delayed' ? 'text-red-700' : 'text-slate-700';
+            item.status === 'delayed'
+              ? 'text-spice-semantic-error'
+              : 'text-spice-text-medium';
           const barClass =
-            item.status === 'delayed' ? 'bg-red-700' : 'bg-blue-800';
+            item.status === 'delayed'
+              ? 'bg-spice-semantic-error'
+              : 'bg-spice-brand-primary';
 
           const content = (
             <div className="py-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-sm font-medium text-slate-900">
+                <p className="min-w-0 truncate text-sm font-medium text-spice-text-primary">
                   {item.name}
                 </p>
                 <div className={cn('text-sm font-semibold', pctClass)}>
                   {item.progress}%
                 </div>
               </div>
-              <div className="mt-1 flex items-center justify-between gap-3 text-xs text-slate-500">
+              <div className="mt-1 flex items-center justify-between gap-3 text-xs text-spice-text-muted">
                 <span>
                   {t('home.dashboard.modules.rowMeta', {
                     completed: item.completed,
@@ -88,7 +95,7 @@ export const ModuleProgressCard = ({
               onClick={() => onRowClick(item)}
               className={cn(
                 'w-full text-left transition',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard',
               )}
               aria-label={t('home.modules.rowAriaLabel', { name: item.name })}
             >

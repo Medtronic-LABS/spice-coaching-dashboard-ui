@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { Home } from '@/features/home/pages/Home';
 
+vi.mock('@/constants/role', () => ({
+  getCurrentRole: () => 'supervisor' as const,
+}));
+
 vi.mock('@/components/common/charts', async () => {
   return {
     BarChart: ({ ariaLabel }: { ariaLabel: string }) => (
@@ -22,7 +26,7 @@ vi.mock('@/features/home/components/SupervisorDashboard', () => ({
 }));
 
 describe('Home', () => {
-  it('renders dashboard heading and default content', () => {
+  it('renders supervisor dashboard for supervisor role', () => {
     render(<Home />);
 
     expect(screen.getByText('SupervisorDashboard')).toBeInTheDocument();

@@ -62,9 +62,9 @@ export const PerformanceMatrix = ({
                 });
 
           return (
-            <span className="flex flex-col text-sm font-semibold text-slate-900">
+            <span className="flex flex-col text-sm font-semibold text-spice-text-primary">
               {`${row.modules_done}/${row.modules_total}`}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-spice-text-muted">
                 {remainingLabel}
               </span>
             </span>
@@ -90,9 +90,9 @@ export const PerformanceMatrix = ({
               : ((row.quiz_passed / attempted) * 100).toFixed(2);
 
           return (
-            <span className="flex flex-col text-sm font-semibold text-slate-900">
+            <span className="flex flex-col text-sm font-semibold text-spice-text-primary">
               {`${pct}%`}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-spice-text-muted">
                 {t('home.performanceMatrix.attemptedFails', {
                   attempted,
                   fails: row.quiz_failed,
@@ -167,8 +167,8 @@ export const PerformanceMatrix = ({
                 className={[
                   'h-8 rounded-full px-3 text-xs font-semibold ring-1 transition',
                   isActive
-                    ? 'bg-blue-50 text-blue-700 ring-blue-200'
-                    : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50',
+                    ? 'bg-spice-bg-tint text-spice-brand-primary ring-spice-border-mid'
+                    : 'bg-spice-bg-surface text-spice-text-muted ring-spice-border hover:bg-spice-bg-tint',
                 ].join(' ')}
               >
                 {item.label}

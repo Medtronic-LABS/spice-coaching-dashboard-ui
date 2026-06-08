@@ -45,10 +45,10 @@ const tableColumns: Array<ColumnDef<TableRow>> = [
       <span
         className={`font-semibold ${
           row.score >= 90
-            ? 'text-green-600'
+            ? 'text-spice-semantic-success'
             : row.score >= 80
-              ? 'text-yellow-600'
-              : 'text-red-600'
+              ? 'text-spice-semantic-warning'
+              : 'text-spice-semantic-error'
         }`}
       >
         {row.score}%
@@ -63,18 +63,18 @@ export function ChartPreview() {
     <section>
       <div className="space-y-3">
         <PageTitle title="Dashboard" />
-        <p className="text-sm text-slate-700">
+        <p className="text-sm text-spice-text-medium">
           Welcome to the Micro Learning Analytics Dashboard. Below are some
           example generic components populated with mock data.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-spice-bg-surface p-6 rounded-xl shadow-spiceCard border border-spice-border">
           <PageTitle
             as="h3"
             title="Engagement Chart (BarChart)"
-            className="text-lg text-slate-800 mb-4"
+            className="text-lg text-spice-text-primary mb-4"
           />
           <BarChart
             data={mockChartData}
@@ -87,11 +87,11 @@ export function ChartPreview() {
           />
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-spice-bg-surface p-6 rounded-xl shadow-spiceCard border border-spice-border">
           <PageTitle
             as="h3"
             title="Recent Modules (Table)"
-            className="text-lg text-slate-800 mb-4"
+            className="text-lg text-spice-text-primary mb-4"
           />
           <Table
             data={mockTableData}
@@ -102,11 +102,11 @@ export function ChartPreview() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-spice-bg-surface p-6 rounded-xl shadow-spiceCard border border-spice-border">
           <PageTitle
             as="h3"
             title="Trend Over Time (LineChart)"
-            className="text-lg text-slate-800 mb-4"
+            className="text-lg text-spice-text-primary mb-4"
           />
           <LineChart
             data={mockChartData}
@@ -119,11 +119,11 @@ export function ChartPreview() {
           />
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-spice-bg-surface p-6 rounded-xl shadow-spiceCard border border-spice-border">
           <PageTitle
             as="h3"
             title="Status Distribution (PieChart)"
-            className="text-lg text-slate-800 mb-4"
+            className="text-lg text-spice-text-primary mb-4"
           />
           <PieChart
             data={mockPieData}
