@@ -1,10 +1,12 @@
 import { Component, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { paths } from '@/constants/routes';
+import { reportError } from '@/observability/reportError';
 
 type ErrorBoundaryProps = {
   children: ReactNode;
   fallback?: ReactNode;
+  variant?: 'page' | 'section';
 };
 
 type ErrorBoundaryState = {
@@ -12,12 +14,22 @@ type ErrorBoundaryState = {
   error?: unknown;
 };
 
-const ErrorBoundaryFallback = ({ message }: { message: string | null }) => {
+const ErrorBoundaryFallback = ({
+  message,
+  variant,
+}: {
+  message: string | null;
+  variant: 'page' | 'section';
+}) => {
   const { t } = useTranslation();
   const showDetails = Boolean(import.meta.env?.DEV) && Boolean(message);
+  const shellClassName =
+    variant === 'page'
+      ? 'min-h-screen bg-spice-bg-dashboard px-4 py-10'
+      : 'rounded-xl border border-spice-border bg-spice-bg-surface p-6 shadow-spiceCard';
 
   return (
-    <div className="min-h-screen bg-spice-bg-dashboard px-4 py-10">
+    <div className={shellClassName}>
       <div className="mx-auto w-full max-w-2xl">
         <div className="rounded-xl border border-spice-border bg-spice-bg-surface p-6 shadow-spiceCard">
           <div className="flex items-start gap-4">
@@ -58,9 +70,11 @@ const ErrorBoundaryFallback = ({ message }: { message: string | null }) => {
             </div>
           </div>
         </div>
-        <p className="mx-auto mt-4 max-w-xl text-center text-xs text-spice-text-muted">
-          {t('errorBoundary.footerHelp')}
-        </p>
+        {variant === 'page' ? (
+          <p className="mx-auto mt-4 max-w-xl text-center text-xs text-spice-text-muted">
+            {t('errorBoundary.footerHelp')}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -78,8 +92,19 @@ export class ErrorBoundary extends Component<
 
   public componentDidCatch(error: unknown, errorInfo: unknown) {
     this.setState({ error });
-    // Keep logging lightweight; teams can wire this to a reporter later.
-    console.error('Unhandled UI error', error, errorInfo);
+    reportError({
+      message: error instanceof Error ? error.message : 'Unhandled UI error',
+      stack: error instanceof Error ? error.stack : undefined,
+      source: 'error-boundary',
+      context: {
+        componentStack:
+          typeof errorInfo === 'object' &&
+          errorInfo !== null &&
+          'componentStack' in errorInfo
+            ? String(errorInfo.componentStack)
+            : undefined,
+      },
+    });
   }
 
   private getErrorMessage(error: unknown): string | null {
@@ -91,7 +116,12 @@ export class ErrorBoundary extends Component<
   public render() {
     if (this.state.hasError) {
       const message = this.getErrorMessage(this.state.error);
-      return this.props.fallback ?? <ErrorBoundaryFallback message={message} />;
+      const variant = this.props.variant ?? 'page';
+      return (
+        this.props.fallback ?? (
+          <ErrorBoundaryFallback message={message} variant={variant} />
+        )
+      );
     }
 
     return this.props.children;

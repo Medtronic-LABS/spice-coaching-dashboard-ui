@@ -1,5 +1,5 @@
 # Vite dev server with bind mount; open http://<vm-ip>:5173 from your machine.
-# Uses .env from the project root if present (copy from .env.example).
+# Uses `.env` from the project root (created from `.env.example` on first `npm run dev`).
 services:
   dev:
     image: node:22-alpine

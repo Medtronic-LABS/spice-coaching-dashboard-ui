@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Loader } from '@/components/ui/Loader';
@@ -18,9 +19,11 @@ export const MainLayout = () => {
             isProgramManager ? 'p-6' : 'p-8'
           }`}
         >
-          <Suspense fallback={<Loader />}>
-            <Outlet />
-          </Suspense>
+          <ErrorBoundary variant="section">
+            <Suspense fallback={<Loader />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
     </div>

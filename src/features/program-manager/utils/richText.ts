@@ -3,6 +3,7 @@ import type {
   RichParagraphBlock,
   RichTextLeaf,
 } from '@/features/program-manager/types/programManager.types';
+import { normalizeHref, sanitizeHrefForHtml } from '@/utils/sanitizeHref';
 
 function escapeHtml(value: string): string {
   return value
@@ -16,10 +17,11 @@ function leavesToHtml(leaves: RichTextLeaf[]): string {
     .map((leaf) => {
       const text = escapeHtml(leaf.text);
       const linkMark = leaf.marks?.find((mark) => mark.type === 'link');
-      const linked =
+      const safeHref =
         linkMark && linkMark.type === 'link'
-          ? `<a href="${escapeHtml(linkMark.attrs.href)}">${text}</a>`
-          : text;
+          ? sanitizeHrefForHtml(linkMark.attrs.href)
+          : null;
+      const linked = safeHref ? `<a href="${safeHref}">${text}</a>` : text;
       const wrapped = ((): string => {
         let value = linked;
         if (leaf.marks?.some((mark) => mark.type === 'code')) {
@@ -172,10 +174,43 @@ function paragraphFromText(value: string): RichParagraphBlock {
   return { type: 'paragraph', content: [leaf] };
 }
 
-export function htmlToBlocks(html: string): RichBlock[] {
-  if (!html.trim()) return [paragraphFromText('')];
+function sanitizeRichTextHtml(html: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+  const container = doc.body.firstElementChild;
+  if (!container) return '';
+
+  container
+    .querySelectorAll('script, style, iframe, object, embed')
+    .forEach((node) => node.remove());
+
+  container.querySelectorAll('*').forEach((element) => {
+    Array.from(element.attributes).forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      if (name.startsWith('on') || name === 'style') {
+        element.removeAttribute(attribute.name);
+      }
+    });
+
+    if (element.tagName.toLowerCase() === 'a') {
+      const href = element.getAttribute('href');
+      if (href && !normalizeHref(href)) {
+        element.removeAttribute('href');
+      }
+    }
+  });
+
+  return container.innerHTML;
+}
+
+export function htmlToBlocks(html: string): RichBlock[] {
+  if (!html.trim()) return [paragraphFromText('')];
+  const sanitizedHtml = sanitizeRichTextHtml(html);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(
+    `<div>${sanitizedHtml}</div>`,
+    'text/html',
+  );
   const container = doc.body.firstElementChild;
   if (!container) return [paragraphFromText('')];
   const blocks: RichBlock[] = [];
@@ -189,16 +224,26 @@ export function htmlToBlocks(html: string): RichBlock[] {
           leaves.push({ type: 'text', text: child.textContent ?? '' });
           return;
         }
-        if (
-          child.nodeType === Node.ELEMENT_NODE &&
-          ['strong', 'b'].includes((child as Element).tagName.toLowerCase())
-        ) {
-          leaves.push({
-            type: 'text',
-            text: child.textContent ?? '',
-            marks: [{ type: 'bold' }],
-          });
-          return;
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          const el = child as Element;
+          const tag = el.tagName.toLowerCase();
+          if (tag === 'a') {
+            const href = normalizeHref(el.getAttribute('href') ?? '');
+            leaves.push({
+              type: 'text',
+              text: el.textContent ?? '',
+              marks: href ? [{ type: 'link', attrs: { href } }] : undefined,
+            });
+            return;
+          }
+          if (['strong', 'b'].includes(tag)) {
+            leaves.push({
+              type: 'text',
+              text: child.textContent ?? '',
+              marks: [{ type: 'bold' }],
+            });
+            return;
+          }
         }
         leaves.push({ type: 'text', text: child.textContent ?? '' });
       });

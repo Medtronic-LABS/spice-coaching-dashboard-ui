@@ -1,9 +1,17 @@
-import { useEffect, useRef } from 'react';
 import type { RichBlock } from '@/features/program-manager/types/programManager.types';
 import {
-  blocksToHtml,
-  htmlToBlocks,
-} from '@/features/program-manager/utils/richText';
+  blocksToTiptapDoc,
+  richBlocksEqual,
+  tiptapDocToBlocks,
+} from '@/features/module-library/utils/richTextDocument';
+import { RichTextEditor as MantineRichTextEditor } from '@mantine/tiptap';
+import Link from '@tiptap/extension-link';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Underline from '@tiptap/extension-underline';
+import type { Editor } from '@tiptap/react';
+import { useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useEffect, useMemo, useRef } from 'react';
 
 interface RichTextEditorProps {
   value: RichBlock[];
@@ -12,118 +20,149 @@ interface RichTextEditorProps {
   readOnly?: boolean;
 }
 
+function serializeBlocks(blocks: RichBlock[]): string {
+  return JSON.stringify(blocks);
+}
+
+function applyBlocksToEditor(editor: Editor, blocks: RichBlock[]): void {
+  editor.commands.setContent(blocksToTiptapDoc(blocks), { emitUpdate: false });
+}
+
+const editorSurfaceClassName =
+  'text-sm leading-7 text-spice-text-primary outline-none [&_a]:text-spice-brand-primary [&_a]:underline [&_li]:my-0.5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-1 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6';
+
 export const RichTextEditor = ({
   value,
   onChange,
   minHeightClassName = 'min-h-[180px]',
   readOnly = false,
 }: RichTextEditorProps) => {
-  const editorRef = useRef<HTMLDivElement | null>(null);
+  const onChangeRef = useRef(onChange);
+  const valueRef = useRef(value);
+  const lastEmittedJsonRef = useRef(serializeBlocks(value));
+  const suppressOnChangeRef = useRef(true);
+  const editorReadyRef = useRef(false);
+  const readOnlyRef = useRef(readOnly);
+
+  onChangeRef.current = onChange;
+  valueRef.current = value;
+  readOnlyRef.current = readOnly;
+
+  const editorAttributes = useMemo(
+    () => ({
+      class: `${minHeightClassName} ${editorSurfaceClassName} bg-[#f3f4fb] p-8`,
+    }),
+    [minHeightClassName],
+  );
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        link: false,
+        code: false,
+        codeBlock: false,
+      }),
+      TextStyle,
+      Underline,
+      Link.configure({
+        autolink: true,
+        linkOnPaste: true,
+        openOnClick: true,
+        HTMLAttributes: {
+          rel: 'noopener noreferrer',
+          target: '_blank',
+        },
+      }),
+    ],
+    editable: !readOnly,
+    onCreate: ({ editor: createdEditor }) => {
+      editorReadyRef.current = false;
+      suppressOnChangeRef.current = true;
+      applyBlocksToEditor(createdEditor, valueRef.current);
+      lastEmittedJsonRef.current = serializeBlocks(valueRef.current);
+      requestAnimationFrame(() => {
+        editorReadyRef.current = true;
+        suppressOnChangeRef.current = false;
+      });
+    },
+    onUpdate: ({ editor: nextEditor, transaction }) => {
+      if (!editorReadyRef.current) return;
+      if (suppressOnChangeRef.current) return;
+      if (!transaction.docChanged) return;
+      const nextBlocks = tiptapDocToBlocks(nextEditor.getJSON());
+      lastEmittedJsonRef.current = serializeBlocks(nextBlocks);
+      onChangeRef.current(nextBlocks);
+    },
+    editorProps: {
+      attributes: editorAttributes,
+    },
+  });
+
+  // External updates (e.g. switching lessons) when editor is not focused.
+  useEffect(() => {
+    if (!editor) return;
+
+    const incomingJson = serializeBlocks(value);
+    if (incomingJson === lastEmittedJsonRef.current) return;
+
+    const editorBlocks = tiptapDocToBlocks(editor.getJSON());
+    if (richBlocksEqual(editorBlocks, value)) {
+      lastEmittedJsonRef.current = incomingJson;
+      return;
+    }
+
+    if (editor.isFocused) return;
+
+    suppressOnChangeRef.current = true;
+    applyBlocksToEditor(editor, value);
+    lastEmittedJsonRef.current = incomingJson;
+    suppressOnChangeRef.current = false;
+  }, [editor, value]);
 
   useEffect(() => {
-    if (!editorRef.current) return;
-    const nextHtml = blocksToHtml(value);
-    if (editorRef.current.innerHTML !== nextHtml) {
-      editorRef.current.innerHTML = nextHtml;
-    }
-  }, [value]);
-
-  const runCommand = (
-    command:
-      | 'bold'
-      | 'italic'
-      | 'insertUnorderedList'
-      | 'insertOrderedList'
-      | 'undo'
-      | 'redo',
-  ) => {
-    if (readOnly) return;
-    editorRef.current?.focus();
-    document.execCommand(command);
-    if (editorRef.current) {
-      onChange(htmlToBlocks(editorRef.current.innerHTML));
-    }
-  };
-
-  const toolbarButtonClassName =
-    'rounded-md px-2 py-1 text-xs font-semibold text-spice-text-medium hover:bg-spice-bg-tint';
+    if (!editor) return;
+    editor.setEditable(!readOnly);
+  }, [editor, readOnly]);
 
   return (
     <div className="rounded-xl border border-spice-border bg-spice-bg-surface shadow-spiceKpi">
-      <div className="flex items-center gap-1 border-b border-spice-border bg-spice-bg-surface px-3 py-2">
-        <button
-          type="button"
-          className={`${toolbarButtonClassName} ${readOnly ? 'opacity-50' : ''}`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runCommand('bold')}
-          title="Bold"
-          disabled={readOnly}
-        >
-          B
-        </button>
-        <button
-          type="button"
-          className={`${toolbarButtonClassName} italic ${readOnly ? 'opacity-50' : ''}`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runCommand('italic')}
-          title="Italic"
-          disabled={readOnly}
-        >
-          I
-        </button>
-        <span className="mx-1 h-4 w-px bg-spice-border" />
-        <button
-          type="button"
-          className={`${toolbarButtonClassName} ${readOnly ? 'opacity-50' : ''}`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runCommand('insertUnorderedList')}
-          title="Bullet list"
-          disabled={readOnly}
-        >
-          • List
-        </button>
-        <button
-          type="button"
-          className={`${toolbarButtonClassName} ${readOnly ? 'opacity-50' : ''}`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runCommand('insertOrderedList')}
-          title="Numbered list"
-          disabled={readOnly}
-        >
-          1. List
-        </button>
-        <span className="mx-1 h-4 w-px bg-spice-border" />
-        <button
-          type="button"
-          className={`${toolbarButtonClassName} ${readOnly ? 'opacity-50' : ''}`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runCommand('undo')}
-          title="Undo"
-          disabled={readOnly}
-        >
-          ↶
-        </button>
-        <button
-          type="button"
-          className={`${toolbarButtonClassName} ${readOnly ? 'opacity-50' : ''}`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => runCommand('redo')}
-          title="Redo"
-          disabled={readOnly}
-        >
-          ↷
-        </button>
-      </div>
-      <div
-        ref={editorRef}
-        contentEditable={!readOnly}
-        suppressContentEditableWarning
-        className={`${minHeightClassName} bg-[#f3f4fb] p-8 text-sm leading-7 text-spice-text-primary outline-none [&_p]:my-0 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 ${readOnly ? 'cursor-not-allowed opacity-80' : ''}`}
-        onInput={(event) => {
-          if (readOnly) return;
-          onChange(htmlToBlocks(event.currentTarget.innerHTML));
-        }}
-      />
+      {editor ? (
+        <MantineRichTextEditor editor={editor}>
+          {!readOnly ? (
+            <div className="border-b border-spice-border bg-spice-bg-surface px-3 py-2 [&_.mantine-RichTextEditor-control[data-active='true']]:bg-blue-100 [&_.mantine-RichTextEditor-control[aria-pressed='true']]:bg-blue-100">
+              <MantineRichTextEditor.Toolbar>
+                <MantineRichTextEditor.ControlsGroup>
+                  <MantineRichTextEditor.Bold />
+                  <MantineRichTextEditor.Italic />
+                  <MantineRichTextEditor.Underline />
+                  <MantineRichTextEditor.Strikethrough />
+                </MantineRichTextEditor.ControlsGroup>
+
+                <MantineRichTextEditor.ControlsGroup>
+                  <MantineRichTextEditor.BulletList />
+                  <MantineRichTextEditor.OrderedList />
+                  <MantineRichTextEditor.Blockquote />
+                  <MantineRichTextEditor.Hr />
+                </MantineRichTextEditor.ControlsGroup>
+
+                <MantineRichTextEditor.ControlsGroup>
+                  <MantineRichTextEditor.Link />
+                  <MantineRichTextEditor.Unlink />
+                </MantineRichTextEditor.ControlsGroup>
+
+                <MantineRichTextEditor.ControlsGroup>
+                  <MantineRichTextEditor.Undo />
+                  <MantineRichTextEditor.Redo />
+                </MantineRichTextEditor.ControlsGroup>
+              </MantineRichTextEditor.Toolbar>
+            </div>
+          ) : null}
+          <MantineRichTextEditor.Content />
+        </MantineRichTextEditor>
+      ) : (
+        <div className="p-4 text-sm text-spice-text-muted">Loading editor…</div>
+      )}
     </div>
   );
 };

@@ -22,6 +22,10 @@
 # Requires the BE deploy to have run at least once (so the override file exists).
 # VITE_* are baked at build time -> VITE_USE_MOCK_API=false for a real backend.
 #
+# Required GitLab CI/CD variables (Settings -> CI/CD -> Variables):
+#   VITE_API_BASE_URL
+# Optional: VITE_ERROR_REPORTING_URL
+#
 # Runner + secret setup: see coaching-platform/docs/CI_RUNNER_SETUP.md
 # =============================================================================
 
@@ -34,8 +38,6 @@ stages:
 variables:
   DASHBOARD_REPO: "$CI_REGISTRY_IMAGE"
   IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
-  # Override in GitLab CI/CD variables for the dev environment.
-  VITE_API_BASE_URL: "https://agent-qa.beehyv.com/medtronics-api"
   VITE_USE_MOCK_API: "false"
 
 default:
@@ -46,6 +48,7 @@ default:
   image: node:22-alpine
   before_script:
     - npm ci --no-audit --no-fund
+    - test -f .env || cp .env.example .env
   cache:
     key: npm-$CI_COMMIT_REF_SLUG
     paths: [node_modules]
@@ -86,9 +89,17 @@ build:
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
+    - |
+      for var in VITE_API_BASE_URL; do
+        if [ -z "${!var}" ]; then
+          echo "Missing required CI/CD variable: $var"
+          exit 1
+        fi
+      done
     - docker build
         --build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL"
         --build-arg VITE_USE_MOCK_API="$VITE_USE_MOCK_API"
+        --build-arg VITE_ERROR_REPORTING_URL="$VITE_ERROR_REPORTING_URL"
         -t "$DASHBOARD_REPO:$IMAGE_TAG" -t "$DASHBOARD_REPO:dev" .
     - docker push "$DASHBOARD_REPO:$IMAGE_TAG"
     - docker push "$DASHBOARD_REPO:dev"
