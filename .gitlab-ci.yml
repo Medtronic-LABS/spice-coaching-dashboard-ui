@@ -24,6 +24,8 @@
 #
 # Required GitLab CI/CD variables (Settings -> CI/CD -> Variables):
 #   VITE_API_BASE_URL
+#   DASHBOARD_DEV_URL
+#   COACHING_PLATFORM_COMPOSE_DIR
 # Optional: VITE_ERROR_REPORTING_URL
 #
 # Runner + secret setup: see coaching-platform/docs/CI_RUNNER_SETUP.md
@@ -111,11 +113,11 @@ deploy_dev:
   needs: [build]
   environment:
     name: dev
-    url: http://192.168.5.152:18080
+    url: $DASHBOARD_DEV_URL
   rules:
     - if: '$CI_COMMIT_BRANCH == "feat/module-creation"'   # automatic
   variables:
-    COMPOSE_DIR: /home/bhcp0132/medtronics/coaching-platform
+    COMPOSE_DIR: $COACHING_PLATFORM_COMPOSE_DIR
   script:
     - cd "$COMPOSE_DIR"
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"

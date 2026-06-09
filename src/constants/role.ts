@@ -1,6 +1,8 @@
 export type AppRole = 'supervisor' | 'programManager';
 
 const ROLE_STORAGE_KEY = 'appRole';
+const ROLE_SWITCH_ALLOWED =
+  import.meta.env.DEV || import.meta.env.MODE === 'test';
 
 function parseRole(value: string | null | undefined): AppRole | null {
   if (!value) return null;
@@ -20,20 +22,24 @@ function parseRole(value: string | null | undefined): AppRole | null {
 }
 
 export function getCurrentRole(): AppRole {
+  const envRole = parseRole(import.meta.env.VITE_APP_ROLE);
+  const defaultRole: AppRole = envRole ?? 'supervisor';
+
+  if (!ROLE_SWITCH_ALLOWED) return defaultRole;
+
   try {
     const storedRole = parseRole(
       window.sessionStorage.getItem(ROLE_STORAGE_KEY),
     );
-    if (storedRole) return storedRole;
-    else window.sessionStorage.setItem(ROLE_STORAGE_KEY, 'programManager');
-    return 'programManager';
+    return storedRole ?? defaultRole;
   } catch {
-    window.sessionStorage.setItem(ROLE_STORAGE_KEY, 'programManager');
-    return 'programManager';
+    return defaultRole;
   }
 }
 
 export function setCurrentRole(role: AppRole): void {
+  if (!ROLE_SWITCH_ALLOWED) return;
+
   try {
     window.sessionStorage.setItem(ROLE_STORAGE_KEY, role);
   } catch {
@@ -43,4 +49,8 @@ export function setCurrentRole(role: AppRole): void {
 
 export function getAlternateRole(role: AppRole): AppRole {
   return role === 'programManager' ? 'supervisor' : 'programManager';
+}
+
+export function canSwitchRole(): boolean {
+  return ROLE_SWITCH_ALLOWED;
 }

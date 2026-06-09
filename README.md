@@ -55,6 +55,7 @@ Copy `.env.example` to `.env`. Only `VITE_*` variables are exposed to the browse
 | Variable | Description |
 |----------|-------------|
 | `VITE_API_BASE_URL` | Single API origin for dashboard and `/admin/*` routes (e.g. `https://host/medtronics-api`) |
+| `VITE_APP_ROLE` | Production role lock (`supervisor` or `programManager`), defaults to `supervisor` when unset/invalid |
 | `VITE_USE_MOCK_API` | When not `false`, all routes use mocked RTK Query responses |
 | `VITE_USE_MOCK_MODULE_PIPELINE` | When not `false`, program-manager module-creation pipeline can use local mocks |
 
@@ -140,7 +141,9 @@ These rules are not a substitute for lint/typecheck/tests; they describe **how**
 
 ## Roles (local development)
 
-Role is stored in `sessionStorage` under `appRole` (`supervisor` or `programManager`). The sidebar and route set change by role. Default in code is `programManager` when unset.
+In local development and tests, role is stored in `sessionStorage` under `appRole` (`supervisor` or `programManager`) so UI flows can be toggled quickly.
+
+In production builds, role switching is disabled and role is derived from `VITE_APP_ROLE` (fallback: `supervisor`).
 
 ## Documentation
 
