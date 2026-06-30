@@ -1,0 +1,127 @@
+# =============================================================================
+# micro-learning-analytics-dashboard CI/CD  (Vite + React + TS SPA)
+#
+# Model: build -> push to GitLab Container Registry -> AUTO-deploy on merge.
+#
+#   lint      -> eslint + prettier check        (shared runner, Docker image)
+#   typecheck -> tsc --noEmit                    (shared runner)
+#   test      -> vitest coverage                 (shared runner)
+#   build     -> build + push nginx image        (on-box runner: medtronics-dev)
+#   deploy    -> pull + restart the dashboard     (on-box runner: medtronics-dev)
+#                service in the coaching-platform compose (port 18080)
+#
+# Registry: $CI_REGISTRY_IMAGE = registry.beehyv.com/beehyv/medtronics/micro-learning-analytics-dashboard
+#
+# DEPLOY TRIGGER: this repo's active integration branch is `feat/module-creation`
+# (the deployed one). Its `dev` branch is stale. To standardize on `dev`, change
+# the two `feat/module-creation` rules below to `dev`.
+#
+# DEPLOY COUPLING: the LIVE dashboard runs as a service in the coaching-platform
+# compose. This deploy job pushes the FE image, then pulls+restarts that one
+# service via DASHBOARD_IMAGE (see coaching-platform/docker-compose.deploy.yml).
+# Requires the BE deploy to have run at least once (so the override file exists).
+# VITE_* are baked at build time -> VITE_USE_MOCK_API=false for a real backend.
+#
+# Required GitLab CI/CD variables (Settings -> CI/CD -> Variables):
+#   VITE_API_BASE_URL
+#   DASHBOARD_DEV_URL
+#   COACHING_PLATFORM_COMPOSE_DIR
+# Optional: VITE_ERROR_REPORTING_URL
+#
+# Runner + secret setup: see coaching-platform/docs/CI_RUNNER_SETUP.md
+# =============================================================================
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  DASHBOARD_REPO: "$CI_REGISTRY_IMAGE"
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+  VITE_USE_MOCK_API: "false"
+
+default:
+  interruptible: true
+
+# ---- Quality gates: shared runners ------------------------------------------
+.node:
+  image: node:22-alpine
+  before_script:
+    - npm ci --no-audit --no-fund
+    - test -f .env || cp .env.example .env
+  cache:
+    key: npm-$CI_COMMIT_REF_SLUG
+    paths: [node_modules]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "feat/module-creation"'
+
+lint:
+  extends: .node
+  stage: lint
+  script:
+    - npm run lint
+    - npm run format:check
+
+typecheck:
+  extends: .node
+  stage: lint
+  script:
+    - npm run typecheck
+
+test:
+  extends: .node
+  stage: test
+  script:
+    - npm run test:coverage
+  artifacts:
+    when: always
+    paths: [coverage/]
+    expire_in: 1 week
+  coverage: '/All files\s*\|\s*([0-9.]+)/'
+
+# ---- Build + push image (on-box runner has Docker) --------------------------
+build:
+  stage: build
+  tags: [medtronics-dev]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "feat/module-creation"'
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - |
+      for var in VITE_API_BASE_URL; do
+        if [ -z "${!var}" ]; then
+          echo "Missing required CI/CD variable: $var"
+          exit 1
+        fi
+      done
+    - docker build
+        --build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL"
+        --build-arg VITE_USE_MOCK_API="$VITE_USE_MOCK_API"
+        --build-arg VITE_ERROR_REPORTING_URL="$VITE_ERROR_REPORTING_URL"
+        -t "$DASHBOARD_REPO:$IMAGE_TAG" -t "$DASHBOARD_REPO:dev" .
+    - docker push "$DASHBOARD_REPO:$IMAGE_TAG"
+    - docker push "$DASHBOARD_REPO:dev"
+
+# ---- Auto-deploy: refresh the dashboard service in the BE compose -----------
+deploy_dev:
+  stage: deploy
+  tags: [medtronics-dev]
+  needs: [build]
+  environment:
+    name: dev
+    url: $DASHBOARD_DEV_URL
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "feat/module-creation"'   # automatic
+  variables:
+    COMPOSE_DIR: $COACHING_PLATFORM_COMPOSE_DIR
+  script:
+    - cd "$COMPOSE_DIR"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - export DASHBOARD_IMAGE="$DASHBOARD_REPO:$IMAGE_TAG"
+    - docker compose -f docker-compose.yml -f docker-compose.deploy.yml --profile dashboard pull analytics-dashboard
+    - docker compose -f docker-compose.yml -f docker-compose.deploy.yml --profile dashboard up -d --no-build analytics-dashboard
+    - docker compose ps

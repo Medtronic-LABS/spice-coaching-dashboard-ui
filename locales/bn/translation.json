@@ -1,0 +1,361 @@
+{
+  "app": {
+    "title": "মাইক্রো-লার্নিং অ্যানালিটিক্স ড্যাশবোর্ড"
+  },
+  "common": {
+    "language": "ভাষা",
+    "refresh": "রিফ্রেশ করুন",
+    "goHome": "হোমে যান",
+    "loading": "লোড হচ্ছে...",
+    "loadingPage": "পৃষ্ঠা লোড হচ্ছে...",
+    "noData": "কোনো ডেটা নেই।",
+    "somethingWentWrong": "কিছু ভুল হয়েছে",
+    "somethingWentWrongDescription": "কিছু ভুল হয়েছে।",
+    "pleaseTryAgain": "অনুগ্রহ করে আবার চেষ্টা করুন।",
+    "retry": "আবার চেষ্টা করুন",
+    "reset": "রিসেট",
+    "clearFilters": "ফিল্টার মুছুন",
+    "view": "দেখুন"
+  },
+  "charts": {
+    "errorTitle": "ত্রুটি",
+    "emptyTitle": "কোনো ডেটা নেই",
+    "emptyDescription": "বর্তমান নির্বাচনের জন্য দেখানোর মতো কোনো ডেটা নেই।"
+  },
+  "layout": {
+    "sidebar": {
+      "title": "মাইক্রো লার্নিং অ্যানালিটিক্স ড্যাশবোর্ড",
+      "brand": "SPICE • AI COACHING",
+      "badge": "Bangladesh Pilot",
+      "sections": {
+        "overview": "OVERVIEW",
+        "learning": "LEARNING",
+        "monitoring": "MONITORING"
+      },
+      "nav": {
+        "home": "হোম",
+        "dashboard": "ড্যাশবোর্ড",
+        "chwProfiles": "CHW প্রোফাইলস",
+        "moduleLibrary": "মডিউল লাইব্রেরি",
+        "quizPerformance": "কুইজ পারফরম্যান্স",
+        "leaderboard": "লিডারবোর্ড",
+        "reports": "রিপোর্টস",
+        "uiPreview": "UI প্রিভিউ",
+        "chartPreview": "চার্ট প্রিভিউ"
+      },
+      "user": {
+        "initials": "RK",
+        "name": "রাশিদা খানাম",
+        "subtitle": "সুপারভাইজার • সিলেট সদর"
+      }
+    },
+    "header": {
+      "welcomeBack": "আবার স্বাগতম, {{name}}",
+      "userName": "সুভোদীপ",
+      "userInitials": "S",
+      "userMenuAriaLabel": "ইউজার মেনু",
+      "languageAriaLabel": "ভাষা",
+      "languageSelectSr": "ভাষা",
+      "languageOptions": {
+        "en": "English",
+        "bn": "বাংলা"
+      },
+      "switchRole": "{{role}}-এ স্যুইচ করুন",
+      "switchRoleAriaLabel": "ভূমিকা {{role}}-এ পরিবর্তন করুন",
+      "roles": {
+        "supervisor": "সুপারভাইজার",
+        "programManager": "প্রোগ্রাম ম্যানেজার"
+      }
+    }
+  },
+  "moduleLibrary": {
+    "title": "মডিউল লাইব্রেরি",
+    "description": "লার্নিং মডিউল ব্রাউজ এবং ম্যানেজ করুন।",
+    "assigned": {
+      "badge": "অ্যাসাইনমেন্ট পাঠানো হয়েছে",
+      "title": "মডিউল সফলভাবে অ্যাসাইন হয়েছে",
+      "subtitle": "মডিউলটি অ্যাসাইন করা হয়েছে। তারা তাদের কোচিং স্ক্রিনে সাথে সাথে দেখতে পাবে।",
+      "summary": {
+        "module": "মডিউল",
+        "moduleMeta": "৪টি লেসন • ৩টি প্রশ্ন • ~১৮ মিনিট",
+        "deadline": "ডেডলাইন",
+        "deadlineMeta": "আজ থেকে ১৪ দিন",
+        "assignedTo": "অ্যাসাইনড টু — {{count}} জন CHW"
+      },
+      "next": {
+        "title": "পরবর্তী পদক্ষেপ",
+        "backToLibrary": "মডিউল লাইব্রেরিতে ফিরে যান",
+        "backToLibraryHint": "অ্যাসাইন করা মডিউল দেখুন বা এডিট করুন",
+        "assignMore": "আরও CHW-কে অ্যাসাইন করুন",
+        "assignMoreHint": "এই মডিউলে আরও শাস্ত্য কর্মী যোগ করুন",
+        "goDashboard": "ড্যাশবোর্ডে যান",
+        "goDashboardHint": "মডিউল কমপ্লিশন উইজেটে অগ্রগতি ট্র্যাক করুন"
+      },
+      "actions": {
+        "back": "মডিউল লাইব্রেরিতে ফিরে যান",
+        "goDashboard": "ড্যাশবোর্ডে যান"
+      },
+      "sample": {
+        "module": "HTN রেফারাল থ্রেশহোল্ডস",
+        "deadline": "সোম, ২৮ এপ্রি ২০২৬"
+      }
+    }
+  },
+  "quizPerformance": {
+    "title": "কুইজ পারফরম্যান্স",
+    "description": "কুইজ ফলাফল এবং ট্রেন্ড রিভিউ করুন।"
+  },
+  "leaderboard": {
+    "title": "লিডারবোর্ড",
+    "description": "CHW-দের মধ্যে সেরা পারফরম্যান্স দেখুন।"
+  },
+  "reports": {
+    "title": "রিপোর্টস",
+    "description": "রিপোর্ট এক্সপোর্ট এবং সারাংশ রিভিউ করুন।"
+  },
+  "errorBoundary": {
+    "description": "ড্যাশবোর্ডে অনাকাঙ্ক্ষিত একটি ত্রুটি হয়েছে। আপনি পৃষ্ঠা রিফ্রেশ করতে পারেন অথবা হোম স্ক্রিনে ফিরে যেতে পারেন।",
+    "detailsDevOnly": "বিস্তারিত (শুধু ডেভ)",
+    "footerHelp": "এটা যদি বারবার ঘটে, তবে কীভাবে পুনরায় ঘটানো যায় সেই ধাপগুলো টিমের সাথে শেয়ার করুন।"
+  },
+  "status": {
+    "onTrack": "ঠিক পথে",
+    "onTime": "সময়ের মধ্যে",
+    "dueSoon": "শিগগিরই সময়সীমা",
+    "delayed": "বিলম্বিত",
+    "inactive": "নিষ্ক্রিয়",
+    "inProgress": "চলমান",
+    "unknown": "অজানা"
+  },
+  "trend": {
+    "up": "বাড়ছে",
+    "down": "কমছে",
+    "flat": "অপরিবর্তিত",
+    "unknown": "ট্রেন্ড"
+  },
+  "home": {
+    "supervisorDashboard": {
+      "loading": {
+        "initialLabel": "সুপারভাইজার ড্যাশবোর্ড লোড হচ্ছে",
+        "summaryLabel": "সারাংশ লোড হচ্ছে",
+        "leaderboardLabel": "লিডারবোর্ড লোড হচ্ছে",
+        "performanceLabel": "CHW ম্যাট্রিক্স লোড হচ্ছে",
+        "flagsLabel": "ফ্ল্যাগ লোড হচ্ছে",
+        "modulesLabel": "মডিউল লোড হচ্ছে"
+      },
+      "error": {
+        "allTitle": "সুপারভাইজার ড্যাশবোর্ড উপলব্ধ নয়",
+        "allDescription": "অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।",
+        "summaryDescription": "আমরা KPI লোড করতে পারিনি।"
+      },
+      "empty": {
+        "title": "এখনও কোনো সুপারভাইজার ডেটা নেই",
+        "description": "কার্যক্রম উপলব্ধ হলে এখানে KPI, ফ্ল্যাগ এবং অগ্রগতি দেখতে পাবেন।"
+      },
+      "header": {
+        "title": "সুপারভাইজার ড্যাশবোর্ড",
+        "subtitle": "পারফরম্যান্স, ফ্ল্যাগ এবং মডিউল অগ্রগতির দ্রুত ওভারভিউ।"
+      },
+      "sections": {
+        "summary": "সারাংশ",
+        "leaderboard": "লিডারবোর্ড",
+        "performance": "CHW ম্যাট্রিক্স",
+        "flags": "ফ্ল্যাগ",
+        "modules": "মডিউল অগ্রগতি"
+      },
+      "actions": {
+        "viewAll": "সব দেখুন"
+      }
+    },
+    "leaderboard": {
+      "rowAriaLabel": "লিডারবোর্ড সারি: {{name}}",
+      "subtitle": "স্কোর: {{score}} • সম্পন্ন: {{completion}}% • {{trend}}"
+    },
+    "flags": {
+      "rowAriaLabel": "ফ্ল্যাগ: {{name}}"
+    },
+    "modules": {
+      "rowAriaLabel": "মডিউল: {{name}}",
+      "progressLine": "{{progress}}% সম্পন্ন - {{completed}}/{{total}}"
+    },
+    "performanceMatrix": {
+      "title": "পারফরম্যান্স ম্যাট্রিক্স",
+      "columns": {
+        "name": "নাম",
+        "modulesDone": "সম্পন্ন মডিউল",
+        "deadlineStatus": "ডেডলাইন স্ট্যাটাস",
+        "passFail": "পাস/ফেইল",
+        "overallStatus": "সামগ্রিক স্ট্যাটাস"
+      },
+      "allCompleted": "সব সম্পন্ন",
+      "remaining": "বাকি {{count}}",
+      "attemptedFails": "{{attempted}} চেষ্টা - {{fails}} ব্যর্থ"
+    }
+  },
+  "ui": {
+    "search": {
+      "placeholder": "সার্চ...",
+      "ariaLabel": "সার্চ"
+    },
+    "sectionState": {
+      "loadingWithTitle": "{{title}} লোড হচ্ছে",
+      "unavailableWithTitle": "{{title}} উপলব্ধ নয়"
+    },
+    "infoCard": {
+      "emptyFallback": "-"
+    }
+  },
+  "uiPreview": {
+    "title": "UI কম্পোনেন্টস প্রিভিউ",
+    "subtitle": "ভ্যারিয়েন্ট এবং এজ স্টেটসহ পুনর্ব্যবহারযোগ্য কম্পোনেন্ট",
+    "cardsAndHeaders": "কার্ড এবং হেডার",
+    "defaultCardSurface": "ডিফল্ট কার্ড সারফেস",
+    "borderedCardSurface": "বর্ডারযুক্ত কার্ড সারফেস",
+    "elevatedCardSurface": "এলিভেটেড কার্ড সারফেস",
+    "statsAndInfo": "স্ট্যাটস এবং তথ্য",
+    "completionRate": "সম্পন্নের হার",
+    "aiUsage": "AI ব্যবহার",
+    "monthlySessions": "মাসিক সেশন",
+    "longContentTitle": "দীর্ঘ কনটেন্ট",
+    "longContentDescription": "এই কার্ডটি দেখায় কীভাবে সরু কনটেইনারেও লে-আউট না ভেঙে দীর্ঘ বর্ণনা নিরাপদভাবে দেখানো যায়।",
+    "successTitle": "সফলতা",
+    "successDescription": "এই সপ্তাহে পারফরম্যান্স উন্নত হয়েছে।",
+    "warningTitle": "সতর্কতা",
+    "warningDescription": "একটি জেলায় পতন ধরা পড়েছে।",
+    "criticalTitle": "জরুরি",
+    "criticalDescription": "ডেটা সিঙ্ক ব্যর্থ—মনোযোগ প্রয়োজন।",
+    "filtersAndInputs": "ফিল্টার এবং ইনপুট",
+    "regionFilterAriaLabel": "রিজিয়ন ফিল্টার",
+    "searchPlaceholder": "CHW বা জেলা সার্চ করুন",
+    "allRegions": "সব রিজিয়ন",
+    "north": "উত্তর",
+    "south": "দক্ষিণ",
+    "badgesListKeyValue": "ব্যাজ, তালিকা এবং কী-ভ্যালু",
+    "defaultBadge": "ডিফল্ট ব্যাজ",
+    "status": {
+      "active": "সক্রিয়",
+      "atRisk": "ঝুঁকিতে",
+      "blocked": "ব্লকড",
+      "pending": "মুলতুবি"
+    },
+    "region": "রিজিয়ন",
+    "cluster": "ক্লাস্টার",
+    "supervisor": "সুপারভাইজার",
+    "regionValue": "ঢাকা",
+    "clusterValue": "উত্তর ০৩",
+    "personOneName": "আনিকা রহমান",
+    "personOneSubtitle": "এই সপ্তাহে ১২টি সম্পন্ন",
+    "personTwoName": "সারি সরু হলে টেক্সট ট্রাঙ্কেশন যাচাইয়ের জন্য অত্যন্ত দীর্ঘ নাম",
+    "personTwoSubtitle": "দীর্ঘ মেটাডেটাসহ সাবটাইটেল যা নিরাপদভাবে ট্রাঙ্কেট হবে",
+    "newBadge": "নতুন",
+    "actionsTabsStates": "অ্যাকশন, ট্যাব এবং স্টেট",
+    "button": {
+      "primary": "প্রাইমারি",
+      "secondary": "সেকেন্ডারি",
+      "ghost": "ঘোস্ট",
+      "disabled": "নিষ্ক্রিয়"
+    },
+    "tabs": {
+      "summary": "সারাংশ",
+      "details": "বিস্তারিত",
+      "history": "ইতিহাস",
+      "activeTab": "সক্রিয় ট্যাব: {{tab}}"
+    },
+    "warningBanner": "এটি উচ্চ-অগ্রাধিকার যোগাযোগের জন্য একটি সতর্কতা ব্যানার।",
+    "emptyStateTitle": "কোনো রেকর্ড পাওয়া যায়নি",
+    "emptyStateDescription": "ফিল্টার কিছুটা বিস্তৃত করে দেখুন।",
+    "loadingMetrics": "ড্যাশবোর্ড মেট্রিক্স লোড হচ্ছে...",
+    "errorStateTitle": "ডেটা লোড করা যায়নি",
+    "errorStateDescription": "অনুগ্রহ করে কয়েক মিনিট পরে আবার চেষ্টা করুন।"
+  },
+  "chwProfiles": {
+    "status": {
+      "overdue": "ওভারডিউ",
+      "flagged": "ফ্ল্যাগড"
+    },
+    "deadline": {
+      "overdue": "ওভারডিউ"
+    },
+    "module": {
+      "completed": "সম্পন্ন",
+      "inProgress": "চলমান"
+    },
+    "quiz": {
+      "pass": "পাস",
+      "fail": "ফেইল"
+    },
+    "list": {
+      "title": "CHW প্রোফাইলস",
+      "subtitle": "মডিউল অগ্রগতি, কুইজ পারফরম্যান্স এবং স্ট্যাটাস ট্র্যাক করুন।",
+      "searchPlaceholder": "মডিউল সার্চ করুন...",
+      "tableTitle": "CHW প্রোফাইলস",
+      "empty": "কোনো CHW প্রোফাইল পাওয়া যায়নি।",
+      "attempts": "{{count}} বার চেষ্টা",
+      "daysShort": "{{count}}d",
+      "columns": {
+        "chw": "CHW",
+        "modulesDone": "সম্পন্ন মডিউল",
+        "deadline": "ডেডলাইন",
+        "passRate": "পাস রেট",
+        "streak": "স্ট্রিক",
+        "lastActive": "শেষ সক্রিয়",
+        "status": "স্ট্যাটাস"
+      }
+    },
+    "detail": {
+      "title": "প্রোফাইল ডিটেইল",
+      "subtitle": "CHW প্রোফাইলস  ›  প্রোফাইল ডিটেইলস",
+      "loading": "প্রোফাইল লোড হচ্ছে...",
+      "errorTitle": "প্রোফাইল উপলব্ধ নয়",
+      "missingIdTitle": "CHW id নেই",
+      "missingIdDescription": "এই রুটে একটি id প্যারামিটার অনুপস্থিত।",
+      "backToList": "CHW প্রোফাইলসে ফিরে যান",
+      "streakBadge": "{{days}}d স্ট্রিক",
+      "daysValue": "{{count}}d",
+      "points": "{{count}} pts",
+      "badgesCount": "{{count}} ব্যাজ",
+      "meta": {
+        "joined": "যোগদান",
+        "lastActive": "শেষ সক্রিয়",
+        "totalPoints": "মোট পয়েন্ট",
+        "leaderboardRank": "লিডারবোর্ড র‍্যাঙ্ক",
+        "badges": "অর্জিত ব্যাজ"
+      },
+      "actions": {
+        "assign": "মডিউল অ্যাসাইন করুন",
+        "flag": "মেন্টরিংয়ের জন্য ফ্ল্যাগ করুন"
+      },
+      "metrics": {
+        "modulesDone": "সম্পন্ন মডিউল",
+        "applicationKnowledge": "অ্যাপ্লিকেশন জ্ঞান",
+        "passRate": "পাস রেট",
+        "totalAttempts": "মোট চেষ্টা",
+        "allComplete": "সব সম্পন্ন",
+        "bestLabel": "সেরা: ২১ দিন",
+        "accuracyLabel": "একিউরেসি",
+        "attemptsLabel": "চেষ্টা"
+      },
+      "modules": {
+        "title": "মডিউল অগ্রগতি",
+        "empty": "কোনো মডিউল পাওয়া যায়নি।",
+        "columns": {
+          "title": "মডিউল",
+          "status": "স্ট্যাটাস",
+          "passRate": "পাস %",
+          "attempts": "চেষ্টা",
+          "dueDate": "ডিউ ডেট"
+        }
+      },
+      "quiz": {
+        "title": "কুইজ ইতিহাস",
+        "empty": "কোনো কুইজ পাওয়া যায়নি।",
+        "columns": {
+          "title": "কুইজ",
+          "score": "স্কোর",
+          "date": "তারিখ",
+          "status": "স্ট্যাটাস"
+        }
+      }
+    }
+  }
+}

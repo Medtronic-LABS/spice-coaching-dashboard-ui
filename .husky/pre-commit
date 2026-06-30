@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+# Lint + format staged files, then verify whole project
+npx lint-staged || exit 1
+npm run lint || exit 1
+
+# Qodo AI review — blocks commit if blocking phrases appear in output
+. "$(dirname -- "$0")/scripts/qodo-review.sh" || exit 1
