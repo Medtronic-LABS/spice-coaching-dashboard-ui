@@ -7,10 +7,8 @@ const working: AdminModuleDetailResponse = {
   id: 'mod-1',
   module_family_id: 'family-1',
   version: 1,
-  title_bn: 'Title BN',
-  title_en: 'Title EN',
-  description_bn: 'Desc BN',
-  description_en: 'Desc EN',
+  title: { bn: 'Title BN', en: 'Title EN' },
+  description: { bn: 'Desc BN', en: 'Desc EN' },
   domain: 'rmnch',
   module_type: 'refresher',
   lifecycle_status: 'draft',
@@ -22,10 +20,10 @@ const working: AdminModuleDetailResponse = {
   created_at: '2026-01-01T00:00:00Z',
   quality_flags: null,
   module_json: {
-    cards: [{ id: 'c1', title_bn: 'Card', body_bn: null }],
+    cards: [{ id: 'c1', title: { bn: 'Card' }, body: { bn: [] } }],
     quiz: [],
   },
-  cards: [{ id: 'c1', title_bn: 'Card', body_bn: null }],
+  cards: [{ id: 'c1', title: { bn: 'Card' }, body: { bn: [] } }],
   quiz: [],
 };
 
@@ -42,7 +40,7 @@ describe('persistAdminModuleDraft', () => {
     const navigate = vi.fn();
     const refetched: AdminModuleDetailResponse = {
       ...working,
-      title_bn: 'Saved BN',
+      title: { bn: 'Saved BN', en: 'Title EN' },
     };
     const refetchModule = vi.fn().mockResolvedValue({ data: refetched });
     const onSaved = vi.fn();
@@ -59,8 +57,13 @@ describe('persistAdminModuleDraft', () => {
     expect(editModule).toHaveBeenCalledWith({
       moduleId: 'mod-1',
       body: expect.objectContaining({
-        title_bn: 'Title BN',
-        module_json: { cards: working.cards, quiz: [] },
+        title: { bn: 'Title BN', en: 'Title EN' },
+        module_json: expect.objectContaining({
+          cards: expect.arrayContaining([
+            expect.objectContaining({ title: { bn: 'Card' } }),
+          ]),
+          quiz: [],
+        }),
       }),
     });
     expect(refetchModule).toHaveBeenCalledWith('mod-1');

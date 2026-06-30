@@ -8,6 +8,7 @@ import {
 import { RichTextEditor } from '@/features/module-library/components/RichTextEditor';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
+import { useModulePreview } from '@/features/module-library/hooks/useModulePreview';
 import {
   selectAdminModuleBaseline,
   insertCardAtIndex,
@@ -26,42 +27,39 @@ import {
   normalizeAdminModuleCard,
   normalizeCardBody,
 } from '@/features/module-library/utils/cardBody';
+import {
+  DEPLOYMENT_PRIMARY_LOCALE,
+  resolveDisplayText,
+} from '@/config/deploymentLocale';
+import {
+  patchLocaleField,
+  readLocaleFieldValue,
+  readLocaleRichBody,
+  readLocaleText,
+  setLocaleRichBody,
+} from '@/types/localized';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function cardTitle(card: unknown): string {
-  if (!isPlainObject(card)) return 'Untitled card';
-  const title =
-    (typeof card.title_en === 'string' && card.title_en) ||
-    (typeof card.title_bn === 'string' && card.title_bn) ||
-    (typeof card.title === 'string' && card.title) ||
-    '';
+function cardTitle(card: AdminModuleCard): string {
+  const title = readLocaleText(card.title, 'en', DEPLOYMENT_PRIMARY_LOCALE);
   return title || 'Untitled card';
 }
 
-function cardSubtitle(card: unknown): string {
-  if (!isPlainObject(card)) return '';
-  const bn = typeof card.title_bn === 'string' ? card.title_bn : '';
-  const en = typeof card.title_en === 'string' ? card.title_en : '';
+function cardSubtitle(card: AdminModuleCard): string {
+  const bn = readLocaleText(card.title, DEPLOYMENT_PRIMARY_LOCALE).trim();
+  const en = readLocaleText(card.title, 'en').trim();
   if (bn && en) return bn;
-  return bn || en ? '' : '';
+  return '';
 }
 
-function safeString(value: unknown): string {
+function safeString(value: string | null | undefined): string {
   return typeof value === 'string' ? value : '';
 }
 
-function hasEnglishContent(value: unknown): boolean {
-  if (!isPlainObject(value)) return false;
-  const titleEn =
-    typeof value.title_en === 'string' ? value.title_en.trim() : '';
-  const bodyEn = typeof value.body_en === 'string' ? value.body_en.trim() : '';
-  return Boolean(titleEn || bodyEn);
+function cardsEqual(a: AdminModuleCard, b: AdminModuleCard): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function createEmptyCard(): AdminModuleCard {
@@ -71,14 +69,10 @@ function createEmptyCard(): AdminModuleCard {
       : `card-${Date.now()}`;
   return {
     id,
-    title_bn: null,
-    title_en: null,
-    body_bn: normalizeCardBody(''),
-    body_en: null,
-    previous_practice_bn: null,
-    current_practice_bn: null,
-    previous_practice_en: null,
-    current_practice_en: null,
+    title: {},
+    body: { [DEPLOYMENT_PRIMARY_LOCALE]: normalizeCardBody('') },
+    previous_practice: {},
+    current_practice: {},
   };
 }
 
@@ -103,20 +97,36 @@ export const AdminModuleLessonsStep = () => {
   const [editorRevision, setEditorRevision] = useState(0);
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
   const isReadonly = useAdminModuleReviewReadonly();
+  const { registerEditorContext } = useModulePreview();
 
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [working?.id]);
+    registerEditorContext({ phase: 'card', index: selectedIndex });
+  }, [selectedIndex, registerEditorContext]);
 
-  const cards = (working?.cards ?? []) as unknown[];
-  const selectedCard = cards[selectedIndex] as unknown;
+  const cards = useMemo(
+    () =>
+      (working?.cards ?? []).map((card, index) =>
+        normalizeAdminModuleCard(card, index),
+      ),
+    [working?.cards],
+  );
+
+  const baselineCards = useMemo(
+    () =>
+      (baseline?.cards ?? []).map((card, index) =>
+        normalizeAdminModuleCard(card, index),
+      ),
+    [baseline?.cards],
+  );
 
   const selectedCard = cards[selectedIndex];
   const baselineCard = selectedCard
     ? (baselineCards.find((card) => card.id === selectedCard.id) ??
       baselineCards[selectedIndex])
     : undefined;
-  const selectedBody = normalizeCardBody(selectedCard?.body_bn);
+  const selectedBody = normalizeCardBody(
+    readLocaleRichBody(selectedCard?.body, DEPLOYMENT_PRIMARY_LOCALE),
+  );
   const sourceDocuments = working?.source_documents ?? [];
   const hasSourceDocuments = sourceDocuments.length > 0;
   const showSourcePanel = hasSourceDocuments && sourceDocOpen;
@@ -162,10 +172,15 @@ export const AdminModuleLessonsStep = () => {
 
   const busy = isFetching || isSaving;
   const showEnglishFields =
-    Boolean(data.title_en && data.title_en.trim()) ||
-    cards.some((c) => hasEnglishContent(c));
+    Boolean(readLocaleText(working.title, 'en').trim()) ||
+    cards.some((c) => hasEnglishCardContent(c));
   const showCardTitleEn =
-    showEnglishFields || hasEnglishContent(mergedSelectedCard);
+    showEnglishFields ||
+    (selectedCard ? hasEnglishCardContent(selectedCard) : false);
+  const cardIsEdited =
+    selectedCard && baselineCard
+      ? !cardsEqual(selectedCard, baselineCard)
+      : false;
 
   return (
     <section className="space-y-4">
@@ -175,14 +190,20 @@ export const AdminModuleLessonsStep = () => {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div
+        className={`grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] ${
+          showSourcePanel
+            ? 'xl:grid-cols-[280px_minmax(0,1fr)_minmax(320px,38%)]'
+            : ''
+        }`}
+      >
         <Card variant="elevated" className="space-y-3 p-4">
           <div>
             <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
               Module
             </div>
             <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-              {working.title_en ?? working.title_bn ?? 'Untitled module'}
+              {resolveDisplayText(working.title)}
             </div>
             <div className="mt-1 text-xs text-spice-text-muted">
               {cards.length} cards · ~{working.estimated_minutes} min
@@ -215,7 +236,7 @@ export const AdminModuleLessonsStep = () => {
                   );
                   const edited = baselineMatch && !cardsEqual(c, baselineMatch);
                   return (
-                    <div className="flex min-w-0 items-start gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       {!isReadonly ? (
                         <ReorderDragHandle
                           dragHandleProps={controls.dragHandleProps}
@@ -344,7 +365,7 @@ export const AdminModuleLessonsStep = () => {
             </div>
           </div>
 
-          {cards.length ? (
+          {cards.length && selectedCard ? (
             <>
               <div
                 className={`grid gap-3 ${
@@ -357,10 +378,21 @@ export const AdminModuleLessonsStep = () => {
                   </span>
                   <input
                     className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-                    value={safeString(selectedCard.title_bn)}
+                    value={safeString(
+                      readLocaleFieldValue(
+                        selectedCard.title,
+                        DEPLOYMENT_PRIMARY_LOCALE,
+                      ),
+                    )}
                     disabled={busy || isReadonly}
                     onChange={(e) =>
-                      patchSelectedCard({ title_bn: e.target.value })
+                      updateSelectedCard({
+                        title: patchLocaleField(
+                          selectedCard.title,
+                          DEPLOYMENT_PRIMARY_LOCALE,
+                          e.target.value,
+                        ),
+                      })
                     }
                     placeholder="Bangla title…"
                   />
@@ -373,11 +405,17 @@ export const AdminModuleLessonsStep = () => {
                     <input
                       className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
                       value={safeString(
-                        selectedCard.title_en ?? selectedCard.title,
+                        readLocaleFieldValue(selectedCard.title, 'en'),
                       )}
                       disabled={busy || isReadonly}
                       onChange={(e) =>
-                        updateSelectedCard({ title_en: e.target.value })
+                        updateSelectedCard({
+                          title: patchLocaleField(
+                            selectedCard.title,
+                            'en',
+                            e.target.value,
+                          ),
+                        })
                       }
                       placeholder="English title…"
                     />
@@ -392,7 +430,15 @@ export const AdminModuleLessonsStep = () => {
                 <RichTextEditor
                   key={`card-body-${selectedIndex}-${selectedCard.id}-${editorRevision}`}
                   value={selectedBody}
-                  onChange={(body_bn) => updateSelectedCard({ body_bn })}
+                  onChange={(body) =>
+                    updateSelectedCard({
+                      body: setLocaleRichBody(
+                        selectedCard.body,
+                        DEPLOYMENT_PRIMARY_LOCALE,
+                        body,
+                      ),
+                    })
+                  }
                   minHeightClassName="min-h-[220px]"
                   readOnly={isReadonly}
                 />
@@ -438,6 +484,14 @@ export const AdminModuleLessonsStep = () => {
             </Button>
           </div>
         </Card>
+
+        {showSourcePanel ? (
+          <ModuleSourceDocumentPanel
+            documents={sourceDocuments}
+            onClose={() => setSourceDocOpen(false)}
+            className="xl:sticky xl:top-4 xl:max-h-[calc(100vh-8rem)] xl:self-start"
+          />
+        ) : null}
       </div>
     </section>
   );

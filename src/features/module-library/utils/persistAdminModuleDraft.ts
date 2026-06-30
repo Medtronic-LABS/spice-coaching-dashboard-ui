@@ -47,10 +47,8 @@ export async function persistAdminModuleDraft(options: {
     pathname: options.pathname,
     moduleEntityId: working.id,
     body: {
-      title_bn: working.title_bn ?? undefined,
-      title_en: working.title_en ?? undefined,
-      description_bn: working.description_bn ?? undefined,
-      description_en: working.description_en ?? undefined,
+      title: working.title,
+      description: working.description,
       module_json: { cards, quiz },
       thumbnail_storage_path: working.thumbnail_storage_path,
     },
@@ -62,9 +60,9 @@ export async function persistAdminModuleDraft(options: {
     id: savedModuleId,
     module_family_id: response.module_family_id,
     version: response.version,
-    cards,
-    quiz,
-    module_json: { cards, quiz },
+    cards: working.cards,
+    quiz: working.quiz,
+    module_json: { cards: working.cards, quiz: working.quiz },
   };
 
   if (savedModuleId !== working.id) {

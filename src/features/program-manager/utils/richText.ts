@@ -129,13 +129,7 @@ export function blocksToHtml(blocks: RichBlock[]): string {
   return blocks
     .map((block) => {
       if (block.type === 'paragraph') {
-        const content = block.content
-          .map((leaf) =>
-            leaf.marks?.some((mark) => mark.type === 'bold')
-              ? `<strong>${escapeHtml(leaf.text)}</strong>`
-              : escapeHtml(leaf.text),
-          )
-          .join('');
+        const content = leavesToHtml(block.content);
         return `<p>${content || '<br/>'}</p>`;
       }
       if (block.type === 'heading') {

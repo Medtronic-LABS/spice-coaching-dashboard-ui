@@ -67,11 +67,109 @@ let courseDraftState: CourseDraftData = JSON.parse(
   JSON.stringify(mockCourseDraft),
 ) as CourseDraftData;
 
-export const mockBaseQuery: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = async (args) => {
+interface MockAssignment {
+  id: string;
+  module_id: string;
+  module_title: { bn: string; en?: string } | null;
+  assignment_type: 'individual' | 'po_sk' | 'geographical' | 'group';
+  tenant_id: number | null;
+  user_id: number | null;
+  user?: {
+    id: number;
+    name: string;
+    role: 'SK' | 'PO' | 'AM';
+    district: string;
+    upazila: string | null;
+    parent_id: number | null;
+  } | null;
+  upazila?: string | null;
+  assigned_by: number;
+  assigned_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+let mockAssignmentsState: MockAssignment[] = [
+  {
+    id: 'assign-1',
+    module_id: 'spice-visit',
+    module_title: {
+      bn: 'SPICE App — Visit Submission',
+      en: 'SPICE App — Visit Submission',
+    },
+    assignment_type: 'individual',
+    tenant_id: null,
+    user_id: 101,
+    user: {
+      id: 101,
+      name: 'Mst. Hosneyara Begum',
+      role: 'SK',
+      district: 'Lalmonirhat',
+      upazila: 'Lalmonirhat Sadar',
+      parent_id: 1708515793,
+    },
+    assigned_by: 99,
+    assigned_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'assign-2',
+    module_id: 'htn-referral',
+    module_title: {
+      bn: 'HTN Referral Thresholds',
+      en: 'HTN Referral Thresholds',
+    },
+    assignment_type: 'po_sk',
+    tenant_id: null,
+    user_id: 1708515793,
+    user: {
+      id: 1708515793,
+      name: 'Md Abdus Salam',
+      role: 'PO',
+      district: 'Lalmonirhat',
+      upazila: 'Lalmonirhat Sadar',
+      parent_id: 1723477249,
+    },
+    assigned_by: 99,
+    assigned_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'assign-3',
+    module_id: 'htn-referral',
+    module_title: {
+      bn: 'HTN Referral Thresholds',
+      en: 'HTN Referral Thresholds',
+    },
+    assignment_type: 'geographical',
+    tenant_id: null,
+    user_id: null,
+    upazila: 'Hatibandha',
+    assigned_by: 99,
+    assigned_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'assign-4',
+    module_id: 'htn-referral',
+    module_title: {
+      bn: 'HTN Referral Thresholds',
+      en: 'HTN Referral Thresholds',
+    },
+    assignment_type: 'group',
+    tenant_id: 4000,
+    user_id: null,
+    assigned_by: 99,
+    assigned_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   // Simulate real network latency.
   await sleep(500);
 
@@ -180,9 +278,8 @@ export const mockBaseQuery: BaseQueryFn<
         id: m.id,
         module_family_id: `family_${m.id}`,
         version: 1,
-        title_bn: m.title,
-        title_en: null,
-        description_bn: m.category,
+        title: { bn: m.title },
+        description: m.category ? { bn: m.category } : null,
         domain: m.category,
         module_type: 'initial_training',
         lifecycle_status: m.status,
@@ -533,6 +630,275 @@ export const mockBaseQuery: BaseQueryFn<
     return { data: { status: 'published', draft: cloneDraft() } };
   }
 
+  if (url === 'admin/users' && method === 'GET') {
+    return {
+      data: [
+        {
+          id: 1708515793,
+          name: 'Md Abdus Salam',
+          role: 'PO',
+          district: 'Lalmonirhat',
+          upazila: 'Lalmonirhat Sadar',
+          parent_id: 1723477249,
+        },
+        {
+          id: 1708515794,
+          name: 'Mst. Rabeya Khatun',
+          role: 'PO',
+          district: 'Lalmonirhat',
+          upazila: 'Hatibandha',
+          parent_id: 1723477249,
+        },
+        {
+          id: 1313053891,
+          name: 'Mst. Hosneyara Begum',
+          role: 'SK',
+          district: 'Lalmonirhat',
+          upazila: 'Lalmonirhat Sadar',
+          parent_id: 1708515793,
+        },
+      ],
+    };
+  }
+
+  if (url === 'admin/assignments') {
+    if (method === 'GET') {
+      const moduleId =
+        typeof params === 'object' && params && 'module_id' in params
+          ? asString((params as { module_id?: unknown }).module_id)
+          : undefined;
+      const assignmentType = asString(
+        typeof params === 'object' && params && 'assignment_type' in params
+          ? (params as { assignment_type?: unknown }).assignment_type
+          : undefined,
+      );
+
+      let results = mockAssignmentsState;
+      if (moduleId) {
+        results = results.filter(
+          (assignment) => assignment.module_id === moduleId,
+        );
+      }
+      if (
+        assignmentType === 'individual' ||
+        assignmentType === 'po_sk' ||
+        assignmentType === 'geographical' ||
+        assignmentType === 'group'
+      ) {
+        results = results.filter(
+          (assignment) => assignment.assignment_type === assignmentType,
+        );
+      }
+
+      return { data: results };
+    }
+    if (method === 'POST') {
+      const payload = body as {
+        module_id: string;
+        assignment_type: 'individual' | 'po_sk' | 'geographical' | 'group';
+        user_ids?: number[];
+        tenant_ids?: number[];
+        upazilas?: string[];
+      };
+      const newIds: string[] = [];
+      const now = new Date().toISOString();
+      const moduleItem = mockModuleLibrary.modules.find(
+        (m) => m.id === payload.module_id,
+      );
+      const title = moduleItem ? moduleItem.title : 'Unknown Module';
+      const mockUsers = [
+        {
+          id: 1708515793,
+          name: 'Md Abdus Salam',
+          role: 'PO' as const,
+          district: 'Lalmonirhat',
+          upazila: 'Lalmonirhat Sadar',
+          parent_id: 1723477249,
+        },
+        {
+          id: 1708515794,
+          name: 'Mst. Rabeya Khatun',
+          role: 'PO' as const,
+          district: 'Lalmonirhat',
+          upazila: 'Hatibandha',
+          parent_id: 1723477249,
+        },
+        {
+          id: 1313053891,
+          name: 'Mst. Hosneyara Begum',
+          role: 'SK' as const,
+          district: 'Lalmonirhat',
+          upazila: 'Lalmonirhat Sadar',
+          parent_id: 1708515793,
+        },
+      ];
+
+      if (
+        (payload.assignment_type === 'individual' ||
+          payload.assignment_type === 'po_sk') &&
+        payload.user_ids
+      ) {
+        for (const uid of payload.user_ids) {
+          const exists = mockAssignmentsState.some(
+            (a) =>
+              a.module_id === payload.module_id &&
+              a.assignment_type === payload.assignment_type &&
+              a.user_id === uid,
+          );
+          if (!exists) {
+            const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
+            newIds.push(id);
+            mockAssignmentsState.push({
+              id,
+              module_id: payload.module_id,
+              module_title: { bn: title, en: title },
+              assignment_type: payload.assignment_type,
+              tenant_id: null,
+              user_id: uid,
+              user: mockUsers.find((user) => user.id === uid) ?? null,
+              assigned_by: 99,
+              assigned_at: now,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        }
+      } else if (
+        payload.assignment_type === 'geographical' &&
+        payload.upazilas
+      ) {
+        for (const upazila of payload.upazilas) {
+          const exists = mockAssignmentsState.some(
+            (a) =>
+              a.module_id === payload.module_id &&
+              a.assignment_type === 'geographical' &&
+              a.upazila === upazila,
+          );
+          if (!exists) {
+            const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
+            newIds.push(id);
+            mockAssignmentsState.push({
+              id,
+              module_id: payload.module_id,
+              module_title: { bn: title, en: title },
+              assignment_type: 'geographical',
+              tenant_id: null,
+              user_id: null,
+              upazila,
+              assigned_by: 99,
+              assigned_at: now,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        }
+      } else if (payload.assignment_type === 'group' && payload.tenant_ids) {
+        for (const tid of payload.tenant_ids) {
+          const exists = mockAssignmentsState.some(
+            (a) =>
+              a.module_id === payload.module_id &&
+              a.assignment_type === 'group' &&
+              a.tenant_id === tid,
+          );
+          if (!exists) {
+            const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
+            newIds.push(id);
+            mockAssignmentsState.push({
+              id,
+              module_id: payload.module_id,
+              module_title: { bn: title, en: title },
+              assignment_type: 'group',
+              tenant_id: tid,
+              user_id: null,
+              assigned_by: 99,
+              assigned_at: now,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        }
+      }
+      return {
+        data: {
+          assigned_count: newIds.length,
+          assignment_ids: newIds,
+        },
+      };
+    }
+  }
+
+  if (url.startsWith('admin/assignments/') && method === 'DELETE') {
+    const assignId = decodeURIComponent(url.slice('admin/assignments/'.length));
+    mockAssignmentsState = mockAssignmentsState.filter(
+      (a) => a.id !== assignId,
+    );
+    return { data: { status: 'revoked' } };
+  }
+
+  if (url.includes('district-list')) {
+    return {
+      data: {
+        entityList: [
+          { id: 10, name: 'Bo District', countryId: 1, tenantId: 4000 },
+          { id: 11, name: 'Kenema District', countryId: 1, tenantId: 4001 },
+        ],
+      },
+    };
+  }
+  if (url.includes('chiefdom-list')) {
+    return {
+      data: {
+        entityList: [
+          { id: 100, name: 'Kakua Chiefdom', districtId: 10, tenantId: 5000 },
+          { id: 101, name: 'Nongowa Chiefdom', districtId: 11, tenantId: 5001 },
+        ],
+      },
+    };
+  }
+  if (url.includes('villages-list')) {
+    return {
+      data: {
+        entityList: [
+          { id: 1000, name: 'Bo Village', chiefdomId: 100 },
+          { id: 1001, name: 'Kenema Village', chiefdomId: 101 },
+        ],
+      },
+    };
+  }
+  if (url.includes('user/admin-users')) {
+    return {
+      data: {
+        entityList: [
+          {
+            id: 101,
+            firstName: 'Fatema',
+            lastName: 'Jannat',
+            username: 'chw_fatema',
+            tenantId: 5000,
+            villages: [{ id: 1000, name: 'Bo Village' }],
+          },
+          {
+            id: 102,
+            firstName: 'Momotaj',
+            lastName: 'Begum',
+            username: 'chw_momotaj',
+            tenantId: 5000,
+            villages: [{ id: 1000, name: 'Bo Village' }],
+          },
+          {
+            id: 103,
+            firstName: 'Nasrin',
+            lastName: 'Khatun',
+            username: 'chw_nasrin',
+            tenantId: 5001,
+            villages: [{ id: 1001, name: 'Kenema Village' }],
+          },
+        ],
+        totalCount: 3,
+      },
+    };
+  }
+
   // CHW detail endpoint: chw/{chw_id}
   if (url.startsWith('chw/')) {
     const chwId = decodeURIComponent(url.slice('chw/'.length));
@@ -546,3 +912,9 @@ export const mockBaseQuery: BaseQueryFn<
     },
   };
 };
+
+export const mockBaseQuery: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = mockBaseQueryImpl;

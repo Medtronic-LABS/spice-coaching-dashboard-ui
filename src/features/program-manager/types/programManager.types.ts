@@ -154,12 +154,23 @@ export interface RichListItem {
 
 export interface RichListBlock {
   type: 'bullet_list' | 'ordered_list';
-  items: string[];
+  items: RichListItem[];
+  /** First item number for ordered lists (defaults to 1). */
+  start?: number;
+}
+
+/** File metadata from admin upload; use `object_name` with presigned URL for display. */
+export interface RichStoredFileAttrs {
+  object_name?: string;
+  content_type?: string;
+  original_filename?: string;
+  /** Legacy direct admin files URL */
+  url?: string;
 }
 
 export interface RichImageBlock {
   type: 'image';
-  attrs: { url: string; caption?: string };
+  attrs: RichStoredFileAttrs & { caption?: string };
 }
 
 export interface RichAudioBlock {
@@ -169,7 +180,7 @@ export interface RichAudioBlock {
 
 export interface RichVideoBlock {
   type: 'video';
-  attrs: { url: string; thumbnail?: string };
+  attrs: RichStoredFileAttrs & { thumbnail?: string };
 }
 
 export type RichBlock =

@@ -1,7 +1,17 @@
 import type { AdminModuleCard } from '@/features/module-library/types/adminModule.types';
-import { sortQuizItems } from '@/features/module-library/utils/adminModuleQuizUtils';
+import {
+  normalizeAdminModuleQuizItem,
+  sortQuizItems,
+} from '@/features/module-library/utils/adminModuleQuizUtils';
 import { normalizeAdminModuleCard } from '@/features/module-library/utils/cardBody';
 import { baseApi } from '@/store/apis/base';
+import type { LocalizedOptions, LocalizedString } from '@/types/localized';
+import {
+  parseLocalizedStringField,
+  serializeLocalizedString,
+} from '@/features/module-library/utils/localizedWire';
+
+export type { AdminModuleCard };
 
 export type AdminModuleLifecycleStatus = 'draft' | 'published' | 'retired';
 
@@ -11,10 +21,8 @@ export interface AdminModulesListItem {
   id: string;
   module_family_id: string;
   version: number;
-  title_bn: string | null;
-  title_en: string | null;
-  description_bn: string | null;
-  description_en?: string | null;
+  title: LocalizedString;
+  description: LocalizedString | null;
   domain: string;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
@@ -26,34 +34,40 @@ export interface AdminModulesListItem {
   created_at: string;
   quality_flags?: { flags: string[] } | null;
   quiz_count: number;
+  search_metadata?: Record<string, unknown> | null;
   thumbnail_storage_path?: string | null;
   thumbnail_presigned_url?: string | null;
   thumbnail_presigned_expires_seconds?: number | null;
 }
 
+export interface AdminModuleSourceDocument {
+  source_document_id: string;
+  presigned_url: string;
+  presigned_expires_seconds: number;
+}
+
 export interface AdminModuleQuizItem {
   id: string;
   question_order: number;
-  question_bn: string | null;
-  question_en: string | null;
-  case_setup_bn: string | null;
-  case_setup_en: string | null;
-  options_bn: string[];
-  options_en: string[];
+  question: LocalizedString;
+  case_setup: LocalizedString | null;
+  options: LocalizedOptions;
   correct_indices: number[];
-  explanation_bn: string | null;
-  explanation_en: string | null;
+  explanation: LocalizedString | null;
   difficulty: AdminModuleDifficulty;
+}
+
+export interface AdminModuleModuleJson {
+  cards: AdminModuleCard[];
+  quiz?: AdminModuleQuizItem[];
 }
 
 export interface AdminModuleDetailResponse {
   id: string;
   module_family_id: string;
   version: number;
-  title_bn: string | null;
-  title_en: string | null;
-  description_bn: string | null;
-  description_en: string | null;
+  title: LocalizedString;
+  description: LocalizedString | null;
   domain: string;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
@@ -64,7 +78,8 @@ export interface AdminModuleDetailResponse {
   published_at: string | null;
   created_at: string;
   quality_flags: { flags: string[] } | null;
-  cards: unknown[];
+  module_json: AdminModuleModuleJson;
+  cards: AdminModuleCard[];
   quiz: AdminModuleQuizItem[];
   source_documents?: AdminModuleSourceDocument[];
   thumbnail_storage_path?: string | null;
@@ -73,22 +88,19 @@ export interface AdminModuleDetailResponse {
 }
 
 export interface EditAdminModuleRequestBody {
-  title_bn?: string;
-  title_en?: string;
-  description_bn?: string;
-  description_en?: string;
-  module_json: { cards: unknown[]; quiz?: AdminModuleQuizItem[] };
+  title?: LocalizedString;
+  description?: LocalizedString | null;
+  module_json: AdminModuleModuleJson;
   editor_id?: string;
+  quiz?: AdminModuleQuizItem[];
   thumbnail_storage_path?: string | null;
 }
 
 export type AdminModuleRefresherType = 'refresher' | string;
 
 export interface CreateAdminModuleRequestBody {
-  title_bn: string | null;
-  title_en: string | null;
-  description_bn: string | null;
-  description_en: string | null;
+  title: LocalizedString;
+  description?: LocalizedString | null;
   domain: string;
   sub_domain?: string | null;
   module_type: AdminModuleRefresherType;
@@ -99,6 +111,68 @@ export interface CreateAdminModuleRequestBody {
 
 export interface CreateAdminModuleResponse {
   id: string;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeModuleSummary(
+  item: Record<string, unknown>,
+): AdminModulesListItem {
+  const title = parseLocalizedStringField(
+    item,
+    'title',
+    'title_bn',
+    'title_en',
+  );
+  const descriptionRaw = parseLocalizedStringField(
+    item,
+    'description',
+    'description_bn',
+    'description_en',
+  );
+
+  return {
+    id: String(item.id ?? ''),
+    module_family_id: String(item.module_family_id ?? ''),
+    version: typeof item.version === 'number' ? item.version : 0,
+    title,
+    description: Object.keys(descriptionRaw).length ? descriptionRaw : null,
+    domain: typeof item.domain === 'string' ? item.domain : '',
+    module_type: typeof item.module_type === 'string' ? item.module_type : '',
+    lifecycle_status:
+      (item.lifecycle_status as AdminModuleLifecycleStatus) ?? 'draft',
+    clinically_reviewed: Boolean(item.clinically_reviewed),
+    has_visibility_window: Boolean(item.has_visibility_window),
+    card_count: typeof item.card_count === 'number' ? item.card_count : 0,
+    estimated_minutes:
+      typeof item.estimated_minutes === 'number' ? item.estimated_minutes : 0,
+    published_at:
+      typeof item.published_at === 'string' ? item.published_at : null,
+    created_at: typeof item.created_at === 'string' ? item.created_at : '',
+    quality_flags:
+      item.quality_flags && typeof item.quality_flags === 'object'
+        ? (item.quality_flags as { flags: string[] })
+        : null,
+    quiz_count: typeof item.quiz_count === 'number' ? item.quiz_count : 0,
+    search_metadata:
+      item.search_metadata && typeof item.search_metadata === 'object'
+        ? (item.search_metadata as Record<string, unknown>)
+        : null,
+    thumbnail_storage_path:
+      typeof item.thumbnail_storage_path === 'string'
+        ? item.thumbnail_storage_path
+        : null,
+    thumbnail_presigned_url:
+      typeof item.thumbnail_presigned_url === 'string'
+        ? item.thumbnail_presigned_url
+        : null,
+    thumbnail_presigned_expires_seconds:
+      typeof item.thumbnail_presigned_expires_seconds === 'number'
+        ? item.thumbnail_presigned_expires_seconds
+        : null,
+  };
 }
 
 function normalizeSourceDocuments(value: unknown): AdminModuleSourceDocument[] {
@@ -130,29 +204,88 @@ function normalizeSourceDocuments(value: unknown): AdminModuleSourceDocument[] {
 }
 
 function normalizeModuleDetail(
-  response: {
-    module_json?: Partial<AdminModuleModuleJson>;
-    cards?: unknown[];
-    quiz?: AdminModuleQuizItem[];
-    source_documents?: unknown;
-  } & Omit<
-    AdminModuleDetailResponse,
-    'module_json' | 'cards' | 'quiz' | 'source_documents'
-  >,
+  response: Record<string, unknown>,
 ): AdminModuleDetailResponse {
-  const rawCards = response.module_json?.cards ?? response.cards ?? [];
+  const title = parseLocalizedStringField(
+    response,
+    'title',
+    'title_bn',
+    'title_en',
+  );
+  const descriptionRaw = parseLocalizedStringField(
+    response,
+    'description',
+    'description_bn',
+    'description_en',
+  );
+
+  const moduleJson = isPlainObject(response.module_json)
+    ? response.module_json
+    : {};
+  const rawCards = Array.isArray(moduleJson.cards)
+    ? moduleJson.cards
+    : Array.isArray(response.cards)
+      ? response.cards
+      : [];
   const cards = rawCards.map((card, index) =>
     normalizeAdminModuleCard(card, index),
   );
-  const quiz = sortQuizItems(response.module_json?.quiz ?? response.quiz ?? []);
+
+  const rawQuiz = Array.isArray(moduleJson.quiz)
+    ? moduleJson.quiz
+    : Array.isArray(response.quiz)
+      ? response.quiz
+      : [];
+  const quiz = sortQuizItems(
+    rawQuiz.map((item, index) => normalizeAdminModuleQuizItem(item, index)),
+  );
   const source_documents = normalizeSourceDocuments(response.source_documents);
 
   return {
-    ...response,
+    id: String(response.id ?? ''),
+    module_family_id: String(response.module_family_id ?? ''),
+    version: typeof response.version === 'number' ? response.version : 0,
+    title,
+    description: Object.keys(descriptionRaw).length ? descriptionRaw : null,
+    domain: typeof response.domain === 'string' ? response.domain : '',
+    module_type:
+      typeof response.module_type === 'string' ? response.module_type : '',
+    lifecycle_status:
+      (response.lifecycle_status as AdminModuleLifecycleStatus) ?? 'draft',
+    clinically_reviewed: Boolean(response.clinically_reviewed),
+    has_visibility_window: Boolean(response.has_visibility_window),
+    card_count:
+      typeof response.card_count === 'number'
+        ? response.card_count
+        : cards.length,
+    estimated_minutes:
+      typeof response.estimated_minutes === 'number'
+        ? response.estimated_minutes
+        : 0,
+    published_at:
+      typeof response.published_at === 'string' ? response.published_at : null,
+    created_at:
+      typeof response.created_at === 'string' ? response.created_at : '',
+    quality_flags:
+      response.quality_flags && typeof response.quality_flags === 'object'
+        ? (response.quality_flags as { flags: string[] })
+        : null,
     cards,
     quiz,
     source_documents,
     module_json: { cards, quiz },
+    thumbnail_storage_path:
+      typeof response.thumbnail_storage_path === 'string'
+        ? response.thumbnail_storage_path
+        : null,
+    thumbnail_presigned_url:
+      typeof response.thumbnail_presigned_url === 'string'
+        ? response.thumbnail_presigned_url
+        : null,
+    thumbnail_presigned_expires_seconds:
+      typeof response.thumbnail_presigned_expires_seconds === 'number'
+        ? response.thumbnail_presigned_expires_seconds
+        : null,
   };
 }
 
@@ -196,6 +329,12 @@ export const adminModulesApi = baseApi.injectEndpoints({
         method: 'GET',
         params,
       }),
+      transformResponse: (response: unknown) => {
+        if (!Array.isArray(response)) return [];
+        return response
+          .filter(isPlainObject)
+          .map((item) => normalizeModuleSummary(item));
+      },
     }),
     createModule: builder.mutation<
       CreateAdminModuleResponse,
@@ -204,7 +343,13 @@ export const adminModulesApi = baseApi.injectEndpoints({
       query: (body) => ({
         url: '/admin/modules',
         method: 'POST',
-        body,
+        body: {
+          ...body,
+          title: serializeLocalizedString(body.title),
+          description: body.description
+            ? serializeLocalizedString(body.description)
+            : null,
+        },
       }),
     }),
     getModuleDetail: builder.query<AdminModuleDetailResponse, string>({
@@ -212,6 +357,8 @@ export const adminModulesApi = baseApi.injectEndpoints({
         url: `/admin/modules/${encodeURIComponent(moduleId)}`,
         method: 'GET',
       }),
+      transformResponse: (response: unknown) =>
+        normalizeModuleDetail(isPlainObject(response) ? response : {}),
       /** Retain briefly so `useAdminModuleDetailQuery(..., { useCache: true })` can reuse across review steps. */
       keepUnusedDataFor: 300,
     }),

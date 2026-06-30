@@ -1,17 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Loader } from '@/components/ui';
+import { Button, Card, Loader, Select } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
   useGetIngestStatusByDocumentQuery,
-  useIngestDocumentsMutation,
   type AdminV3IngestAcceptedResponse,
 } from '@/features/module-library/api/adminIngestApi';
+import { DuplicateIngestConfirmDialog } from '@/features/module-library/components/DuplicateIngestConfirmDialog';
+import { useIngestWithDuplicateHandling } from '@/features/module-library/hooks/useIngestWithDuplicateHandling';
 import {
   INGEST_ACCEPTED_FILE_TYPES_LABEL,
   INGEST_FILE_INPUT_ACCEPT,
 } from '@/features/module-library/constants/ingestAcceptedFileTypes';
 import { INGEST_FORM_DEFAULTS } from '@/features/module-library/constants/ingestFormDefaults';
+import {
+  INGEST_ASSESSMENT_MODE_OPTIONS,
+  INGEST_CONTENT_DOMAIN_OPTIONS,
+  INGEST_PRIMARY_LANGUAGE_OPTIONS,
+} from '@/features/module-library/constants/ingestFormOptions';
 import {
   clearActiveIngestSession,
   readActiveIngestSession,
@@ -23,6 +29,7 @@ import {
   isIngestSucceeded,
   shouldPollIngestStatus,
 } from '@/features/module-library/utils/ingestStatus';
+import { conflictFilenamesFromList } from '@/features/module-library/utils/parseIngestDuplicateError';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
 
 function filenameStem(name: string): string {
@@ -49,10 +56,10 @@ export const IngestDocumentPage = () => {
   const [assessmentMode, setAssessmentMode] = useState<
     'with_quiz' | 'read_only'
   >(INGEST_FORM_DEFAULTS.assessment_mode);
-  const [mode, setMode] = useState<'append' | 'new'>(INGEST_FORM_DEFAULTS.mode);
   const [fuseSources, setFuseSources] = useState<boolean>(
     INGEST_FORM_DEFAULTS.fuse_sources,
   );
+  const [ingestionInstructions, setIngestionInstructions] = useState('');
 
   const [accepted, setAccepted] =
     useState<AdminV3IngestAcceptedResponse | null>(null);
@@ -61,9 +68,58 @@ export const IngestDocumentPage = () => {
     () => readActiveIngestSession()?.source_document_id ?? '',
   );
   const [actionError, setActionError] = useState('');
+  const [statusPollReady, setStatusPollReady] = useState(() =>
+    Boolean(readActiveIngestSession()?.source_document_id),
+  );
 
-  const [ingestDocuments, { isLoading: isUploading }] =
-    useIngestDocumentsMutation();
+  const handleIngestAccepted = useCallback(
+    (
+      res: AdminV3IngestAcceptedResponse,
+      { isReingest }: { isReingest: boolean },
+    ) => {
+      setAccepted((prev) =>
+        isReingest && prev
+          ? {
+              ...res,
+              sources: [...prev.sources, ...res.sources],
+              skipped_duplicates: res.skipped_duplicates,
+            }
+          : res,
+      );
+
+      const first = res.sources?.[0]?.source_document_id ?? '';
+      if (first) setActiveSourceDocumentId(first);
+      setStatusPollReady(false);
+
+      if (res.skipped_duplicates?.length && !isReingest) {
+        const skippedNames = conflictFilenamesFromList(res.skipped_duplicates);
+        const nextFiles = files.filter((file) => skippedNames.has(file.name));
+        const nextTitles = files
+          .map((file, index) => ({ file, title: titles[index] ?? '' }))
+          .filter(({ file }) => skippedNames.has(file.name))
+          .map(({ title }) => title);
+        setFiles(nextFiles);
+        setTitles(nextTitles);
+      } else {
+        setFiles([]);
+        setTitles([]);
+      }
+    },
+    [files, titles],
+  );
+
+  const {
+    submitIngest,
+    confirmDuplicate,
+    cancelDuplicate,
+    duplicateDialog,
+    isUploading,
+    isConfirmingDuplicate,
+    dismissedSkippedNotice,
+  } = useIngestWithDuplicateHandling({
+    onAccepted: handleIngestAccepted,
+    onError: setActionError,
+  });
 
   const sourceDocumentId = activeSourceDocumentId || restoredSourceDocumentId;
 
@@ -77,20 +133,36 @@ export const IngestDocumentPage = () => {
     error: statusError,
     refetch: refetchIngestStatus,
   } = useGetIngestStatusByDocumentQuery(sourceDocumentId, {
-    skip: !sourceDocumentId,
+    skip:
+      !sourceDocumentId ||
+      (Boolean(activeSourceDocumentId) && !statusPollReady),
     pollingInterval: statusPollIntervalMs,
     refetchOnMountOrArgChange: true,
   });
 
   useEffect(() => {
-    if (!sourceDocumentId) {
+    if (!activeSourceDocumentId || statusPollReady) return;
+    const timer = window.setTimeout(() => setStatusPollReady(true), 5000);
+    return () => window.clearTimeout(timer);
+  }, [activeSourceDocumentId, statusPollReady]);
+
+  useEffect(() => {
+    if (
+      !sourceDocumentId ||
+      (Boolean(activeSourceDocumentId) && !statusPollReady)
+    ) {
       setStatusPollIntervalMs(0);
       return;
     }
     setStatusPollIntervalMs(
       shouldPollIngestStatus(sourceDocumentId, statusData?.status) ? 2000 : 0,
     );
-  }, [sourceDocumentId, statusData?.status]);
+  }, [
+    sourceDocumentId,
+    statusData?.status,
+    activeSourceDocumentId,
+    statusPollReady,
+  ]);
 
   const ingestionInProgress = isIngestInProgress(
     sourceDocumentId,
@@ -187,6 +259,20 @@ export const IngestDocumentPage = () => {
         </div>
       ) : null}
 
+      {dismissedSkippedNotice?.length ? (
+        <div
+          className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-medium"
+          role="status"
+        >
+          <span className="font-semibold text-spice-text-primary">
+            Skipped duplicate content:
+          </span>{' '}
+          {dismissedSkippedNotice
+            .map((conflict) => conflict.filename)
+            .join(', ')}
+        </div>
+      ) : null}
+
       <Card variant="elevated" className="space-y-4 p-4">
         <div className="text-sm font-semibold text-spice-text-primary">
           Upload
@@ -253,24 +339,22 @@ export const IngestDocumentPage = () => {
 
         <div className="grid gap-3 md:grid-cols-2">
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
+            <span className="text-xs font-semibold text-spice-text-primary">
               Assessment mode
             </span>
-            <select
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+            <Select
+              className="w-full rounded-lg"
+              options={INGEST_ASSESSMENT_MODE_OPTIONS}
               value={assessmentMode}
               disabled={uploadFieldsDisabled}
-              onChange={(e) =>
-                setAssessmentMode(e.target.value as typeof assessmentMode)
+              onChange={(value) =>
+                setAssessmentMode(value as typeof assessmentMode)
               }
-            >
-              <option value="with_quiz">with_quiz</option>
-              <option value="read_only">read_only</option>
-            </select>
+            />
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
+            <span className="text-xs font-semibold text-spice-text-primary">
               Authority label
             </span>
             <input
@@ -283,66 +367,69 @@ export const IngestDocumentPage = () => {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
+            <span className="text-xs font-semibold text-spice-text-primary">
               Content domain
             </span>
-            <select
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+            <Select
+              className="w-full rounded-lg"
+              options={INGEST_CONTENT_DOMAIN_OPTIONS}
               value={contentDomain}
               disabled={uploadFieldsDisabled}
-              onChange={(e) =>
-                setContentDomain(e.target.value as typeof contentDomain)
+              onChange={(value) =>
+                setContentDomain(value as typeof contentDomain)
               }
-            >
-              <option value="digital">digital</option>
-              <option value="clinical">clinical</option>
-              <option value="clinical_with_app_action">
-                clinical_with_app_action
-              </option>
-              <option value="supervisor_update">supervisor_update</option>
-            </select>
+            />
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
+            <span className="text-xs font-semibold text-spice-text-primary">
               Primary language
             </span>
-            <select
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+            <Select
+              className="w-full rounded-lg"
+              options={INGEST_PRIMARY_LANGUAGE_OPTIONS}
               value={primaryLanguage}
               disabled={uploadFieldsDisabled}
-              onChange={(e) =>
-                setPrimaryLanguage(e.target.value as typeof primaryLanguage)
+              onChange={(value) =>
+                setPrimaryLanguage(value as typeof primaryLanguage)
               }
-            >
-              <option value="bn">bn</option>
-              <option value="en">en</option>
-            </select>
+            />
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">Mode</span>
-            <select
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={mode}
-              disabled={uploadFieldsDisabled}
-              onChange={(e) => setMode(e.target.value as typeof mode)}
-            >
-              <option value="append">append</option>
-              <option value="new">new</option>
-            </select>
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-spice-text-medium">
-            <input
-              type="checkbox"
-              disabled={uploadFieldsDisabled}
-              checked={fuseSources}
-              onChange={(e) => setFuseSources(e.target.checked)}
-            />
-            Fuse sources (requires 2+ files)
+            <span className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                disabled={uploadFieldsDisabled || files.length < 2}
+                checked={fuseSources}
+                onChange={(e) => setFuseSources(e.target.checked)}
+              />
+              <span className="text-sm text-spice-text-medium">
+                <span className="font-semibold text-spice-text-primary">
+                  Merge sources
+                </span>
+                <span className="mt-0.5 block text-xs text-spice-text-muted">
+                  Combine multiple files into one ingestion run. Requires at
+                  least 2 files.
+                </span>
+              </span>
+            </span>
           </label>
         </div>
+
+        <label className="block space-y-1">
+          <span className="text-xs text-spice-text-muted">
+            Ingestion instructions (optional)
+          </span>
+          <textarea
+            className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+            value={ingestionInstructions}
+            disabled={uploadFieldsDisabled}
+            onChange={(e) => setIngestionInstructions(e.target.value)}
+            placeholder="e.g. Focus on hypertension counselling workflows…"
+          />
+        </label>
 
         <div className="flex flex-wrap justify-end gap-2">
           <Button
@@ -355,27 +442,21 @@ export const IngestDocumentPage = () => {
               setRestoredSourceDocumentId('');
               setActiveSourceDocumentId('');
               clearActiveIngestSession();
-              try {
-                const effectiveTitles =
-                  titles.length === files.length ? titles : null;
-                const res = await ingestDocuments({
-                  files,
-                  titles: effectiveTitles,
-                  fuse_sources: fuseSources,
-                  content_domain: contentDomain,
-                  assessment_mode: assessmentMode,
-                  authority_label: authorityLabel,
-                  primary_language: primaryLanguage,
-                  mode,
-                }).unwrap();
-                setAccepted(res);
-                const first = res.sources?.[0]?.source_document_id ?? '';
-                setActiveSourceDocumentId(first);
-                setFiles([]);
-                setTitles([]);
-              } catch (err) {
-                setActionError(formatRtkQueryError(err));
-              }
+              const effectiveTitles =
+                titles.length === files.length ? titles : null;
+              await submitIngest({
+                files,
+                titles: effectiveTitles,
+                fuse_sources: fuseSources && files.length >= 2,
+                content_domain: contentDomain,
+                assessment_mode: assessmentMode,
+                authority_label: authorityLabel,
+                primary_language: primaryLanguage,
+                mode: INGEST_FORM_DEFAULTS.mode,
+                ingestion_instructions: ingestionInstructions.trim()
+                  ? ingestionInstructions
+                  : null,
+              });
             }}
           >
             {isUploading
@@ -610,6 +691,15 @@ export const IngestDocumentPage = () => {
           </div>
         ) : null}
       </Card>
+
+      <DuplicateIngestConfirmDialog
+        open={duplicateDialog.open}
+        variant={duplicateDialog.variant}
+        conflicts={duplicateDialog.conflicts}
+        onCancel={cancelDuplicate}
+        onConfirm={() => void confirmDuplicate()}
+        isConfirming={isConfirmingDuplicate}
+      />
     </section>
   );
 };

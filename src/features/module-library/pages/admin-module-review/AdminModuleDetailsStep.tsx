@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
 import { useAdminModuleThumbnailUpload } from '@/features/module-library/hooks/useAdminModuleThumbnailUpload';
+import { useModulePreview } from '@/features/module-library/hooks/useModulePreview';
 import { updateDetails } from '@/features/module-library/store/adminModuleReviewSlice';
 import { useAppDispatch } from '@/store/hooks';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { patchLocaleField, readLocaleFieldValue } from '@/types/localized';
 
 export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
@@ -26,6 +28,11 @@ export const AdminModuleDetailsStep = () => {
 
   const [actionError, setActionError] = useState('');
   const isReadonly = useAdminModuleReviewReadonly();
+  const { registerEditorContext } = useModulePreview();
+
+  useEffect(() => {
+    registerEditorContext({ phase: 'card', index: 0 });
+  }, [registerEditorContext]);
 
   const {
     fileInputRef,
@@ -231,12 +238,16 @@ export const AdminModuleDetailsStep = () => {
             <span className="text-xs text-spice-text-muted">Title (BN)</span>
             <input
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={working.title_bn ?? ''}
+              value={readLocaleFieldValue(working.title, 'bn')}
               disabled={busy || isReadonly}
               onChange={(e) =>
                 dispatch(
                   updateDetails({
-                    title_bn: e.target.value,
+                    title: patchLocaleField(
+                      working.title,
+                      'bn',
+                      e.target.value,
+                    ),
                   }),
                 )
               }
@@ -246,12 +257,16 @@ export const AdminModuleDetailsStep = () => {
             <span className="text-xs text-spice-text-muted">Title (EN)</span>
             <input
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={working.title_en ?? ''}
+              value={readLocaleFieldValue(working.title, 'en')}
               disabled={busy || isReadonly}
               onChange={(e) =>
                 dispatch(
                   updateDetails({
-                    title_en: e.target.value,
+                    title: patchLocaleField(
+                      working.title,
+                      'en',
+                      e.target.value,
+                    ),
                   }),
                 )
               }
@@ -266,12 +281,16 @@ export const AdminModuleDetailsStep = () => {
             </span>
             <textarea
               className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-              value={working.description_bn ?? ''}
+              value={readLocaleFieldValue(working.description, 'bn')}
               disabled={busy || isReadonly}
               onChange={(e) =>
                 dispatch(
                   updateDetails({
-                    description_bn: e.target.value,
+                    description: patchLocaleField(
+                      working.description ?? {},
+                      'bn',
+                      e.target.value,
+                    ),
                   }),
                 )
               }
@@ -283,12 +302,16 @@ export const AdminModuleDetailsStep = () => {
             </span>
             <textarea
               className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-              value={working.description_en ?? ''}
+              value={readLocaleFieldValue(working.description, 'en')}
               disabled={busy || isReadonly}
               onChange={(e) =>
                 dispatch(
                   updateDetails({
-                    description_en: e.target.value,
+                    description: patchLocaleField(
+                      working.description ?? {},
+                      'en',
+                      e.target.value,
+                    ),
                   }),
                 )
               }

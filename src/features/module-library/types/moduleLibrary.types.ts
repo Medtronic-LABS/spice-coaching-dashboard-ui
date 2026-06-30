@@ -8,7 +8,7 @@ export interface ModuleLibraryItem {
   questions: number;
   durationLabel: string;
   status: ModuleStatus;
-  lastUpdated: string;
+  createdAt: string;
   draftProgress?: string;
 }
 

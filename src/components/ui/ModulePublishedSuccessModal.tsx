@@ -65,7 +65,7 @@ export const ModulePublishedSuccessModal = ({
     <Modal open={open} labelledBy="module-published-title">
       <Card
         variant="elevated"
-        className="w-full max-w-xl space-y-5 border-spice-border p-6 shadow-lg"
+        className="w-full max-w-xl space-y-4 border-spice-border p-4 shadow-lg sm:space-y-5 sm:p-6"
       >
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-semantic-successBg text-2xl text-spice-semantic-success">
           ✓
@@ -76,7 +76,7 @@ export const ModulePublishedSuccessModal = ({
           </Badge>
           <h2
             id="module-published-title"
-            className="text-2xl font-semibold text-spice-text-primary"
+            className="text-xl font-semibold text-spice-text-primary sm:text-2xl"
           >
             Module is Live
           </h2>
@@ -102,7 +102,7 @@ export const ModulePublishedSuccessModal = ({
               {summary.topic} · Published just now
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
               <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
                 LESSONS

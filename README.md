@@ -28,7 +28,7 @@ cp .env.example .env   # adjust URLs and mock flags as needed
 npm run dev
 ```
 
-Open the URL printed by Vite (typically `http://localhost:5173`).
+Open the URL printed by Vite (typically `http://localhost:3000`).
 
 ### Other scripts
 
@@ -55,9 +55,13 @@ Copy `.env.example` to `.env`. Only `VITE_*` variables are exposed to the browse
 | Variable | Description |
 |----------|-------------|
 | `VITE_API_BASE_URL` | Single API origin for dashboard and `/admin/*` routes (e.g. `https://host/medtronics-api`) |
-| `VITE_APP_ROLE` | Production role lock (`supervisor` or `programManager`), defaults to `supervisor` when unset/invalid |
+| `VITE_DEPLOYMENT_PRIMARY_LOCALE` | Primary locale for module content display (default `bn`) |
 | `VITE_USE_MOCK_API` | When not `false`, all routes use mocked RTK Query responses |
 | `VITE_USE_MOCK_MODULE_PIPELINE` | When not `false`, program-manager module-creation pipeline can use local mocks |
+| `VITE_ERROR_REPORTING_URL` | Optional POST endpoint for client error reports |
+| `VITE_SPICE_WEB_LOGIN_URL` | Spice web login URL for SSO redirect (required in production builds) |
+| `VITE_SPICE_ADMIN_API_URL` | Admin-service API path or origin (default `/admin-service`) |
+| `VITE_SPICE_USER_API_URL` | User-service API path or origin (default `/user-service`) |
 
 ### How `baseApi` works
 
@@ -141,9 +145,7 @@ These rules are not a substitute for lint/typecheck/tests; they describe **how**
 
 ## Roles (local development)
 
-In local development and tests, role is stored in `sessionStorage` under `appRole` (`supervisor` or `programManager`) so UI flows can be toggled quickly.
-
-In production builds, role switching is disabled and role is derived from `VITE_APP_ROLE` (fallback: `supervisor`).
+Role is stored in `sessionStorage` under `appRole` (`supervisor` or `programManager`). The sidebar and route set change by role. In development and tests, a default session is seeded when SSO params are absent. Production builds require SSO and show the login page when no session exists.
 
 ## Documentation
 

@@ -2,6 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getCurrentRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
+import { cn } from '@/utils';
+
+interface SidebarProps {
+  isMobileOpen: boolean;
+  onMobileClose: () => void;
+}
 
 type NavIconProps = { className?: string };
 
@@ -131,7 +137,7 @@ const ClipboardIcon = ({ className }: NavIconProps) => (
   </svg>
 );
 
-export const Sidebar = () => {
+export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
   const { t } = useTranslation();
   const role = getCurrentRole();
   const isProgramManager = role === 'programManager';
@@ -159,182 +165,230 @@ export const Sidebar = () => {
           : 'text-spice-text-muted group-hover:text-spice-text-medium'
     }`;
 
+  const sidebarSurfaceClassName = isProgramManager
+    ? 'border-white/10 bg-spice-brand-navy'
+    : 'border-spice-border bg-spice-bg-surface';
+
   return (
-    <aside
-      className={`sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r ${
-        isProgramManager
-          ? 'border-white/10 bg-spice-brand-navy'
-          : 'border-spice-border bg-spice-bg-surface'
-      }`}
-    >
-      <div className="px-5 pb-4 pt-5">
-        <div
-          className={`text-[10px] font-semibold tracking-wider ${
-            isProgramManager
-              ? 'text-spice-text-onDark-mid'
-              : 'text-spice-text-medium'
-          }`}
-        >
-          {t('layout.sidebar.brand')}
-        </div>
-        <div
-          className={`mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-            isProgramManager
-              ? 'bg-spice-brand-pm text-white'
-              : 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
-          }`}
-        >
-          {isProgramManager ? 'Admin Access' : t('layout.sidebar.badge')}
-        </div>
-      </div>
-
-      <nav className="flex-1 space-y-1 px-3 pb-4">
-        <div className={sectionTitleClassName}>
-          {t('layout.sidebar.sections.overview')}
-        </div>
-        <NavLink className={linkClassName} to={paths.home} end>
-          {({ isActive }) => (
-            <>
-              <DashboardIcon className={iconClassName({ isActive })} />
-              {isProgramManager
-                ? 'Overview'
-                : t('layout.sidebar.nav.dashboard')}
-            </>
-          )}
-        </NavLink>
-        <NavLink
-          className={linkClassName}
-          to={isProgramManager ? paths.supervisors : paths.chwProfiles}
-        >
-          {({ isActive }) => (
-            <>
-              <UsersIcon className={iconClassName({ isActive })} />
-              {isProgramManager
-                ? 'Supervisors'
-                : t('layout.sidebar.nav.chwProfiles')}
-            </>
-          )}
-        </NavLink>
-        {isProgramManager ? (
-          <NavLink className={linkClassName} to={paths.chwProfiles}>
-            {({ isActive }) => (
-              <>
-                <UsersIcon className={iconClassName({ isActive })} />
-                CHW Roster
-              </>
-            )}
-          </NavLink>
-        ) : null}
-
-        <div className={sectionTitleClassName}>
-          {t('layout.sidebar.sections.learning')}
-        </div>
-        <NavLink className={linkClassName} to={paths.moduleLibrary}>
-          {({ isActive }) => (
-            <>
-              <BookIcon className={iconClassName({ isActive })} />
-              {isProgramManager
-                ? 'Modules'
-                : t('layout.sidebar.nav.moduleLibrary')}
-            </>
-          )}
-        </NavLink>
-        {isProgramManager ? (
-          <NavLink className={linkClassName} to={paths.ingestDocument}>
-            {({ isActive }) => (
-              <>
-                <ClipboardIcon className={iconClassName({ isActive })} />
-                Ingest document
-              </>
-            )}
-          </NavLink>
-        ) : null}
-        <NavLink className={linkClassName} to={paths.quizPerformance}>
-          {({ isActive }) => (
-            <>
-              <QuizIcon className={iconClassName({ isActive })} />
-              {isProgramManager
-                ? 'Quiz Analytics'
-                : t('layout.sidebar.nav.quizPerformance')}
-            </>
-          )}
-        </NavLink>
-
-        <div className={sectionTitleClassName}>
-          {t('layout.sidebar.sections.monitoring')}
-        </div>
-        <NavLink
-          className={linkClassName}
-          to={isProgramManager ? paths.escalations : paths.leaderboard}
-        >
-          {({ isActive }) => (
-            <>
-              <TrophyIcon className={iconClassName({ isActive })} />
-              {isProgramManager
-                ? 'Escalations'
-                : t('layout.sidebar.nav.leaderboard')}
-            </>
-          )}
-        </NavLink>
-        {isProgramManager ? (
-          <NavLink className={linkClassName} to={paths.rankings}>
-            {({ isActive }) => (
-              <>
-                <TrophyIcon className={iconClassName({ isActive })} />
-                Rankings
-              </>
-            )}
-          </NavLink>
-        ) : null}
-        <NavLink className={linkClassName} to={paths.reports}>
-          {({ isActive }) => (
-            <>
-              <ReportIcon className={iconClassName({ isActive })} />
-              {t('layout.sidebar.nav.reports')}
-            </>
-          )}
-        </NavLink>
-      </nav>
-
-      <div
-        className={`border-t px-4 py-4 ${
-          isProgramManager ? 'border-white/10' : 'border-spice-border'
-        }`}
+    <>
+      <button
+        type="button"
+        className={cn(
+          'fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden',
+          isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        aria-label={t('layout.sidebar.closeOverlay')}
+        tabIndex={isMobileOpen ? 0 : -1}
+        onClick={onMobileClose}
+      />
+      <aside
+        id="app-sidebar"
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex h-screen w-[min(18rem,85vw)] shrink-0 flex-col border-r transition-transform duration-200 ease-in-out lg:static lg:z-auto lg:w-64 lg:translate-x-0',
+          sidebarSurfaceClassName,
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
       >
-        <div className="flex items-center gap-3">
+        <div className="px-5 pb-4 pt-5">
           <div
-            className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
+            className={`text-[10px] font-semibold tracking-wider ${
+              isProgramManager
+                ? 'text-spice-text-onDark-mid'
+                : 'text-spice-text-medium'
+            }`}
+          >
+            {t('layout.sidebar.brand')}
+          </div>
+          <div
+            className={`mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
               isProgramManager
                 ? 'bg-spice-brand-pm text-white'
                 : 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
             }`}
           >
-            {t('layout.sidebar.user.initials')}
+            {isProgramManager ? 'Admin Access' : t('layout.sidebar.badge')}
           </div>
-          <div className="min-w-0">
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+          <div className={sectionTitleClassName}>
+            {t('layout.sidebar.sections.overview')}
+          </div>
+          <NavLink
+            className={linkClassName}
+            to={paths.home}
+            end
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <DashboardIcon className={iconClassName({ isActive })} />
+                {isProgramManager
+                  ? 'Overview'
+                  : t('layout.sidebar.nav.dashboard')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={isProgramManager ? paths.supervisors : paths.chwProfiles}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <UsersIcon className={iconClassName({ isActive })} />
+                {isProgramManager
+                  ? 'Supervisors'
+                  : t('layout.sidebar.nav.chwProfiles')}
+              </>
+            )}
+          </NavLink>
+          {isProgramManager ? (
+            <NavLink
+              className={linkClassName}
+              to={paths.chwProfiles}
+              onClick={onMobileClose}
+            >
+              {({ isActive }) => (
+                <>
+                  <UsersIcon className={iconClassName({ isActive })} />
+                  CHW Roster
+                </>
+              )}
+            </NavLink>
+          ) : null}
+
+          <div className={sectionTitleClassName}>
+            {t('layout.sidebar.sections.learning')}
+          </div>
+          <NavLink
+            className={linkClassName}
+            to={paths.moduleLibrary}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <BookIcon className={iconClassName({ isActive })} />
+                {isProgramManager
+                  ? 'Modules'
+                  : t('layout.sidebar.nav.moduleLibrary')}
+              </>
+            )}
+          </NavLink>
+          {isProgramManager ? (
+            <NavLink
+              className={linkClassName}
+              to={paths.ingestDocument}
+              onClick={onMobileClose}
+            >
+              {({ isActive }) => (
+                <>
+                  <ClipboardIcon className={iconClassName({ isActive })} />
+                  Ingest document
+                </>
+              )}
+            </NavLink>
+          ) : null}
+          <NavLink
+            className={linkClassName}
+            to={paths.quizPerformance}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <QuizIcon className={iconClassName({ isActive })} />
+                {isProgramManager
+                  ? 'Quiz Analytics'
+                  : t('layout.sidebar.nav.quizPerformance')}
+              </>
+            )}
+          </NavLink>
+
+          <div className={sectionTitleClassName}>
+            {t('layout.sidebar.sections.monitoring')}
+          </div>
+          <NavLink
+            className={linkClassName}
+            to={isProgramManager ? paths.escalations : paths.leaderboard}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <TrophyIcon className={iconClassName({ isActive })} />
+                {isProgramManager
+                  ? 'Escalations'
+                  : t('layout.sidebar.nav.leaderboard')}
+              </>
+            )}
+          </NavLink>
+          {isProgramManager ? (
+            <NavLink
+              className={linkClassName}
+              to={paths.rankings}
+              onClick={onMobileClose}
+            >
+              {({ isActive }) => (
+                <>
+                  <TrophyIcon className={iconClassName({ isActive })} />
+                  Rankings
+                </>
+              )}
+            </NavLink>
+          ) : null}
+          <NavLink
+            className={linkClassName}
+            to={paths.reports}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <ReportIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.reports')}
+              </>
+            )}
+          </NavLink>
+        </nav>
+
+        <div
+          className={`border-t px-4 py-4 ${
+            isProgramManager ? 'border-white/10' : 'border-spice-border'
+          }`}
+        >
+          <div className="flex items-center gap-3">
             <div
-              className={`truncate text-sm font-semibold ${
+              className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
                 isProgramManager
-                  ? 'text-spice-text-onDark-hi'
-                  : 'text-spice-text-primary'
+                  ? 'bg-spice-brand-pm text-white'
+                  : 'bg-spice-bg-tint text-spice-brand-primary ring-1 ring-spice-border'
               }`}
             >
-              {t('layout.sidebar.user.name')}
+              {t('layout.sidebar.user.initials')}
             </div>
-            <div
-              className={`truncate text-xs ${
-                isProgramManager
-                  ? 'text-spice-text-onDark-mid'
-                  : 'text-spice-text-muted'
-              }`}
-            >
-              {isProgramManager
-                ? 'Program Manager'
-                : t('layout.sidebar.user.subtitle')}
+            <div className="min-w-0">
+              <div
+                className={`truncate text-sm font-semibold ${
+                  isProgramManager
+                    ? 'text-spice-text-onDark-hi'
+                    : 'text-spice-text-primary'
+                }`}
+              >
+                {t('layout.sidebar.user.name')}
+              </div>
+              <div
+                className={`truncate text-xs ${
+                  isProgramManager
+                    ? 'text-spice-text-onDark-mid'
+                    : 'text-spice-text-muted'
+                }`}
+              >
+                {isProgramManager
+                  ? 'Program Manager'
+                  : t('layout.sidebar.user.subtitle')}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };

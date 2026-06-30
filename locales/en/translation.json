@@ -2,6 +2,15 @@
   "app": {
     "title": "Micro-learning analytics dashboard"
   },
+  "auth": {
+    "login": {
+      "brand": "SPICE • AI COACHING",
+      "title": "Access denied",
+      "description": "You do not have access to this dashboard because you did not arrive through Spice SSO.",
+      "instruction": "Please sign in through Spice, then return here to open the dashboard.",
+      "continueToSpice": "Go to Spice login"
+    }
+  },
   "common": {
     "language": "Language",
     "refresh": "Refresh",
@@ -25,6 +34,7 @@
   "layout": {
     "sidebar": {
       "brand": "SPICE • AI COACHING",
+      "closeOverlay": "Close navigation menu",
       "badge": "Bangladesh Pilot",
       "sections": {
         "overview": "OVERVIEW",
@@ -50,6 +60,10 @@
       "userName": "Subhodeep",
       "userInitials": "S",
       "userMenuAriaLabel": "User menu",
+      "logout": "Log out",
+      "logoutAriaLabel": "Log out",
+      "openMenu": "Open navigation menu",
+      "closeMenu": "Close navigation menu",
       "languageAriaLabel": "Language",
       "languageSelectSr": "Language",
       "languageOptions": {
@@ -68,7 +82,7 @@
     "title": "Module Library",
     "description": "Browse and manage learning modules.",
     "assigned": {
-      "badge": "ASSIGNMENT SENT",
+      "badge": "ASSIGNMENT COMPLETE",
       "title": "Module Assigned Successfully",
       "subtitle": "The module has been assigned. They will see it in their coaching screen immediately.",
       "summary": {
@@ -76,14 +90,19 @@
         "moduleMeta": "4 lessons • 3 questions • ~18 min",
         "deadline": "DEADLINE",
         "deadlineMeta": "14 days from today",
-        "assignedTo": "ASSIGNED TO — {{count}} CHWs"
+        "assignedTo": "ASSIGNED TO — {{count}} users",
+        "assignedToIndividual": "ASSIGNED TO — Individual",
+        "assignedToPoSk": "ASSIGNED TO — PO + SKs",
+        "assignedToPo": "ASSIGNED TO — PO",
+        "assignedToUpazila": "ASSIGNED TO — Upazila",
+        "assignedToOrganization": "ASSIGNED TO — Organization"
       },
       "next": {
         "title": "WHAT'S NEXT",
-        "backToLibrary": "Back to Module Library",
+        "backToLibrary": "Module Library",
         "backToLibraryHint": "View or edit the assigned module",
-        "assignMore": "Assign to more CHWs",
-        "assignMoreHint": "Add more Shasthya Kormis to this module",
+        "assignMore": "Assign to more users",
+        "assignMoreHint": "Add more users to this module",
         "goDashboard": "Go to Dashboard",
         "goDashboardHint": "Track progress in the Module Completion widget"
       },

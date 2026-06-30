@@ -34,7 +34,7 @@ export function Table<T extends object>({
               <th
                 key={String(col.key)}
                 scope="col"
-                className="px-6 py-3 font-medium tracking-wider"
+                className="px-3 py-2 font-medium tracking-wider sm:px-6 sm:py-3"
               >
                 {col.header}
               </th>
@@ -51,7 +51,10 @@ export function Table<T extends object>({
                 {columns.map((col) => (
                   <td
                     key={String(col.key)}
-                    className={cn('px-6 py-4 whitespace-nowrap', col.className)}
+                    className={cn(
+                      'px-3 py-3 whitespace-nowrap sm:px-6 sm:py-4',
+                      col.className,
+                    )}
                   >
                     {col.render ? col.render(row) : String(row[col.key] ?? '')}
                   </td>
@@ -62,7 +65,7 @@ export function Table<T extends object>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-6 py-8 text-center text-spice-text-muted"
+                className="px-3 py-8 text-center text-spice-text-muted sm:px-6"
               >
                 {emptyMessage}
               </td>

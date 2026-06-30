@@ -42,9 +42,8 @@ function withSyncedQuiz(
 
 export function editableSnapshot(module: AdminModuleDetailResponse): string {
   return JSON.stringify({
-    title_bn: module.title_bn,
-    title_en: module.title_en,
-    description_bn: module.description_bn,
+    title: module.title,
+    description: module.description,
     cards: module.cards,
     quiz: module.quiz,
     thumbnail_storage_path: module.thumbnail_storage_path,
@@ -89,9 +88,8 @@ export const adminModuleReviewSlice = createSlice({
 
       state.working = {
         ...data,
-        title_bn: state.working.title_bn,
-        title_en: state.working.title_en,
-        description_bn: state.working.description_bn,
+        title: state.working.title,
+        description: state.working.description,
         cards: state.working.cards,
         quiz: state.working.quiz,
         thumbnail_storage_path: state.working.thumbnail_storage_path,
@@ -108,10 +106,8 @@ export const adminModuleReviewSlice = createSlice({
     updateDetails(
       state,
       action: PayloadAction<{
-        title_bn?: string;
-        title_en?: string;
-        description_bn?: string;
-        description_en?: string;
+        title?: AdminModuleDetailResponse['title'];
+        description?: AdminModuleDetailResponse['description'];
         thumbnail_storage_path?: string | null;
         thumbnail_presigned_url?: string | null;
       }>,

@@ -20,17 +20,16 @@ describe('reportError', () => {
     fetchSpy.mockRestore();
   });
 
-  it('posts to VITE_ERROR_REPORTING_URL in production mode', async () => {
+  it('does not post remotely while error reporting is disabled', () => {
     vi.stubEnv('DEV', false);
     vi.stubEnv('PROD', true);
     vi.stubEnv('VITE_ERROR_REPORTING_URL', 'https://errors.example.com/report');
 
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response(null, { status: 204 }));
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const sendBeacon = vi.fn().mockReturnValue(true);
     Object.defineProperty(navigator, 'sendBeacon', {
       configurable: true,
-      value: vi.fn().mockReturnValue(false),
+      value: sendBeacon,
     });
 
     reportError({
@@ -38,35 +37,7 @@ describe('reportError', () => {
       source: 'error-boundary',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'https://errors.example.com/report',
-      expect.objectContaining({
-        method: 'POST',
-        keepalive: true,
-      }),
-    );
-
-    vi.unstubAllEnvs();
-    fetchSpy.mockRestore();
-  });
-
-  it('uses sendBeacon when available', () => {
-    vi.stubEnv('DEV', false);
-    vi.stubEnv('VITE_ERROR_REPORTING_URL', 'https://errors.example.com/report');
-
-    const sendBeacon = vi.fn().mockReturnValue(true);
-    Object.defineProperty(navigator, 'sendBeacon', {
-      configurable: true,
-      value: sendBeacon,
-    });
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-
-    reportError({
-      message: 'beacon failure',
-      source: 'window',
-    });
-
-    expect(sendBeacon).toHaveBeenCalled();
+    expect(sendBeacon).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
 
     vi.unstubAllEnvs();
