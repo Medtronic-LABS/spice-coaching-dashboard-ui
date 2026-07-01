@@ -10,11 +10,16 @@ export type ErrorReport = {
   source: ErrorReportSource;
 };
 
+/** Remote error reporting is disabled until VITE_ERROR_REPORTING_URL is re-enabled in CI. */
+const REMOTE_ERROR_REPORTING_ENABLED = false;
+
 export function reportError(report: ErrorReport): void {
   if (import.meta.env.DEV) {
     console.error('[observability]', report);
     return;
   }
+
+  if (!REMOTE_ERROR_REPORTING_ENABLED) return;
 
   const endpoint = import.meta.env.VITE_ERROR_REPORTING_URL?.trim();
   if (!endpoint) return;

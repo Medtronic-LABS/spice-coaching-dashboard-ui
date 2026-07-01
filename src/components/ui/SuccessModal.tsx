@@ -55,7 +55,7 @@ export const SuccessModal = ({
     <Modal open={open} labelledBy="success-modal-title">
       <Card
         variant="elevated"
-        className="w-full max-w-md space-y-5 border-spice-border p-6 shadow-lg"
+        className="w-full max-w-md space-y-4 border-spice-border p-4 shadow-lg sm:space-y-5 sm:p-6"
       >
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-semantic-successBg text-2xl text-spice-semantic-success">
           ✓

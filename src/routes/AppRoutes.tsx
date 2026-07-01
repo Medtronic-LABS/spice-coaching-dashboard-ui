@@ -2,7 +2,7 @@ import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { getCurrentRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { paths, ROUTE_PREFIX } from '@/constants/routes';
 
 const Home = lazy(() =>
   import('@/features/home/pages/Home').then((module) => ({
@@ -161,6 +161,10 @@ export const AppRoutes = () => {
 
   return (
     <Routes>
+      <Route
+        path={ROUTE_PREFIX}
+        element={<Navigate to={paths.home} replace />}
+      />
       <Route element={<MainLayout />}>
         <Route path={paths.home} element={<Home />} />
         <Route

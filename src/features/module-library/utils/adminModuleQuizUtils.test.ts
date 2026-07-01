@@ -8,26 +8,27 @@ import {
   renumberQuestionOrders,
   sortQuizItems,
 } from '@/features/module-library/utils/adminModuleQuizUtils';
+import { readLocaleText } from '@/types/localized';
 
 function quizItem(
   id: string,
   question_order: number,
-  question_bn = id,
+  questionBn = id,
 ): AdminModuleQuizItem {
   return {
     id,
     question_order,
-    question_bn,
-    question_en: null,
-    case_setup_bn: null,
-    case_setup_en: null,
-    options_bn: ['a', 'b'],
-    options_en: ['a', 'b'],
+    question: { bn: questionBn },
+    case_setup: null,
+    options: { bn: ['a', 'b'], en: ['a', 'b'] },
     correct_indices: [0],
-    explanation_bn: null,
-    explanation_en: null,
+    explanation: null,
     difficulty: 'medium',
   };
+}
+
+function questionText(item: AdminModuleQuizItem): string {
+  return readLocaleText(item.question, 'bn');
 }
 
 describe('adminModuleQuizUtils reorder helpers', () => {
@@ -39,21 +40,13 @@ describe('adminModuleQuizUtils reorder helpers', () => {
 
   it('reorderQuizItems renumbers question_order to 1..n', () => {
     const result = reorderQuizItems(quiz, 2, 0);
-    expect(result.map((q) => q.question_bn)).toEqual(['C', 'A', 'B']);
+    expect(result.map(questionText)).toEqual(['C', 'A', 'B']);
     expect(result.map((q) => q.question_order)).toEqual([1, 2, 3]);
   });
 
   it('moveQuizUp and moveQuizDown reorder within bounds', () => {
-    expect(moveQuizUp(quiz, 1).map((q) => q.question_bn)).toEqual([
-      'B',
-      'A',
-      'C',
-    ]);
-    expect(moveQuizDown(quiz, 0).map((q) => q.question_bn)).toEqual([
-      'B',
-      'A',
-      'C',
-    ]);
+    expect(moveQuizUp(quiz, 1).map(questionText)).toEqual(['B', 'A', 'C']);
+    expect(moveQuizDown(quiz, 0).map(questionText)).toEqual(['B', 'A', 'C']);
   });
 
   it('removeQuizItem leaves contiguous question_order values', () => {

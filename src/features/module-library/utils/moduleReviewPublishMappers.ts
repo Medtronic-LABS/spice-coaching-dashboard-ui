@@ -3,19 +3,22 @@ import type {
   ModuleReviewPublishLessonRow,
   ModuleReviewPublishQuizRow,
 } from '@/features/module-library/components/ModuleReviewPublishView';
+import { DEPLOYMENT_PRIMARY_LOCALE } from '@/config/deploymentLocale';
 import { sortQuizItems } from '@/features/module-library/utils/adminModuleQuizUtils';
+import { normalizeAdminModuleCard } from '@/features/module-library/utils/cardBody';
+import { readLocaleText } from '@/types/localized';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 export function adminCardTitle(card: unknown, index: number): string {
-  if (!isPlainObject(card)) return `Lesson ${index + 1}`;
-  const title =
-    (typeof card.title_en === 'string' && card.title_en) ||
-    (typeof card.title_bn === 'string' && card.title_bn) ||
-    (typeof card.title === 'string' && card.title) ||
-    '';
+  const normalized = normalizeAdminModuleCard(card, index);
+  const title = readLocaleText(
+    normalized.title,
+    DEPLOYMENT_PRIMARY_LOCALE,
+    'en',
+  );
   return title || `Lesson ${index + 1}`;
 }
 
@@ -43,10 +46,10 @@ export function mapAdminQuizToRows(
 ): ModuleReviewPublishQuizRow[] {
   return sortQuizItems(quiz).map((item) => ({
     id: item.id,
-    question: item.question_en ?? item.question_bn ?? '',
+    question: readLocaleText(item.question, DEPLOYMENT_PRIMARY_LOCALE, 'en'),
     answerSet:
       (item.correct_indices?.length ?? 0) > 0 &&
-      Boolean(item.question_en ?? item.question_bn),
+      Boolean(readLocaleText(item.question, DEPLOYMENT_PRIMARY_LOCALE, 'en')),
   }));
 }
 

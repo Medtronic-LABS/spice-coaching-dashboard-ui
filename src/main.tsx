@@ -6,12 +6,14 @@ import { MantineProvider } from '@mantine/core';
 import { App } from '@/App';
 import { store } from '@/store/store';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { normalizeAppPath } from '@/bootstrap/normalizeAppPath';
 import { initObservability } from '@/observability/initObservability';
 import '@/i18n/i18n';
 import '@mantine/core/styles.css';
 import '@mantine/tiptap/styles.css';
 import '@/styles/index.css';
 
+normalizeAppPath();
 initObservability();
 
 createRoot(document.getElementById('root') as HTMLElement).render(

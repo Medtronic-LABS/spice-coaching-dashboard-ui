@@ -223,7 +223,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 5,
       durationLabel: '~20 min',
       status: 'published',
-      lastUpdated: '12 Apr 2026',
+      createdAt: '12 Apr 2026',
     },
     {
       id: 'htn-referral',
@@ -233,7 +233,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 3,
       durationLabel: '~18 min',
       status: 'published',
-      lastUpdated: '8 Apr 2026',
+      createdAt: '8 Apr 2026',
     },
     {
       id: 'community-clinic',
@@ -243,7 +243,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 4,
       durationLabel: '~15 min',
       status: 'published',
-      lastUpdated: '5 Apr 2026',
+      createdAt: '5 Apr 2026',
     },
     {
       id: 'fbs-rbs',
@@ -253,7 +253,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 5,
       durationLabel: '~14 min',
       status: 'published',
-      lastUpdated: '3 Apr 2026',
+      createdAt: '3 Apr 2026',
     },
     {
       id: 'med-adherence',
@@ -263,7 +263,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 4,
       durationLabel: '~12 min',
       status: 'published',
-      lastUpdated: '1 Apr 2026',
+      createdAt: '1 Apr 2026',
     },
     {
       id: 'danger-signs',
@@ -273,7 +273,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 6,
       durationLabel: '~22 min',
       status: 'published',
-      lastUpdated: 'Overdue • 15 Apr',
+      createdAt: 'Overdue • 15 Apr',
     },
     {
       id: 'bp-technique',
@@ -283,7 +283,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 0,
       durationLabel: '~10 min',
       status: 'draft',
-      lastUpdated: '2 days ago',
+      createdAt: '2 days ago',
       draftProgress: 'Step 2 of 4 — Lessons',
     },
     {
@@ -294,7 +294,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 3,
       durationLabel: '~16 min',
       status: 'draft',
-      lastUpdated: '5 days ago',
+      createdAt: '5 days ago',
       draftProgress: 'Step 3 of 4 — Quiz',
     },
     {
@@ -305,7 +305,7 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       questions: 0,
       durationLabel: '~5 min',
       status: 'draft',
-      lastUpdated: '1 week ago',
+      createdAt: '1 week ago',
       draftProgress: 'Step 2 of 4 — Lessons',
     },
   ],
@@ -424,7 +424,7 @@ export const mockQuizPerformance: QuizPerformanceResponse = {
   ],
 };
 
-export const mockReports: ReportsResponse = {
+const mockReportsData: ReportsResponse = {
   stats: {
     activeChws: 30,
     locationLabel: 'Sylhet Sadar',
@@ -491,6 +491,8 @@ export const mockReports: ReportsResponse = {
     },
   ],
 };
+
+export const mockReports = mockReportsData;
 
 export const mockProgramOverview: ProgramOverviewResponse = {
   kpis: [

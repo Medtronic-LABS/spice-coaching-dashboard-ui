@@ -27,11 +27,11 @@ export const UnsavedChangesDialog = ({
     <Modal
       open={open}
       labelledBy="unsaved-changes-title"
-      zIndexClassName="z-[110]"
+      zIndexClassName="z-[310]"
     >
       <Card
         variant="elevated"
-        className="w-full max-w-md space-y-4 border-spice-border p-6 shadow-lg"
+        className="w-full max-w-md space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
           <h2

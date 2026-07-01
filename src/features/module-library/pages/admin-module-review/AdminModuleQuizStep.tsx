@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -9,6 +9,7 @@ import {
 } from '@/features/module-library/components/ReorderableList';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
+import { useModulePreview } from '@/features/module-library/hooks/useModulePreview';
 import { setQuiz } from '@/features/module-library/store/adminModuleReviewSlice';
 import {
   addQuizItem,
@@ -20,6 +21,16 @@ import {
   updateQuizItem,
 } from '@/features/module-library/utils/adminModuleQuizUtils';
 import { useAppDispatch } from '@/store/hooks';
+import {
+  DEPLOYMENT_PRIMARY_LOCALE,
+  resolveDisplayText,
+} from '@/config/deploymentLocale';
+import {
+  patchLocaleField,
+  readLocaleOptions,
+  readLocaleText,
+  setLocaleOptions,
+} from '@/types/localized';
 
 function safeText(value: string | null | undefined): string {
   return typeof value === 'string' ? value : '';
@@ -43,12 +54,26 @@ export const AdminModuleQuizStep = () => {
   } = useAdminModuleReviewEditor(moduleId);
 
   const [actionError, setActionError] = useState('');
+  const [focusedQuizIndex, setFocusedQuizIndex] = useState(0);
   const isReadonly = useAdminModuleReviewReadonly();
+  const { registerEditorContext } = useModulePreview();
 
   const sortedQuiz = useMemo(
     () => (working ? sortQuizItems(working.quiz) : []),
     [working],
   );
+
+  useEffect(() => {
+    registerEditorContext({ phase: 'quiz', index: focusedQuizIndex });
+  }, [focusedQuizIndex, registerEditorContext]);
+
+  useEffect(() => {
+    if (!sortedQuiz.length) {
+      setFocusedQuizIndex(0);
+      return;
+    }
+    setFocusedQuizIndex((current) => Math.min(current, sortedQuiz.length - 1));
+  }, [sortedQuiz.length]);
 
   const applyQuiz = (nextQuiz: AdminModuleQuizItem[]) => {
     dispatch(setQuiz(nextQuiz));
@@ -94,7 +119,7 @@ export const AdminModuleQuizStep = () => {
             </div>
             <div className="mt-1 text-xs text-spice-text-muted">
               {sortedQuiz.length} questions ·{' '}
-              {working.title_en ?? working.title_bn ?? 'Module'}
+              {resolveDisplayText(working.title, 'Module')}
             </div>
           </div>
           {!isReadonly ? (
@@ -131,9 +156,14 @@ export const AdminModuleQuizStep = () => {
                 applyQuiz(reorderQuizItems(sortedQuiz, fromIndex, toIndex))
               }
               renderItem={(m, index, controls) => {
-                const options = m.options_bn ?? [''];
+                const options = readLocaleOptions(
+                  m.options,
+                  DEPLOYMENT_PRIMARY_LOCALE,
+                  'en',
+                );
+                const displayOptions = options.length ? options : [''];
                 const correctIndex = clampCorrectIndex(
-                  options.length,
+                  displayOptions.length,
                   m.correct_indices,
                 );
                 return (
@@ -170,10 +200,19 @@ export const AdminModuleQuizStep = () => {
 
                     <input
                       className="w-full rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
-                      value={safeText(m.question_bn)}
+                      value={safeText(
+                        readLocaleText(m.question, DEPLOYMENT_PRIMARY_LOCALE),
+                      )}
                       disabled={busy || isReadonly}
+                      onFocus={() => setFocusedQuizIndex(index)}
                       onChange={(event) =>
-                        updateQuiz(m.id, { question_bn: event.target.value })
+                        updateQuiz(m.id, {
+                          question: patchLocaleField(
+                            m.question,
+                            DEPLOYMENT_PRIMARY_LOCALE,
+                            event.target.value,
+                          ),
+                        })
                       }
                       placeholder="Type your question…"
                     />
@@ -183,7 +222,7 @@ export const AdminModuleQuizStep = () => {
                   */}
 
                     <div className="space-y-2">
-                      {options.map((option, optionIndex) => {
+                      {displayOptions.map((option, optionIndex) => {
                         const isCorrect = optionIndex === correctIndex;
                         return (
                           <label
@@ -209,11 +248,18 @@ export const AdminModuleQuizStep = () => {
                               className="w-full bg-transparent outline-none"
                               value={option}
                               disabled={busy || isReadonly}
+                              onFocus={() => setFocusedQuizIndex(index)}
                               onChange={(event) => {
-                                const next = (m.options_bn ?? []).map((o, i) =>
+                                const next = displayOptions.map((o, i) =>
                                   i === optionIndex ? event.target.value : o,
                                 );
-                                updateQuiz(m.id, { options_bn: next });
+                                updateQuiz(m.id, {
+                                  options: setLocaleOptions(
+                                    m.options,
+                                    DEPLOYMENT_PRIMARY_LOCALE,
+                                    next,
+                                  ),
+                                });
                               }}
                               placeholder={`Option ${optionIndex + 1}`}
                             />
@@ -221,9 +267,9 @@ export const AdminModuleQuizStep = () => {
                               <button
                                 type="button"
                                 className="text-xs font-semibold text-spice-semantic-error"
-                                disabled={busy || options.length <= 2}
+                                disabled={busy || displayOptions.length <= 2}
                                 onClick={() => {
-                                  const next = options.filter(
+                                  const next = displayOptions.filter(
                                     (_, i) => i !== optionIndex,
                                   );
                                   const nextCorrect = clampCorrectIndex(
@@ -233,7 +279,11 @@ export const AdminModuleQuizStep = () => {
                                       : [correctIndex],
                                   );
                                   updateQuiz(m.id, {
-                                    options_bn: next,
+                                    options: setLocaleOptions(
+                                      m.options,
+                                      DEPLOYMENT_PRIMARY_LOCALE,
+                                      next,
+                                    ),
                                     correct_indices: [nextCorrect],
                                   });
                                 }}
@@ -253,9 +303,14 @@ export const AdminModuleQuizStep = () => {
                           className="h-8 text-xs"
                           disabled={busy}
                           onClick={() => {
-                            const base = m.options_bn ?? [];
-                            const next = [...base, ''];
-                            updateQuiz(m.id, { options_bn: next });
+                            const next = [...displayOptions, ''];
+                            updateQuiz(m.id, {
+                              options: setLocaleOptions(
+                                m.options,
+                                DEPLOYMENT_PRIMARY_LOCALE,
+                                next,
+                              ),
+                            });
                           }}
                         >
                           Add Option
@@ -269,11 +324,20 @@ export const AdminModuleQuizStep = () => {
                       </div>
                       <textarea
                         className="min-h-[100px] w-full resize-y rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
-                        value={safeText(m.explanation_bn)}
+                        value={safeText(
+                          readLocaleText(
+                            m.explanation,
+                            DEPLOYMENT_PRIMARY_LOCALE,
+                          ),
+                        )}
                         disabled={busy || isReadonly}
                         onChange={(event) =>
                           updateQuiz(m.id, {
-                            explanation_bn: event.target.value,
+                            explanation: patchLocaleField(
+                              m.explanation ?? {},
+                              DEPLOYMENT_PRIMARY_LOCALE,
+                              event.target.value,
+                            ),
                           })
                         }
                         placeholder="Add explanation…"

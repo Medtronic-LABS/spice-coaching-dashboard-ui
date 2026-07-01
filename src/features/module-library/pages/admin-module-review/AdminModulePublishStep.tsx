@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
@@ -11,11 +11,17 @@ import { ModuleReviewPublishView } from '@/features/module-library/components/Mo
 import { useSetClinicallyReviewedMutation } from '@/features/module-library/api/adminModulesApi';
 import { useAdminModuleReviewEditor } from '@/features/module-library/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/module-library/hooks/useAdminModuleReviewReadonly';
+import { useModulePreview } from '@/features/module-library/hooks/useModulePreview';
 import {
   countMediaTagsFromCards,
   mapAdminCardsToLessonRows,
   mapAdminQuizToRows,
 } from '@/features/module-library/utils/moduleReviewPublishMappers';
+import {
+  DEPLOYMENT_PRIMARY_LOCALE,
+  resolveDisplayText,
+} from '@/config/deploymentLocale';
+import { readLocaleText } from '@/types/localized';
 
 export const AdminModulePublishStep = () => {
   const navigate = useNavigate();
@@ -36,6 +42,11 @@ export const AdminModulePublishStep = () => {
   const [publishError, setPublishError] = useState('');
   const [saveError, setSaveError] = useState('');
   const isReadonly = useAdminModuleReviewReadonly();
+  const { registerEditorContext } = useModulePreview();
+
+  useEffect(() => {
+    registerEditorContext({ phase: 'card', index: 0 });
+  }, [registerEditorContext]);
 
   const goToModuleLibrary = useCallback(() => {
     setPublishSuccessOpen(false);
@@ -45,16 +56,20 @@ export const AdminModulePublishStep = () => {
   const modulePath = (suffix: string) =>
     `${paths.adminModuleReview.replace(':moduleId', encodeURIComponent(moduleId))}${suffix}`;
 
+  const moduleDisplayTitle = working
+    ? resolveDisplayText(working.title)
+    : 'Untitled module';
+
   const publishSummary = useMemo(() => {
     if (!working) return null;
     return {
-      title: working.title_en ?? working.title_bn ?? 'Untitled module',
+      title: moduleDisplayTitle,
       topic: working.domain,
       lessonCount: working.cards.length,
       quizCount: working.quiz.length,
       estimateMinutes: working.estimated_minutes,
     };
-  }, [working]);
+  }, [moduleDisplayTitle, working]);
 
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
@@ -94,9 +109,12 @@ export const AdminModulePublishStep = () => {
         </div>
       ) : null}
       <ModuleReviewPublishView
-        title={working.title_en ?? working.title_bn ?? 'Untitled module'}
+        title={moduleDisplayTitle}
         topic={working.domain}
-        description={working.description_bn ?? ''}
+        description={readLocaleText(
+          working.description,
+          DEPLOYMENT_PRIMARY_LOCALE,
+        )}
         lessons={lessonRows}
         quizQuestions={quizRows}
         lessonCount={working.cards.length}
@@ -117,11 +135,12 @@ export const AdminModulePublishStep = () => {
         onEditLessons={() => navigate(modulePath('/lessons'))}
         onEditQuiz={() => navigate(modulePath('/quiz'))}
         onAssign={() =>
-          navigate(paths.moduleAssigned, {
+          navigate(paths.moduleLibrary, {
             state: {
-              moduleName: moduleDisplayTitle,
-              deadlineLabel: 'Mon, 28 Apr 2026',
-              assignedCount: 8,
+              openAssignment: {
+                moduleId: working.id,
+                moduleTitle: moduleDisplayTitle,
+              },
             },
           })
         }

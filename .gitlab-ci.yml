@@ -24,6 +24,7 @@
 #
 # Required GitLab CI/CD variables (Settings -> CI/CD -> Variables):
 #   VITE_API_BASE_URL
+#   VITE_SPICE_WEB_LOGIN_URL
 #   DASHBOARD_DEV_URL
 #   COACHING_PLATFORM_COMPOSE_DIR
 # Optional: VITE_ERROR_REPORTING_URL
@@ -92,7 +93,7 @@ build:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
     - |
-      for var in VITE_API_BASE_URL; do
+      for var in VITE_API_BASE_URL VITE_SPICE_WEB_LOGIN_URL; do
         if [ -z "${!var}" ]; then
           echo "Missing required CI/CD variable: $var"
           exit 1
@@ -102,6 +103,7 @@ build:
         --build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL"
         --build-arg VITE_USE_MOCK_API="$VITE_USE_MOCK_API"
         --build-arg VITE_ERROR_REPORTING_URL="$VITE_ERROR_REPORTING_URL"
+        --build-arg VITE_SPICE_WEB_LOGIN_URL="$VITE_SPICE_WEB_LOGIN_URL"
         -t "$DASHBOARD_REPO:$IMAGE_TAG" -t "$DASHBOARD_REPO:dev" .
     - docker push "$DASHBOARD_REPO:$IMAGE_TAG"
     - docker push "$DASHBOARD_REPO:dev"

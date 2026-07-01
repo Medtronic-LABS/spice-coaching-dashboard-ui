@@ -34,7 +34,7 @@ describe('applyEditModuleAndSyncRoute', () => {
       navigate,
       pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
       moduleEntityId: 'mod-1',
-      body: { title_bn: 'Updated', module_json: { cards: [] } },
+      body: { title: { bn: 'Updated' }, module_json: { cards: [] } },
     });
 
     expect(response.id).toBe('mod-1');
@@ -57,7 +57,7 @@ describe('applyEditModuleAndSyncRoute', () => {
       navigate,
       pathname: paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
       moduleEntityId: 'mod-1',
-      body: { title_bn: 'Updated', module_json: { cards: [] } },
+      body: { title: { bn: 'Updated' }, module_json: { cards: [] } },
     });
 
     expect(navigate).toHaveBeenCalledWith(

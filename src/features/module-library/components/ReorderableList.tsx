@@ -24,10 +24,6 @@ export type ReorderableDragHandleProps =
 
 export interface ReorderableItemControls {
   dragHandleProps: ReorderableDragHandleProps;
-  moveUp: () => void;
-  moveDown: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
 }
 
 export type ReorderableListRowVariant = 'default' | 'plain';
@@ -42,7 +38,7 @@ export interface ReorderableListProps<T> {
     controls: ReorderableItemControls,
   ) => ReactNode;
   disabled?: boolean;
-  /** When true, reordering is disabled and move controls are hidden (e.g. supervisor read-only). */
+  /** When true, reordering is disabled and drag handles are hidden (e.g. supervisor read-only). */
   readOnly?: boolean;
   /** `plain` omits the outer row chrome when the child supplies its own card border. */
   rowVariant?: ReorderableListRowVariant;
@@ -54,9 +50,7 @@ interface SortableRowProps<T> {
   itemId: string;
   disabled: boolean;
   readOnly: boolean;
-  itemCount: number;
   rowVariant: ReorderableListRowVariant;
-  onReorder: (fromIndex: number, toIndex: number) => void;
   renderItem: ReorderableListProps<T>['renderItem'];
 }
 
@@ -66,9 +60,7 @@ function SortableRow<T>({
   itemId,
   disabled,
   readOnly,
-  itemCount,
   rowVariant,
-  onReorder,
   renderItem,
 }: SortableRowProps<T>) {
   const reorderDisabled = disabled || readOnly;
@@ -87,9 +79,6 @@ function SortableRow<T>({
     transition,
   };
 
-  const canMoveUp = !reorderDisabled && index > 0;
-  const canMoveDown = !reorderDisabled && index < itemCount - 1;
-
   const controls: ReorderableItemControls = {
     dragHandleProps: {
       ref: setActivatorNodeRef,
@@ -101,14 +90,6 @@ function SortableRow<T>({
         reorderDisabled && 'pointer-events-none cursor-not-allowed opacity-50',
       ),
     },
-    moveUp: () => {
-      if (canMoveUp) onReorder(index, index - 1);
-    },
-    moveDown: () => {
-      if (canMoveDown) onReorder(index, index + 1);
-    },
-    canMoveUp,
-    canMoveDown,
   };
 
   return (
@@ -117,63 +98,12 @@ function SortableRow<T>({
       style={style}
       className={cn(
         rowVariant === 'default' &&
-          'rounded-xl bg-spice-bg-surface ring-1 ring-spice-border/70',
+          'rounded-xl bg-spice-bg-surface p-3 ring-1 ring-spice-border/70',
         isDragging && 'opacity-80 shadow-md',
       )}
     >
-      <div
-        className={cn(
-          'flex items-start gap-2',
-          rowVariant === 'default' ? 'p-3' : 'py-0',
-        )}
-      >
-        <div className="min-w-0 flex-1">
-          {renderItem(item, index, controls)}
-        </div>
-        {!readOnly ? (
-          <div className="flex shrink-0 flex-col gap-1">
-            <MoveButton
-              label="Move up"
-              disabled={!canMoveUp}
-              onClick={controls.moveUp}
-            >
-              <ChevronUpIcon />
-            </MoveButton>
-            <MoveButton
-              label="Move down"
-              disabled={!canMoveDown}
-              onClick={controls.moveDown}
-            >
-              <ChevronDownIcon />
-            </MoveButton>
-          </div>
-        ) : null}
-      </div>
+      {renderItem(item, index, controls)}
     </div>
-  );
-}
-
-function MoveButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-spice-text-medium ring-1 ring-spice-border hover:bg-spice-bg-tint disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      {children}
-    </button>
   );
 }
 
@@ -211,46 +141,6 @@ function GripIcon() {
       <circle cx="11" cy="8" r="1.25" />
       <circle cx="5" cy="12" r="1.25" />
       <circle cx="11" cy="12" r="1.25" />
-    </svg>
-  );
-}
-
-function ChevronUpIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      aria-hidden="true"
-    >
-      <path
-        d="M3.5 8.5 7 5l3.5 3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      aria-hidden="true"
-    >
-      <path
-        d="M3.5 5.5 7 9l3.5-3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }
@@ -301,9 +191,7 @@ export function ReorderableList<T>({
               itemId={itemIds[index]}
               disabled={disabled}
               readOnly={readOnly}
-              itemCount={items.length}
               rowVariant={rowVariant}
-              onReorder={onReorder}
               renderItem={renderItem}
             />
           ))}

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { paths } from '@/constants/routes';
 import { Sidebar } from './Sidebar';
@@ -14,6 +15,11 @@ vi.mock('@/constants/role', async (importOriginal) => {
   };
 });
 
+const defaultSidebarProps = {
+  isMobileOpen: true,
+  onMobileClose: vi.fn(),
+};
+
 describe('Sidebar', () => {
   beforeEach(() => {
     mockRoleState.role = 'supervisor';
@@ -22,7 +28,7 @@ describe('Sidebar', () => {
   it('renders the sidebar title and navigation links', () => {
     render(
       <MemoryRouter>
-        <Sidebar />
+        <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,
     );
 
@@ -56,7 +62,7 @@ describe('Sidebar', () => {
     mockRoleState.role = 'programManager';
     render(
       <MemoryRouter>
-        <Sidebar />
+        <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,
     );
 
@@ -74,7 +80,7 @@ describe('Sidebar', () => {
   it('applies active class to active link', () => {
     render(
       <MemoryRouter initialEntries={[paths.chwProfiles]}>
-        <Sidebar />
+        <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,
     );
 
@@ -86,5 +92,18 @@ describe('Sidebar', () => {
 
     const inactiveLink = screen.getByRole('link', { name: /dashboard/i });
     expect(inactiveLink).toHaveClass('text-spice-text-medium');
+  });
+
+  it('closes the mobile menu when a navigation link is clicked', async () => {
+    const user = userEvent.setup();
+    const onMobileClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <Sidebar isMobileOpen onMobileClose={onMobileClose} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('link', { name: /dashboard/i }));
+    expect(onMobileClose).toHaveBeenCalledTimes(1);
   });
 });

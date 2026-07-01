@@ -1,57 +1,100 @@
 import { useTranslation } from 'react-i18next';
-import { Button, SearchInput } from '@/components/ui';
+import { SearchInput } from '@/components/ui';
+import { getCurrentRole } from '@/constants/role';
 import {
-  canSwitchRole,
-  getAlternateRole,
-  getCurrentRole,
-  setCurrentRole,
-} from '@/constants/role';
-import { paths } from '@/constants/routes';
+  getAuthDisplayName,
+  getAuthInitials,
+  getAuthSession,
+} from '@/features/auth/services/authSession';
+import { cn } from '@/utils';
 
-export const Header = () => {
+interface HeaderProps {
+  isSidebarOpen: boolean;
+  onMenuToggle: () => void;
+}
+
+const MenuIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 6h16" />
+    <path d="M4 12h16" />
+    <path d="M4 18h16" />
+  </svg>
+);
+
+const CloseIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M6 6l12 12" />
+    <path d="M18 6 6 18" />
+  </svg>
+);
+
+export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
   const { t, i18n } = useTranslation();
   const role = getCurrentRole();
   const isProgramManager = role === 'programManager';
-  const alternateRole = getAlternateRole(role);
-  const allowRoleSwitch = canSwitchRole();
-
-  const handleRoleSwitch = () => {
-    setCurrentRole(alternateRole);
-    window.location.assign(paths.home);
-  };
+  const authSession = getAuthSession();
+  const displayName = authSession
+    ? getAuthDisplayName(authSession)
+    : t('layout.header.userName');
+  const userInitials = authSession
+    ? getAuthInitials(authSession)
+    : t('layout.header.userInitials');
 
   const currentLanguage = isProgramManager
     ? 'en'
     : (i18n.resolvedLanguage ?? i18n.language ?? 'en');
 
   return (
-    <header className="border-b border-spice-border bg-spice-bg-surface px-6 py-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <div className="truncate text-2xl font-semibold text-spice-text-primary">
+    <header className="border-b border-spice-border bg-spice-bg-surface px-4 py-3 sm:px-6 sm:py-4">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-spice-border-mid text-spice-text-primary transition hover:bg-spice-bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/25 lg:hidden"
+          aria-label={
+            isSidebarOpen
+              ? t('layout.header.closeMenu')
+              : t('layout.header.openMenu')
+          }
+          aria-expanded={isSidebarOpen}
+          aria-controls="app-sidebar"
+          onClick={onMenuToggle}
+        >
+          {isSidebarOpen ? (
+            <CloseIcon className="h-5 w-5" />
+          ) : (
+            <MenuIcon className="h-5 w-5" />
+          )}
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-lg font-semibold text-spice-text-primary sm:text-2xl">
             {t('layout.header.welcomeBack', {
-              name: t('layout.header.userName'),
+              name: displayName,
             })}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {allowRoleSwitch ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-9 whitespace-nowrap px-3 text-xs"
-              aria-label={t('layout.header.switchRoleAriaLabel', {
-                role: t(`layout.header.roles.${alternateRole}`),
-              })}
-              onClick={handleRoleSwitch}
-            >
-              {t('layout.header.switchRole', {
-                role: t(`layout.header.roles.${alternateRole}`),
-              })}
-            </Button>
-          ) : null}
+
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {isProgramManager ? (
-            <div className="w-60">
+            <div className="hidden w-44 md:block lg:w-60">
               <SearchInput
                 value=""
                 onChange={() => undefined}
@@ -65,7 +108,10 @@ export const Header = () => {
               </label>
               <select
                 id="header-language-select"
-                className="h-9 rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm font-medium text-spice-text-medium shadow-sm outline-none transition focus:ring-2 focus:ring-spice-brand-primary/25"
+                className={cn(
+                  'h-9 rounded-md border border-spice-border-mid bg-spice-bg-surface text-sm font-medium text-spice-text-medium shadow-sm outline-none transition focus:ring-2 focus:ring-spice-brand-primary/25',
+                  'max-w-[5.5rem] px-2 sm:max-w-none sm:px-3',
+                )}
                 aria-label={t('layout.header.languageAriaLabel')}
                 value={currentLanguage}
                 onChange={(event) => {
@@ -89,10 +135,11 @@ export const Header = () => {
           )}
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border"
+            className="flex h-9 w-9 cursor-default items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border"
             aria-label={t('layout.header.userMenuAriaLabel')}
+            disabled
           >
-            {t('layout.header.userInitials')}
+            {userInitials}
           </button>
         </div>
       </div>

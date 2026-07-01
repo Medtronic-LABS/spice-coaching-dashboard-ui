@@ -14,6 +14,27 @@ export type IngestAssessmentMode = 'with_quiz' | 'read_only';
 
 export type IngestBatchMode = 'append' | 'new';
 
+export interface ExistingIngestedSourceSummary {
+  source_document_id: string;
+  title: string;
+  original_filename: string | null;
+  ingested_at: string;
+  status: string;
+}
+
+export interface IngestDuplicateConflict {
+  filename: string;
+  title: string;
+  content_sha256: string;
+  existing_source_documents: ExistingIngestedSourceSummary[];
+}
+
+export interface IngestDuplicateErrorDetail {
+  code: 'duplicate_content';
+  message: string;
+  conflicts: IngestDuplicateConflict[];
+}
+
 export interface AdminV3IngestBatchFormPayload {
   files: File[];
   titles?: string[] | null;
@@ -23,6 +44,8 @@ export interface AdminV3IngestBatchFormPayload {
   authority_label?: string;
   primary_language?: PrimaryLanguage;
   mode?: IngestBatchMode;
+  ingestion_instructions?: string | null;
+  override_duplicates?: boolean[];
 }
 
 export interface AdminV3IngestAcceptedSource {
@@ -39,6 +62,7 @@ export interface AdminV3IngestAcceptedResponse {
   mode: IngestBatchMode;
   modules_retired: number;
   sources: AdminV3IngestAcceptedSource[];
+  skipped_duplicates?: IngestDuplicateConflict[];
   note?: string;
 }
 
@@ -104,6 +128,18 @@ export const adminIngestApi = baseApi.injectEndpoints({
         }
         if (payload.mode) {
           form.append('mode', payload.mode);
+        }
+        if (payload.ingestion_instructions?.trim()) {
+          form.append(
+            'ingestion_instructions',
+            payload.ingestion_instructions.trim(),
+          );
+        }
+        if (payload.override_duplicates?.length) {
+          form.append(
+            'override_duplicates',
+            JSON.stringify(payload.override_duplicates),
+          );
         }
         return {
           url: '/admin/ingest',

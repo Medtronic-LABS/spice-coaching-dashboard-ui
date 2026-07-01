@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import {
-  useGetIngestStatusByDocumentQuery,
-  useIngestDocumentsMutation,
-} from '@/features/module-library/api/adminIngestApi';
+import { useGetIngestStatusByDocumentQuery } from '@/features/module-library/api/adminIngestApi';
+import { DuplicateIngestConfirmDialog } from '@/features/module-library/components/DuplicateIngestConfirmDialog';
+import { useIngestWithDuplicateHandling } from '@/features/module-library/hooks/useIngestWithDuplicateHandling';
 import {
   INGEST_ACCEPTED_FILE_TYPES_LABEL,
   INGEST_FILE_INPUT_ACCEPT,
@@ -36,8 +35,32 @@ export const CourseCreatePage = () => {
     () => readActiveIngestSession()?.source_document_id ?? '',
   );
 
-  const [ingestDocuments, { isLoading: isUploading }] =
-    useIngestDocumentsMutation();
+  const persistIngestSession = (documentId: string) => {
+    writeActiveIngestSession({
+      source_document_id: documentId,
+    });
+    setSourceDocumentId(documentId);
+  };
+
+  const {
+    submitIngest,
+    confirmDuplicate,
+    cancelDuplicate,
+    duplicateDialog,
+    isUploading,
+    isConfirmingDuplicate,
+  } = useIngestWithDuplicateHandling({
+    onAccepted: (accepted) => {
+      const first = accepted.sources?.[0]?.source_document_id ?? '';
+      if (!first) {
+        setUploadError('Ingest accepted but no source ID was returned.');
+        return;
+      }
+      persistIngestSession(first);
+      setSelectedFile(null);
+    },
+    onError: setUploadError,
+  });
 
   const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
     readActiveIngestSession()?.source_document_id ? 2000 : 0,
@@ -104,13 +127,6 @@ export const CourseCreatePage = () => {
       status: step.status,
     }));
   }, [statusData?.steps]);
-
-  const persistIngestSession = (documentId: string) => {
-    writeActiveIngestSession({
-      source_document_id: documentId,
-    });
-    setSourceDocumentId(documentId);
-  };
 
   return (
     <section
@@ -179,29 +195,16 @@ export const CourseCreatePage = () => {
                 clearActiveIngestSession();
                 setSourceDocumentId('');
 
-                try {
-                  const accepted = await ingestDocuments({
-                    files: [selectedFile],
-                    titles: null,
-                    fuse_sources: false,
-                    content_domain: INGEST_FORM_DEFAULTS.content_domain,
-                    assessment_mode: INGEST_FORM_DEFAULTS.assessment_mode,
-                    authority_label: INGEST_FORM_DEFAULTS.authority_label,
-                    primary_language: INGEST_FORM_DEFAULTS.primary_language,
-                    mode: INGEST_FORM_DEFAULTS.mode,
-                  }).unwrap();
-                  const first = accepted.sources?.[0]?.source_document_id ?? '';
-                  if (!first) {
-                    throw new Error(
-                      'Ingest accepted but no source ID was returned.',
-                    );
-                  }
-                  persistIngestSession(first);
-                } catch (err) {
-                  setUploadError(
-                    err instanceof Error ? err.message : String(err),
-                  );
-                }
+                await submitIngest({
+                  files: [selectedFile],
+                  titles: null,
+                  fuse_sources: false,
+                  content_domain: INGEST_FORM_DEFAULTS.content_domain,
+                  assessment_mode: INGEST_FORM_DEFAULTS.assessment_mode,
+                  authority_label: INGEST_FORM_DEFAULTS.authority_label,
+                  primary_language: INGEST_FORM_DEFAULTS.primary_language,
+                  mode: INGEST_FORM_DEFAULTS.mode,
+                });
               }}
             >
               {isUploading
@@ -302,6 +305,15 @@ export const CourseCreatePage = () => {
           ) : null}
         </Card>
       ) : null}
+
+      <DuplicateIngestConfirmDialog
+        open={duplicateDialog.open}
+        variant={duplicateDialog.variant}
+        conflicts={duplicateDialog.conflicts}
+        onCancel={cancelDuplicate}
+        onConfirm={() => void confirmDuplicate()}
+        isConfirming={isConfirmingDuplicate}
+      />
     </section>
   );
 };

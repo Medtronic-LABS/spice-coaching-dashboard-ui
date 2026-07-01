@@ -1,13 +1,23 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Badge, Button, Card } from '@/components/ui';
+import { Badge, Card } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import type { AssignmentType } from '@/features/module-library/api/adminAssignmentApi';
 
 type ModuleAssignedState = {
+  moduleId?: string;
   moduleName?: string;
   deadlineLabel?: string;
   assignedCount?: number;
   assignedNames?: string[];
+  assignmentType?: AssignmentType;
+};
+
+const assignedToLabelKey: Record<AssignmentType, string> = {
+  individual: 'moduleLibrary.assigned.summary.assignedToIndividual',
+  po_sk: 'moduleLibrary.assigned.summary.assignedToPoSk',
+  geographical: 'moduleLibrary.assigned.summary.assignedToUpazila',
+  group: 'moduleLibrary.assigned.summary.assignedToOrganization',
 };
 
 const ClipboardIcon = () => (
@@ -34,6 +44,10 @@ export const ModuleAssignedPage = () => {
   const location = useLocation();
   const state = (location.state ?? {}) as ModuleAssignedState;
 
+  const assignmentType = state.assignmentType ?? 'individual';
+  const showMoreCount =
+    assignmentType === 'individual' || assignmentType === 'po_sk';
+  const moduleId = state.moduleId;
   const moduleName =
     state.moduleName ?? t('moduleLibrary.assigned.sample.module');
   const deadlineLabel =
@@ -45,6 +59,7 @@ export const ModuleAssignedPage = () => {
     'Nasrin Khatun',
     'Hosneara Khatun',
   ];
+  const assignedToLabel = t(assignedToLabelKey[assignmentType]);
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
@@ -91,9 +106,7 @@ export const ModuleAssignedPage = () => {
 
             <div className="rounded-xl bg-spice-bg-tint p-4 ring-1 ring-spice-border/70">
               <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                {t('moduleLibrary.assigned.summary.assignedTo', {
-                  count: assignedCount,
-                })}
+                {assignedToLabel}
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {assignedNames.map((name) => (
@@ -104,7 +117,7 @@ export const ModuleAssignedPage = () => {
                     {name}
                   </span>
                 ))}
-                {assignedCount > assignedNames.length ? (
+                {showMoreCount && assignedCount > assignedNames.length ? (
                   <span className="rounded-full bg-spice-bg-surface px-2.5 py-1 text-xs font-semibold text-spice-text-medium ring-1 ring-spice-border">
                     +{assignedCount - assignedNames.length} more
                   </span>
@@ -117,6 +130,29 @@ export const ModuleAssignedPage = () => {
                 {t('moduleLibrary.assigned.next.title')}
               </div>
               <div className="mt-3 grid gap-2">
+                {moduleId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(paths.moduleLibrary, {
+                        state: {
+                          openAssignment: { moduleId, moduleTitle: moduleName },
+                        },
+                      })
+                    }
+                    className="flex w-full items-center justify-between rounded-xl bg-spice-bg-tint px-4 py-3 text-left ring-1 ring-spice-border/70 transition hover:bg-spice-bg-surface"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-spice-text-primary">
+                        {t('moduleLibrary.assigned.next.assignMore')}
+                      </div>
+                      <div className="text-xs text-spice-text-muted">
+                        {t('moduleLibrary.assigned.next.assignMoreHint')}
+                      </div>
+                    </div>
+                    <span className="text-spice-text-muted">›</span>
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => navigate(paths.moduleLibrary)}
@@ -132,22 +168,7 @@ export const ModuleAssignedPage = () => {
                   </div>
                   <span className="text-spice-text-muted">›</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(paths.moduleLibrary)}
-                  className="flex w-full items-center justify-between rounded-xl bg-spice-bg-tint px-4 py-3 text-left ring-1 ring-spice-border/70 transition hover:bg-spice-bg-surface"
-                >
-                  <div>
-                    <div className="text-sm font-semibold text-spice-text-primary">
-                      {t('moduleLibrary.assigned.next.assignMore')}
-                    </div>
-                    <div className="text-xs text-spice-text-muted">
-                      {t('moduleLibrary.assigned.next.assignMoreHint')}
-                    </div>
-                  </div>
-                  <span className="text-spice-text-muted">›</span>
-                </button>
-                <button
+                {/* <button
                   type="button"
                   onClick={() => navigate(paths.home)}
                   className="flex w-full items-center justify-between rounded-xl bg-spice-bg-tint px-4 py-3 text-left ring-1 ring-spice-border/70 transition hover:bg-spice-bg-surface"
@@ -161,13 +182,13 @@ export const ModuleAssignedPage = () => {
                     </div>
                   </div>
                   <span className="text-spice-text-muted">›</span>
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-spice-border bg-spice-bg-surface px-8 py-5">
+        {/* <div className="border-t border-spice-border bg-spice-bg-surface px-8 py-5">
           <div className="flex flex-wrap justify-center gap-3">
             <Button
               variant="secondary"
@@ -179,7 +200,7 @@ export const ModuleAssignedPage = () => {
               {t('moduleLibrary.assigned.actions.goDashboard')}
             </Button>
           </div>
-        </div>
+        </div> */}
       </Card>
     </div>
   );

@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ReorderableList } from '@/features/module-library/components/ReorderableList';
 
@@ -33,44 +32,25 @@ describe('ReorderableList', () => {
     expect(labels).toEqual(['A', 'B', 'C']);
   });
 
-  it('Move Down button calls onReorder(0, 1)', async () => {
-    const user = userEvent.setup();
-    const onReorder = vi.fn();
-    renderStringList(['A', 'B', 'C'], onReorder);
-
-    const moveDownButtons = screen.getAllByRole('button', {
-      name: 'Move down',
-    });
-    await user.click(moveDownButtons[0]);
-
-    expect(onReorder).toHaveBeenCalledWith(0, 1);
-  });
-
-  it('disables Move Up on first item and Move Down on last item', () => {
+  it('renders a drag handle for each item', () => {
     renderStringList(['A', 'B', 'C'], vi.fn());
 
-    const moveUpButtons = screen.getAllByRole('button', { name: 'Move up' });
-    const moveDownButtons = screen.getAllByRole('button', {
-      name: 'Move down',
-    });
-
-    expect(moveUpButtons[0]).toBeDisabled();
-    expect(moveDownButtons[2]).toBeDisabled();
-    expect(moveUpButtons[1]).not.toBeDisabled();
-    expect(moveDownButtons[0]).not.toBeDisabled();
+    expect(
+      screen.getAllByRole('button', { name: 'Drag to reorder' }),
+    ).toHaveLength(3);
   });
 
-  it('disables move buttons when list is disabled', () => {
+  it('disables drag handles when list is disabled', () => {
     renderStringList(['A', 'B'], vi.fn(), true);
 
     for (const button of screen.getAllByRole('button', {
-      name: /Move (up|down)/,
+      name: 'Drag to reorder',
     })) {
-      expect(button).toBeDisabled();
+      expect(button).toHaveClass('pointer-events-none');
     }
   });
 
-  it('hides move buttons when readOnly is true', () => {
+  it('hides drag handles when readOnly is true', () => {
     render(
       <ReorderableList
         items={['A', 'B']}
@@ -82,10 +62,7 @@ describe('ReorderableList', () => {
     );
 
     expect(
-      screen.queryByRole('button', { name: 'Move up' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Move down' }),
+      screen.queryByRole('button', { name: 'Drag to reorder' }),
     ).not.toBeInTheDocument();
   });
 });

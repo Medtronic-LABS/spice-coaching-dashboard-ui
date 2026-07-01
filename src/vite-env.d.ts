@@ -2,10 +2,13 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
-  readonly VITE_APP_ROLE?: string;
+  readonly VITE_DEPLOYMENT_PRIMARY_LOCALE?: string;
   readonly VITE_USE_MOCK_API?: string;
   readonly VITE_USE_MOCK_MODULE_PIPELINE?: string;
   readonly VITE_ERROR_REPORTING_URL?: string;
+  readonly VITE_SPICE_WEB_LOGIN_URL?: string;
+  readonly VITE_SPICE_ADMIN_API_URL?: string;
+  readonly VITE_SPICE_USER_API_URL?: string;
 }
 
 interface ImportMeta {

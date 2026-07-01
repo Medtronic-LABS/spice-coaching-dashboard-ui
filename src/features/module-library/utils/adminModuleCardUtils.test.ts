@@ -51,8 +51,8 @@ describe('adminModuleCardUtils', () => {
 
   it('cardSortableId stays stable across reorder when ids are unique', () => {
     const cards: AdminModuleCard[] = [
-      { id: 'c1', title_bn: 'A', body_bn: null },
-      { id: 'c2', title_bn: 'B', body_bn: null },
+      { id: 'c1', title: { bn: 'A' }, body: { bn: [] } },
+      { id: 'c2', title: { bn: 'B' }, body: { bn: [] } },
     ];
     expect(cardSortableId(cards, cards[0], 0)).toBe('c1');
     const reordered = reorderCards(cards, 0, 1);
@@ -61,8 +61,8 @@ describe('adminModuleCardUtils', () => {
 
   it('cardSortableId suffixes index when base id repeats', () => {
     const cards: AdminModuleCard[] = [
-      { id: 'dup', title_bn: 'A', body_bn: null },
-      { id: 'dup', title_bn: 'B', body_bn: null },
+      { id: 'dup', title: { bn: 'A' }, body: { bn: [] } },
+      { id: 'dup', title: { bn: 'B' }, body: { bn: [] } },
     ];
     expect(cardSortableId(cards, cards[0], 0)).toBe('dup-0');
     expect(cardSortableId(cards, cards[1], 1)).toBe('dup-1');

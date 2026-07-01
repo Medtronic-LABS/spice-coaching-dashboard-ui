@@ -4,38 +4,30 @@ import type { AdminModuleCard } from '@/features/module-library/types/adminModul
 import { prepareModuleJsonForSave } from '@/features/module-library/utils/prepareModuleJsonForSave';
 
 const cards: AdminModuleCard[] = [
-  { id: 'c2', title_bn: 'Second', body_bn: null },
-  { id: 'c1', title_bn: 'First', body_bn: null },
-  { id: 'c3', title_bn: 'Third', body_bn: null },
+  { id: 'c2', title: { bn: 'Second' }, body: { bn: [] } },
+  { id: 'c1', title: { bn: 'First' }, body: { bn: [] } },
+  { id: 'c3', title: { bn: 'Third' }, body: { bn: [] } },
 ];
 
 const quiz: AdminModuleQuizItem[] = [
   {
     id: 'q2',
     question_order: 5,
-    question_bn: 'B',
-    question_en: null,
-    case_setup_bn: null,
-    case_setup_en: null,
-    options_bn: ['a'],
-    options_en: ['a'],
+    question: { bn: 'B' },
+    case_setup: null,
+    options: { bn: ['a'] },
     correct_indices: [0],
-    explanation_bn: null,
-    explanation_en: null,
+    explanation: null,
     difficulty: 'medium',
   },
   {
     id: 'q1',
     question_order: 2,
-    question_bn: 'A',
-    question_en: null,
-    case_setup_bn: null,
-    case_setup_en: null,
-    options_bn: ['a'],
-    options_en: ['a'],
+    question: { bn: 'A' },
+    case_setup: null,
+    options: { bn: ['a'] },
     correct_indices: [0],
-    explanation_bn: null,
-    explanation_en: null,
+    explanation: null,
     difficulty: 'medium',
   },
 ];
@@ -43,7 +35,7 @@ const quiz: AdminModuleQuizItem[] = [
 describe('prepareModuleJsonForSave', () => {
   it('preserves card array order without injecting card_order', () => {
     const result = prepareModuleJsonForSave(cards, []);
-    expect(result.cards.map((c) => c.title_bn)).toEqual([
+    expect(result.cards.map((c) => (c.title as { bn: string }).bn)).toEqual([
       'Second',
       'First',
       'Third',
@@ -53,7 +45,10 @@ describe('prepareModuleJsonForSave', () => {
 
   it('sorts quiz and renumbers question_order to 1..n', () => {
     const result = prepareModuleJsonForSave([], quiz);
-    expect(result.quiz.map((q) => q.question_bn)).toEqual(['A', 'B']);
+    expect(result.quiz.map((q) => (q.question as { bn: string }).bn)).toEqual([
+      'A',
+      'B',
+    ]);
     expect(result.quiz.map((q) => q.question_order)).toEqual([1, 2]);
   });
 });

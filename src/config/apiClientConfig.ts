@@ -18,28 +18,14 @@ function assertProductionConfig(): void {
       'Production build is missing required env: VITE_API_BASE_URL',
     );
   }
-
-  if (import.meta.env.VITE_USE_MOCK_API !== 'false') {
-    throw new Error('Production build requires VITE_USE_MOCK_API=false');
-  }
-
-  const role = import.meta.env.VITE_APP_ROLE;
-  if (role && role !== 'supervisor' && role !== 'programManager') {
-    throw new Error(
-      'Production build has invalid VITE_APP_ROLE. Allowed values: supervisor, programManager',
-    );
-  }
 }
 
 function assertTestConfig(): void {
   if (import.meta.env.MODE !== 'test') return;
 
-  if (
-    import.meta.env.VITE_USE_MOCK_API === 'false' &&
-    !readEnv('VITE_API_BASE_URL')
-  ) {
+  if (!readEnv('VITE_API_BASE_URL')) {
     throw new Error(
-      'Test run with VITE_USE_MOCK_API=false requires VITE_API_BASE_URL.',
+      'Test run is missing required env: VITE_API_BASE_URL. Copy .env.example to .env or set variables in CI.',
     );
   }
 }

@@ -77,7 +77,9 @@ describe('ModuleLibraryPage', () => {
       name: /^assign$/i,
     });
     await user.click(assignButtons[0]);
-    expect(screen.getByTestId('module-assigned')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /assign module/i }),
+    ).toBeInTheDocument();
   });
 
   it('shows Edit and Assign on published tab for program manager', async () => {
@@ -89,10 +91,11 @@ describe('ModuleLibraryPage', () => {
     const editButtons = await screen.findAllByRole('button', {
       name: /^edit$/i,
     });
+    const assignButtons = await screen.findAllByRole('button', {
+      name: /^assign$/i,
+    });
     expect(editButtons.length).toBeGreaterThan(0);
-    expect(
-      screen.queryByRole('button', { name: /^assign$/i }),
-    ).not.toBeInTheDocument();
+    expect(assignButtons.length).toBeGreaterThan(0);
 
     await user.click(editButtons[0]);
     expect(screen.getByTestId('module-review')).toBeInTheDocument();

@@ -100,7 +100,7 @@ describe('AdminModuleReviewLayout', () => {
 
     expect(screen.getByText('Read-only review')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /review$/i }),
+      screen.getByRole('button', { name: /4\s+Review/i }),
     ).toBeInTheDocument();
   });
 
