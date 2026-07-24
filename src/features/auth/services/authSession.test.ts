@@ -10,8 +10,8 @@ const sampleUser = {
   tenantId: '2',
   userId: '1',
   email: 'superuser@test.com',
-  firstName: 'test',
-  lastName: 'user',
+  firstName: 'Super',
+  lastName: 'User',
   role: 'SUPER_USER',
 };
 
@@ -24,11 +24,10 @@ describe('authSession', () => {
     setAuthSession(sampleUser);
 
     expect(getAuthSession()).toEqual(sampleUser);
-    expect(window.sessionStorage.getItem('appRole')).toBe('programManager');
   });
 
   it('derives display name and initials from the session user', () => {
-    expect(getAuthDisplayName(sampleUser)).toBe('test user');
-    expect(getAuthInitials(sampleUser)).toBe('TU');
+    expect(getAuthDisplayName(sampleUser)).toBe('Super User');
+    expect(getAuthInitials(sampleUser)).toBe('SU');
   });
 });

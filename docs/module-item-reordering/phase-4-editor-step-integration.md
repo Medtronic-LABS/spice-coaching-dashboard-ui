@@ -16,7 +16,7 @@ Wire `ReorderableList` into the admin module review Lessons and Quiz steps so Pr
 
 ### 1. Lessons step — card sidebar reorder
 
-**Modify:** `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.tsx`
+**Modify:** `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.tsx`
 
 Changes:
 
@@ -45,7 +45,7 @@ function adjustSelectedIndexAfterReorder(
 
 ### 2. Quiz step — question list reorder
 
-**Modify:** `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.tsx`
+**Modify:** `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.tsx`
 
 Changes:
 
@@ -62,8 +62,8 @@ Display continues to use `sortQuizItems(working.quiz)` for consistent order.
 
 **New files:**
 
-- `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.test.tsx`
-- `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.test.tsx`
+- `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.test.tsx`
+- `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.test.tsx`
 
 Test approach:
 
@@ -92,8 +92,8 @@ Follow patterns from existing tests e.g. `ModuleLibraryPage.test.tsx`.
 
 | Action | Path |
 |--------|------|
-| Modify | `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.tsx` |
-| Modify | `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.tsx` |
+| Modify | `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.tsx` |
+| Modify | `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.tsx` |
 | New | `AdminModuleLessonsStep.test.tsx` |
 | New | `AdminModuleQuizStep.test.tsx` |
 
@@ -105,7 +105,7 @@ Follow patterns from existing tests e.g. `ModuleLibraryPage.test.tsx`.
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/module-library/pages/admin-module-review/
+npm run test -- src/features/modules/pages/admin-module-review/
 npm run dev
 ```
 

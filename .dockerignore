@@ -10,7 +10,6 @@ coverage
 !.env.example
 Dockerfile*
 docker-compose*.yml
-.cursor
 .vscode
 .idea
 *.log

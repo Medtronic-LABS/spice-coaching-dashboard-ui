@@ -43,4 +43,28 @@ describe('Table', () => {
 
     expect(screen.getByText('No items found')).toBeInTheDocument();
   });
+
+  it('applies independent header and cell alignment classes', () => {
+    const alignedColumns: ColumnDef<TestData>[] = [
+      {
+        key: 'name',
+        header: 'Name',
+        headerClassName: 'text-center',
+        className: 'text-right',
+      },
+    ];
+
+    render(
+      <Table
+        data={[{ id: '1', name: 'Alice' }]}
+        columns={alignedColumns}
+        keyExtractor={(item) => item.id}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Name' })).toHaveClass(
+      'text-center',
+    );
+    expect(screen.getByText('Alice').closest('td')).toHaveClass('text-right');
+  });
 });

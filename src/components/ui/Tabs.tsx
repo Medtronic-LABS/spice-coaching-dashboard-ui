@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useEffect, useId, useRef } from 'react';
-import { cn } from '@/utils/cn';
+import { cn } from '@/utils';
 
 /**
  * Tabs

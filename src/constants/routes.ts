@@ -1,4 +1,14 @@
-export const ROUTE_PREFIX = '/medtronics-ui';
+import { normalizeRoutePrefix } from '@/config/normalizeRoutePrefix';
+
+function readEnv(name: keyof ImportMetaEnv): string | undefined {
+  const value = import.meta.env[name];
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/** App URL prefix from `VITE_ROUTE_PREFIX` (default `/ai-coaching`). */
+export const ROUTE_PREFIX = normalizeRoutePrefix(readEnv('VITE_ROUTE_PREFIX'));
 
 function withRoutePrefix(path: string): string {
   if (path === '/') return `${ROUTE_PREFIX}/`;
@@ -6,7 +16,7 @@ function withRoutePrefix(path: string): string {
   return `${ROUTE_PREFIX}${normalized}`;
 }
 
-/** Replace `:param` segments in a path template (e.g. `paths.chwProfileDetail`). */
+/** Replace `:param` segments in a path template (e.g. `paths.adminModuleReview`). */
 export function buildPath(
   pathTemplate: string,
   params: Record<string, string>,
@@ -19,11 +29,11 @@ export function buildPath(
 
 export const paths = {
   home: withRoutePrefix('/'),
-  chwProfiles: withRoutePrefix('/chw-profiles'),
-  chwProfileDetail: withRoutePrefix('/chw-profiles/:id'),
   moduleLibrary: withRoutePrefix('/module-library'),
   moduleAssigned: withRoutePrefix('/module-library/assigned'),
   ingestDocument: withRoutePrefix('/module-library/ingest'),
+  ingestHistory: withRoutePrefix('/module-library/ingest-history'),
+  videoUpload: withRoutePrefix('/module-library/ingest-video'),
   adminModuleReview: withRoutePrefix('/module-library/review/:moduleId'),
   adminModuleReviewDetails: withRoutePrefix(
     '/module-library/review/:moduleId/details',
@@ -37,24 +47,10 @@ export const paths = {
   adminModuleReviewPublish: withRoutePrefix(
     '/module-library/review/:moduleId/review',
   ),
-  quizPerformance: withRoutePrefix('/quiz-performance'),
-  leaderboard: withRoutePrefix('/leaderboard'),
-  reports: withRoutePrefix('/reports'),
-  supervisors: withRoutePrefix('/supervisors'),
-  supervisorDetail: withRoutePrefix('/supervisors/:id'),
-  escalations: withRoutePrefix('/escalations'),
-  rankings: withRoutePrefix('/rankings'),
-  courseCreate: withRoutePrefix('/courses/new'),
-  courseLessons: withRoutePrefix('/courses/new/lessons'),
-  courseQuiz: withRoutePrefix('/courses/new/quiz'),
-  courseReview: withRoutePrefix('/courses/new/review'),
-  coursePublished: withRoutePrefix('/courses/new/published'),
-  /** Module creation flow (preferred). `course*` routes are kept for backwards compatibility. */
   moduleCreate: withRoutePrefix('/modules/new'),
   moduleLessons: withRoutePrefix('/modules/new/lessons'),
   moduleQuiz: withRoutePrefix('/modules/new/quiz'),
   moduleReview: withRoutePrefix('/modules/new/review'),
   modulePublished: withRoutePrefix('/modules/new/published'),
-  uiPreview: withRoutePrefix('/ui-preview'),
-  chartPreview: withRoutePrefix('/chart-preview'),
+  configs: withRoutePrefix('/configs'),
 } as const;

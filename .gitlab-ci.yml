@@ -20,14 +20,13 @@
 # compose. This deploy job pushes the FE image, then pulls+restarts that one
 # service via DASHBOARD_IMAGE (see coaching-platform/docker-compose.deploy.yml).
 # Requires the BE deploy to have run at least once (so the override file exists).
-# VITE_* are baked at build time -> VITE_USE_MOCK_API=false for a real backend.
+# VITE_* are baked at build time (see Dockerfile ARG/ENV).
 #
 # Required GitLab CI/CD variables (Settings -> CI/CD -> Variables):
 #   VITE_API_BASE_URL
-#   VITE_SPICE_WEB_LOGIN_URL
-#   DASHBOARD_DEV_URL
-#   COACHING_PLATFORM_COMPOSE_DIR
-# Optional: VITE_ERROR_REPORTING_URL
+# Optional:
+#   VITE_COACHING_SUITE_ACCESS (defaults to coaching)
+#   VITE_ROUTE_PREFIX (defaults to /ai-coaching)
 #
 # Runner + secret setup: see coaching-platform/docs/CI_RUNNER_SETUP.md
 # =============================================================================
@@ -41,7 +40,8 @@ stages:
 variables:
   DASHBOARD_REPO: "$CI_REGISTRY_IMAGE"
   IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
-  VITE_USE_MOCK_API: "false"
+  VITE_COACHING_SUITE_ACCESS: "coaching"
+  VITE_ROUTE_PREFIX: "/ai-coaching"
 
 default:
   interruptible: true
@@ -93,7 +93,7 @@ build:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
     - |
-      for var in VITE_API_BASE_URL VITE_SPICE_WEB_LOGIN_URL; do
+      for var in VITE_API_BASE_URL; do
         if [ -z "${!var}" ]; then
           echo "Missing required CI/CD variable: $var"
           exit 1
@@ -101,9 +101,8 @@ build:
       done
     - docker build
         --build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL"
-        --build-arg VITE_USE_MOCK_API="$VITE_USE_MOCK_API"
-        --build-arg VITE_ERROR_REPORTING_URL="$VITE_ERROR_REPORTING_URL"
-        --build-arg VITE_SPICE_WEB_LOGIN_URL="$VITE_SPICE_WEB_LOGIN_URL"
+        --build-arg VITE_COACHING_SUITE_ACCESS="$VITE_COACHING_SUITE_ACCESS"
+        --build-arg VITE_ROUTE_PREFIX="$VITE_ROUTE_PREFIX"
         -t "$DASHBOARD_REPO:$IMAGE_TAG" -t "$DASHBOARD_REPO:dev" .
     - docker push "$DASHBOARD_REPO:$IMAGE_TAG"
     - docker push "$DASHBOARD_REPO:dev"
@@ -115,11 +114,11 @@ deploy_dev:
   needs: [build]
   environment:
     name: dev
-    url: $DASHBOARD_DEV_URL
+    url: http://192.168.5.152:18080
   rules:
     - if: '$CI_COMMIT_BRANCH == "feat/module-creation"'   # automatic
   variables:
-    COMPOSE_DIR: $COACHING_PLATFORM_COMPOSE_DIR
+    COMPOSE_DIR: /home/bhcp0132/medtronics/coaching-platform
   script:
     - cd "$COMPOSE_DIR"
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"

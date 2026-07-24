@@ -1,4 +1,4 @@
-import type { RichBlock } from '@/features/program-manager/types/programManager.types';
+import type { RichBlock } from '@/features/modules/types/richText.types';
 
 /** Locale code (ISO 639-1 / short BCP-47) → localized text. */
 export type LocalizedString = Record<string, string>;
@@ -32,14 +32,6 @@ export function readLocaleText(
   }
   const first = Object.values(loc).find((v) => v?.trim());
   return first?.trim() ?? '';
-}
-
-/** Locale value for controlled inputs — no cross-locale fallback. */
-export function readLocaleFieldValue(
-  loc: LocalizedString | null | undefined,
-  locale: string,
-): string {
-  return loc?.[locale] ?? '';
 }
 
 export function setLocaleText(

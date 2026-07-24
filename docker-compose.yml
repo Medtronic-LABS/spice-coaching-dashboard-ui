@@ -6,13 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?Set VITE_API_BASE_URL in .env}
-        VITE_USE_MOCK_API: ${VITE_USE_MOCK_API:-false}
-        VITE_ERROR_REPORTING_URL: ${VITE_ERROR_REPORTING_URL:-}
-        VITE_DEPLOYMENT_PRIMARY_LOCALE: ${VITE_DEPLOYMENT_PRIMARY_LOCALE:-bn}
-        VITE_SPICE_WEB_LOGIN_URL: ${VITE_SPICE_WEB_LOGIN_URL:?Set VITE_SPICE_WEB_LOGIN_URL in .env}
-        VITE_SPICE_ADMIN_API_URL: ${VITE_SPICE_ADMIN_API_URL:-/admin-service}
-        VITE_SPICE_USER_API_URL: ${VITE_SPICE_USER_API_URL:-/user-service}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://agent-qa.beehyv.com/medtronics-api}
+        VITE_COACHING_SUITE_ACCESS: ${VITE_COACHING_SUITE_ACCESS:-coaching}
+        VITE_ROUTE_PREFIX: ${VITE_ROUTE_PREFIX:-/ai-coaching}
     ports:
       - "${WEB_PORT:-8080}:80"
     restart: unless-stopped

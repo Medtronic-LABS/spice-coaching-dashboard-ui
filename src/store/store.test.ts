@@ -6,6 +6,6 @@ describe('store', () => {
     const state = store.getState();
     expect(state.baseApi).toBeDefined();
     expect(state.adminModuleReview).toBeDefined();
-    expect(state.courseModuleEdit).toBeDefined();
+    expect(state.moduleEdit).toBeDefined();
   });
 });

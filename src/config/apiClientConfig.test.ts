@@ -9,16 +9,14 @@ describe('apiClientConfig', () => {
     expect(apiBaseUrl.length).toBeGreaterThan(0);
   });
 
-  it('reads API base URL and mock flag from env', async () => {
+  it('normalizes a trailing slash on VITE_API_BASE_URL', async () => {
     vi.resetModules();
     vi.stubEnv('MODE', 'test');
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/medtronics-api/');
-    vi.stubEnv('VITE_USE_MOCK_API', 'true');
 
-    const { apiBaseUrl, useMockApi } = await import('@/config/apiClientConfig');
+    const { apiBaseUrl } = await import('@/config/apiClientConfig');
 
     expect(apiBaseUrl).toBe('https://api.example.com/medtronics-api');
-    expect(useMockApi).toBe(true);
 
     vi.unstubAllEnvs();
   });

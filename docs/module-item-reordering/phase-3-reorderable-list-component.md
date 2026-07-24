@@ -30,7 +30,7 @@ Packages:
 
 ### 2. Create ReorderableList component
 
-**New file:** `src/features/module-library/components/ReorderableList.tsx`
+**New file:** `src/features/modules/components/ReorderableList.tsx`
 
 Suggested API:
 
@@ -68,7 +68,7 @@ Implementation notes:
 
 ### 3. Component tests (optional in this phase, required by Phase 5)
 
-**New file:** `src/features/module-library/components/ReorderableList.test.tsx`
+**New file:** `src/features/modules/components/ReorderableList.test.tsx`
 
 Minimal tests:
 
@@ -84,8 +84,8 @@ Minimal tests:
 | Action | Path |
 |--------|------|
 | Modify | `package.json` |
-| New | `src/features/module-library/components/ReorderableList.tsx` |
-| Optional | `src/features/module-library/components/ReorderableList.test.tsx` |
+| New | `src/features/modules/components/ReorderableList.tsx` |
+| Optional | `src/features/modules/components/ReorderableList.test.tsx` |
 
 **Do not modify** `AdminModuleLessonsStep.tsx` or `AdminModuleQuizStep.tsx` in this phase.
 
@@ -97,7 +97,7 @@ Minimal tests:
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
 npm install
 npm run typecheck
-npm run test -- src/features/module-library/components/ReorderableList.test.tsx
+npm run test -- src/features/modules/components/ReorderableList.test.tsx
 ```
 
 Manual smoke (temporary dev page or Storybook if available): render a list of 3 strings, confirm drag and buttons reorder locally.

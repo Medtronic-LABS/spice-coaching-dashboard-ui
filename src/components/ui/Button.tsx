@@ -1,5 +1,5 @@
 import { type ButtonHTMLAttributes } from 'react';
-import { cn } from '@/utils/cn';
+import { cn } from '@/utils';
 
 /**
  * Button

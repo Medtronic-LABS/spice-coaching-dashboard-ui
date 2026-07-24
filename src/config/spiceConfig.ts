@@ -13,19 +13,14 @@ function normalizeBaseUrl(url: string): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
+const DEFAULT_SPICE_WEB_LOGIN_URL = 'http://localhost:3000/';
 const DEFAULT_SPICE_ADMIN_API_URL = '/admin-service';
 const DEFAULT_SPICE_USER_API_URL = '/user-service';
-const DEV_SPICE_WEB_LOGIN_URL = 'http://localhost:3000/';
 
-function resolveSpiceWebLoginUrl(): string {
-  const fromEnv = readEnv('VITE_SPICE_WEB_LOGIN_URL');
-  if (fromEnv) return normalizeUrl(fromEnv);
-  if (import.meta.env.DEV) return normalizeUrl(DEV_SPICE_WEB_LOGIN_URL);
-  return '/';
-}
-
-/** Spice web login page used for SSO redirect when dashboard access is denied. */
-export const spiceWebLoginUrl = resolveSpiceWebLoginUrl();
+/** Spice web app used when cookie auth fails or coaching suite access is denied. */
+export const spiceWebLoginUrl = normalizeUrl(
+  readEnv('VITE_SPICE_WEB_LOGIN_URL') ?? DEFAULT_SPICE_WEB_LOGIN_URL,
+);
 
 /** Admin-service origin (no trailing slash) for hierarchical region APIs. */
 export const spiceAdminApiUrl = normalizeBaseUrl(

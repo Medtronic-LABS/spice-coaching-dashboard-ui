@@ -5,6 +5,7 @@ type KeyOf<T> = Extract<keyof T, string>;
 export type ColumnDef<T extends object> = {
   key: KeyOf<T>;
   header: React.ReactNode;
+  headerClassName?: string;
   className?: string;
   render?: (row: T) => React.ReactNode;
 };

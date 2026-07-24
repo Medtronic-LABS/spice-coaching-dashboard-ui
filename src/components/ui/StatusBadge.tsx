@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/Badge';
-import { cn } from '@/utils/cn';
+import { cn } from '@/utils';
 
 /**
  * StatusBadge

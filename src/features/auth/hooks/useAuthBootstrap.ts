@@ -1,48 +1,62 @@
-import { useState } from 'react';
-import { DEFAULT_AUTH_USER } from '@/features/auth/constants/defaultAuthUser';
+import { useEffect, useState } from 'react';
+import { TEST_AUTH_USER } from '@/features/auth/constants/testAuthUser';
+import { fetchSpiceUserProfile } from '@/features/auth/services/fetchSpiceUserProfile';
 import {
   getAuthSession,
   setAuthSession,
 } from '@/features/auth/services/authSession';
-import type { SsoRedirectParams } from '@/features/auth/types/auth.types';
-import {
-  clearSsoParamsFromUrl,
-  parseSsoParams,
-} from '@/features/auth/utils/ssoParams';
+import { hasCoachingSuiteAccess } from '@/features/auth/utils/hasCoachingSuiteAccess';
+import { mapSpiceProfileToAuthUser } from '@/features/auth/utils/mapSpiceProfileToAuthUser';
+import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
 
-export type AuthBootstrapStatus = 'loading' | 'ready';
+export type AuthBootstrapStatus = 'loading' | 'ready' | 'redirecting';
 
-function toAuthUser(params: SsoRedirectParams) {
-  return {
-    tenantId: params.tenantId,
-    userId: params.userId,
-    email: params.email,
-    firstName: params.firstName,
-    lastName: params.lastName,
-    role: params.role,
-  };
-}
-
-function bootstrapAuth(): void {
-  const ssoParams = parseSsoParams(window.location.search);
-  if (ssoParams) {
-    setAuthSession(toAuthUser(ssoParams));
-    clearSsoParamsFromUrl();
-    return;
-  }
-
+function seedTestAuthSession(): void {
   if (!getAuthSession()) {
-    if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-      setAuthSession(DEFAULT_AUTH_USER);
-    }
+    setAuthSession(TEST_AUTH_USER);
   }
 }
 
 export function useAuthBootstrap(): AuthBootstrapStatus {
-  const [status] = useState<AuthBootstrapStatus>(() => {
-    bootstrapAuth();
-    return 'ready';
+  const [status, setStatus] = useState<AuthBootstrapStatus>(() => {
+    if (import.meta.env.MODE === 'test') {
+      seedTestAuthSession();
+      return 'ready';
+    }
+    return 'loading';
   });
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') return;
+
+    let cancelled = false;
+
+    async function bootstrapFromSpiceProfile(): Promise<void> {
+      try {
+        const profile = await fetchSpiceUserProfile();
+        if (cancelled) return;
+
+        if (!hasCoachingSuiteAccess(profile.entity.suiteAccess)) {
+          setStatus('redirecting');
+          redirectToSpiceWeb();
+          return;
+        }
+
+        setAuthSession(mapSpiceProfileToAuthUser(profile.entity));
+        setStatus('ready');
+      } catch {
+        if (cancelled) return;
+        setStatus('redirecting');
+        redirectToSpiceWeb();
+      }
+    }
+
+    void bootstrapFromSpiceProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return status;
 }
