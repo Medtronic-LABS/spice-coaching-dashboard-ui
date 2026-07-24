@@ -37,21 +37,18 @@
       "brand": "SPICE • AI COACHING",
       "closeOverlay": "নেভিগেশন মেনু বন্ধ করুন",
       "badge": "Bangladesh Pilot",
+      "suiteAccess": "স্যুইট অ্যাক্সেস",
+      "userFallback": "ইউজার",
       "sections": {
-        "overview": "OVERVIEW",
         "learning": "LEARNING",
-        "monitoring": "MONITORING"
+        "administration": "ADMINISTRATION"
       },
       "nav": {
-        "home": "হোম",
-        "dashboard": "ড্যাশবোর্ড",
-        "chwProfiles": "CHW প্রোফাইলস",
         "moduleLibrary": "মডিউল লাইব্রেরি",
-        "quizPerformance": "কুইজ পারফরম্যান্স",
-        "leaderboard": "লিডারবোর্ড",
-        "reports": "রিপোর্টস",
-        "uiPreview": "UI প্রিভিউ",
-        "chartPreview": "চার্ট প্রিভিউ"
+        "ingestDocument": "ডকুমেন্ট আপলোড",
+        "videoUpload": "ভিডিও আপলোড",
+        "ingestHistory": "ইনজেশন হিস্ট্রি",
+        "configs": "কনফিগারেশন"
       },
       "user": {
         "initials": "RK",
@@ -60,10 +57,10 @@
       }
     },
     "header": {
-      "welcomeBack": "আবার স্বাগতম, {{name}}",
+      "welcomeBack": "আবার স্বাগতম",
       "userName": "সুভোদীপ",
       "userInitials": "S",
-      "userMenuAriaLabel": "ইউজার মেনু",
+      "userMenuAriaLabel": "{{name}} ইউজার মেনু",
       "logout": "লগ আউট",
       "logoutAriaLabel": "লগ আউট",
       "openMenu": "নেভিগেশন মেনু খুলুন",
@@ -73,12 +70,6 @@
       "languageOptions": {
         "en": "English",
         "bn": "বাংলা"
-      },
-      "switchRole": "{{role}}-এ স্যুইচ করুন",
-      "switchRoleAriaLabel": "ভূমিকা {{role}}-এ পরিবর্তন করুন",
-      "roles": {
-        "supervisor": "সুপারভাইজার",
-        "programManager": "প্রোগ্রাম ম্যানেজার"
       }
     }
   },
@@ -92,14 +83,24 @@
       "summary": {
         "module": "মডিউল",
         "moduleMeta": "৪টি লেসন • ৩টি প্রশ্ন • ~১৮ মিনিট",
-        "deadline": "ডেডলাইন",
-        "deadlineMeta": "আজ থেকে ১৪ দিন",
+        "quizReattemptAllowed": "কুইজ পুনরায় চেষ্টা অনুমোদিত",
+        "quizReattemptAllowedUntilLoading": "লোড হচ্ছে…",
+        "quizReattemptAllowedUntilUnavailable": "—",
+        "quizReattemptAllowedMeta": "অ্যাসাইনমেন্ট তারিখ থেকে {{count}} দিন",
+        "quizReattemptAllowedMetaLoading": "পুনরায় চেষ্টার সময়সীমা লোড হচ্ছে…",
+        "quizReattemptAllowedMetaUnavailable": "পুনরায় চেষ্টার সময়সীমা উপলব্ধ নয়",
         "assignedTo": "অ্যাসাইনড টু — {{count}} জন ব্যবহারকারী",
         "assignedToIndividual": "অ্যাসাইনড টু — ব্যক্তি",
         "assignedToPoSk": "অ্যাসাইনড টু — PO + SK",
         "assignedToPo": "অ্যাসাইনড টু — PO",
         "assignedToUpazila": "অ্যাসাইনড টু — উপজেলা",
-        "assignedToOrganization": "অ্যাসাইনড টু — সংস্থা"
+        "assignedToOrganization": "অ্যাসাইনড টু — সংস্থা",
+        "newlyAssignedUser": "নতুন অ্যাসাইন করা ব্যবহারকারী",
+        "assignedUsers": "অ্যাসাইন করা ব্যবহারকারী",
+        "revoked": "বাতিল করা",
+        "showAll": "সব দেখুন",
+        "loadingAssignedUsers": "অ্যাসাইন করা ব্যবহারকারী লোড হচ্ছে…",
+        "noUsersRevoked": "কোনো ব্যবহারকারী বাতিল করা হয়নি।"
       },
       "next": {
         "title": "পরবর্তী পদক্ষেপ",
@@ -153,7 +154,7 @@
     "unknown": "ট্রেন্ড"
   },
   "home": {
-    "supervisorDashboard": {
+    "dashboard": {
       "loading": {
         "initialLabel": "সুপারভাইজার ড্যাশবোর্ড লোড হচ্ছে",
         "summaryLabel": "সারাংশ লোড হচ্ছে",

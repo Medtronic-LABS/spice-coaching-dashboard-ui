@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import '@/i18n/i18n';
 import { beforeEach, vi } from 'vitest';
-import { DEFAULT_AUTH_USER } from '@/features/auth/constants/defaultAuthUser';
+import { TEST_AUTH_USER } from '@/features/auth/constants/testAuthUser';
 import { setAuthSession } from '@/features/auth/services/authSession';
 
 Object.defineProperty(window, 'matchMedia', {
@@ -18,8 +18,8 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-/** Default test auth session and supervisor role for dashboard flows. */
+/** Default test auth session for dashboard flows. */
 beforeEach(() => {
   window.sessionStorage.clear();
-  setAuthSession(DEFAULT_AUTH_USER);
+  setAuthSession(TEST_AUTH_USER);
 });

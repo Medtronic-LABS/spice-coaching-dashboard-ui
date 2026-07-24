@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { renderWithProviders } from '@/test-utils/render';
-import { DEFAULT_AUTH_USER } from '@/features/auth/constants/defaultAuthUser';
+import { TEST_AUTH_USER } from '@/features/auth/constants/testAuthUser';
 import {
   clearAuthSession,
   getAuthSession,
@@ -9,7 +9,7 @@ import {
 import { AuthGate } from './AuthGate';
 
 describe('AuthGate', () => {
-  it('seeds the default auth session when no SSO params are present', () => {
+  it('seeds the test auth session when no session exists in test mode', () => {
     clearAuthSession();
     renderWithProviders(
       <AuthGate>
@@ -17,11 +17,11 @@ describe('AuthGate', () => {
       </AuthGate>,
     );
 
-    expect(getAuthSession()).toEqual(DEFAULT_AUTH_USER);
+    expect(getAuthSession()).toEqual(TEST_AUTH_USER);
     expect(screen.getByText('Dashboard content')).toBeInTheDocument();
   });
 
-  it('renders dashboard content when an SSO session already exists', () => {
+  it('renders dashboard content when an auth session already exists', () => {
     renderWithProviders(
       <AuthGate>
         <div>Dashboard content</div>

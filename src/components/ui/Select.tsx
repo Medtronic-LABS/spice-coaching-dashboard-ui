@@ -1,5 +1,5 @@
 import { type SelectHTMLAttributes } from 'react';
-import { cn } from '@/utils/cn';
+import { cn } from '@/utils';
 
 /**
  * Select
@@ -37,7 +37,7 @@ export const Select = ({
   return (
     <select
       className={cn(
-        'h-10 rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25',
+        'select-arrow h-10 rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25',
         className,
       )}
       value={value}

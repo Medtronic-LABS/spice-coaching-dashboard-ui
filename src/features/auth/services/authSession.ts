@@ -1,8 +1,6 @@
-import { setCurrentRole } from '@/constants/role';
 import type { AuthUser } from '@/features/auth/types/auth.types';
-import { mapSsoRoleToAppRole } from '@/features/auth/utils/mapSsoRoleToAppRole';
 
-const AUTH_SESSION_STORAGE_KEY = 'authSession';
+const AUTH_SESSION_STORAGE_KEY = 'authUser';
 
 function isAuthUser(value: unknown): value is AuthUser {
   if (!value || typeof value !== 'object') return false;
@@ -34,7 +32,6 @@ export function setAuthSession(user: AuthUser): void {
       AUTH_SESSION_STORAGE_KEY,
       JSON.stringify(user),
     );
-    setCurrentRole(mapSsoRoleToAppRole(user.role));
   } catch {
     // ignore storage access failures
   }
@@ -43,7 +40,6 @@ export function setAuthSession(user: AuthUser): void {
 export function clearAuthSession(): void {
   try {
     window.sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-    window.sessionStorage.removeItem('appRole');
   } catch {
     // ignore storage access failures
   }

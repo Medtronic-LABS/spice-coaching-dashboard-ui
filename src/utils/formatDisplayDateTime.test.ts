@@ -1,22 +1,33 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
+function expectedDisplayDateTime(date: Date): string {
+  const dateParts = new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).formatToParts(date);
+
+  const month = dateParts.find((part) => part.type === 'month')?.value ?? '';
+  const day = dateParts.find((part) => part.type === 'day')?.value ?? '';
+  const year = dateParts.find((part) => part.type === 'year')?.value ?? '';
+
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(date);
+
+  return `${month} ${day} ${year} • ${time}`;
+}
+
 describe('formatDisplayDateTime', () => {
-  it('formats ISO string as month day year and time in local timezone', () => {
+  it('formats ISO string as `Mon DD YYYY • h:mm:ss AM/PM` in local timezone', () => {
     const iso = '2026-06-01T11:27:29.877549Z';
     const date = new Date(iso);
-    const result = formatDisplayDateTime(iso);
 
-    const month = date.toLocaleString(undefined, { month: 'long' });
-    const day = date.getDate();
-    const year = date.getFullYear();
-    const time = new Intl.DateTimeFormat(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(date);
-
-    expect(result).toBe(`${month} ${day} ${year}, ${time}`);
+    expect(formatDisplayDateTime(iso)).toBe(expectedDisplayDateTime(date));
   });
 
   it('returns em dash for empty values', () => {
@@ -29,15 +40,10 @@ describe('formatDisplayDateTime', () => {
     expect(formatDisplayDateTime('not-a-date')).toBe('not-a-date');
   });
 
-  it('returns the original value when date parts are incomplete', () => {
-    const formatToPartsSpy = vi
-      .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
-      .mockReturnValue([{ type: 'month', value: 'June' }]);
+  it('formats Python-style microsecond timestamps with numeric offsets', () => {
+    const iso = '2026-07-21T12:45:13.192365+00:00';
+    const date = new Date('2026-07-21T12:45:13.192+00:00');
 
-    expect(formatDisplayDateTime('2026-06-01T11:27:29.877549Z')).toBe(
-      '2026-06-01T11:27:29.877549Z',
-    );
-
-    formatToPartsSpy.mockRestore();
+    expect(formatDisplayDateTime(iso)).toBe(expectedDisplayDateTime(date));
   });
 });

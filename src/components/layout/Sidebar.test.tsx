@@ -3,17 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { paths } from '@/constants/routes';
 import { Sidebar } from './Sidebar';
-import type { AppRole } from '@/constants/role';
 
-const mockRoleState = vi.hoisted(() => ({ role: 'supervisor' as AppRole }));
-
-vi.mock('@/constants/role', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/constants/role')>();
-  return {
-    ...actual,
-    getCurrentRole: () => mockRoleState.role,
-  };
-});
+vi.mock('@/features/auth/services/authSession', () => ({
+  getAuthSession: () => ({ role: 'SUPER_USER' }),
+  getAuthDisplayName: () => 'Super User',
+  getAuthInitials: () => 'SU',
+}));
 
 const defaultSidebarProps = {
   isMobileOpen: true,
@@ -21,11 +16,7 @@ const defaultSidebarProps = {
 };
 
 describe('Sidebar', () => {
-  beforeEach(() => {
-    mockRoleState.role = 'supervisor';
-  });
-
-  it('renders the sidebar title and navigation links', () => {
+  it('renders brand, module library, and ingest navigation', () => {
     render(
       <MemoryRouter>
         <Sidebar {...defaultSidebarProps} />
@@ -34,64 +25,104 @@ describe('Sidebar', () => {
 
     expect(screen.getByText('SPICE • AI COACHING')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /dashboard/i }),
+      screen.getByRole('link', { name: /^module library$/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /chw profiles/i }),
+      screen.getByRole('link', { name: /upload document/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /module library/i }),
+      screen.getByRole('link', { name: /upload video/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /quiz performance/i }),
+      screen.getByRole('link', { name: /ingestion history/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /leaderboard/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /reports/i })).toBeInTheDocument();
-    expect(screen.getByText(/rashida khanam/i)).toBeInTheDocument();
-    expect(screen.getByText(/supervisor/i)).toBeInTheDocument();
-    expect(screen.getByText('RK')).toBeInTheDocument();
-    expect(screen.getByText('Bangladesh Pilot')).toBeInTheDocument();
-    expect(screen.getByText('OVERVIEW')).toBeInTheDocument();
+    expect(screen.getByText(/super user/i)).toBeInTheDocument();
+    expect(screen.getByText('SUPER_USER')).toBeInTheDocument();
+    expect(screen.getByText('SU')).toBeInTheDocument();
     expect(screen.getByText('LEARNING')).toBeInTheDocument();
-    expect(screen.getByText('MONITORING')).toBeInTheDocument();
-  });
-
-  it('renders program manager navigation including ingest document', () => {
-    mockRoleState.role = 'programManager';
-    render(
-      <MemoryRouter>
-        <Sidebar {...defaultSidebarProps} />
-      </MemoryRouter>,
-    );
-
+    expect(screen.getByText('ADMINISTRATION')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /^overview$/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /ingest document/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /^modules$/i }),
+      screen.getByRole('link', { name: /configurations/i }),
     ).toBeInTheDocument();
   });
 
   it('applies active class to active link', () => {
     render(
-      <MemoryRouter initialEntries={[paths.chwProfiles]}>
+      <MemoryRouter initialEntries={[paths.moduleLibrary]}>
         <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,
     );
 
-    const activeLink = screen.getByRole('link', { name: /chw profiles/i });
+    const activeLink = screen.getByRole('link', { name: /^module library$/i });
     expect(activeLink).toHaveClass(
-      'bg-spice-bg-tint',
-      'text-spice-brand-primary',
+      'bg-spice-brand-pm/20',
+      'text-spice-text-onDark-hi',
+    );
+  });
+
+  it.each([
+    ['details', paths.adminModuleReviewDetails],
+    ['lessons', paths.adminModuleReviewLessons],
+    ['quiz', paths.adminModuleReviewQuiz],
+    ['review', paths.adminModuleReviewPublish],
+  ])('highlights Module Library during the %s step', (_step, routeTemplate) => {
+    render(
+      <MemoryRouter
+        initialEntries={[routeTemplate.replace(':moduleId', 'module-1')]}
+      >
+        <Sidebar {...defaultSidebarProps} />
+      </MemoryRouter>,
     );
 
-    const inactiveLink = screen.getByRole('link', { name: /dashboard/i });
-    expect(inactiveLink).toHaveClass('text-spice-text-medium');
+    const modulesLink = screen.getByRole('link', { name: /^module library$/i });
+    const ingestLink = screen.getByRole('link', { name: /upload document/i });
+    const historyLink = screen.getByRole('link', {
+      name: /ingestion history/i,
+    });
+
+    expect(modulesLink).toHaveClass(
+      'bg-spice-brand-pm/20',
+      'text-spice-text-onDark-hi',
+    );
+    expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
+    expect(historyLink).not.toHaveClass('bg-spice-brand-pm/20');
+  });
+
+  it('highlights ingest history on the history route', () => {
+    render(
+      <MemoryRouter initialEntries={[paths.ingestHistory]}>
+        <Sidebar {...defaultSidebarProps} />
+      </MemoryRouter>,
+    );
+
+    const historyLink = screen.getByRole('link', {
+      name: /ingestion history/i,
+    });
+    const ingestLink = screen.getByRole('link', { name: /upload document/i });
+
+    expect(historyLink).toHaveClass(
+      'bg-spice-brand-pm/20',
+      'text-spice-text-onDark-hi',
+    );
+    expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
+  });
+
+  it('highlights upload document but not module library on the ingest route', () => {
+    render(
+      <MemoryRouter initialEntries={[paths.ingestDocument]}>
+        <Sidebar {...defaultSidebarProps} />
+      </MemoryRouter>,
+    );
+
+    const ingestLink = screen.getByRole('link', { name: /upload document/i });
+    const modulesLink = screen.getByRole('link', { name: /^module library$/i });
+
+    expect(ingestLink).toHaveClass(
+      'bg-spice-brand-pm/20',
+      'text-spice-text-onDark-hi',
+    );
+    expect(modulesLink).not.toHaveClass('bg-spice-brand-pm/20');
+    expect(modulesLink).not.toHaveClass('text-spice-text-onDark-hi');
   });
 
   it('closes the mobile menu when a navigation link is clicked', async () => {
@@ -103,7 +134,7 @@ describe('Sidebar', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('link', { name: /dashboard/i }));
+    await user.click(screen.getByRole('link', { name: /^module library$/i }));
     expect(onMobileClose).toHaveBeenCalledTimes(1);
   });
 });

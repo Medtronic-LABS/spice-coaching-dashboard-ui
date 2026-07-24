@@ -135,12 +135,12 @@ flowchart LR
 
 | Purpose | Path |
 |---------|------|
-| Card type | `src/features/module-library/types/adminModule.types.ts` |
-| Quiz type + API | `src/features/module-library/api/adminModulesApi.ts` |
-| Review state | `src/features/module-library/store/adminModuleReviewSlice.ts` |
-| Save | `src/features/module-library/utils/persistAdminModuleDraft.ts` |
-| Lessons UI | `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.tsx` |
-| Quiz UI | `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.tsx` |
+| Card type | `src/features/modules/types/adminModule.types.ts` |
+| Quiz type + API | `src/features/modules/api/adminModulesApi.ts` |
+| Review state | `src/features/modules/store/adminModuleReviewSlice.ts` |
+| Save | `src/features/modules/utils/persistAdminModuleDraft.ts` |
+| Lessons UI | `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.tsx` |
+| Quiz UI | `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.tsx` |
 
 ### Backend (coaching-platform)
 

@@ -16,7 +16,7 @@ Wire editor steps so opening preview jumps to the card or quiz question currentl
 
 ### 1. Lessons step — register card context
 
-**Modify:** `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.tsx`
+**Modify:** `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.tsx`
 
 1. Import `useModulePreview`.
 2. Register context when selection changes:
@@ -35,7 +35,7 @@ Ensure effect does not cause editor performance issues — `registerEditorContex
 
 ### 2. Quiz step — focused question index
 
-**Modify:** `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.tsx`
+**Modify:** `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.tsx`
 
 The quiz step currently shows all questions at once with no selection state. Add:
 
@@ -70,7 +70,7 @@ Or rely on provider default — verify `openPreview()` from these steps lands on
 
 ### 4. Integration tests — lessons step
 
-**Extend or new:** `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.preview.test.tsx`
+**Extend or new:** `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.preview.test.tsx`
 
 | Case | Assert |
 |------|--------|
@@ -82,7 +82,7 @@ Follow mock patterns from `AdminModuleLessonsStep.test.tsx`.
 
 ### 5. Integration tests — quiz step
 
-**New:** `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.preview.test.tsx`
+**New:** `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.preview.test.tsx`
 
 | Case | Assert |
 |------|--------|
@@ -91,7 +91,7 @@ Follow mock patterns from `AdminModuleLessonsStep.test.tsx`.
 
 ### 6. Large module performance smoke test
 
-**New file (optional):** `src/features/module-library/utils/generateModulePreviewSnapshot.perf.test.ts`
+**New file (optional):** `src/features/modules/utils/generateModulePreviewSnapshot.perf.test.ts`
 
 Generate fixture with 200 cards + 100 quiz items:
 
@@ -104,7 +104,7 @@ Manual: Open module with many cards; type rapidly in editor — no perceptible l
 
 ### 7. Android contract fixtures
 
-**New file:** `src/features/module-library/utils/fixtures/androidModuleFixtures.ts`
+**New file:** `src/features/modules/utils/fixtures/androidModuleFixtures.ts`
 
 Port minimal JSON from:
 

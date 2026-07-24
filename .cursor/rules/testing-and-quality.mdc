@@ -1,0 +1,14 @@
+---
+description: Testing, linting, formatting, and code quality expectations
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Testing and Quality
+
+- Use Vitest + Testing Library for behavior-focused tests; assert user-visible outcomes, not implementation details.
+- Cover key dashboard flows: route rendering, loading/error/empty states, and critical data interactions.
+- Mock network boundaries (RTK Query/Axios) while keeping component logic realistic.
+- Keep tests deterministic and fast; avoid real timers/network and brittle snapshot overuse.
+- Ensure TypeScript strictness, ESLint compliance, and Prettier formatting before considering work complete.
+- Add or update tests when behavior changes; avoid shipping untested critical paths.

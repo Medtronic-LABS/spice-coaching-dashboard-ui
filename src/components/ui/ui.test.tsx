@@ -124,6 +124,7 @@ describe('ui components', () => {
     fireEvent.change(screen.getByLabelText('Region'), {
       target: { value: 'b' },
     });
+    expect(screen.getByLabelText('Region')).toHaveClass('select-arrow');
     expect(onSelect).toHaveBeenCalledWith('b');
 
     fireEvent.change(screen.getByLabelText('Search'), {

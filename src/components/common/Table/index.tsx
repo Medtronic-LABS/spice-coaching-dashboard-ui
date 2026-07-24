@@ -34,7 +34,10 @@ export function Table<T extends object>({
               <th
                 key={String(col.key)}
                 scope="col"
-                className="px-3 py-2 font-medium tracking-wider sm:px-6 sm:py-3"
+                className={cn(
+                  'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
+                  col.headerClassName,
+                )}
               >
                 {col.header}
               </th>
@@ -52,7 +55,7 @@ export function Table<T extends object>({
                   <td
                     key={String(col.key)}
                     className={cn(
-                      'px-3 py-3 whitespace-nowrap sm:px-6 sm:py-4',
+                      'px-3 py-1.5 whitespace-nowrap sm:px-6 sm:py-2',
                       col.className,
                     )}
                   >

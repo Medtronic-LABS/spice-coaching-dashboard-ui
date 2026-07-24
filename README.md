@@ -1,6 +1,6 @@
 # Micro-Learning Analytics Dashboard
 
-Web dashboard for the Medtronic AI Coaching application (**UC-3: Measure**). Supervisors and program managers monitor CHW learning progress, knowledge gaps, module uptake, quiz performance, and program-level metrics. Module creation and review flows connect to the coaching platform **admin API**.
+Web dashboard for the Medtronic AI Coaching application. Users with **coaching suite access** manage learning modules, document/video ingestion, and admin configuration. Module creation and review flows connect to the coaching platform **admin API**.
 
 ## Tech stack
 
@@ -24,7 +24,7 @@ Web dashboard for the Medtronic AI Coaching application (**UC-3: Measure**). Sup
 
 ```bash
 npm install
-cp .env.example .env   # adjust URLs and mock flags as needed
+cp .env.example .env   # set VITE_API_BASE_URL and related URLs
 npm run dev
 ```
 
@@ -55,17 +55,12 @@ Copy `.env.example` to `.env`. Only `VITE_*` variables are exposed to the browse
 | Variable | Description |
 |----------|-------------|
 | `VITE_API_BASE_URL` | Single API origin for dashboard and `/admin/*` routes (e.g. `https://host/medtronics-api`) |
-| `VITE_DEPLOYMENT_PRIMARY_LOCALE` | Primary locale for module content display (default `bn`) |
-| `VITE_USE_MOCK_API` | When not `false`, all routes use mocked RTK Query responses |
-| `VITE_USE_MOCK_MODULE_PIPELINE` | When not `false`, program-manager module-creation pipeline can use local mocks |
-| `VITE_ERROR_REPORTING_URL` | Optional POST endpoint for client error reports |
-| `VITE_SPICE_WEB_LOGIN_URL` | Spice web login URL for SSO redirect (required in production builds) |
-| `VITE_SPICE_ADMIN_API_URL` | Admin-service API path or origin (default `/admin-service`) |
-| `VITE_SPICE_USER_API_URL` | User-service API path or origin (default `/user-service`) |
+| `VITE_ROUTE_PREFIX` | Public URL path for the SPA (default `/ai-coaching`; no trailing slash) |
+| `VITE_COACHING_SUITE_ACCESS` | Spice `suiteAccess` key required for entry (default `coaching`) |
 
 ### How `baseApi` works
 
-One RTK Query API uses `fetchBaseQuery` against `VITE_API_BASE_URL` with shared reviewer headers on every request. When `VITE_USE_MOCK_API` is not `false` (or in tests), `mockBaseQuery` is used instead.
+One RTK Query API uses `fetchBaseQuery` against `VITE_API_BASE_URL` with credentials included for session cookies.
 
 Export `apiBaseUrl` from `src/store/apis/base.ts` for absolute URLs (e.g. file downloads, `EventSource`).
 
@@ -76,24 +71,18 @@ Feature-first layout: product code lives under `src/features/<feature>/`. Shared
 ```text
 src/
   features/           # Domain modules (pages, api, hooks, utils, tests)
-    home/             # Supervisor dashboard
-    chw-profiles/     # CHW list & detail
-    quiz-performance/
-    leaderboard/
-    reports/
-    module-library/   # Library, ingest, admin review/publish
-    program-manager/  # Overview, roster, escalations, course flow
-    analytics/        # Shared analytics types, API, mappers
-    chw/              # CHW-related dashboard endpoints
-    ui-preview/       # Internal UI/chart preview
+    modules/          # Module library, review/publish, create flow
+    ingest/           # Document/video upload and ingestion history
+    admin-configs/    # Configurations
+    auth/             # SSO bootstrap and suite-access gate
   components/
     common/           # Tables, charts, shared patterns
     layout/           # MainLayout, Header, Sidebar
     ui/               # Buttons, cards, form primitives
   routes/             # AppRoutes, lazy imports
   store/
-    apis/             # baseApi (unified), mockBaseQuery
-  constants/          # Routes, roles
+    apis/             # baseApi (real fetch)
+  constants/          # Routes
   types/              # Cross-feature types
   hooks/              # App-wide hooks (if any)
 locales/              # en, bn translations
@@ -103,12 +92,12 @@ docs/                 # Specs (e.g. UI component system)
 
 ### Architecture conventions
 
-1. **Pages are thin** — render UI; fetch and orchestrate via hooks (e.g. `useSupervisorDashboard`).
+1. **Pages are thin** — render UI; fetch and orchestrate via hooks.
 2. **API access via RTK Query** — feature `api/*.ts` files inject endpoints into `baseApi` (dashboard and `/admin/*` routes).
 3. **Map API → UI** — use typed mappers/utils when backend shape differs from components (e.g. `analyticsMappers`).
 4. **Named exports only** — default exports discouraged (ESLint warns on app code).
 5. **Co-located tests** — `*.test.tsx` next to the module they cover.
-6. **Roles** — `supervisor` vs `programManager` (session storage); routes and nav adapt in `AppRoutes`.
+6. **Suite access gate** — entry requires coaching suite access from the Spice profile; there is no app-level role branching.
 
 ## Code standards
 
@@ -143,9 +132,9 @@ Team conventions live in **`.cursor/rules/`** (also useful for code review and A
 
 These rules are not a substitute for lint/typecheck/tests; they describe **how** we structure code so reviews stay consistent.
 
-## Roles (local development)
+## Access
 
-Role is stored in `sessionStorage` under `appRole` (`supervisor` or `programManager`). The sidebar and route set change by role. In development and tests, a default session is seeded when SSO params are absent. Production builds require SSO and show the login page when no session exists.
+App entry is gated by **coaching suite access** on the Spice user profile (`hasCoachingSuiteAccess`). Users without it are redirected to Spice Web. The UI does not branch on program-manager vs other app roles.
 
 ## Documentation
 

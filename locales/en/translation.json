@@ -36,18 +36,18 @@
       "brand": "SPICE • AI COACHING",
       "closeOverlay": "Close navigation menu",
       "badge": "Bangladesh Pilot",
+      "suiteAccess": "Suite Access",
+      "userFallback": "User",
       "sections": {
-        "overview": "OVERVIEW",
         "learning": "LEARNING",
-        "monitoring": "MONITORING"
+        "administration": "ADMINISTRATION"
       },
       "nav": {
-        "dashboard": "Dashboard",
-        "chwProfiles": "CHW Profiles",
         "moduleLibrary": "Module Library",
-        "quizPerformance": "Quiz Performance",
-        "leaderboard": "Leaderboard",
-        "reports": "Reports"
+        "ingestDocument": "Upload Document",
+        "videoUpload": "Upload Video",
+        "ingestHistory": "Ingestion History",
+        "configs": "Configurations"
       },
       "user": {
         "initials": "RK",
@@ -56,10 +56,10 @@
       }
     },
     "header": {
-      "welcomeBack": "Welcome back, {{name}}",
+      "welcomeBack": "Welcome back",
       "userName": "Subhodeep",
       "userInitials": "S",
-      "userMenuAriaLabel": "User menu",
+      "userMenuAriaLabel": "{{name}} user menu",
       "logout": "Log out",
       "logoutAriaLabel": "Log out",
       "openMenu": "Open navigation menu",
@@ -69,12 +69,6 @@
       "languageOptions": {
         "en": "English",
         "bn": "বাংলা"
-      },
-      "switchRole": "Switch to {{role}}",
-      "switchRoleAriaLabel": "Switch role to {{role}}",
-      "roles": {
-        "supervisor": "Supervisor",
-        "programManager": "Program Manager"
       }
     }
   },
@@ -88,14 +82,24 @@
       "summary": {
         "module": "MODULE",
         "moduleMeta": "4 lessons • 3 questions • ~18 min",
-        "deadline": "DEADLINE",
-        "deadlineMeta": "14 days from today",
+        "quizReattemptAllowed": "QUIZ REATTEMPT ALLOWED",
+        "quizReattemptAllowedUntilLoading": "Loading…",
+        "quizReattemptAllowedUntilUnavailable": "—",
+        "quizReattemptAllowedMeta": "{{count}} days from assignment date",
+        "quizReattemptAllowedMetaLoading": "Loading reattempt window…",
+        "quizReattemptAllowedMetaUnavailable": "Reattempt window unavailable",
         "assignedTo": "ASSIGNED TO — {{count}} users",
         "assignedToIndividual": "ASSIGNED TO — Individual",
         "assignedToPoSk": "ASSIGNED TO — PO + SKs",
         "assignedToPo": "ASSIGNED TO — PO",
         "assignedToUpazila": "ASSIGNED TO — Upazila",
-        "assignedToOrganization": "ASSIGNED TO — Organization"
+        "assignedToOrganization": "ASSIGNED TO — Organization",
+        "newlyAssignedUser": "NEWLY ASSIGNED USER",
+        "assignedUsers": "ASSIGNED USER",
+        "revoked": "REVOKED",
+        "showAll": "Show all",
+        "loadingAssignedUsers": "Loading assigned users…",
+        "noUsersRevoked": "No users revoked."
       },
       "next": {
         "title": "WHAT'S NEXT",
@@ -150,10 +154,38 @@
   },
   "home": {
     "dashboard": {
+      "loading": {
+        "initialLabel": "Loading dashboard",
+        "summaryLabel": "Loading summary",
+        "leaderboardLabel": "Loading leaderboard",
+        "performanceLabel": "Loading CHW matrix",
+        "flagsLabel": "Loading flags",
+        "modulesLabel": "Loading modules"
+      },
+      "error": {
+        "allTitle": "Dashboard unavailable",
+        "allDescription": "Please try again in a moment.",
+        "summaryDescription": "We couldn’t load KPIs."
+      },
+      "empty": {
+        "title": "No dashboard data yet",
+        "description": "Once activity is available, you’ll see KPIs, flags, and progress here."
+      },
+      "header": {
+        "title": "Dashboard",
+        "subtitle": "Quick overview of performance, flags, and module progress."
+      },
       "actions": {
-        "viewAll": "View All →"
+        "viewAll": "View All →",
+        "exportReport": "Export Report",
+        "assignModule": "Assign Module"
       },
       "sections": {
+        "summary": "Summary",
+        "leaderboard": "Leaderboard",
+        "performance": "CHW matrix",
+        "flags": "Flags",
+        "modules": "Module progress",
         "topPerformance": "Top Performance",
         "priorityFlags": "Priority Flags",
         "performanceMatrix": "CHW Performance Matrix",
@@ -202,41 +234,6 @@
       "actions": {
         "addChws": "Add CHWs",
         "createModule": "Create Module"
-      }
-    },
-    "supervisorDashboard": {
-      "loading": {
-        "initialLabel": "Loading supervisor dashboard",
-        "summaryLabel": "Loading summary",
-        "leaderboardLabel": "Loading leaderboard",
-        "performanceLabel": "Loading CHW matrix",
-        "flagsLabel": "Loading flags",
-        "modulesLabel": "Loading modules"
-      },
-      "error": {
-        "allTitle": "Supervisor dashboard unavailable",
-        "allDescription": "Please try again in a moment.",
-        "summaryDescription": "We couldn’t load KPIs."
-      },
-      "empty": {
-        "title": "No supervisor data yet",
-        "description": "Once activity is available, you’ll see KPIs, flags, and progress here."
-      },
-      "header": {
-        "title": "Dashboard",
-        "subtitle": "Quick overview of performance, flags, and module progress."
-      },
-      "sections": {
-        "summary": "Summary",
-        "leaderboard": "Leaderboard",
-        "performance": "CHW matrix",
-        "flags": "Flags",
-        "modules": "Module progress"
-      },
-      "actions": {
-        "viewAll": "View all",
-        "exportReport": "Export Report",
-        "assignModule": "Assign Module"
       }
     },
     "leaderboard": {

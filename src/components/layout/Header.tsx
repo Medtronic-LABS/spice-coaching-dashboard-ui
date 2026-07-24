@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { SearchInput } from '@/components/ui';
-import { getCurrentRole } from '@/constants/role';
+import uhisLogo from '@/assets/img/uhis-logo.png';
 import {
   getAuthDisplayName,
   getAuthInitials,
   getAuthSession,
 } from '@/features/auth/services/authSession';
-import { cn } from '@/utils';
 
 interface HeaderProps {
   isSidebarOpen: boolean;
@@ -47,9 +45,7 @@ const CloseIcon = ({ className }: { className?: string }) => (
 );
 
 export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
-  const { t, i18n } = useTranslation();
-  const role = getCurrentRole();
-  const isProgramManager = role === 'programManager';
+  const { t } = useTranslation();
   const authSession = getAuthSession();
   const displayName = authSession
     ? getAuthDisplayName(authSession)
@@ -57,10 +53,6 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
   const userInitials = authSession
     ? getAuthInitials(authSession)
     : t('layout.header.userInitials');
-
-  const currentLanguage = isProgramManager
-    ? 'en'
-    : (i18n.resolvedLanguage ?? i18n.language ?? 'en');
 
   return (
     <header className="border-b border-spice-border bg-spice-bg-surface px-4 py-3 sm:px-6 sm:py-4">
@@ -84,59 +76,25 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
           )}
         </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-lg font-semibold text-spice-text-primary sm:text-2xl">
-            {t('layout.header.welcomeBack', {
-              name: displayName,
-            })}
-          </div>
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <img
+            src={uhisLogo}
+            alt="UHIS"
+            className="h-8 w-auto object-contain sm:h-9"
+          />
+          <span className="truncate text-lg font-semibold tracking-tight text-[#E5007D] sm:text-xl">
+            AI Coaching
+          </span>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          {isProgramManager ? (
-            <div className="hidden w-44 md:block lg:w-60">
-              <SearchInput
-                value=""
-                onChange={() => undefined}
-                placeholder="Search modules..."
-              />
-            </div>
-          ) : (
-            <>
-              <label className="sr-only" htmlFor="header-language-select">
-                {t('layout.header.languageSelectSr')}
-              </label>
-              <select
-                id="header-language-select"
-                className={cn(
-                  'h-9 rounded-md border border-spice-border-mid bg-spice-bg-surface text-sm font-medium text-spice-text-medium shadow-sm outline-none transition focus:ring-2 focus:ring-spice-brand-primary/25',
-                  'max-w-[5.5rem] px-2 sm:max-w-none sm:px-3',
-                )}
-                aria-label={t('layout.header.languageAriaLabel')}
-                value={currentLanguage}
-                onChange={(event) => {
-                  const nextLanguage = event.target.value;
-                  try {
-                    window.localStorage.setItem('i18nLng', nextLanguage);
-                  } catch {
-                    // ignore storage access failures
-                  }
-                  void i18n.changeLanguage(nextLanguage);
-                }}
-              >
-                <option value="en">
-                  {t('layout.header.languageOptions.en')}
-                </option>
-                <option value="bn">
-                  {t('layout.header.languageOptions.bn')}
-                </option>
-              </select>
-            </>
-          )}
           <button
             type="button"
             className="flex h-9 w-9 cursor-default items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border"
-            aria-label={t('layout.header.userMenuAriaLabel')}
+            aria-label={t('layout.header.userMenuAriaLabel', {
+              name: displayName,
+            })}
+            title={displayName}
             disabled
           >
             {userInitials}

@@ -1,13 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { adminModuleReviewReducer } from '@/features/module-library/store/adminModuleReviewSlice';
-import { courseModuleEditReducer } from '@/features/program-manager/store/courseModuleEditSlice';
+import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
+import { moduleEditReducer } from '@/features/modules/store/moduleEditSlice';
 import { baseApi } from '@/store/apis/base';
 
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
     adminModuleReview: adminModuleReviewReducer,
-    courseModuleEdit: courseModuleEditReducer,
+    moduleEdit: moduleEditReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(baseApi.middleware),

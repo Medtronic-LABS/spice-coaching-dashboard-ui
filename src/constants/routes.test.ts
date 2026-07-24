@@ -4,21 +4,22 @@ import { buildPath, paths, ROUTE_PREFIX } from '@/constants/routes';
 describe('routes', () => {
   it('prefixes app routes', () => {
     expect(paths.home).toBe(`${ROUTE_PREFIX}/`);
-    expect(paths.chwProfiles).toBe(`${ROUTE_PREFIX}/chw-profiles`);
+    expect(paths.moduleLibrary).toBe(`${ROUTE_PREFIX}/module-library`);
+    expect(paths.configs).toBe(`${ROUTE_PREFIX}/configs`);
   });
 
   it('buildPath replaces params with encoded values', () => {
-    expect(buildPath(paths.chwProfileDetail, { id: 'CHW 001' })).toBe(
-      `${ROUTE_PREFIX}/chw-profiles/CHW%20001`,
-    );
+    expect(
+      buildPath(paths.adminModuleReviewDetails, { moduleId: 'mod 001' }),
+    ).toBe(`${ROUTE_PREFIX}/module-library/review/mod%20001/details`);
   });
 
   it('buildPath supports multiple params', () => {
     expect(
-      buildPath(`${ROUTE_PREFIX}/supervisors/:id/reports/:reportId`, {
-        id: 'sup-1',
-        reportId: 'r/2',
+      buildPath(`${ROUTE_PREFIX}/modules/:id/steps/:stepId`, {
+        id: 'mod-1',
+        stepId: 's/2',
       }),
-    ).toBe(`${ROUTE_PREFIX}/supervisors/sup-1/reports/r%2F2`);
+    ).toBe(`${ROUTE_PREFIX}/modules/mod-1/steps/s%2F2`);
   });
 });

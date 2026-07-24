@@ -16,7 +16,7 @@ Mount `ModulePreviewProvider` and preview UI in the Module Editor layout so Prog
 
 ### 1. Wrap layout with provider
 
-**Modify:** `src/features/module-library/layout/AdminModuleReviewLayout.tsx`
+**Modify:** `src/features/modules/layout/AdminModuleReviewLayout.tsx`
 
 1. Import `ModulePreviewProvider` from context.
 2. Wrap `<Outlet />` and preview chrome:
@@ -32,7 +32,7 @@ Mount `ModulePreviewProvider` and preview UI in the Module Editor layout so Prog
 
 ### 2. Preview chrome component
 
-**New file:** `src/features/module-library/components/module-preview/ModulePreviewChrome.tsx`
+**New file:** `src/features/modules/components/module-preview/ModulePreviewChrome.tsx`
 
 Responsibilities:
 
@@ -114,7 +114,7 @@ When open: only active screen's media hooks are active.
 
 ### 7. Layout integration test
 
-**New file:** `src/features/module-library/layout/AdminModuleReviewLayout.preview.test.tsx`
+**New file:** `src/features/modules/layout/AdminModuleReviewLayout.preview.test.tsx`
 
 Mock `useAdminModuleReviewEditor` + render layout with `MemoryRouter`.
 
@@ -131,8 +131,8 @@ Mock `useAdminModuleReviewEditor` + render layout with `MemoryRouter`.
 
 | Action | Path |
 |--------|------|
-| New | `src/features/module-library/components/module-preview/ModulePreviewChrome.tsx` |
-| Modify | `src/features/module-library/layout/AdminModuleReviewLayout.tsx` |
+| New | `src/features/modules/components/module-preview/ModulePreviewChrome.tsx` |
+| Modify | `src/features/modules/layout/AdminModuleReviewLayout.tsx` |
 | New | `AdminModuleReviewLayout.preview.test.tsx` |
 
 ---
@@ -155,7 +155,7 @@ Mock `useAdminModuleReviewEditor` + render layout with `MemoryRouter`.
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/module-library/layout/AdminModuleReviewLayout.preview.test.tsx
+npm run test -- src/features/modules/layout/AdminModuleReviewLayout.preview.test.tsx
 npm run typecheck
 npm run dev
 ```

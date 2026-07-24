@@ -130,7 +130,7 @@ See [architecture-reference.md](./architecture-reference.md) for detailed invest
 
 **None.**
 
-Preview reads editor `working` state client-side. Media uses existing `GET /admin/v3/files/presigned-url`. No new endpoints, migrations, or contracts.
+Preview reads editor `working` state client-side. Media uses existing `GET /admin/files/presigned-url`. No new endpoints, migrations, or contracts.
 
 ---
 
@@ -176,13 +176,13 @@ Preview reads editor `working` state client-side. Media uses existing `GET /admi
 
 | Purpose | Path |
 |---------|------|
-| Types | `src/features/module-library/types/modulePreview.types.ts` |
-| Snapshot | `src/features/module-library/utils/generateModulePreviewSnapshot.ts` |
-| Navigation | `src/features/module-library/utils/modulePreviewNavigation.ts` |
-| Quiz state | `src/features/module-library/utils/previewAnswerCardState.ts` |
-| Context | `src/features/module-library/context/ModulePreviewContext.tsx` |
-| Hook | `src/features/module-library/hooks/useModulePreview.ts` |
-| Preview UI | `src/features/module-library/components/module-preview/*` |
+| Types | `src/features/modules/types/modulePreview.types.ts` |
+| Snapshot | `src/features/modules/utils/generateModulePreviewSnapshot.ts` |
+| Navigation | `src/features/modules/utils/modulePreviewNavigation.ts` |
+| Quiz state | `src/features/modules/utils/previewAnswerCardState.ts` |
+| Context | `src/features/modules/context/ModulePreviewContext.tsx` |
+| Hook | `src/features/modules/hooks/useModulePreview.ts` |
+| Preview UI | `src/features/modules/components/module-preview/*` |
 | Quiz preview screen | `.../module-preview/QuizQuestionPreviewScreen.tsx` |
 | Quiz answer UI | `.../module-preview/PreviewAnswerCard.tsx` |
 | Quiz state logic | `.../utils/previewAnswerCardState.ts` |
@@ -191,15 +191,15 @@ Preview reads editor `working` state client-side. Media uses existing `GET /admi
 
 | Purpose | Path |
 |---------|------|
-| Editor state | `src/features/module-library/store/adminModuleReviewSlice.ts` |
-| Card normalization | `src/features/module-library/utils/cardBody.ts` |
-| Quiz ordering | `src/features/module-library/utils/adminModuleQuizUtils.ts` |
-| Save ordering | `src/features/module-library/utils/prepareModuleJsonForSave.ts` |
-| Presigned URLs | `src/features/module-library/hooks/usePresignedFileUrl.ts` |
-| Rich block types | `src/features/program-manager/types/programManager.types.ts` |
-| Layout | `src/features/module-library/layout/AdminModuleReviewLayout.tsx` |
-| Lessons step | `src/features/module-library/pages/admin-module-review/AdminModuleLessonsStep.tsx` |
-| Quiz step | `src/features/module-library/pages/admin-module-review/AdminModuleQuizStep.tsx` |
+| Editor state | `src/features/modules/store/adminModuleReviewSlice.ts` |
+| Card normalization | `src/features/modules/utils/cardBody.ts` |
+| Quiz ordering | `src/features/modules/utils/adminModuleQuizUtils.ts` |
+| Save ordering | `src/features/modules/utils/prepareModuleJsonForSave.ts` |
+| Presigned URLs | `src/features/modules/hooks/usePresignedFileUrl.ts` |
+| Rich block types | `src/features/program/types/program.types.ts` |
+| Layout | `src/features/modules/layout/AdminModuleReviewLayout.tsx` |
+| Lessons step | `src/features/modules/pages/admin-module-review/AdminModuleLessonsStep.tsx` |
+| Quiz step | `src/features/modules/pages/admin-module-review/AdminModuleQuizStep.tsx` |
 
 ### Android reference (behavioral spec)
 

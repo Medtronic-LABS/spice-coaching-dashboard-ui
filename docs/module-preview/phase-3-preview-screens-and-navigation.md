@@ -16,7 +16,7 @@ Compose Phase 1–2 building blocks into full mobile preview screens (lesson car
 
 ### 1. Mobile preview frame
 
-**New file:** `src/features/module-library/components/module-preview/MobilePreviewFrame.tsx`
+**New file:** `src/features/modules/components/module-preview/MobilePreviewFrame.tsx`
 
 ```typescript
 export interface MobilePreviewFrameProps {
@@ -39,7 +39,7 @@ Accessible: `role="region"` + `aria-label="Module preview"`.
 
 ### 2. Lesson card preview screen
 
-**New file:** `src/features/module-library/components/module-preview/LessonCardPreviewScreen.tsx`
+**New file:** `src/features/modules/components/module-preview/LessonCardPreviewScreen.tsx`
 
 ```typescript
 export interface LessonCardPreviewScreenProps {
@@ -58,7 +58,7 @@ Layout (mirror `LessonPlayerScreen.kt`):
 
 ### 3. Preview answer card
 
-**New file:** `src/features/module-library/components/module-preview/PreviewAnswerCard.tsx`
+**New file:** `src/features/modules/components/module-preview/PreviewAnswerCard.tsx`
 
 ```typescript
 export interface PreviewAnswerCardProps {
@@ -83,7 +83,7 @@ Circular badge with letter A/B/C/D from index.
 
 ### 4. Quiz question preview screen
 
-**New file:** `src/features/module-library/components/module-preview/QuizQuestionPreviewScreen.tsx`
+**New file:** `src/features/modules/components/module-preview/QuizQuestionPreviewScreen.tsx`
 
 ```typescript
 export interface QuizQuestionPreviewScreenProps {
@@ -112,7 +112,7 @@ Behavior:
 
 ### 5. Module preview navigator
 
-**New file:** `src/features/module-library/components/module-preview/ModulePreviewNavigator.tsx`
+**New file:** `src/features/modules/components/module-preview/ModulePreviewNavigator.tsx`
 
 ```typescript
 export interface ModulePreviewNavigatorProps {
@@ -138,7 +138,7 @@ Wrap in `<MobilePreviewFrame footer={...navigator buttons...}>`.
 
 ### 6. Storybook-style dev shell (optional)
 
-**New file:** `src/features/module-library/components/module-preview/ModulePreviewDevShell.tsx`
+**New file:** `src/features/modules/components/module-preview/ModulePreviewDevShell.tsx`
 
 A standalone component that accepts a fixture `ModulePreviewSnapshot` + initial position for manual QA during Phase 3. Used in tests; can be removed before Phase 6 or kept for dev.
 
@@ -146,8 +146,8 @@ A standalone component that accepts a fixture `ModulePreviewSnapshot` + initial 
 
 **New files:**
 
-- `src/features/module-library/components/module-preview/ModulePreviewNavigator.test.tsx`
-- `src/features/module-library/components/module-preview/QuizQuestionPreviewScreen.test.tsx`
+- `src/features/modules/components/module-preview/ModulePreviewNavigator.test.tsx`
+- `src/features/modules/components/module-preview/QuizQuestionPreviewScreen.test.tsx`
 
 #### Navigator tests
 
@@ -186,8 +186,8 @@ A standalone component that accepts a fixture `ModulePreviewSnapshot` + initial 
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/module-library/components/module-preview/ModulePreviewNavigator.test.tsx
-npm run test -- src/features/module-library/components/module-preview/QuizQuestionPreviewScreen.test.tsx
+npm run test -- src/features/modules/components/module-preview/ModulePreviewNavigator.test.tsx
+npm run test -- src/features/modules/components/module-preview/QuizQuestionPreviewScreen.test.tsx
 npm run typecheck
 ```
 

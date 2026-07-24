@@ -1,0 +1,21 @@
+---
+description: Accessibility Guidelines for Shared UI Components
+globs: src/components/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Accessibility Guidelines for Shared UI Components
+
+Whenever generating or refactoring Shared UI components (especially in `src/components/common` and visualizations like `src/components/common/charts`):
+
+1. **Accessibility is Mandatory, Not Optional:**
+   - Always ensure accessibility props are strictly typed and **required** in your TypeScript interfaces.
+   - Example for charts and atomic wrappers: `ariaLabel` MUST be a required `string`. Do not make it optional (`ariaLabel?: string`).
+   - If rendering a purely decorative visual, explicitly provide an `aria-hidden="true"` or document why it does not need a label in code context.
+
+2. **Semantic HTML & Roles:**
+   - Supply meaningful defaults for assistive technologies (e.g. `role="img"` for complex charts).
+   - Enforce distinct labeling mapping for elements that aren't natively descriptive.
+
+3. **Consistent Patterns:**
+   - Adhere to the established structures. E.g., when adding a feature to a chart, bubble up accessibility concerns through the `ChartBase` props.
