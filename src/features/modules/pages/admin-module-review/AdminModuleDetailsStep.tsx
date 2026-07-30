@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
-import { Button, Card, Loader } from '@/components/ui';
+import { Button, Card, ImagePicker, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -35,13 +35,8 @@ export const AdminModuleDetailsStep = () => {
     registerEditorContext({ phase: 'card', index: 0 });
   }, [registerEditorContext]);
 
-  const {
-    fileInputRef,
-    uploadError,
-    isUploading,
-    openFilePicker,
-    handleImageUpload,
-  } = useAdminModuleThumbnailUpload(save);
+  const { uploadError, isUploading, uploadThumbnailFile } =
+    useAdminModuleThumbnailUpload(save);
 
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
@@ -140,85 +135,45 @@ export const AdminModuleDetailsStep = () => {
 
           <div className="w-full md:w-[300px] h-[250px] flex-shrink-0 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-                  Thumbnail
-                </div>
-                {working.thumbnail_presigned_url && !isReadonly && (
-                  <button
-                    type="button"
-                    onClick={openFilePicker}
-                    disabled={busy}
-                    className="p-1 rounded-md text-spice-text-muted hover:text-spice-text-primary hover:bg-spice-bg-tint transition-colors"
-                    title="Change thumbnail"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </button>
-                )}
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+                Thumbnail
               </div>
 
-              {working.thumbnail_presigned_url ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
-                  <img
-                    src={working.thumbnail_presigned_url}
-                    alt="Module thumbnail"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={busy || isReadonly}
-                  onClick={openFilePicker}
-                  className="flex h-[180px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint hover:bg-spice-border p-2 text-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed group"
-                >
-                  <svg
-                    className="mx-auto h-6 w-6 text-spice-text-muted opacity-60 group-hover:opacity-100 transition-opacity"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 4v16m8-8H4"
+              {isReadonly ? (
+                working.thumbnail_presigned_url ? (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+                    <img
+                      src={working.thumbnail_presigned_url}
+                      alt="Module thumbnail"
+                      className="h-full w-full object-cover"
                     />
-                  </svg>
-                  <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
-                    Add thumbnail
-                  </span>
-                </button>
+                  </div>
+                ) : (
+                  <div className="flex h-[180px] w-full items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-[10px] text-spice-text-muted">
+                    No thumbnail
+                  </div>
+                )
+              ) : (
+                <ImagePicker
+                  variant="tile"
+                  value={working.thumbnail_presigned_url}
+                  onChange={(file) => {
+                    if (file) void uploadThumbnailFile(file);
+                  }}
+                  disabled={busy}
+                  label="Add thumbnail"
+                  labelWhenSelected="Change thumbnail"
+                  previewAlt="Module thumbnail"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                />
               )}
             </div>
 
-            {!isReadonly && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png, image/jpeg, image/jpg, image/webp"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-            )}
-
-            {uploadError && (
+            {uploadError ? (
               <div className="mt-1 text-[10px] text-spice-semantic-error">
                 {uploadError}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 

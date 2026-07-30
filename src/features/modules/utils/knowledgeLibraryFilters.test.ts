@@ -28,6 +28,12 @@ describe('knowledgeLibraryFilters', () => {
     expect(
       hasActiveKnowledgeDrawerFilters({
         ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
+        ingested: 'no',
+      }),
+    ).toBe(true);
+    expect(
+      hasActiveKnowledgeDrawerFilters({
+        ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
         uploadedAtFrom: '2026-01-01',
         uploadedAtTo: '2026-01-31',
       }),

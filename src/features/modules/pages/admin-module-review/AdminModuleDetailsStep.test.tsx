@@ -39,11 +39,9 @@ vi.mock('@/features/modules/hooks/useAdminModuleDetailQuery', () => ({
 
 vi.mock('@/features/modules/hooks/useAdminModuleThumbnailUpload', () => ({
   useAdminModuleThumbnailUpload: () => ({
-    fileInputRef: { current: null },
     uploadError: '',
     isUploading: false,
-    openFilePicker: vi.fn(),
-    handleImageUpload: vi.fn(),
+    uploadThumbnailFile: vi.fn(),
   }),
 }));
 

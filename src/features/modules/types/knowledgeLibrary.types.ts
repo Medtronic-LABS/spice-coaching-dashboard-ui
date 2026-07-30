@@ -21,6 +21,8 @@ export interface KnowledgeAsset {
   uploadedBy: string;
   updatedAt: string;
   assigned: boolean;
+  /** Whether the source document has been ingested. */
+  ingested: boolean;
   status: KnowledgeAssetStatus;
   parentUploadId: string;
 }
@@ -34,10 +36,13 @@ export interface KnowledgeSplitDraft {
 }
 
 /** Default list filters for the knowledge library table. */
+export type KnowledgeYesNoFilter = 'all' | 'yes' | 'no';
+
 export interface KnowledgeLibraryFilters {
   q: string;
   uploadedBy: string;
-  assigned: 'all' | 'yes' | 'no';
+  assigned: KnowledgeYesNoFilter;
+  ingested: KnowledgeYesNoFilter;
   status: 'active' | 'deactivated';
   uploadedAtFrom: string;
   uploadedAtTo: string;
@@ -53,6 +58,7 @@ export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilters = {
   q: '',
   uploadedBy: '',
   assigned: 'all',
+  ingested: 'all',
   status: 'active',
   uploadedAtFrom: '',
   uploadedAtTo: '',

@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Tabs, type TabItem } from '@/components/ui';
+import {
+  Button,
+  Card,
+  FileDropzone,
+  ImagePicker,
+  Tabs,
+  Tooltip,
+  type TabItem,
+} from '@/components/ui';
 import { ProgressBar as CommonProgressBar } from '@/components/common/ProgressBar';
 import { paths } from '@/constants/routes';
 import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
@@ -327,11 +335,12 @@ export const KnowledgeLibraryPage = () => {
         <div className="space-y-3 rounded-xl bg-spice-bg-tint/50 p-4 ring-1 ring-spice-border">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                PDF file
-              </div>
-              <div className="mt-1 text-xs text-spice-text-muted">
-                PDF only. Single file upload.
+              <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-spice-text-medium">
+                <span>PDF file</span>
+                <Tooltip
+                  label="About PDF file upload"
+                  content="PDF only. Single file upload."
+                />
               </div>
             </div>
             {fileSelectionError ? (
@@ -341,44 +350,31 @@ export const KnowledgeLibraryPage = () => {
             ) : null}
           </div>
 
-          <label
-            className={`flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-spice-border-mid bg-spice-bg-tint px-3 py-4 text-center transition-colors ${
-              disableInputs
-                ? 'cursor-not-allowed opacity-60'
-                : 'cursor-pointer hover:border-spice-border hover:bg-spice-bg-surface'
-            }`}
-          >
-            <input
-              type="file"
-              accept={KNOWLEDGE_FILE_INPUT_ACCEPT}
-              className="sr-only"
-              disabled={disableInputs}
-              onChange={(e) => {
-                const picked = e.target.files?.[0] ?? null;
-                e.target.value = '';
-                setFileSelectionError('');
-                setActionError('');
-                setSplitDraftErrors([]);
-                if (!picked) {
-                  setFile(null);
-                  return;
-                }
-                if (!isKnowledgeAcceptedFile(picked)) {
-                  setFileSelectionError(
-                    formatKnowledgeFileRejectionError(picked),
-                  );
-                  return;
-                }
-                setFile(picked);
-              }}
-            />
-            <div className="text-sm font-semibold text-spice-text-primary">
-              {file ? 'Replace PDF' : 'Select PDF'}
-            </div>
-            <div className="text-xs text-spice-text-muted">
-              {file ? file.name : 'Upload Original or Split Document'}
-            </div>
-          </label>
+          <FileDropzone
+            files={file ? [file] : []}
+            onChange={(next) => {
+              setFileSelectionError('');
+              setActionError('');
+              setSplitDraftErrors([]);
+              setFile(next[0] ?? null);
+            }}
+            accept={KNOWLEDGE_FILE_INPUT_ACCEPT}
+            disabled={disableInputs}
+            showFileList
+            title="Select PDF"
+            titleWhenSelected="Replace PDF"
+            subtitle="Click to select or drag and drop"
+            hideSubtitleWhenSelected
+            ariaLabel={file ? 'Replace PDF' : 'Select PDF'}
+            validateFile={(picked) =>
+              isKnowledgeAcceptedFile(picked)
+                ? null
+                : formatKnowledgeFileRejectionError(picked)
+            }
+            onReject={(message) => {
+              setFileSelectionError(message);
+            }}
+          />
 
           {file ? (
             <>
@@ -386,8 +382,8 @@ export const KnowledgeLibraryPage = () => {
 
               {mode === 'original' ? (
                 <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                    <div className="min-w-0 flex-1 space-y-2">
                       <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
                         Title
                       </div>
@@ -401,28 +397,22 @@ export const KnowledgeLibraryPage = () => {
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="w-full shrink-0 space-y-2 sm:w-36">
                       <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
                         Custom thumbnail (optional)
                       </div>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          disabled={disableInputs}
-                          onChange={(e) => {
-                            const next = e.target.files?.[0] ?? null;
-                            e.target.value = '';
-                            setOriginalThumbnailFile(next);
-                          }}
-                        />
-                        <div className="flex h-10 items-center justify-center rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-medium hover:bg-spice-bg-tint">
-                          {originalThumbnailFile
-                            ? 'Change thumbnail'
-                            : 'Choose thumbnail'}
-                        </div>
-                      </label>
+                      <ImagePicker
+                        variant="tile"
+                        value={originalThumbnailFile}
+                        onChange={setOriginalThumbnailFile}
+                        disabled={disableInputs}
+                        clearable
+                        accept="image/*"
+                        label="Add thumbnail"
+                        labelWhenSelected="Change"
+                        previewAlt="Custom thumbnail"
+                        frameClassName="aspect-square h-auto w-full"
+                      />
                     </div>
                   </div>
                 </div>
@@ -430,13 +420,12 @@ export const KnowledgeLibraryPage = () => {
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                        Page splits
-                      </div>
-                      <div className="mt-1 text-xs text-spice-text-muted">
-                        Add one or more splits. Backend generates asset
-                        thumbnail from start page; we can optionally replace
-                        after upload.
+                      <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-spice-text-medium">
+                        <span>Page splits</span>
+                        <Tooltip
+                          label="About page splits"
+                          content="Add one or more splits. Backend generates the asset thumbnail from the start page, and you can optionally replace it after upload."
+                        />
                       </div>
                     </div>
                     <Button
@@ -460,7 +449,7 @@ export const KnowledgeLibraryPage = () => {
                     </Button>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="grid gap-4 xl:grid-cols-2">
                     {splitDrafts.map((row, idx) => (
                       <KnowledgeSplitEditor
                         key={idx}

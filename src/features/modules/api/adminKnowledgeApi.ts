@@ -19,6 +19,7 @@ export interface KnowledgeAssetWire {
   uploaded_by: string;
   updated_at: string;
   assigned: boolean;
+  ingested: boolean;
   status: KnowledgeAssetStatus;
   parent_upload_id: string;
 }
@@ -101,6 +102,11 @@ export interface KnowledgeUploadersResponse {
   uploaders: KnowledgeUploaderOption[];
 }
 
+export interface FetchKnowledgeUploadersParams {
+  /** Server-side search term for the Uploaded by combobox. */
+  q?: string;
+}
+
 export type FetchKnowledgeAssetsParams = Partial<KnowledgeLibraryFilters>;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -135,6 +141,7 @@ export function mapKnowledgeAssetWire(
     uploadedBy: item.uploaded_by,
     updatedAt: item.updated_at,
     assigned: Boolean(item.assigned),
+    ingested: Boolean(item.ingested),
     status: toAssetStatus(item.status),
     parentUploadId: item.parent_upload_id,
   };
@@ -162,6 +169,7 @@ function normalizeKnowledgeAssetWire(
     uploaded_by: typeof item.uploaded_by === 'string' ? item.uploaded_by : '',
     updated_at: typeof item.updated_at === 'string' ? item.updated_at : '',
     assigned: Boolean(item.assigned),
+    ingested: Boolean(item.ingested),
     status: toAssetStatus(item.status),
     parent_upload_id:
       typeof item.parent_upload_id === 'string' ? item.parent_upload_id : '',
@@ -177,6 +185,9 @@ function listQueryParams(
   if (params.uploadedBy?.trim()) query.uploaded_by = params.uploadedBy.trim();
   if (params.assigned && params.assigned !== 'all') {
     query.assigned = params.assigned;
+  }
+  if (params.ingested && params.ingested !== 'all') {
+    query.ingested = params.ingested;
   }
   if (params.status) query.status = params.status;
   if (params.uploadedAtFrom) query.uploaded_at_from = params.uploadedAtFrom;
@@ -272,11 +283,18 @@ export const adminKnowledgeApi = baseApi.injectEndpoints({
       providesTags: ['KnowledgeAssets'],
     }),
 
-    fetchKnowledgeUploaders: builder.query<KnowledgeUploadersResponse, void>({
-      query: () => ({
-        url: '/admin/knowledge/uploaders',
-        method: 'GET',
-      }),
+    fetchKnowledgeUploaders: builder.query<
+      KnowledgeUploadersResponse,
+      FetchKnowledgeUploadersParams | void
+    >({
+      query: (params) => {
+        const q = params?.q?.trim();
+        return {
+          url: '/admin/knowledge/uploaders',
+          method: 'GET',
+          params: q ? { q } : undefined,
+        };
+      },
       transformResponse: (response: unknown): KnowledgeUploadersResponse => {
         if (!isPlainObject(response) || !Array.isArray(response.uploaders)) {
           return { uploaders: [] };

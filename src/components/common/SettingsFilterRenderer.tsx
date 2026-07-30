@@ -1,10 +1,11 @@
 import { type ReactNode } from 'react';
-import { Button, Combobox, Select } from '@/components/ui';
+import { Button, Combobox, Select, Tabs } from '@/components/ui';
 import type {
   SettingsFilterCheckboxGroupField,
   SettingsFilterDateRangeField,
   SettingsFilterField,
   SettingsFilterSection,
+  SettingsFilterSegmentedField,
 } from '@/components/common/settingsFilter.types';
 import { cn } from '@/utils';
 
@@ -139,6 +140,24 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
   );
 }
 
+function renderSegmented(field: SettingsFilterSegmentedField) {
+  return (
+    <FilterField
+      label={field.label}
+      htmlFor={field.id}
+      className={field.className}
+    >
+      <Tabs
+        idBase={field.id}
+        items={field.options}
+        value={field.value}
+        onChange={field.onChange}
+        className="w-fit"
+      />
+    </FilterField>
+  );
+}
+
 function renderField(field: SettingsFilterField) {
   if (field.type === 'combobox') {
     return (
@@ -185,11 +204,56 @@ function renderField(field: SettingsFilterField) {
     );
   }
 
+  if (field.type === 'segmented') {
+    return <div key={field.id}>{renderSegmented(field)}</div>;
+  }
+
   if (field.type === 'checkbox-group') {
     return <div key={field.id}>{renderCheckboxGroup(field)}</div>;
   }
 
   return <div key={field.id}>{renderDateRange(field)}</div>;
+}
+
+/** Group consecutive segmented fields into shared rows to save vertical space. */
+function renderSectionFields(fields: SettingsFilterField[]) {
+  const nodes: ReactNode[] = [];
+  let index = 0;
+
+  while (index < fields.length) {
+    const field = fields[index];
+    if (field.type !== 'segmented') {
+      nodes.push(renderField(field));
+      index += 1;
+      continue;
+    }
+
+    const segmentedGroup: SettingsFilterSegmentedField[] = [];
+    while (index < fields.length && fields[index].type === 'segmented') {
+      segmentedGroup.push(fields[index] as SettingsFilterSegmentedField);
+      index += 1;
+    }
+
+    if (segmentedGroup.length === 1) {
+      nodes.push(renderField(segmentedGroup[0]));
+      continue;
+    }
+
+    nodes.push(
+      <div
+        key={segmentedGroup.map((item) => item.id).join('-')}
+        className="grid grid-cols-2 gap-3"
+      >
+        {segmentedGroup.map((item) => (
+          <div key={item.id} className="min-w-0">
+            {renderSegmented(item)}
+          </div>
+        ))}
+      </div>,
+    );
+  }
+
+  return nodes;
 }
 
 interface SettingsFilterRendererProps {
@@ -219,7 +283,7 @@ export const SettingsFilterRenderer = ({
                   : 'flex flex-col',
               )}
             >
-              {section.fields.map((field) => renderField(field))}
+              {renderSectionFields(section.fields)}
             </div>
           </section>
         ))}

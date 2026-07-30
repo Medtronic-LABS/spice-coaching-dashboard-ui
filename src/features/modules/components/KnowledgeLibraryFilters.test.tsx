@@ -16,6 +16,9 @@ describe('KnowledgeLibraryFilters', () => {
         uploaderOptions={[
           { label: 'Program Manager', value: 'Program Manager' },
         ]}
+        uploadedByLabel="All uploaders"
+        uploadedBySearch=""
+        onUploadedBySearchChange={vi.fn()}
         onChange={vi.fn()}
         onClearAll={vi.fn()}
         onApply={vi.fn()}
@@ -39,6 +42,9 @@ describe('KnowledgeLibraryFilters', () => {
         uploaderOptions={[
           { label: 'Program Manager', value: 'Program Manager' },
         ]}
+        uploadedByLabel="All uploaders"
+        uploadedBySearch=""
+        onUploadedBySearchChange={vi.fn()}
         onChange={vi.fn()}
         onClearAll={onClearAll}
         onApply={onApply}
@@ -48,7 +54,11 @@ describe('KnowledgeLibraryFilters', () => {
     expect(screen.getByText('General')).toBeVisible();
     expect(screen.getByText('Date ranges')).toBeVisible();
     expect(screen.getByLabelText('Uploaded by')).toBeInTheDocument();
-    expect(screen.getByLabelText('Assigned')).toBeInTheDocument();
+    expect(screen.getByText('Assigned')).toBeInTheDocument();
+    expect(screen.getByText('Ingested')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab', { name: 'All' })).toHaveLength(2);
+    expect(screen.getAllByRole('tab', { name: 'Yes' })).toHaveLength(2);
+    expect(screen.getAllByRole('tab', { name: 'No' })).toHaveLength(2);
 
     await user.click(screen.getByRole('button', { name: 'Clear All' }));
     expect(onClearAll).toHaveBeenCalledTimes(1);

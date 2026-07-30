@@ -129,6 +129,7 @@ interface MockKnowledgeAsset {
   uploaded_by: string;
   updated_at: string;
   assigned: boolean;
+  ingested: boolean;
   status: 'processing' | 'ready' | 'failed' | 'deactivated';
   parent_upload_id: string;
   original_filename: string;
@@ -156,6 +157,7 @@ const mockKnowledgeAssetsState: MockKnowledgeAsset[] = [
     uploaded_by: 'Program Manager',
     updated_at: '2026-07-10T09:05:00Z',
     assigned: true,
+    ingested: true,
     status: 'ready',
     parent_upload_id: 'knowledge-upload-seed-1',
     original_filename: 'htn-referral-guidelines.pdf',
@@ -172,6 +174,7 @@ const mockKnowledgeAssetsState: MockKnowledgeAsset[] = [
     uploaded_by: 'Content Admin',
     updated_at: '2026-07-12T11:35:00Z',
     assigned: false,
+    ingested: true,
     status: 'ready',
     parent_upload_id: 'knowledge-upload-seed-2',
     original_filename: 'visit-workflow.pdf',
@@ -189,6 +192,7 @@ const mockKnowledgeAssetsState: MockKnowledgeAsset[] = [
     uploaded_by: 'Content Admin',
     updated_at: '2026-07-12T11:35:00Z',
     assigned: false,
+    ingested: false,
     status: 'ready',
     parent_upload_id: 'knowledge-upload-seed-2',
     original_filename: 'visit-workflow.pdf',
@@ -206,6 +210,7 @@ const mockKnowledgeAssetsState: MockKnowledgeAsset[] = [
     uploaded_by: 'Program Manager',
     updated_at: '2026-07-01T10:00:00Z',
     assigned: false,
+    ingested: true,
     status: 'deactivated',
     parent_upload_id: 'knowledge-upload-seed-3',
     original_filename: 'retired-protocol.pdf',
@@ -232,6 +237,7 @@ function resolveKnowledgeUploadProgress(
       const asset = mockKnowledgeAssetsState.find((row) => row.id === assetId);
       if (asset && asset.status === 'processing') {
         asset.status = 'ready';
+        asset.ingested = true;
         asset.updated_at = new Date().toISOString();
       }
     }
@@ -1684,6 +1690,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         uploaded_by: 'Program Manager',
         updated_at: now,
         assigned: false,
+        ingested: false,
         status: 'processing',
         parent_upload_id: uploadId,
         original_filename: filename,
@@ -1738,11 +1745,16 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   }
 
   if (url === 'admin/knowledge/uploaders' && method === 'GET') {
+    const q =
+      typeof params === 'object' && params && 'q' in params
+        ? asString((params as { q?: unknown }).q)?.toLowerCase()
+        : undefined;
     const seen = new Set<string>();
     const uploaders: Array<{ value: string; label: string }> = [];
     for (const asset of mockKnowledgeAssetsState) {
       const name = asset.uploaded_by.trim();
       if (!name || seen.has(name)) continue;
+      if (q && !name.toLowerCase().includes(q)) continue;
       seen.add(name);
       uploaders.push({ value: name, label: name });
     }
@@ -1762,6 +1774,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const assigned =
       typeof params === 'object' && params && 'assigned' in params
         ? asString((params as { assigned?: unknown }).assigned)
+        : undefined;
+    const ingested =
+      typeof params === 'object' && params && 'ingested' in params
+        ? asString((params as { ingested?: unknown }).ingested)
         : undefined;
     const statusFilter =
       typeof params === 'object' && params && 'status' in params
@@ -1818,6 +1834,11 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       results = results.filter((asset) => asset.assigned);
     } else if (assigned === 'no') {
       results = results.filter((asset) => !asset.assigned);
+    }
+    if (ingested === 'yes') {
+      results = results.filter((asset) => asset.ingested);
+    } else if (ingested === 'no') {
+      results = results.filter((asset) => !asset.ingested);
     }
     if (uploadedAtFrom) {
       results = results.filter(

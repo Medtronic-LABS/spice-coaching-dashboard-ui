@@ -9,6 +9,7 @@ export type KnowledgeLibraryDrawerFilters = Pick<
   KnowledgeLibraryFilters,
   | 'uploadedBy'
   | 'assigned'
+  | 'ingested'
   | 'uploadedAtFrom'
   | 'uploadedAtTo'
   | 'updatedAtFrom'
@@ -19,6 +20,7 @@ export const KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS: KnowledgeLibraryDrawerFil
   {
     uploadedBy: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.uploadedBy,
     assigned: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.assigned,
+    ingested: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.ingested,
     uploadedAtFrom: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.uploadedAtFrom,
     uploadedAtTo: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.uploadedAtTo,
     updatedAtFrom: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.updatedAtFrom,
@@ -30,6 +32,7 @@ export function hasActiveKnowledgeDrawerFilters(
 ): boolean {
   if (filters.uploadedBy.trim()) return true;
   if (filters.assigned !== 'all') return true;
+  if (filters.ingested !== 'all') return true;
   if (filters.uploadedAtFrom || filters.uploadedAtTo) return true;
   if (filters.updatedAtFrom || filters.updatedAtTo) return true;
   return false;

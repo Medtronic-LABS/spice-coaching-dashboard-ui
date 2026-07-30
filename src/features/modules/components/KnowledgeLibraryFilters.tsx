@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { SelectOption } from '@/components/ui';
+import type { ComboboxOption, SelectOption } from '@/components/ui';
 import { SettingsFilterRenderer } from '@/components/common/SettingsFilterRenderer';
 import type { SettingsFilterSection } from '@/components/common/settingsFilter.types';
 import { dateRangeValidationMessage } from '@/features/modules/utils/moduleListFilters';
@@ -7,36 +7,45 @@ import {
   isKnowledgeDrawerDateRangeInvalid,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
+import type { KnowledgeYesNoFilter } from '@/features/modules/types/knowledgeLibrary.types';
 
 export interface KnowledgeLibraryFiltersProps {
   filters: KnowledgeLibraryDrawerFilters;
-  uploaderOptions: SelectOption[];
+  uploaderOptions: ComboboxOption[];
+  uploadedByLabel: string;
+  uploadedBySearch: string;
+  uploadersLoading?: boolean;
+  onUploadedBySearchChange: (term: string) => void;
   onChange: (filters: KnowledgeLibraryDrawerFilters) => void;
   onClearAll: () => void;
   onApply: () => void;
   applyDisabled?: boolean;
 }
 
-const ASSIGNED_OPTIONS: SelectOption[] = [
+const YES_NO_FILTER_OPTIONS: SelectOption[] = [
   { label: 'All', value: 'all' },
-  { label: 'Assigned (Y)', value: 'yes' },
-  { label: 'Unassigned (N)', value: 'no' },
+  { label: 'Yes', value: 'yes' },
+  { label: 'No', value: 'no' },
 ];
+
+function toYesNoFilter(value: string): KnowledgeYesNoFilter {
+  if (value === 'yes' || value === 'no') return value;
+  return 'all';
+}
 
 export const KnowledgeLibraryFilters = ({
   filters,
   uploaderOptions,
+  uploadedByLabel,
+  uploadedBySearch,
+  uploadersLoading = false,
+  onUploadedBySearchChange,
   onChange,
   onClearAll,
   onApply,
   applyDisabled = false,
 }: KnowledgeLibraryFiltersProps) => {
   const dateRangeInvalid = isKnowledgeDrawerDateRangeInvalid(filters);
-
-  const uploadedByOptions = useMemo<SelectOption[]>(
-    () => [{ label: 'All uploaders', value: '' }, ...uploaderOptions],
-    [uploaderOptions],
-  );
 
   const uploadedValidation = dateRangeValidationMessage(
     filters.uploadedAtFrom,
@@ -54,23 +63,41 @@ export const KnowledgeLibraryFilters = ({
         label: 'General',
         fields: [
           {
-            type: 'select',
+            type: 'combobox',
             id: 'knowledge-filter-uploaded-by',
             label: 'Uploaded by',
             value: filters.uploadedBy,
-            options: uploadedByOptions,
+            selectedLabel: uploadedByLabel,
+            options: uploaderOptions,
+            searchTerm: uploadedBySearch,
+            onSearchTermChange: onUploadedBySearchChange,
             onChange: (uploadedBy) => onChange({ ...filters, uploadedBy }),
+            isLoading: uploadersLoading,
+            placeholder: 'Type to search uploaders…',
+            emptyMessage: 'No uploaders match your search',
           },
           {
-            type: 'select',
+            type: 'segmented',
             id: 'knowledge-filter-assigned',
             label: 'Assigned',
             value: filters.assigned,
-            options: ASSIGNED_OPTIONS,
+            options: YES_NO_FILTER_OPTIONS,
             onChange: (assigned) =>
               onChange({
                 ...filters,
-                assigned: assigned as KnowledgeLibraryDrawerFilters['assigned'],
+                assigned: toYesNoFilter(assigned),
+              }),
+          },
+          {
+            type: 'segmented',
+            id: 'knowledge-filter-ingested',
+            label: 'Ingested',
+            value: filters.ingested,
+            options: YES_NO_FILTER_OPTIONS,
+            onChange: (ingested) =>
+              onChange({
+                ...filters,
+                ingested: toYesNoFilter(ingested),
               }),
           },
         ],
@@ -126,9 +153,13 @@ export const KnowledgeLibraryFilters = ({
     [
       filters,
       onChange,
+      onUploadedBySearchChange,
       updatedValidation,
-      uploadedByOptions,
+      uploadedByLabel,
+      uploadedBySearch,
       uploadedValidation,
+      uploaderOptions,
+      uploadersLoading,
     ],
   );
 

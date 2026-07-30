@@ -9,11 +9,13 @@ import { Modal } from '@/components/ui';
 import {
   Button,
   Card,
+  ImagePicker,
   Loader,
   SearchInput,
   Select,
   Tabs,
   TruncatedText,
+  type ComboboxOption,
 } from '@/components/ui';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
@@ -36,6 +38,7 @@ import {
   KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 type KnowledgeTableRow = KnowledgeAsset & {
   actionsAssign: '';
@@ -47,6 +50,28 @@ type KnowledgeTableRow = KnowledgeAsset & {
 type KnowledgeStatusTab = 'active' | 'deactivated';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
+const UPLOADER_SEARCH_DEBOUNCE_MS = 300;
+
+const ALL_UPLOADERS_OPTION: ComboboxOption = {
+  label: 'All uploaders',
+  value: '',
+};
+
+const RefreshIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    <path d="M21 3v6h-6" />
+  </svg>
+);
 
 function computeTotalPages(total: number, pageSize: number): number {
   if (!pageSize) return 1;
@@ -109,11 +134,50 @@ export const KnowledgeLibraryTable = () => {
   const [deactivateKnowledgeAsset, { isLoading: isDeactivating }] =
     useDeactivateKnowledgeAssetMutation();
 
-  const { data: uploadersData } = useFetchKnowledgeUploadersQuery();
-  const uploaderOptions = useMemo(
-    () => uploadersData?.uploaders ?? [],
-    [uploadersData?.uploaders],
+  const [uploadedBySearch, setUploadedBySearch] = useState('');
+  const debouncedUploadedBySearch = useDebouncedValue(
+    uploadedBySearch,
+    UPLOADER_SEARCH_DEBOUNCE_MS,
   );
+  const uploadedBySearchQ = debouncedUploadedBySearch.trim() || undefined;
+
+  const { data: uploadersData, isFetching: isSearchingUploaders } =
+    useFetchKnowledgeUploadersQuery({
+      q: uploadedBySearchQ,
+    });
+
+  const uploaderOptions = useMemo(() => {
+    const options: ComboboxOption[] = [ALL_UPLOADERS_OPTION];
+    const seen = new Set<string>(['']);
+
+    for (const uploader of uploadersData?.uploaders ?? []) {
+      if (!uploader.value || seen.has(uploader.value)) continue;
+      seen.add(uploader.value);
+      options.push({
+        label: uploader.label || uploader.value,
+        value: uploader.value,
+      });
+    }
+
+    const selected = draftDrawerFilters.uploadedBy.trim();
+    if (selected && !seen.has(selected) && !uploadedBySearchQ) {
+      options.push({ label: selected, value: selected });
+    }
+
+    return options;
+  }, [
+    draftDrawerFilters.uploadedBy,
+    uploadedBySearchQ,
+    uploadersData?.uploaders,
+  ]);
+
+  const uploadedByLabel = useMemo(() => {
+    if (!draftDrawerFilters.uploadedBy) return ALL_UPLOADERS_OPTION.label;
+    const matched = uploaderOptions.find(
+      (option) => option.value === draftDrawerFilters.uploadedBy,
+    );
+    return matched?.label ?? draftDrawerFilters.uploadedBy;
+  }, [draftDrawerFilters.uploadedBy, uploaderOptions]);
 
   const drawerDateRangeInvalid =
     isKnowledgeDrawerDateRangeInvalid(appliedDrawerFilters);
@@ -124,6 +188,7 @@ export const KnowledgeLibraryTable = () => {
       q,
       uploadedBy: appliedDrawerFilters.uploadedBy,
       assigned: appliedDrawerFilters.assigned,
+      ingested: appliedDrawerFilters.ingested,
       status: statusTab,
       uploadedAtFrom: appliedDrawerFilters.uploadedAtFrom,
       uploadedAtTo: appliedDrawerFilters.uploadedAtTo,
@@ -177,11 +242,13 @@ export const KnowledgeLibraryTable = () => {
 
   const handleOpenFiltersDrawer = () => {
     setDraftDrawerFilters(appliedDrawerFilters);
+    setUploadedBySearch('');
     setFiltersDrawerOpen(true);
   };
 
   const handleCloseFiltersDrawer = () => {
     setFiltersDrawerOpen(false);
+    setUploadedBySearch('');
   };
 
   const handleApplyFilters = () => {
@@ -189,10 +256,12 @@ export const KnowledgeLibraryTable = () => {
     setAppliedDrawerFilters(draftDrawerFilters);
     setPage(1);
     setFiltersDrawerOpen(false);
+    setUploadedBySearch('');
   };
 
   const handleClearDraftFilters = () => {
     setDraftDrawerFilters(KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS);
+    setUploadedBySearch('');
   };
 
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
@@ -266,102 +335,76 @@ export const KnowledgeLibraryTable = () => {
       },
       {
         key: 'actionsAssign',
-        header: 'Assign',
+        header: 'Actions',
         render: (row) => {
-          if (row.status === 'deactivated') return null;
-          return (
-            <Button
-              className="h-8 px-3 text-xs"
-              variant="secondary"
-              disabled={
-                isDeactivating || isPatchingTitle || isReplacingThumbnail
-              }
-              onClick={() => {
-                setAssignmentAsset(row);
-                setAssignmentOpen(true);
-              }}
-            >
-              Assign
-            </Button>
-          );
-        },
-      },
-      {
-        key: 'actionsEdit',
-        header: 'Edit',
-        render: (row) => {
-          if (row.status === 'deactivated') return null;
-          return (
-            <Button
-              className="h-8 px-3 text-xs"
-              variant="secondary"
-              disabled={
-                isDeactivating || isPatchingTitle || isReplacingThumbnail
-              }
-              onClick={() => {
-                setEditError('');
-                setEditAsset(row);
-                setEditTitle(row.title);
-                setEditThumbnailFile(null);
-                setEditOpen(true);
-              }}
-            >
-              Edit
-            </Button>
-          );
-        },
-      },
-      {
-        key: 'actionsDownload',
-        header: 'Download',
-        render: (row) => {
-          return (
-            <Button
-              className="h-8 px-3 text-xs"
-              disabled={isDownloading}
-              onClick={() => {
-                void (async () => {
-                  try {
-                    const res = await triggerDownload(row.id).unwrap();
-                    const a = document.createElement('a');
-                    a.href = res.download_url;
-                    a.download = res.filename;
-                    a.rel = 'noreferrer';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                  } catch (err) {
-                    // Prefer to show inline errors in the table area; keep the UX light for Phase 3.
+          const isDeactivated = row.status === 'deactivated';
+          const mutatingBusy =
+            isDeactivating || isPatchingTitle || isReplacingThumbnail;
 
-                    console.error(err);
-                  }
-                })();
-              }}
-            >
-              {isDownloading ? 'Working…' : 'Download'}
-            </Button>
-          );
-        },
-      },
-      {
-        key: 'actionsDelete',
-        header: 'Delete',
-        render: (row) => {
-          if (row.status === 'deactivated')
-            return <span className="text-xs text-spice-text-muted">—</span>;
           return (
-            <Button
-              className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-              variant="secondary"
-              disabled={isDeactivating}
-              onClick={() => {
-                setDeactivateError('');
-                setDeactivateAsset(row);
-                setDeactivateConfirmOpen(true);
-              }}
-            >
-              Delete
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                className="h-8 px-3 text-xs"
+                variant="secondary"
+                disabled={isDeactivated || mutatingBusy}
+                onClick={() => {
+                  setAssignmentAsset(row);
+                  setAssignmentOpen(true);
+                }}
+              >
+                Assign
+              </Button>
+              <Button
+                className="h-8 px-3 text-xs"
+                variant="secondary"
+                disabled={isDeactivated || mutatingBusy}
+                onClick={() => {
+                  setEditError('');
+                  setEditAsset(row);
+                  setEditTitle(row.title);
+                  setEditThumbnailFile(null);
+                  setEditOpen(true);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                className="h-8 px-3 text-xs"
+                disabled={isDownloading}
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      const res = await triggerDownload(row.id).unwrap();
+                      const a = document.createElement('a');
+                      a.href = res.download_url;
+                      a.download = res.filename;
+                      a.rel = 'noreferrer';
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    } catch (err) {
+                      // Prefer to show inline errors in the table area; keep the UX light for Phase 3.
+
+                      console.error(err);
+                    }
+                  })();
+                }}
+              >
+                {isDownloading ? 'Working…' : 'Download'}
+              </Button>
+              <Button
+                className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                variant="secondary"
+                disabled={isDeactivated || isDeactivating}
+                onClick={() => {
+                  setDeactivateError('');
+                  setDeactivateAsset(row);
+                  setDeactivateConfirmOpen(true);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           );
         },
       },
@@ -377,14 +420,16 @@ export const KnowledgeLibraryTable = () => {
 
   const retryErrorBanner = error ? (
     <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-      {formatRtkQueryError(error)}
-      <div className="mt-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>{formatRtkQueryError(error)}</div>
         <Button
           variant="secondary"
-          className="h-8 text-xs"
+          className="h-8 w-8 shrink-0 px-0"
+          aria-label="Refresh knowledge library"
+          title="Refresh knowledge library"
           onClick={() => void refetch()}
         >
-          Retry
+          <RefreshIcon className="h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -402,7 +447,7 @@ export const KnowledgeLibraryTable = () => {
       />
 
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="text-sm font-semibold text-spice-text-primary">
               Knowledge Library
@@ -413,7 +458,14 @@ export const KnowledgeLibraryTable = () => {
                 : 'No knowledge assets match your filters.'}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="w-64 sm:w-72">
+              <SearchInput
+                value={q}
+                onChange={setQ}
+                placeholder="Search knowledge…"
+              />
+            </div>
             <Tabs
               items={[
                 { label: 'Active', value: 'active' },
@@ -423,6 +475,7 @@ export const KnowledgeLibraryTable = () => {
               onChange={(v) =>
                 setStatusTab(v === 'deactivated' ? 'deactivated' : 'active')
               }
+              className="w-fit"
             />
             <SettingsFilterTriggerButton
               active={filtersActive}
@@ -435,17 +488,6 @@ export const KnowledgeLibraryTable = () => {
               }
             />
           </div>
-        </div>
-
-        <div className="max-w-xl space-y-2">
-          <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-            Search title
-          </div>
-          <SearchInput
-            value={q}
-            onChange={setQ}
-            placeholder="Search knowledge…"
-          />
         </div>
 
         {retryErrorBanner}
@@ -461,6 +503,10 @@ export const KnowledgeLibraryTable = () => {
           <KnowledgeLibraryFilters
             filters={draftDrawerFilters}
             uploaderOptions={uploaderOptions}
+            uploadedByLabel={uploadedByLabel}
+            uploadedBySearch={uploadedBySearch}
+            uploadersLoading={isSearchingUploaders}
+            onUploadedBySearchChange={setUploadedBySearch}
             onChange={setDraftDrawerFilters}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
@@ -584,22 +630,15 @@ export const KnowledgeLibraryTable = () => {
               <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
                 Custom thumbnail (optional)
               </div>
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={editModalDisabled}
-                  onChange={(e) => {
-                    const next = e.target.files?.[0] ?? null;
-                    e.target.value = '';
-                    setEditThumbnailFile(next);
-                  }}
-                />
-                <div className="flex h-10 items-center justify-center rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-medium hover:bg-spice-bg-tint">
-                  {editThumbnailFile ? 'Change thumbnail' : 'Choose thumbnail'}
-                </div>
-              </label>
+              <ImagePicker
+                variant="compact"
+                value={editThumbnailFile}
+                onChange={setEditThumbnailFile}
+                disabled={editModalDisabled}
+                accept="image/*"
+                label="Choose thumbnail"
+                labelWhenSelected="Change thumbnail"
+              />
             </div>
           </div>
 
