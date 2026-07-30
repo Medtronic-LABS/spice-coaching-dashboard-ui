@@ -117,6 +117,135 @@ let mockConfigsState: MockConfigThreshold[] = [
   },
 ];
 
+interface MockKnowledgeAsset {
+  id: string;
+  title: string;
+  file_type: 'pdf';
+  start_page: number;
+  end_page: number;
+  page_count: number;
+  thumbnail_url: string | null;
+  uploaded_at: string;
+  uploaded_by: string;
+  updated_at: string;
+  assigned: boolean;
+  status: 'processing' | 'ready' | 'failed' | 'deactivated';
+  parent_upload_id: string;
+  original_filename: string;
+}
+
+interface MockKnowledgeUpload {
+  upload_id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress_percent: number;
+  asset_ids: string[];
+  error: string | null;
+  created_at: number;
+}
+
+const mockKnowledgeAssetsState: MockKnowledgeAsset[] = [
+  {
+    id: 'knowledge-asset-1',
+    title: 'HTN Referral Guidelines',
+    file_type: 'pdf',
+    start_page: 1,
+    end_page: 12,
+    page_count: 12,
+    thumbnail_url: 'https://mock-storage.example/knowledge/htn-referral.png',
+    uploaded_at: '2026-07-10T09:00:00Z',
+    uploaded_by: 'Program Manager',
+    updated_at: '2026-07-10T09:05:00Z',
+    assigned: true,
+    status: 'ready',
+    parent_upload_id: 'knowledge-upload-seed-1',
+    original_filename: 'htn-referral-guidelines.pdf',
+  },
+  {
+    id: 'knowledge-asset-2',
+    title: 'Visit Workflow — Overview',
+    file_type: 'pdf',
+    start_page: 1,
+    end_page: 4,
+    page_count: 20,
+    thumbnail_url: 'https://mock-storage.example/knowledge/visit-overview.png',
+    uploaded_at: '2026-07-12T11:30:00Z',
+    uploaded_by: 'Content Admin',
+    updated_at: '2026-07-12T11:35:00Z',
+    assigned: false,
+    status: 'ready',
+    parent_upload_id: 'knowledge-upload-seed-2',
+    original_filename: 'visit-workflow.pdf',
+  },
+  {
+    id: 'knowledge-asset-3',
+    title: 'Visit Workflow — Escalation',
+    file_type: 'pdf',
+    start_page: 5,
+    end_page: 8,
+    page_count: 20,
+    thumbnail_url:
+      'https://mock-storage.example/knowledge/visit-escalation.png',
+    uploaded_at: '2026-07-12T11:30:00Z',
+    uploaded_by: 'Content Admin',
+    updated_at: '2026-07-12T11:35:00Z',
+    assigned: false,
+    status: 'ready',
+    parent_upload_id: 'knowledge-upload-seed-2',
+    original_filename: 'visit-workflow.pdf',
+  },
+  {
+    id: 'knowledge-asset-4',
+    title: 'Retired Protocol Notes',
+    file_type: 'pdf',
+    start_page: 1,
+    end_page: 6,
+    page_count: 6,
+    thumbnail_url:
+      'https://mock-storage.example/knowledge/retired-protocol.png',
+    uploaded_at: '2026-06-01T08:00:00Z',
+    uploaded_by: 'Program Manager',
+    updated_at: '2026-07-01T10:00:00Z',
+    assigned: false,
+    status: 'deactivated',
+    parent_upload_id: 'knowledge-upload-seed-3',
+    original_filename: 'retired-protocol.pdf',
+  },
+];
+
+const mockKnowledgeUploadsState = new Map<string, MockKnowledgeUpload>();
+
+function resolveKnowledgeUploadProgress(
+  upload: MockKnowledgeUpload,
+): MockKnowledgeUpload {
+  if (upload.status === 'completed' || upload.status === 'failed') {
+    return upload;
+  }
+  const elapsed = Date.now() - upload.created_at;
+  if (elapsed >= 1500) {
+    const next: MockKnowledgeUpload = {
+      ...upload,
+      status: 'completed',
+      progress_percent: 100,
+    };
+    mockKnowledgeUploadsState.set(upload.upload_id, next);
+    for (const assetId of next.asset_ids) {
+      const asset = mockKnowledgeAssetsState.find((row) => row.id === assetId);
+      if (asset && asset.status === 'processing') {
+        asset.status = 'ready';
+        asset.updated_at = new Date().toISOString();
+      }
+    }
+    return next;
+  }
+  const next: MockKnowledgeUpload = {
+    ...upload,
+    status: 'processing',
+    progress_percent: Math.min(90, Math.round((elapsed / 1500) * 100)),
+  };
+  mockKnowledgeUploadsState.set(upload.upload_id, next);
+  return next;
+}
+
 let mockAssignmentsState: MockAssignment[] = [
   {
     id: 'assign-1',
@@ -194,6 +323,29 @@ let mockAssignmentsState: MockAssignment[] = [
     assigned_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'assign-knowledge-1',
+    module_id: 'knowledge-asset-1',
+    module_title: {
+      bn: 'HTN Referral Guidelines',
+      en: 'HTN Referral Guidelines',
+    },
+    assignment_type: 'individual',
+    tenant_id: null,
+    user_id: 101,
+    user: {
+      id: 101,
+      name: 'Mst. Hosneyara Begum',
+      role: 'SK',
+      district: 'Lalmonirhat',
+      upazila: 'Lalmonirhat Sadar',
+      parent_id: 1708515793,
+    },
+    assigned_by: 99,
+    assigned_at: '2026-07-10T09:10:00Z',
+    created_at: '2026-07-10T09:10:00Z',
+    updated_at: '2026-07-10T09:10:00Z',
   },
 ];
 
@@ -1348,6 +1500,18 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           }
         }
       }
+
+      // If this assignment targets a knowledge asset (mock module_id == asset.id),
+      // keep the `assigned` flag in sync so list filters reflect reality.
+      const affectedKnowledgeAsset = mockKnowledgeAssetsState.find(
+        (row) => row.id === payload.module_id,
+      );
+      if (affectedKnowledgeAsset) {
+        affectedKnowledgeAsset.assigned = mockAssignmentsState.some(
+          (a) => a.module_id === payload.module_id,
+        );
+        affectedKnowledgeAsset.updated_at = now;
+      }
       return {
         data: {
           assigned_count: newIds.length,
@@ -1359,9 +1523,23 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
 
   if (url.startsWith('admin/assignments/') && method === 'DELETE') {
     const assignId = decodeURIComponent(url.slice('admin/assignments/'.length));
+    const removed = mockAssignmentsState.find((a) => a.id === assignId);
     mockAssignmentsState = mockAssignmentsState.filter(
       (a) => a.id !== assignId,
     );
+
+    // If this affects a knowledge asset, keep its assigned flag consistent.
+    if (removed) {
+      const asset = mockKnowledgeAssetsState.find(
+        (row) => row.id === removed.module_id,
+      );
+      if (asset) {
+        asset.assigned = mockAssignmentsState.some(
+          (a) => a.module_id === removed.module_id,
+        );
+        asset.updated_at = new Date().toISOString();
+      }
+    }
     return { data: { status: 'revoked' } };
   }
 
@@ -1427,6 +1605,350 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         totalCount: 3,
       },
     };
+  }
+
+  // Knowledge library (provisional contract — see docs/knowledge-library/BACKEND_HANDOFF.md)
+  if (url === 'admin/knowledge/uploads' && method === 'POST') {
+    const form = body instanceof FormData ? body : null;
+    const file = form?.get('file');
+    const mode = asString(form?.get('mode')) ?? 'original';
+    const title =
+      asString(form?.get('title')) ??
+      (file instanceof File
+        ? file.name.replace(/\.pdf$/i, '')
+        : 'Untitled Knowledge');
+    let splits: Array<{ title: string; start_page: number; end_page: number }> =
+      [];
+    const splitsRaw = form?.get('splits');
+    if (typeof splitsRaw === 'string' && splitsRaw.trim()) {
+      try {
+        const parsed = JSON.parse(splitsRaw) as unknown;
+        if (Array.isArray(parsed)) {
+          splits = parsed
+            .filter(
+              (
+                row,
+              ): row is {
+                title: string;
+                start_page: number;
+                end_page: number;
+              } =>
+                Boolean(
+                  row &&
+                  typeof row === 'object' &&
+                  typeof (row as { title?: unknown }).title === 'string' &&
+                  typeof (row as { start_page?: unknown }).start_page ===
+                    'number' &&
+                  typeof (row as { end_page?: unknown }).end_page === 'number',
+                ),
+            )
+            .map((row) => ({
+              title: row.title,
+              start_page: row.start_page,
+              end_page: row.end_page,
+            }));
+        }
+      } catch {
+        splits = [];
+      }
+    }
+
+    const uploadId = `knowledge-upload-${Date.now()}`;
+    const now = new Date().toISOString();
+    const pageCount = 20;
+    const filename =
+      file instanceof File ? file.name : 'knowledge-document.pdf';
+    const customThumbnail = form?.get('thumbnail');
+    const assetDefs =
+      mode === 'split' && splits.length
+        ? splits
+        : [{ title, start_page: 1, end_page: pageCount }];
+
+    const assetIds: string[] = [];
+    for (const [index, def] of assetDefs.entries()) {
+      const id = `${uploadId}-asset-${index + 1}`;
+      assetIds.push(id);
+      const useCustomThumb =
+        mode === 'original' && index === 0 && customThumbnail instanceof File;
+      mockKnowledgeAssetsState.unshift({
+        id,
+        title: def.title,
+        file_type: 'pdf',
+        start_page: def.start_page,
+        end_page: def.end_page,
+        page_count: pageCount,
+        thumbnail_url: useCustomThumb
+          ? `https://mock-storage.example/knowledge/${encodeURIComponent(id)}-custom.png`
+          : `https://mock-storage.example/knowledge/${encodeURIComponent(id)}.png`,
+        uploaded_at: now,
+        uploaded_by: 'Program Manager',
+        updated_at: now,
+        assigned: false,
+        status: 'processing',
+        parent_upload_id: uploadId,
+        original_filename: filename,
+      });
+    }
+
+    mockKnowledgeUploadsState.set(uploadId, {
+      upload_id: uploadId,
+      status: 'queued',
+      progress_percent: 0,
+      asset_ids: assetIds,
+      error: null,
+      created_at: Date.now(),
+    });
+
+    return {
+      data: {
+        upload_id: uploadId,
+        status: 'queued',
+        poll_url: `/admin/knowledge/uploads/${uploadId}`,
+        asset_ids: assetIds,
+      },
+    };
+  }
+
+  if (url.startsWith('admin/knowledge/uploads/') && method === 'GET') {
+    const uploadId = decodeURIComponent(
+      url.slice('admin/knowledge/uploads/'.length),
+    );
+    const upload = mockKnowledgeUploadsState.get(uploadId);
+    if (!upload) {
+      return {
+        error: {
+          status: 404,
+          data: { message: `Unknown knowledge upload ${uploadId}` },
+        },
+      };
+    }
+    const resolved = resolveKnowledgeUploadProgress(upload);
+    const assets = mockKnowledgeAssetsState.filter((asset) =>
+      resolved.asset_ids.includes(asset.id),
+    );
+    return {
+      data: {
+        upload_id: resolved.upload_id,
+        status: resolved.status,
+        progress_percent: resolved.progress_percent,
+        assets,
+        error: resolved.error,
+      },
+    };
+  }
+
+  if (url === 'admin/knowledge/uploaders' && method === 'GET') {
+    const seen = new Set<string>();
+    const uploaders: Array<{ value: string; label: string }> = [];
+    for (const asset of mockKnowledgeAssetsState) {
+      const name = asset.uploaded_by.trim();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      uploaders.push({ value: name, label: name });
+    }
+    uploaders.sort((a, b) => a.label.localeCompare(b.label));
+    return { data: { uploaders } };
+  }
+
+  if (url === 'admin/knowledge/assets' && method === 'GET') {
+    const q =
+      typeof params === 'object' && params && 'q' in params
+        ? asString((params as { q?: unknown }).q)?.toLowerCase()
+        : undefined;
+    const uploadedBy =
+      typeof params === 'object' && params && 'uploaded_by' in params
+        ? asString((params as { uploaded_by?: unknown }).uploaded_by)
+        : undefined;
+    const assigned =
+      typeof params === 'object' && params && 'assigned' in params
+        ? asString((params as { assigned?: unknown }).assigned)
+        : undefined;
+    const statusFilter =
+      typeof params === 'object' && params && 'status' in params
+        ? asString((params as { status?: unknown }).status)
+        : 'active';
+    const sortBy =
+      typeof params === 'object' && params && 'sort_by' in params
+        ? asString((params as { sort_by?: unknown }).sort_by)
+        : 'uploaded_at';
+    const sortOrder =
+      typeof params === 'object' && params && 'sort_order' in params
+        ? asString((params as { sort_order?: unknown }).sort_order)
+        : 'desc';
+    const page =
+      typeof params === 'object' && params && 'page' in params
+        ? Number((params as { page?: unknown }).page)
+        : 1;
+    const pageSize =
+      typeof params === 'object' && params && 'page_size' in params
+        ? Number((params as { page_size?: unknown }).page_size)
+        : 20;
+    const uploadedAtFrom =
+      typeof params === 'object' && params && 'uploaded_at_from' in params
+        ? asString((params as { uploaded_at_from?: unknown }).uploaded_at_from)
+        : undefined;
+    const uploadedAtTo =
+      typeof params === 'object' && params && 'uploaded_at_to' in params
+        ? asString((params as { uploaded_at_to?: unknown }).uploaded_at_to)
+        : undefined;
+    const updatedAtFrom =
+      typeof params === 'object' && params && 'updated_at_from' in params
+        ? asString((params as { updated_at_from?: unknown }).updated_at_from)
+        : undefined;
+    const updatedAtTo =
+      typeof params === 'object' && params && 'updated_at_to' in params
+        ? asString((params as { updated_at_to?: unknown }).updated_at_to)
+        : undefined;
+
+    let results = [...mockKnowledgeAssetsState];
+    if (statusFilter === 'deactivated') {
+      results = results.filter((asset) => asset.status === 'deactivated');
+    } else {
+      results = results.filter((asset) => asset.status !== 'deactivated');
+    }
+    if (q) {
+      results = results.filter((asset) =>
+        asset.title.toLowerCase().includes(q),
+      );
+    }
+    if (uploadedBy) {
+      results = results.filter((asset) => asset.uploaded_by === uploadedBy);
+    }
+    if (assigned === 'yes') {
+      results = results.filter((asset) => asset.assigned);
+    } else if (assigned === 'no') {
+      results = results.filter((asset) => !asset.assigned);
+    }
+    if (uploadedAtFrom) {
+      results = results.filter(
+        (asset) => asset.uploaded_at.slice(0, 10) >= uploadedAtFrom,
+      );
+    }
+    if (uploadedAtTo) {
+      results = results.filter(
+        (asset) => asset.uploaded_at.slice(0, 10) <= uploadedAtTo,
+      );
+    }
+    if (updatedAtFrom) {
+      results = results.filter(
+        (asset) => asset.updated_at.slice(0, 10) >= updatedAtFrom,
+      );
+    }
+    if (updatedAtTo) {
+      results = results.filter(
+        (asset) => asset.updated_at.slice(0, 10) <= updatedAtTo,
+      );
+    }
+
+    results.sort((a, b) => {
+      const key =
+        sortBy === 'title'
+          ? 'title'
+          : sortBy === 'uploaded_by'
+            ? 'uploaded_by'
+            : sortBy === 'updated_at'
+              ? 'updated_at'
+              : 'uploaded_at';
+      const left = a[key];
+      const right = b[key];
+      const cmp = String(left).localeCompare(String(right));
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+
+    const total = results.length;
+    const sliced = pageSlice(results, page, pageSize);
+    return {
+      data: {
+        assets: sliced,
+        total,
+        page: Number.isFinite(page) && page > 0 ? page : 1,
+        page_size: Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 20,
+      },
+    };
+  }
+
+  if (
+    url.startsWith('admin/knowledge/assets/') &&
+    url.endsWith('/thumbnail') &&
+    method === 'PUT'
+  ) {
+    const id = decodeURIComponent(
+      url.slice('admin/knowledge/assets/'.length, -'/thumbnail'.length),
+    );
+    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
+    if (!asset) {
+      return {
+        error: { status: 404, data: { message: `Unknown asset ${id}` } },
+      };
+    }
+    asset.thumbnail_url = `https://mock-storage.example/knowledge/${encodeURIComponent(id)}-custom.png`;
+    asset.updated_at = new Date().toISOString();
+    return { data: { ...asset } };
+  }
+
+  if (
+    url.startsWith('admin/knowledge/assets/') &&
+    url.endsWith('/deactivate') &&
+    method === 'POST'
+  ) {
+    const id = decodeURIComponent(
+      url.slice('admin/knowledge/assets/'.length, -'/deactivate'.length),
+    );
+    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
+    if (!asset) {
+      return {
+        error: { status: 404, data: { message: `Unknown asset ${id}` } },
+      };
+    }
+    asset.status = 'deactivated';
+    asset.assigned = false;
+    asset.updated_at = new Date().toISOString();
+    mockAssignmentsState = mockAssignmentsState.filter(
+      (assignment) => assignment.module_id !== id,
+    );
+    return { data: { id } };
+  }
+
+  if (
+    url.startsWith('admin/knowledge/assets/') &&
+    url.endsWith('/download') &&
+    method === 'GET'
+  ) {
+    const id = decodeURIComponent(
+      url.slice('admin/knowledge/assets/'.length, -'/download'.length),
+    );
+    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
+    if (!asset) {
+      return {
+        error: { status: 404, data: { message: `Unknown asset ${id}` } },
+      };
+    }
+    return {
+      data: {
+        download_url: `https://mock-storage.example/knowledge/${encodeURIComponent(asset.parent_upload_id)}.pdf`,
+        filename: asset.original_filename,
+      },
+    };
+  }
+
+  if (url.startsWith('admin/knowledge/assets/') && method === 'PATCH') {
+    const id = decodeURIComponent(url.slice('admin/knowledge/assets/'.length));
+    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
+    if (!asset) {
+      return {
+        error: { status: 404, data: { message: `Unknown asset ${id}` } },
+      };
+    }
+    const title =
+      typeof body === 'object' &&
+      body &&
+      'title' in body &&
+      typeof (body as { title?: unknown }).title === 'string'
+        ? (body as { title: string }).title.trim()
+        : asset.title;
+    asset.title = title || asset.title;
+    asset.updated_at = new Date().toISOString();
+    return { data: { ...asset } };
   }
 
   return {

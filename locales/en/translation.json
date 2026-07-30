@@ -58,6 +58,7 @@
       "nav": {
         "moduleLibrary": "Module Library",
         "ingestDocument": "Ingest Document",
+        "uploadKnowledge": "Upload Knowledge",
         "videoUpload": "Upload Video",
         "ingestHistory": "Ingestion History",
         "configs": "Configurations"

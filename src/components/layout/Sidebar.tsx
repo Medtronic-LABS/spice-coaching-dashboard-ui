@@ -111,6 +111,18 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           </NavLink>
           <NavLink
             className={linkClassName}
+            to={paths.uploadKnowledge}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <ClipboardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.uploadKnowledge')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
             to={paths.videoUpload}
             onClick={onMobileClose}
           >
