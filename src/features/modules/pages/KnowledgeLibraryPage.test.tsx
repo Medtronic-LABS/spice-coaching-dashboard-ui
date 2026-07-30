@@ -43,12 +43,37 @@ vi.mock(
   },
 );
 
+vi.mock('@/features/modules/hooks/useKnowledgePdfDocument', () => ({
+  useKnowledgePdfDocument: () => ({
+    pdf: null,
+    pageCount: 5,
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock('@/features/modules/hooks/usePdfPageThumbnail', () => ({
+  usePdfPageThumbnail: (_pdf: unknown, _page: unknown, enabled: boolean) => ({
+    url: enabled ? 'blob:mock-original-thumb' : null,
+    isRendering: false,
+  }),
+}));
+
 function renderPage() {
   return renderWithProviders(<KnowledgeLibraryPage />);
 }
 
 function pdfInput() {
-  return screen.getByLabelText(/select pdf/i, { selector: 'input' });
+  const button = screen.getByRole('button', {
+    name: /select pdf|replace pdf/i,
+  });
+  const input = button.parentElement?.querySelector(
+    'input[type="file"]',
+  ) as HTMLInputElement | null;
+  if (!input) {
+    throw new Error('PDF file input not found next to Select PDF button');
+  }
+  return input;
 }
 
 describe('KnowledgeLibraryPage', () => {
@@ -111,6 +136,63 @@ describe('KnowledgeLibraryPage', () => {
       screen.getByPlaceholderText(/htn referral guidelines/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/page splits/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, node) => node?.textContent === 'This PDF has 5 pages.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('can clear the original PDF thumbnail to leave it blank for backend generation', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = pdfInput();
+    const pdf = new File(['%PDF-1.4'], 'knowledge.pdf', {
+      type: 'application/pdf',
+    });
+    await user.upload(input, pdf);
+
+    expect(
+      await screen.findByText(/thumbnail \(from pdf\)/i),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText('Knowledge thumbnail')).toHaveAttribute(
+      'src',
+      'blob:mock-original-thumb',
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /remove selected image/i }),
+    );
+
+    expect(
+      await screen.findByText(/thumbnail \(blank — backend will generate\)/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /use pdf preview/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('in split mode, shows live warning when end page exceeds PDF page count', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = pdfInput();
+    const pdf = new File(['%PDF-1.4'], 'knowledge.pdf', {
+      type: 'application/pdf',
+    });
+    await user.upload(input, pdf);
+
+    await user.click(screen.getByRole('tab', { name: /split document/i }));
+
+    const end = screen.getByLabelText('Split 1 end page') as HTMLInputElement;
+    await user.clear(end);
+    await user.type(end, '9');
+
+    expect(
+      await screen.findByText('End page must be ≤ 5.'),
+    ).toBeInTheDocument();
+    expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
   });
 
   it('in split mode, clicking Upload with invalid splits shows validation error (no API call)', async () => {
@@ -160,9 +242,6 @@ describe('KnowledgeLibraryPage', () => {
     const end = screen.getByLabelText('Split 1 end page') as HTMLInputElement;
     await user.clear(end);
     await user.type(end, '1');
-
-    const uploadButton = screen.getByRole('button', { name: /^upload$/i });
-    await user.click(uploadButton);
 
     expect(
       await screen.findByText('End page must be >= start page.'),

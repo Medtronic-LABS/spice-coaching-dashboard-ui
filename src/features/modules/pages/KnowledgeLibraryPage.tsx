@@ -25,12 +25,15 @@ import {
   formatKnowledgeFileRejectionError,
   isKnowledgeAcceptedFile,
 } from '@/features/ingest/constants/knowledgeAcceptedFileTypes';
+import { useKnowledgePdfDocument } from '@/features/modules/hooks/useKnowledgePdfDocument';
+import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import {
   knowledgeSplitDraftFieldErrors,
   knowledgeSplitDraftHasFieldErrors,
   type KnowledgeSplitDraftFieldErrors,
 } from '@/features/modules/utils/knowledgeSplitValidation';
 import {
+  createEmptyKnowledgeSplitDraft,
   type KnowledgeSplitDraft,
   type KnowledgeUploadMode,
 } from '@/features/modules/types/knowledgeLibrary.types';
@@ -67,11 +70,41 @@ export const KnowledgeLibraryPage = () => {
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalThumbnailFile, setOriginalThumbnailFile] =
     useState<File | null>(null);
+  const [originalSuppressAutoThumbnail, setOriginalSuppressAutoThumbnail] =
+    useState(false);
 
   // Split mode draft.
   const [splitDrafts, setSplitDrafts] = useState<KnowledgeSplitDraft[]>([
-    { title: '', startPage: 1, endPage: 1, thumbnailFile: null },
+    createEmptyKnowledgeSplitDraft(),
   ]);
+
+  const {
+    pdf: pdfDocument,
+    pageCount,
+    isLoading: isReadingPdf,
+    error: pdfReadError,
+  } = useKnowledgePdfDocument(file);
+
+  const hasCustomOriginalThumbnail = Boolean(originalThumbnailFile);
+  const isBlankOriginalThumbnail =
+    !hasCustomOriginalThumbnail && originalSuppressAutoThumbnail;
+  const {
+    url: originalAutoThumbnailUrl,
+    isRendering: isOriginalThumbRendering,
+  } = usePdfPageThumbnail(
+    pdfDocument,
+    1,
+    mode === 'original' &&
+      Boolean(file) &&
+      !hasCustomOriginalThumbnail &&
+      !originalSuppressAutoThumbnail,
+  );
+
+  const originalThumbnailValue = hasCustomOriginalThumbnail
+    ? originalThumbnailFile
+    : originalSuppressAutoThumbnail
+      ? null
+      : originalAutoThumbnailUrl;
 
   const initialTabs: TabItem[] = useMemo(
     () => [
@@ -183,10 +216,9 @@ export const KnowledgeLibraryPage = () => {
     setFileSelectionError('');
     setOriginalTitle('');
     setOriginalThumbnailFile(null);
+    setOriginalSuppressAutoThumbnail(false);
     setSplitDraftErrors([]);
-    setSplitDrafts([
-      { title: '', startPage: 1, endPage: 1, thumbnailFile: null },
-    ]);
+    setSplitDrafts([createEmptyKnowledgeSplitDraft()]);
   }, []);
 
   const onModeChange = useCallback((nextMode: string) => {
@@ -198,17 +230,36 @@ export const KnowledgeLibraryPage = () => {
 
     // Keep the picked file; clear the mode we're leaving (xor drafts).
     if (resolved === 'original') {
-      setSplitDrafts([
-        { title: '', startPage: 1, endPage: 1, thumbnailFile: null },
-      ]);
+      setSplitDrafts([createEmptyKnowledgeSplitDraft()]);
       setSplitDraftErrors([]);
     } else {
       setOriginalTitle('');
       setOriginalThumbnailFile(null);
+      setOriginalSuppressAutoThumbnail(false);
     }
   }, []);
 
   const modeTabs = useMemo(() => initialTabs, [initialTabs]);
+
+  const livePageFieldErrors = useMemo(
+    () =>
+      knowledgeSplitDraftFieldErrors(splitDrafts, {
+        pageCount,
+        requireTitle: false,
+      }),
+    [pageCount, splitDrafts],
+  );
+
+  const displayedSplitErrors = useMemo(() => {
+    return splitDrafts.map((_, index) => ({
+      title: splitDraftErrors[index]?.title,
+      startPage:
+        livePageFieldErrors[index]?.startPage ??
+        splitDraftErrors[index]?.startPage,
+      endPage:
+        livePageFieldErrors[index]?.endPage ?? splitDraftErrors[index]?.endPage,
+    }));
+  }, [livePageFieldErrors, splitDraftErrors, splitDrafts]);
 
   const canSubmit = useMemo(() => {
     if (!file) return false;
@@ -253,8 +304,17 @@ export const KnowledgeLibraryPage = () => {
         return;
       }
 
-      if (knowledgeSplitDraftHasFieldErrors(splitDrafts)) {
-        setSplitDraftErrors(knowledgeSplitDraftFieldErrors(splitDrafts));
+      const splitValidationOptions = {
+        pageCount,
+        requireTitle: true,
+      };
+
+      if (
+        knowledgeSplitDraftHasFieldErrors(splitDrafts, splitValidationOptions)
+      ) {
+        setSplitDraftErrors(
+          knowledgeSplitDraftFieldErrors(splitDrafts, splitValidationOptions),
+        );
         return;
       }
 
@@ -289,6 +349,7 @@ export const KnowledgeLibraryPage = () => {
     mode,
     originalThumbnailFile,
     originalTitle,
+    pageCount,
     splitDrafts,
     uploadKnowledgeDocument,
   ]);
@@ -356,6 +417,8 @@ export const KnowledgeLibraryPage = () => {
               setFileSelectionError('');
               setActionError('');
               setSplitDraftErrors([]);
+              setOriginalThumbnailFile(null);
+              setOriginalSuppressAutoThumbnail(false);
               setFile(next[0] ?? null);
             }}
             accept={KNOWLEDGE_FILE_INPUT_ACCEPT}
@@ -375,6 +438,26 @@ export const KnowledgeLibraryPage = () => {
               setFileSelectionError(message);
             }}
           />
+
+          {file && isReadingPdf ? (
+            <p className="text-xs text-spice-text-muted" role="status">
+              Reading PDF…
+            </p>
+          ) : null}
+
+          {file && pageCount !== null ? (
+            <p className="text-xs text-spice-text-muted" role="status">
+              This PDF has{' '}
+              <span className="font-semibold text-spice-text-primary">
+                {pageCount}
+              </span>{' '}
+              {pageCount === 1 ? 'page' : 'pages'}.
+            </p>
+          ) : null}
+
+          {file && pdfReadError ? (
+            <p className="text-xs text-spice-semantic-error">{pdfReadError}</p>
+          ) : null}
 
           {file ? (
             <>
@@ -399,20 +482,56 @@ export const KnowledgeLibraryPage = () => {
 
                     <div className="w-full shrink-0 space-y-2 sm:w-36">
                       <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                        Custom thumbnail (optional)
+                        Thumbnail
+                        {isOriginalThumbRendering &&
+                        !hasCustomOriginalThumbnail &&
+                        !originalSuppressAutoThumbnail
+                          ? ' (loading…)'
+                          : hasCustomOriginalThumbnail
+                            ? ' (custom)'
+                            : isBlankOriginalThumbnail
+                              ? ' (blank — backend will generate)'
+                              : originalAutoThumbnailUrl
+                                ? ' (from PDF)'
+                                : ''}
                       </div>
                       <ImagePicker
                         variant="tile"
-                        value={originalThumbnailFile}
-                        onChange={setOriginalThumbnailFile}
+                        value={originalThumbnailValue}
+                        onChange={(next) => {
+                          if (next) {
+                            setOriginalThumbnailFile(next);
+                            setOriginalSuppressAutoThumbnail(false);
+                            return;
+                          }
+                          setOriginalThumbnailFile(null);
+                          setOriginalSuppressAutoThumbnail(true);
+                        }}
                         disabled={disableInputs}
-                        clearable
+                        clearable={Boolean(originalThumbnailValue)}
                         accept="image/*"
-                        label="Add thumbnail"
-                        labelWhenSelected="Change"
-                        previewAlt="Custom thumbnail"
+                        label="Optional — leave blank for backend"
+                        labelWhenSelected={
+                          hasCustomOriginalThumbnail
+                            ? 'Change custom'
+                            : 'Replace with custom'
+                        }
+                        previewAlt="Knowledge thumbnail"
                         frameClassName="aspect-square h-auto w-full"
                       />
+                      {isBlankOriginalThumbnail ? (
+                        <button
+                          type="button"
+                          disabled={disableInputs || !pdfDocument}
+                          className="text-left text-[11px] font-medium text-spice-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={() => {
+                            setOriginalThumbnailFile(null);
+                            setOriginalSuppressAutoThumbnail(false);
+                          }}
+                        >
+                          Use PDF preview
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -424,7 +543,7 @@ export const KnowledgeLibraryPage = () => {
                         <span>Page splits</span>
                         <Tooltip
                           label="About page splits"
-                          content="Add one or more splits. Backend generates the asset thumbnail from the start page, and you can optionally replace it after upload."
+                          content="Add one or more splits. Thumbnail can use the PDF start page, a custom image, or stay blank for backend generation."
                         />
                       </div>
                     </div>
@@ -436,12 +555,7 @@ export const KnowledgeLibraryPage = () => {
                         setSplitDraftErrors([]);
                         setSplitDrafts((prev) => [
                           ...prev,
-                          {
-                            title: '',
-                            startPage: 1,
-                            endPage: 1,
-                            thumbnailFile: null,
-                          },
+                          createEmptyKnowledgeSplitDraft(),
                         ]);
                       }}
                     >
@@ -457,7 +571,9 @@ export const KnowledgeLibraryPage = () => {
                         value={row}
                         disabled={disableInputs}
                         canRemove={splitDrafts.length > 1}
-                        errors={splitDraftErrors[idx]}
+                        errors={displayedSplitErrors[idx]}
+                        pdfDocument={pdfDocument}
+                        pageCount={pageCount}
                         onRemove={() => {
                           if (splitDrafts.length <= 1) return;
                           setSplitDraftErrors([]);
@@ -466,7 +582,12 @@ export const KnowledgeLibraryPage = () => {
                           );
                         }}
                         onChange={(next) => {
-                          setSplitDraftErrors([]);
+                          setSplitDraftErrors((prev) => {
+                            if (prev.length === 0) return prev;
+                            return prev.map((err, i) =>
+                              i === idx ? { title: err?.title } : err,
+                            );
+                          });
                           setSplitDrafts((prev) =>
                             prev.map((r, i) => (i === idx ? next : r)),
                           );

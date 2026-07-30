@@ -33,6 +33,22 @@ export interface KnowledgeSplitDraft {
   endPage: number;
   /** Optional local file for custom thumbnail before upload. */
   thumbnailFile?: File | null;
+  /**
+   * When true, hide the auto PDF preview so the slot stays blank.
+   * Backend will generate the thumbnail later.
+   */
+  suppressAutoThumbnail?: boolean;
+}
+
+/** Default empty split row for Upload Knowledge split mode. */
+export function createEmptyKnowledgeSplitDraft(): KnowledgeSplitDraft {
+  return {
+    title: '',
+    startPage: 1,
+    endPage: 1,
+    thumbnailFile: null,
+    suppressAutoThumbnail: false,
+  };
 }
 
 /** Default list filters for the knowledge library table. */

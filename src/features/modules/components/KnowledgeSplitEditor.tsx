@@ -1,4 +1,6 @@
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Button, ImagePicker } from '@/components/ui';
+import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
 
@@ -11,6 +13,10 @@ export interface KnowledgeSplitEditorProps {
   disabled?: boolean;
   /** When false, hide/disable remove so at least one split remains. */
   canRemove?: boolean;
+  /** Opened PDF document for auto thumbnails (lazy-loaded on the page). */
+  pdfDocument?: PDFDocumentProxy | null;
+  /** Known page count for input max + helper copy. */
+  pageCount?: number | null;
 }
 
 function parseIntOrNaN(value: string): number {
@@ -28,8 +34,39 @@ export const KnowledgeSplitEditor = ({
   errors,
   disabled = false,
   canRemove = true,
+  pdfDocument = null,
+  pageCount = null,
 }: KnowledgeSplitEditorProps) => {
   const rowLabel = `Split ${index + 1}`;
+  const hasCustomThumbnail = Boolean(value.thumbnailFile);
+  const suppressAutoThumbnail = Boolean(value.suppressAutoThumbnail);
+  const isBlankThumbnail = !hasCustomThumbnail && suppressAutoThumbnail;
+  const autoThumbEnabled =
+    Boolean(pdfDocument) && !hasCustomThumbnail && !suppressAutoThumbnail;
+
+  const { url: autoThumbnailUrl, isRendering: isAutoThumbnailRendering } =
+    usePdfPageThumbnail(pdfDocument, value.startPage, autoThumbEnabled);
+
+  const thumbnailValue: File | string | null = hasCustomThumbnail
+    ? (value.thumbnailFile ?? null)
+    : suppressAutoThumbnail
+      ? null
+      : autoThumbnailUrl;
+
+  const hasVisibleThumbnail = Boolean(thumbnailValue);
+  const pageMax =
+    typeof pageCount === 'number' && pageCount >= 1 ? pageCount : undefined;
+
+  let thumbnailStatus = '';
+  if (isAutoThumbnailRendering && autoThumbEnabled) {
+    thumbnailStatus = ' (loading…)';
+  } else if (hasCustomThumbnail) {
+    thumbnailStatus = ' (custom)';
+  } else if (isBlankThumbnail) {
+    thumbnailStatus = ' (blank — backend will generate)';
+  } else if (autoThumbnailUrl) {
+    thumbnailStatus = ' (from PDF)';
+  }
 
   return (
     <div className="rounded-xl border border-spice-border bg-spice-bg-surface/70 p-4">
@@ -39,8 +76,8 @@ export const KnowledgeSplitEditor = ({
             {rowLabel}
           </div>
           <div className="mt-1 text-xs text-spice-text-muted">
-            Provide title and page range. Thumbnail is optional (replace after
-            upload).
+            Provide title and page range. Thumbnail can use the PDF start page,
+            a custom image, or stay blank for backend generation.
           </div>
         </div>
         <Button
@@ -89,6 +126,7 @@ export const KnowledgeSplitEditor = ({
                   type="number"
                   inputMode="numeric"
                   min={1}
+                  max={pageMax}
                   step={1}
                   value={
                     Number.isFinite(value.startPage) ? value.startPage : ''
@@ -119,6 +157,7 @@ export const KnowledgeSplitEditor = ({
                   type="number"
                   inputMode="numeric"
                   min={1}
+                  max={pageMax}
                   step={1}
                   value={Number.isFinite(value.endPage) ? value.endPage : ''}
                   aria-label={`${rowLabel} end page`}
@@ -144,25 +183,53 @@ export const KnowledgeSplitEditor = ({
 
           <div className="w-full shrink-0 space-y-2 sm:w-36">
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-              Thumbnail (optional)
+              Thumbnail{thumbnailStatus}
             </div>
             <ImagePicker
               variant="tile"
-              value={value.thumbnailFile ?? null}
-              onChange={(next) =>
+              value={thumbnailValue}
+              onChange={(next) => {
+                if (next) {
+                  onChange({
+                    ...value,
+                    thumbnailFile: next,
+                    suppressAutoThumbnail: false,
+                  });
+                  return;
+                }
+                // Clear → intentionally blank (backend generates later).
                 onChange({
                   ...value,
-                  thumbnailFile: next,
-                })
-              }
+                  thumbnailFile: null,
+                  suppressAutoThumbnail: true,
+                });
+              }}
               disabled={disabled}
-              clearable
+              clearable={hasVisibleThumbnail}
               accept="image/*"
-              label="Add thumbnail"
-              labelWhenSelected="Change"
+              label="Optional — leave blank for backend"
+              labelWhenSelected={
+                hasCustomThumbnail ? 'Change custom' : 'Replace with custom'
+              }
               previewAlt={`${rowLabel} thumbnail`}
               frameClassName="aspect-square h-auto w-full"
             />
+            {isBlankThumbnail ? (
+              <button
+                type="button"
+                disabled={disabled || !pdfDocument}
+                className="text-left text-[11px] font-medium text-spice-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    thumbnailFile: null,
+                    suppressAutoThumbnail: false,
+                  })
+                }
+              >
+                Use PDF preview
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
