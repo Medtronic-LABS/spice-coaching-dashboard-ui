@@ -136,6 +136,44 @@ describe('FileDropzone', () => {
     expect(onChange).toHaveBeenCalled();
     expect((onChange.mock.calls[0][0] as File[])[0].name).toBe('dropped.pdf');
   });
+
+  it('blurs the hidden file input on focus to avoid Windows Chrome scroll jump', () => {
+    render(
+      <FileDropzone
+        files={[]}
+        onChange={vi.fn()}
+        accept=".pdf"
+        title="Select PDF"
+      />,
+    );
+
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    input.focus();
+    fireEvent.focus(input);
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it('opens the file picker from the dashed button', async () => {
+    const user = userEvent.setup();
+    render(
+      <FileDropzone
+        files={[]}
+        onChange={vi.fn()}
+        accept=".pdf"
+        title="Select PDF"
+        ariaLabel="Select PDF"
+      />,
+    );
+
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, 'click');
+    await user.click(screen.getByRole('button', { name: 'Select PDF' }));
+    expect(clickSpy).toHaveBeenCalled();
+  });
 });
 
 describe('ImagePicker', () => {

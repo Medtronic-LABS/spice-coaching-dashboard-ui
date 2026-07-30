@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils';
 
@@ -102,6 +102,7 @@ export const FileDropzone = ({
   onReject,
   className,
 }: FileDropzoneProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragActive, setIsDragActive] = useState(false);
 
   const atCapacity =
@@ -171,9 +172,10 @@ export const FileDropzone = ({
 
   return (
     <div className={cn('space-y-2', className)}>
-      {showFileList
-        ? files.map((file, index) => (
-            <div
+      {showFileList && files.length ? (
+        <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto pr-1">
+          {files.map((file, index) => (
+            <li
               key={fileKey(file)}
               className="flex items-center gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5"
             >
@@ -202,56 +204,69 @@ export const FileDropzone = ({
               >
                 Remove
               </Button>
-            </div>
-          ))
-        : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {!atCapacity ? (
-        <label
-          aria-label={ariaLabel ?? primaryLabel}
-          className={cn(
-            'flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
-            dropzoneStateClasses,
-          )}
-          onDragOver={(event: DragEvent<HTMLLabelElement>) => {
-            if (!enableDragDrop || dropzoneDisabled) return;
-            event.preventDefault();
-            setIsDragActive(true);
-          }}
-          onDragLeave={() => setIsDragActive(false)}
-          onDrop={(event: DragEvent<HTMLLabelElement>) => {
-            if (!enableDragDrop || dropzoneDisabled) return;
-            event.preventDefault();
-            setIsDragActive(false);
-            stageIncoming(Array.from(event.dataTransfer.files ?? []));
-          }}
-        >
+        <div className="relative">
           <input
+            ref={fileInputRef}
             type="file"
             accept={accept}
             multiple={multiple}
+            tabIndex={-1}
             className="sr-only"
             disabled={dropzoneDisabled}
+            onFocus={(event) => {
+              // Windows Chrome scrolls scrollable ancestors to reveal
+              // focused sr-only inputs after the native file dialog closes.
+              event.currentTarget.blur();
+            }}
             onChange={(event) => {
               const picked = Array.from(event.target.files ?? []);
               event.target.value = '';
               stageIncoming(picked);
             }}
           />
-          {showIcon ? (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
-              <PlusIcon />
+          <button
+            type="button"
+            aria-label={ariaLabel ?? primaryLabel}
+            disabled={dropzoneDisabled}
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
+              dropzoneStateClasses,
+            )}
+            onDragOver={(event: DragEvent<HTMLButtonElement>) => {
+              if (!enableDragDrop || dropzoneDisabled) return;
+              event.preventDefault();
+              setIsDragActive(true);
+            }}
+            onDragLeave={() => setIsDragActive(false)}
+            onDrop={(event: DragEvent<HTMLButtonElement>) => {
+              if (!enableDragDrop || dropzoneDisabled) return;
+              event.preventDefault();
+              setIsDragActive(false);
+              stageIncoming(Array.from(event.dataTransfer.files ?? []));
+            }}
+          >
+            {showIcon ? (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
+                <PlusIcon />
+              </span>
+            ) : null}
+            <span className="text-xs font-semibold text-spice-text-primary">
+              {primaryLabel}
             </span>
-          ) : null}
-          <span className="text-xs font-semibold text-spice-text-primary">
-            {primaryLabel}
-          </span>
-          {showSubtitle ? (
-            <span className="text-[11px] text-spice-text-muted">
-              {subtitle}
-            </span>
-          ) : null}
-        </label>
+            {showSubtitle ? (
+              <span className="text-[11px] text-spice-text-muted">
+                {subtitle}
+              </span>
+            ) : null}
+          </button>
+        </div>
       ) : null}
     </div>
   );
