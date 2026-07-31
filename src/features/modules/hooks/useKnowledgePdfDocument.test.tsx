@@ -4,22 +4,26 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { useKnowledgePdfDocument } from './useKnowledgePdfDocument';
 
 const openPdfDocument = vi.fn();
+const destroyPdfDocument = vi.fn();
 
 vi.mock('@/features/modules/utils/pdfjsClient', () => ({
   openPdfDocument: (...args: unknown[]) => openPdfDocument(...args),
+  destroyPdfDocument: (...args: unknown[]) => destroyPdfDocument(...args),
 }));
+
+function mockPdf(numPages: number): PDFDocumentProxy {
+  return { numPages } as unknown as PDFDocumentProxy;
+}
 
 describe('useKnowledgePdfDocument', () => {
   beforeEach(() => {
     openPdfDocument.mockReset();
+    destroyPdfDocument.mockReset();
+    destroyPdfDocument.mockResolvedValue(undefined);
   });
 
   it('loads page count from the selected PDF', async () => {
-    const destroy = vi.fn().mockResolvedValue(undefined);
-    openPdfDocument.mockResolvedValue({
-      numPages: 7,
-      destroy,
-    } as unknown as PDFDocumentProxy);
+    openPdfDocument.mockResolvedValue(mockPdf(7));
 
     const file = new File(['%PDF'], 'doc.pdf', { type: 'application/pdf' });
     const { result } = renderHook(() => useKnowledgePdfDocument(file));
@@ -44,11 +48,8 @@ describe('useKnowledgePdfDocument', () => {
   });
 
   it('destroys the opened document on unmount', async () => {
-    const destroy = vi.fn().mockResolvedValue(undefined);
-    openPdfDocument.mockResolvedValue({
-      numPages: 3,
-      destroy,
-    } as unknown as PDFDocumentProxy);
+    const pdf = mockPdf(3);
+    openPdfDocument.mockResolvedValue(pdf);
 
     const file = new File(['%PDF'], 'doc.pdf', { type: 'application/pdf' });
     const { result, unmount } = renderHook(() => useKnowledgePdfDocument(file));
@@ -61,6 +62,29 @@ describe('useKnowledgePdfDocument', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(destroy).toHaveBeenCalled();
+    expect(destroyPdfDocument).toHaveBeenCalledWith(pdf);
+  });
+
+  it('destroys the opened document when the selected file is cleared', async () => {
+    const pdf = mockPdf(2);
+    openPdfDocument.mockResolvedValue(pdf);
+
+    const file = new File(['%PDF'], 'doc.pdf', { type: 'application/pdf' });
+    const { result, rerender } = renderHook(
+      ({ selected }: { selected: File | null }) =>
+        useKnowledgePdfDocument(selected),
+      { initialProps: { selected: file } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.pageCount).toBe(2);
+    });
+
+    rerender({ selected: null });
+    await waitFor(() => {
+      expect(result.current.pdf).toBeNull();
+      expect(result.current.pageCount).toBeNull();
+    });
+    expect(destroyPdfDocument).toHaveBeenCalledWith(pdf);
   });
 });

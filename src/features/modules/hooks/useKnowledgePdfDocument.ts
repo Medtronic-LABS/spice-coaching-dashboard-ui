@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { openPdfDocument } from '@/features/modules/utils/pdfjsClient';
+import {
+  destroyPdfDocument,
+  openPdfDocument,
+} from '@/features/modules/utils/pdfjsClient';
 
 export interface KnowledgePdfDocumentState {
   pdf: PDFDocumentProxy | null;
@@ -42,7 +45,8 @@ export function useKnowledgePdfDocument(
       try {
         opened = await openPdfDocument(file);
         if (cancelled) {
-          await opened.destroy();
+          await destroyPdfDocument(opened);
+          opened = null;
           return;
         }
         setPdf(opened);
@@ -50,7 +54,7 @@ export function useKnowledgePdfDocument(
       } catch {
         if (opened) {
           try {
-            await opened.destroy();
+            await destroyPdfDocument(opened);
           } catch {
             // ignore destroy errors after a failed open path
           }
@@ -71,7 +75,7 @@ export function useKnowledgePdfDocument(
     return () => {
       cancelled = true;
       if (opened) {
-        void opened.destroy();
+        void destroyPdfDocument(opened);
         opened = null;
       }
     };

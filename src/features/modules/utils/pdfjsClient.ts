@@ -27,6 +27,17 @@ export async function openPdfDocument(file: File): Promise<PDFDocumentProxy> {
   return pdfjs.getDocument({ data }).promise;
 }
 
+/**
+ * Tear down a PDF.js document.
+ * pdfjs-dist v6 removed `PDFDocumentProxy.destroy()`; destroy lives on `loadingTask`.
+ */
+export async function destroyPdfDocument(
+  pdf: PDFDocumentProxy | null | undefined,
+): Promise<void> {
+  if (!pdf) return;
+  await pdf.loadingTask.destroy();
+}
+
 export interface RenderPdfPageOptions {
   /** Cap thumbnail width in CSS pixels (default 180). */
   maxWidth?: number;

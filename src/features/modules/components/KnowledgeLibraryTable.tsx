@@ -50,6 +50,7 @@ type KnowledgeTableRow = KnowledgeAsset & {
 type KnowledgeStatusTab = 'active' | 'deactivated';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
+const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
 const UPLOADER_SEARCH_DEBOUNCE_MS = 300;
 
 const ALL_UPLOADERS_OPTION: ComboboxOption = {
@@ -83,6 +84,8 @@ export const KnowledgeLibraryTable = () => {
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.status,
   );
   const [q, setQ] = useState(KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.q);
+  const debouncedQ = useDebouncedValue(q, KNOWLEDGE_SEARCH_DEBOUNCE_MS);
+  const searchQ = useMemo(() => debouncedQ.trim(), [debouncedQ]);
   const [appliedDrawerFilters, setAppliedDrawerFilters] =
     useState<KnowledgeLibraryDrawerFilters>(
       KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
@@ -185,7 +188,7 @@ export const KnowledgeLibraryTable = () => {
 
   const queryArgs = useMemo(
     () => ({
-      q,
+      ...(searchQ ? { q: searchQ } : {}),
       uploadedBy: appliedDrawerFilters.uploadedBy,
       assigned: appliedDrawerFilters.assigned,
       ingested: appliedDrawerFilters.ingested,
@@ -199,7 +202,15 @@ export const KnowledgeLibraryTable = () => {
       page,
       pageSize,
     }),
-    [appliedDrawerFilters, page, pageSize, q, sortBy, sortOrder, statusTab],
+    [
+      appliedDrawerFilters,
+      page,
+      pageSize,
+      searchQ,
+      sortBy,
+      sortOrder,
+      statusTab,
+    ],
   );
 
   const {
@@ -235,7 +246,7 @@ export const KnowledgeLibraryTable = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusTab, q, appliedDrawerFilters, sortBy, sortOrder, pageSize]);
+  }, [statusTab, searchQ, appliedDrawerFilters, sortBy, sortOrder, pageSize]);
 
   const rangeStart = assets.length ? (page - 1) * pageSize + 1 : 0;
   const rangeEnd = assets.length ? rangeStart + assets.length - 1 : 0;
