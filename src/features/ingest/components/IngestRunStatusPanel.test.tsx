@@ -213,6 +213,46 @@ describe('IngestRunStatusPanel', () => {
     expect(onGoToNeedsReview).toHaveBeenCalled();
   });
 
+  it('renders Review Modules (X) button when published_module_merge.was_merge is true', () => {
+    const onGoToNeedsReview = vi.fn();
+    mockQuery({
+      data: makeStatus({
+        status: 'succeeded',
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            error: null,
+            nodes: [
+              {
+                key: 'generate',
+                title: 'Generate Review Module',
+                status: 'succeeded',
+                published_module_merge: { was_merge: true },
+                output_summary: { module_id: 'mod-1' },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    render(
+      <IngestRunStatusPanel
+        batchId="batch-1"
+        onGoToNeedsReview={onGoToNeedsReview}
+      />,
+    );
+
+    const btn = screen.getByRole('button', { name: 'Review Modules (1)' });
+    expect(btn).toBeInTheDocument();
+    btn.click();
+    expect(onGoToNeedsReview).toHaveBeenCalled();
+  });
+
   it('shows the empty nodes message when there are no nodes', () => {
     mockQuery({ data: makeStatus() });
     render(<IngestRunStatusPanel batchId="batch-1" />);

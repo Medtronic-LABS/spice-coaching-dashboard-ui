@@ -718,10 +718,22 @@ export const VideoUploadPage = () => {
     return first?.title;
   }, [acceptedSources, restoredAcceptedSources, uploadedSources]);
 
-  const goToDraftsForSource = useCallback(
+  const goToAllModulesForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'drafts',
+        tab: 'all',
+        sourceDocumentId,
+        sourceDocumentTitle: sourceTitle,
+      };
+      navigate(paths.moduleLibrary, { state });
+    },
+    [navigate],
+  );
+
+  const goToNeedsReviewForSource = useCallback(
+    (sourceDocumentId: string, sourceTitle?: string) => {
+      const state: ModuleLibraryLocationState = {
+        tab: 'needs_review',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -1346,7 +1358,13 @@ export const VideoUploadPage = () => {
             const first =
               acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
             if (!first) return;
-            goToDraftsForSource(first.source_document_id, first.title);
+            goToAllModulesForSource(first.source_document_id, first.title);
+          }}
+          onGoToNeedsReview={() => {
+            const first =
+              acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
+            if (!first) return;
+            goToNeedsReviewForSource(first.source_document_id, first.title);
           }}
         />
       ) : null}

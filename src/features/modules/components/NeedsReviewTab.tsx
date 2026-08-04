@@ -99,34 +99,21 @@ function getPublishedBy(
   return getCreatedBy(item);
 }
 
-function ModuleAccordion({
-  title,
+function ModuleCardPanel({
+  headerLabel,
   children,
-  defaultExpanded = true,
 }: {
-  title: React.ReactNode;
+  headerLabel: string;
   children: React.ReactNode;
-  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
   return (
     <div className="rounded-lg border border-spice-border bg-spice-bg-surface overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setExpanded((prev) => !prev)}
-        className="flex w-full items-center justify-between px-4 py-2.5 text-left text-xs font-semibold text-spice-text-primary hover:bg-spice-bg-tint/50 transition-colors"
-      >
-        <span>{title}</span>
-        <span className="text-spice-text-muted text-sm font-bold">
-          {expanded ? '−' : '+'}
+      <div className="px-4 py-2 bg-spice-bg-tint/50 border-b border-spice-border">
+        <span className="text-xs font-bold uppercase tracking-wider text-spice-text-muted">
+          {headerLabel}
         </span>
-      </button>
-      {expanded ? (
-        <div className="border-t border-spice-border p-4 space-y-3">
-          {children}
-        </div>
-      ) : null}
+      </div>
+      <div className="p-4 space-y-3">{children}</div>
     </div>
   );
 }
@@ -167,22 +154,17 @@ function ExistingModulePanel({
     (target as AdminModulesListItem).quiz_count ??
     ('quiz' in target && Array.isArray(target.quiz) ? target.quiz.length : 0);
 
+  const targetStatus =
+    target.lifecycle_status || (target as { status?: string }).status;
+  const isPublished = targetStatus?.toLowerCase() === 'published';
+
   return (
-    <ModuleAccordion
-      title={
-        <div className="flex items-center justify-between w-full pr-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-spice-text-muted">
-            Existing Module
-          </span>
-          <span className="font-semibold text-spice-text-primary text-xs truncate max-w-[200px]">
+    <ModuleCardPanel headerLabel="Existing Module">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-spice-text-primary">
             {formatModuleTitle(target)}
           </span>
-        </div>
-      }
-    >
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          {formatModuleTitle(target)}
         </div>
         <Button
           variant="ghost"
@@ -193,6 +175,12 @@ function ExistingModulePanel({
         </Button>
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs text-spice-text-medium">
+        <div>
+          <span className="text-spice-text-muted block text-[11px]">
+            Status
+          </span>
+          {targetStatus ? <ModuleStatusBadge status={targetStatus} /> : '—'}
+        </div>
         <div>
           <span className="text-spice-text-muted block text-[11px]">
             Lessons
@@ -217,16 +205,27 @@ function ExistingModulePanel({
           </span>
           {target.created_at ? formatDisplayDateTime(target.created_at) : '—'}
         </div>
-        <div className="col-span-2">
-          <span className="text-spice-text-muted block text-[11px]">
-            Published By
-          </span>
-          <span className="text-spice-text-muted">
-            {getPublishedBy(target)}
-          </span>
-        </div>
+        {isPublished ? (
+          <div>
+            <span className="text-spice-text-muted block text-[11px]">
+              Published By
+            </span>
+            <span className="text-spice-text-muted">
+              {getPublishedBy(target)}
+            </span>
+          </div>
+        ) : (
+          <div>
+            <span className="text-spice-text-muted block text-[11px]">
+              Created By
+            </span>
+            <span className="text-spice-text-muted">
+              {getCreatedBy(target)}
+            </span>
+          </div>
+        )}
       </div>
-    </ModuleAccordion>
+    </ModuleCardPanel>
   );
 }
 
@@ -263,6 +262,17 @@ export const NeedsReviewTab = ({
     }
   };
 
+  if (error) {
+    return (
+      <Card
+        variant="bordered"
+        className="p-4 text-xs text-spice-semantic-error"
+      >
+        Failed to load review pending modules.
+      </Card>
+    );
+  }
+
   if (isLoading) {
     return (
       <Card
@@ -271,14 +281,6 @@ export const NeedsReviewTab = ({
       >
         Loading review items…
       </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg bg-spice-semantic-errorBg p-4 text-xs text-spice-semantic-error">
-        Failed to load review pending modules.
-      </div>
     );
   }
 
@@ -374,18 +376,7 @@ export const NeedsReviewTab = ({
             {/* Side-by-Side Comparison */}
             <div className="grid gap-4 md:grid-cols-2">
               {/* Left Side: New Module */}
-              <ModuleAccordion
-                title={
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-spice-text-muted">
-                      New Module (Candidate)
-                    </span>
-                    <span className="font-semibold text-spice-text-primary text-xs truncate max-w-[200px]">
-                      {formatModuleTitle(primary)}
-                    </span>
-                  </div>
-                }
-              >
+              <ModuleCardPanel headerLabel="New Module (Candidate)">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold text-spice-text-primary">
                     {formatModuleTitle(primary)}
@@ -399,6 +390,12 @@ export const NeedsReviewTab = ({
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-spice-text-medium">
+                  <div>
+                    <span className="text-spice-text-muted block text-[11px]">
+                      Status
+                    </span>
+                    <ModuleStatusBadge status="review_pending" />
+                  </div>
                   <div>
                     <span className="text-spice-text-muted block text-[11px]">
                       Lessons
@@ -425,7 +422,7 @@ export const NeedsReviewTab = ({
                       ? formatDisplayDateTime(primary.created_at)
                       : '—'}
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <span className="text-spice-text-muted block text-[11px]">
                       Created By
                     </span>
@@ -434,7 +431,7 @@ export const NeedsReviewTab = ({
                     </span>
                   </div>
                 </div>
-              </ModuleAccordion>
+              </ModuleCardPanel>
 
               {/* Right Side: Existing Module */}
               <ExistingModulePanel

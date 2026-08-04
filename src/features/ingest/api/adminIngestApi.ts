@@ -2,16 +2,9 @@ import { baseApi } from '@/store/apis/base';
 
 export type IngestSourceType = 'pdf' | 'pptx' | 'docx' | 'audio' | 'video';
 
-/** Includes client-integration domains plus module-assignment `operational`. */
-export type IngestContentDomain =
-  | 'digital'
-  | 'clinical'
-  | 'clinical_with_app_workflows'
-  | 'operational';
+export type IngestContentDomain = 'digital' | 'clinical' | 'operational';
 
 export type IngestAssessmentMode = 'with_quiz' | 'read_only';
-
-export type IngestBatchMode = 'append' | 'new';
 
 export interface ExistingIngestedSourceSummary {
   source_document_id: string;
@@ -34,24 +27,7 @@ export interface IngestDuplicateErrorDetail {
   conflicts: IngestDuplicateConflict[];
 }
 
-/** Legacy single-shot multipart POST /admin/ingest (client-integration). */
-export interface AdminV3IngestBatchFormPayload {
-  files: File[];
-  fuse_sources?: boolean;
-  /**
-   * Must be aligned to the multipart `files` order.
-   */
-  sync_published_visible?: boolean[];
-  content_domain?: IngestContentDomain;
-  assessment_mode?: IngestAssessmentMode;
-  quizzes_per_module?: number;
-  cards_per_module?: number;
-  mode?: IngestBatchMode;
-  ingestion_instructions?: string | null;
-  override_duplicates?: boolean[];
-}
-
-/** POST /admin/ingest/upload (multipart) — module-assignment two-step flow. */
+/** POST /admin/ingest/upload (multipart) */
 export interface AdminV3IngestUploadPayload {
   files: File[];
   titles?: string[];
@@ -77,7 +53,7 @@ export interface AdminV3IngestUploadResponse {
   skipped_duplicates?: IngestDuplicateConflict[];
 }
 
-/** POST /admin/ingest (JSON) — start batch after upload. */
+/** POST /admin/ingest (JSON) */
 export interface AdminV3IngestStartPayload {
   source_document_ids: string[];
   assessment_mode?: IngestAssessmentMode;
@@ -89,7 +65,7 @@ export interface AdminV3IngestStartPayload {
 
 export interface AdminV3IngestAcceptedSource {
   source_document_id: string;
-  run_id?: string;
+  run_id: string;
   title: string;
   source_type: IngestSourceType;
   stored_path: string;
@@ -99,11 +75,8 @@ export interface AdminV3IngestAcceptedSource {
 
 export interface AdminV3IngestAcceptedResponse {
   status: 'batch_queued';
-  batch_id?: string;
-  poll_url?: string;
-  fuse_sources?: boolean;
-  mode?: IngestBatchMode;
-  modules_retired?: number;
+  batch_id: string;
+  poll_url: string;
   sources: AdminV3IngestAcceptedSource[];
   skipped_duplicates?: IngestDuplicateConflict[];
   note?: string | null;
@@ -122,7 +95,10 @@ export interface AdminV3IngestBatchNode {
   chunk_id?: string | null;
   proposed_title?: string | null;
   fusion?: unknown;
-  published_module_merge?: unknown;
+  published_module_merge?: {
+    was_merge?: boolean;
+    [key: string]: unknown;
+  } | null;
   input_summary?: Record<string, unknown> | null;
   output_summary?: Record<string, unknown> | null;
   children?: AdminV3IngestBatchNode[];
@@ -182,6 +158,7 @@ export interface AdminV3IngestBatchStatusResponse {
   merge_decisions?: AdminV3IngestMergeDecision[];
 }
 
+/** Legacy per-run status shape (by-document / by-run). Kept for older callers. */
 export interface AdminV3IngestStep {
   stage: string;
   status: string;
@@ -218,58 +195,6 @@ export interface AdminV3IngestStatusResponse {
 
 export const adminIngestApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    ingestDocuments: builder.mutation<
-      AdminV3IngestAcceptedResponse,
-      AdminV3IngestBatchFormPayload
-    >({
-      query: (payload) => {
-        const form = new FormData();
-        for (const file of payload.files) {
-          form.append('files', file, file.name);
-        }
-        if (typeof payload.fuse_sources === 'boolean') {
-          form.append('fuse_sources', String(payload.fuse_sources));
-        }
-        if (payload.sync_published_visible?.length) {
-          form.append(
-            'sync_published_visible',
-            JSON.stringify(payload.sync_published_visible),
-          );
-        }
-        if (payload.content_domain) {
-          form.append('content_domain', payload.content_domain);
-        }
-        if (payload.assessment_mode) {
-          form.append('assessment_mode', payload.assessment_mode);
-        }
-        if (typeof payload.quizzes_per_module === 'number') {
-          form.append('quizzes_per_module', String(payload.quizzes_per_module));
-        }
-        if (typeof payload.cards_per_module === 'number') {
-          form.append('cards_per_module', String(payload.cards_per_module));
-        }
-        if (payload.mode) {
-          form.append('mode', payload.mode);
-        }
-        if (payload.ingestion_instructions?.trim()) {
-          form.append(
-            'ingestion_instructions',
-            payload.ingestion_instructions.trim(),
-          );
-        }
-        if (payload.override_duplicates?.length) {
-          form.append(
-            'override_duplicates',
-            JSON.stringify(payload.override_duplicates),
-          );
-        }
-        return {
-          url: '/admin/ingest',
-          method: 'POST',
-          body: form,
-        };
-      },
-    }),
     uploadIngestFiles: builder.mutation<
       AdminV3IngestUploadResponse,
       AdminV3IngestUploadPayload
@@ -395,7 +320,6 @@ export const adminIngestApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useIngestDocumentsMutation,
   useUploadIngestFilesMutation,
   useStartIngestBatchMutation,
   useGetIngestBatchStatusQuery,

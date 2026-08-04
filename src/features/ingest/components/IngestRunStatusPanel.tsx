@@ -69,21 +69,26 @@ function countGeneratedModulesFromBatch(
   return seen.size;
 }
 
-function hasSimilarityDetectedInBatch(
+export function hasSimilarityDetectedInBatch(
   status: AdminV3IngestBatchStatusResponse | null | undefined,
 ): boolean {
   if (!status) return false;
   for (const source of status.sources ?? []) {
     for (const node of flattenNodes(source.nodes ?? [])) {
-      const summary = node.output_summary;
-      if (!summary || typeof summary !== 'object') continue;
-      const rec = summary as Record<string, unknown>;
-      if (
-        rec.has_similarity === true ||
-        rec.review_pending === true ||
-        rec.similarity_detected === true
-      ) {
+      if (node.published_module_merge?.was_merge === true) {
         return true;
+      }
+      const summary = node.output_summary;
+      if (summary && typeof summary === 'object') {
+        const rec = summary as Record<string, unknown>;
+        if (
+          rec.has_similarity === true ||
+          rec.review_pending === true ||
+          rec.similarity_detected === true ||
+          rec.was_merge === true
+        ) {
+          return true;
+        }
       }
     }
   }

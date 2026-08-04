@@ -118,8 +118,8 @@ export const DuplicateIngestConfirmDialog = ({
     {
       key: 'filename',
       header: '',
-      headerClassName: 'w-10 px-2 py-2 sm:px-2',
-      className: 'w-10 px-2 py-2 align-middle whitespace-normal sm:px-2',
+      headerClassName: 'w-8 px-2 py-2 text-center sm:px-2',
+      className: 'w-8 px-2 py-2 align-middle text-center sm:px-2',
       render: (row) => (
         <input
           type="checkbox"
@@ -139,9 +139,9 @@ export const DuplicateIngestConfirmDialog = ({
     {
       key: 'title',
       header: 'File name',
-      headerClassName: 'w-[44%] px-3 py-2 sm:px-3',
+      headerClassName: 'w-[55%] px-3 py-2 sm:px-3',
       className:
-        'w-[44%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3',
+        'w-[55%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3',
       render: (row) => {
         const latest = row.existing_source_documents[0];
         return (
@@ -162,9 +162,9 @@ export const DuplicateIngestConfirmDialog = ({
     {
       key: 'content_sha256',
       header: 'Existing source',
-      headerClassName: 'w-[36%] px-3 py-2 sm:px-3',
+      headerClassName: 'w-[45%] px-3 py-2 sm:px-3',
       className:
-        'w-[36%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3',
+        'w-[45%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3',
       render: (row) => {
         const latest = row.existing_source_documents[0];
         const label = latest?.title || row.title || '—';
