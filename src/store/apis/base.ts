@@ -8,7 +8,7 @@ export { apiBaseUrl } from '@/config/apiClientConfig';
 
 const realFetchBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,
-  credentials: 'include',
+  // credentials: 'include',
 });
 
 const hybridBaseQuery: BaseQueryFn = (args, api, extraOptions) => {
