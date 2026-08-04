@@ -1183,16 +1183,14 @@ export const VideoUploadPage = () => {
         </div>
       </Card>
 
-      <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-spice-text-primary">
-              <span>Uploaded videos</span>
-              <Tooltip
-                label="About uploaded videos"
-                content="Previously ingested videos must be chosen again before they can be selected for re-ingestion."
-              />
-            </div>
+      <Card variant="elevated" className="space-y-2 p-4 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold text-spice-text-primary">
+            <span>Uploaded videos</span>
+            <Tooltip
+              label="About uploaded videos"
+              content="Previously ingested videos must be chosen again before they can be selected for re-ingestion."
+            />
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <SearchInput

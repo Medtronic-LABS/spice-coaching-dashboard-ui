@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import { Drawer } from '@/components/ui';
+import { Drawer, Tooltip } from '@/components/ui';
 import { cn } from '@/utils';
 
 const FiltersSlidersIcon = ({ className }: { className?: string }) => (
@@ -125,15 +125,21 @@ export const SettingsFilterDrawer = ({
     describedBy={descriptionId}
   >
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-spice-border bg-spice-bg-tint/50 px-5 py-4">
-        <div className="min-w-0 space-y-1">
-          <h2
-            id={titleId}
-            className="text-lg font-semibold tracking-tight text-spice-text-primary"
-          >
-            {title}
-          </h2>
-          <p id={descriptionId} className="text-sm text-spice-text-muted">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-spice-border bg-spice-bg-tint/50 px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2
+              id={titleId}
+              className="text-lg font-semibold tracking-tight text-spice-text-primary"
+            >
+              {title}
+            </h2>
+            <Tooltip
+              label={`About ${title.toLowerCase()}`}
+              content={description}
+            />
+          </div>
+          <p id={descriptionId} className="sr-only">
             {description}
           </p>
         </div>

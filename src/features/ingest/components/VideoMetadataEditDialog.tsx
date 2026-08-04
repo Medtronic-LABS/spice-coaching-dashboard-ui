@@ -132,17 +132,12 @@ export const VideoMetadataEditDialog = ({
         variant="elevated"
         className="w-full max-w-lg space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
-        <div>
-          <h2
-            id="video-metadata-edit-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            Edit video details
-          </h2>
-          <p className="mt-1 text-xs text-spice-text-muted">
-            {document.original_filename ?? document.title}
-          </p>
-        </div>
+        <h2
+          id="video-metadata-edit-title"
+          className="text-lg font-semibold text-spice-text-primary"
+        >
+          Edit video details
+        </h2>
 
         {actionError ? (
           <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
