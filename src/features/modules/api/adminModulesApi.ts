@@ -17,7 +17,8 @@ export type AdminModuleLifecycleStatus =
   | 'draft'
   | 'published'
   | 'retired'
-  | 'deactivated';
+  | 'deactivated'
+  | 'review_pending';
 
 export type AdminModuleDifficulty = 'easy' | 'medium' | 'hard' | string;
 
@@ -47,6 +48,11 @@ export interface AdminModulesListItem {
   thumbnail_presigned_expires_seconds?: number | null;
   /** Populated when the modules list API includes document linkage. */
   source_document_ids?: string[];
+  merge_source_module_id?: string | null;
+  merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
+  merge_primary_module_id?: string | null;
+  merge_secondary_module_id?: string | null;
+  is_merge_secondary?: boolean;
 }
 
 export interface AdminModuleSourceDocument {
@@ -94,6 +100,10 @@ export interface AdminModuleDetailResponse {
   thumbnail_storage_path?: string | null;
   thumbnail_presigned_url?: string | null;
   thumbnail_presigned_expires_seconds?: number | null;
+  merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
+  merge_primary_module_id?: string | null;
+  merge_secondary_module_id?: string | null;
+  is_merge_secondary?: boolean;
 }
 
 export interface EditAdminModuleRequestBody {
@@ -206,6 +216,27 @@ function normalizeModuleSummary(
         ? item.thumbnail_presigned_expires_seconds
         : null,
     source_document_ids: normalizeSourceDocumentIds(item.source_document_ids),
+    merge_source_module_id:
+      typeof item.merge_source_module_id === 'string'
+        ? item.merge_source_module_id
+        : typeof item.merge_source_module === 'string'
+          ? item.merge_source_module
+          : null,
+    merge_source_module:
+      item.merge_source_module && typeof item.merge_source_module === 'object'
+        ? normalizeModuleSummary(
+            item.merge_source_module as Record<string, unknown>,
+          )
+        : null,
+    merge_primary_module_id:
+      typeof item.merge_primary_module_id === 'string'
+        ? item.merge_primary_module_id
+        : null,
+    merge_secondary_module_id:
+      typeof item.merge_secondary_module_id === 'string'
+        ? item.merge_secondary_module_id
+        : null,
+    is_merge_secondary: Boolean(item.is_merge_secondary),
   };
 }
 
@@ -320,6 +351,22 @@ function normalizeModuleDetail(
       typeof response.thumbnail_presigned_expires_seconds === 'number'
         ? response.thumbnail_presigned_expires_seconds
         : null,
+    merge_source_module:
+      response.merge_source_module &&
+      typeof response.merge_source_module === 'object'
+        ? normalizeModuleDetail(
+            response.merge_source_module as Record<string, unknown>,
+          )
+        : null,
+    merge_primary_module_id:
+      typeof response.merge_primary_module_id === 'string'
+        ? response.merge_primary_module_id
+        : null,
+    merge_secondary_module_id:
+      typeof response.merge_secondary_module_id === 'string'
+        ? response.merge_secondary_module_id
+        : null,
+    is_merge_secondary: Boolean(response.is_merge_secondary),
   };
 }
 
@@ -597,6 +644,15 @@ export const adminModulesApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+    overrideMergeModule: builder.mutation<
+      { id: string; lifecycle_status: AdminModuleLifecycleStatus },
+      { moduleId: string }
+    >({
+      query: ({ moduleId }) => ({
+        url: `/admin/ingest/modules/${encodeURIComponent(moduleId)}/override-merge`,
+        method: 'POST',
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -611,4 +667,5 @@ export const {
   useDeleteModuleMutation,
   useDeactivateModuleMutation,
   useReactivateModuleMutation,
+  useOverrideMergeModuleMutation,
 } = adminModulesApi;

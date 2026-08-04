@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Loader } from '@/components/ui';
 import {
   useGetIngestBatchStatusQuery,
@@ -6,12 +6,6 @@ import {
   type AdminV3IngestBatchStatusResponse,
 } from '@/features/ingest/api/adminIngestApi';
 import { IngestFlowStatusLabel } from '@/features/ingest/components/IngestFlowStatusLabel';
-import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/IngestMatchedModulePreviewModal';
-import { IngestMergeReviewBanner } from '@/features/ingest/components/IngestMergeReviewBanner';
-import { IngestMergeReviewModal } from '@/features/ingest/components/IngestMergeReviewModal';
-import { IngestOutcomeBanner } from '@/features/ingest/components/IngestOutcomeBanner';
-import { useIngestMergeReview } from '@/features/ingest/hooks/useIngestMergeReview';
-import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDecisions';
 import {
   canCompleteIngestFlow,
   isIngestInProgress,
@@ -39,6 +33,7 @@ export interface IngestRunStatusPanelProps {
   ) => void;
   successAction?: React.ReactNode;
   onGoToDrafts?: () => void;
+  onGoToNeedsReview?: () => void;
 }
 
 function flattenNodes(
@@ -54,30 +49,6 @@ function flattenNodes(
     }
   }
   return rows;
-}
-
-function wasMergedIntoExisting(node: AdminV3IngestBatchNode): boolean {
-  if (node.key !== 'candidate') return false;
-  for (const child of node.children ?? []) {
-    if (child.key !== 'card_draft') continue;
-    const merge = child.published_module_merge;
-    if (
-      merge &&
-      typeof merge === 'object' &&
-      (merge as Record<string, unknown>).was_merge === true
-    ) {
-      return true;
-    }
-    const out = child.output_summary;
-    if (
-      out &&
-      typeof out === 'object' &&
-      (out as Record<string, unknown>).was_published_merge === true
-    ) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function countGeneratedModulesFromBatch(
@@ -98,6 +69,27 @@ function countGeneratedModulesFromBatch(
   return seen.size;
 }
 
+function hasSimilarityDetectedInBatch(
+  status: AdminV3IngestBatchStatusResponse | null | undefined,
+): boolean {
+  if (!status) return false;
+  for (const source of status.sources ?? []) {
+    for (const node of flattenNodes(source.nodes ?? [])) {
+      const summary = node.output_summary;
+      if (!summary || typeof summary !== 'object') continue;
+      const rec = summary as Record<string, unknown>;
+      if (
+        rec.has_similarity === true ||
+        rec.review_pending === true ||
+        rec.similarity_detected === true
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export const IngestRunStatusPanel = ({
   batchId,
   sourceTitle,
@@ -108,6 +100,7 @@ export const IngestRunStatusPanel = ({
   onStatusChange,
   successAction,
   onGoToDrafts,
+  onGoToNeedsReview,
 }: IngestRunStatusPanelProps) => {
   const [pollReady, setPollReady] = useState(initialPollDelayMs === 0);
   const [pollingIntervalMs, setPollingIntervalMs] = useState(0);
@@ -134,52 +127,30 @@ export const IngestRunStatusPanel = ({
     refetchOnMountOrArgChange: true,
   });
 
-  const pendingMergeDecisions = hasPendingMergeDecisions(
-    statusData?.merge_decisions,
-  );
-
   useEffect(() => {
     if (!batchId || !pollReady) {
       setPollingIntervalMs(0);
       return;
     }
     setPollingIntervalMs(
-      shouldPollIngestStatus(batchId, statusData?.status, {
-        hasPendingMergeDecisions: pendingMergeDecisions,
-      })
-        ? 2000
-        : 0,
+      shouldPollIngestStatus(batchId, statusData?.status) ? 2000 : 0,
     );
-  }, [batchId, pendingMergeDecisions, pollReady, statusData?.status]);
+  }, [batchId, pollReady, statusData?.status]);
 
   useEffect(() => {
     onStatusChange?.(batchId, statusData ?? null);
   }, [batchId, onStatusChange, statusData]);
 
-  const refreshStatus = useCallback(() => refetch(), [refetch]);
-
-  const mergeReview = useIngestMergeReview({
-    batchId,
-    mergeDecisions: statusData?.merge_decisions,
-    sources: statusData?.sources,
-    onRefreshStatus: refreshStatus,
-  });
-
-  const ingestionInProgress = isIngestInProgress(batchId, statusData?.status, {
-    hasPendingMergeDecisions: pendingMergeDecisions,
-  });
-  const ingestionSucceeded = canCompleteIngestFlow(statusData?.status, {
-    hasPendingMergeDecisions: pendingMergeDecisions,
-  });
+  const ingestionInProgress = isIngestInProgress(batchId, statusData?.status);
+  const ingestionSucceeded = canCompleteIngestFlow(statusData?.status);
   const batchStatusTone = ingestRunStatusTone(statusData?.status);
   const sources = statusData?.sources ?? [];
+  const similarityDetected = hasSimilarityDetectedInBatch(statusData);
+  const generatedModuleCount = countGeneratedModulesFromBatch(statusData);
 
   const progressLabel = useMemo(() => {
     if (!batchId) return emptyLabel;
     if (!statusData) return 'Loading ingestion status…';
-    if (pendingMergeDecisions) {
-      return 'Merge review required before ingestion can continue.';
-    }
     if (isIngestRunning(statusData.status)) {
       return 'Ingestion running. Pipeline nodes update below while processing.';
     }
@@ -196,7 +167,6 @@ export const IngestRunStatusPanel = ({
     emptyLabel,
     ingestionInProgress,
     ingestionSucceeded,
-    pendingMergeDecisions,
     statusData,
   ]);
 
@@ -210,15 +180,11 @@ export const IngestRunStatusPanel = ({
             </div>
             {statusData?.status ? (
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                  pendingMergeDecisions
-                    ? 'bg-spice-semantic-warningBg text-spice-semantic-warning'
-                    : ingestRunStatusBadgeClassName(batchStatusTone)
-                }`}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ingestRunStatusBadgeClassName(
+                  batchStatusTone,
+                )}`}
               >
-                {pendingMergeDecisions
-                  ? 'awaiting_review'
-                  : formatIngestRunStatusDisplay(statusData.status)}
+                {formatIngestRunStatusDisplay(statusData.status)}
               </span>
             ) : null}
             {isFetching && statusData ? (
@@ -231,16 +197,26 @@ export const IngestRunStatusPanel = ({
             {progressLabel}
           </div>
         </div>
-        {batchId ? (
-          <div className="text-xs text-spice-text-muted">
-            Batch: <span className="font-mono">{batchId}</span>
+
+        {ingestionSucceeded ? (
+          <div>
+            {similarityDetected ? (
+              <Button
+                className="h-8 shrink-0 text-xs"
+                onClick={onGoToNeedsReview}
+              >
+                Review Modules ({generatedModuleCount})
+              </Button>
+            ) : generatedModuleCount > 0 ? (
+              <Button className="h-8 shrink-0 text-xs" onClick={onGoToDrafts}>
+                Open Modules
+              </Button>
+            ) : null}
           </div>
+        ) : successAction ? (
+          <div>{successAction}</div>
         ) : null}
       </div>
-
-      {mergeReview.reviewRequired ? (
-        <IngestMergeReviewBanner onViewDetails={mergeReview.openModal} />
-      ) : null}
 
       {error ? (
         <div className="space-y-2">
@@ -267,34 +243,22 @@ export const IngestRunStatusPanel = ({
 
       {statusData ? (
         <div className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <Card variant="bordered" className="space-y-1 p-3">
-              <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-                Batch
-              </div>
-              <div className="text-xs text-spice-text-medium">
-                <span className="font-mono">{statusData.batch_id}</span>
-              </div>
-            </Card>
-            <Card variant="bordered" className="space-y-1 p-3">
-              <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-                Timeline
-              </div>
-              <div className="text-xs text-spice-text-medium">
-                {statusData.created_at
-                  ? `Created: ${formatDisplayDateTime(statusData.created_at)}`
-                  : '—'}
-                <br />
-                {statusData.completed_at
-                  ? `Completed: ${formatDisplayDateTime(statusData.completed_at)}`
-                  : pendingMergeDecisions
-                    ? 'Awaiting merge decisions'
-                    : isIngestRunning(statusData.status)
-                      ? 'Running'
-                      : 'In progress'}
-              </div>
-            </Card>
-          </div>
+          <Card variant="bordered" className="space-y-1 p-3">
+            <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
+              Timeline
+            </div>
+            <div className="text-xs text-spice-text-medium">
+              {statusData.created_at
+                ? `Created: ${formatDisplayDateTime(statusData.created_at)}`
+                : '—'}
+              <br />
+              {statusData.completed_at
+                ? `Completed: ${formatDisplayDateTime(statusData.completed_at)}`
+                : isIngestRunning(statusData.status)
+                  ? 'Running'
+                  : 'In progress'}
+            </div>
+          </Card>
 
           <div className="space-y-3">
             <div className="text-sm font-semibold text-spice-text-primary">
@@ -325,41 +289,32 @@ export const IngestRunStatusPanel = ({
                     </div>
                     <div className="space-y-2">
                       {nodes.length ? (
-                        nodes.map((node) => {
-                          const mergedIntoExisting =
-                            wasMergedIntoExisting(node);
-                          return (
-                            <div
-                              key={node.path}
-                              className="rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-sm font-semibold text-spice-text-primary">
-                                    {node.title || node.key}
-                                  </span>
-                                  {mergedIntoExisting ? (
-                                    <span className="rounded-full bg-spice-semantic-successBg px-2 py-0.5 text-[10px] font-semibold tracking-wide text-spice-semantic-success">
-                                      Merged into existing module
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <IngestFlowStatusLabel
-                                  status={node.status}
-                                  error={node.error}
-                                />
+                        nodes.map((node) => (
+                          <div
+                            key={node.path}
+                            className="rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold text-spice-text-primary">
+                                  {node.title || node.key}
+                                </span>
                               </div>
-                              <div className="mt-1 text-xs text-spice-text-muted">
-                                {node.started_at
-                                  ? `Started: ${formatDisplayDateTime(node.started_at)}`
-                                  : '—'}
-                                {node.completed_at
-                                  ? ` · Completed: ${formatDisplayDateTime(node.completed_at)}`
-                                  : ''}
-                              </div>
+                              <IngestFlowStatusLabel
+                                status={node.status}
+                                error={node.error}
+                              />
                             </div>
-                          );
-                        })
+                            <div className="mt-1 text-xs text-spice-text-muted">
+                              {node.started_at
+                                ? `Started: ${formatDisplayDateTime(node.started_at)}`
+                                : '—'}
+                              {node.completed_at
+                                ? ` · Completed: ${formatDisplayDateTime(node.completed_at)}`
+                                : ''}
+                            </div>
+                          </div>
+                        ))
                       ) : (
                         <div className="text-xs text-spice-text-muted">
                           No nodes yet.
@@ -375,42 +330,8 @@ export const IngestRunStatusPanel = ({
               </div>
             )}
           </div>
-
-          {ingestionSucceeded ? (
-            onGoToDrafts ? (
-              <IngestOutcomeBanner
-                status={statusData.status}
-                generatedModuleCount={countGeneratedModulesFromBatch(
-                  statusData,
-                )}
-                onGoToDrafts={onGoToDrafts}
-              />
-            ) : (
-              (successAction ?? null)
-            )
-          ) : null}
         </div>
       ) : null}
-
-      <IngestMergeReviewModal
-        open={mergeReview.modalOpen}
-        decisions={mergeReview.decisions}
-        outcomes={mergeReview.outcomes}
-        submittingKeys={mergeReview.submittingKeys}
-        mergeUnavailableKeys={mergeReview.mergeUnavailableKeys}
-        notification={mergeReview.notification}
-        onClose={mergeReview.closeModal}
-        onDecide={(decision, choice) => {
-          void mergeReview.decide(decision, choice);
-        }}
-        onViewModule={mergeReview.openModulePreview}
-      />
-
-      <IngestMatchedModulePreviewModal
-        open={Boolean(mergeReview.previewModuleId)}
-        moduleId={mergeReview.previewModuleId}
-        onClose={mergeReview.closeModulePreview}
-      />
     </Card>
   );
 };

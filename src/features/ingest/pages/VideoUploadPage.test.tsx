@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -141,14 +142,13 @@ vi.mock('@/features/ingest/hooks/useIngestWithDuplicateHandling', () => ({
 
 vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
   const { useEffect } = await import('react');
-  const { IngestOutcomeBanner } =
-    await import('@/features/ingest/components/IngestOutcomeBanner');
   return {
     IngestRunStatusPanel: ({
       batchId,
       sourceTitle,
       onStatusChange,
       onGoToDrafts,
+      onGoToNeedsReview,
       successAction,
     }: {
       batchId: string;
@@ -158,7 +158,8 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
         status: AdminV3IngestBatchStatusResponse | null,
       ) => void;
       onGoToDrafts?: () => void;
-      successAction?: React.ReactNode;
+      onGoToNeedsReview?: () => void;
+      successAction?: ReactNode;
     }) => {
       useEffect(() => {
         mocks.panelProps.current.push({ batchId, sourceTitle });
@@ -176,13 +177,18 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
       const status = mocks.panelStatus.current;
       const succeeded = isIngestSucceeded(status?.status);
       if (!succeeded) return null;
+      if (onGoToNeedsReview) {
+        return (
+          <button type="button" onClick={onGoToNeedsReview}>
+            Review Modules
+          </button>
+        );
+      }
       if (onGoToDrafts) {
         return (
-          <IngestOutcomeBanner
-            status={status?.status}
-            generatedModuleCount={1}
-            onGoToDrafts={onGoToDrafts}
-          />
+          <button type="button" onClick={onGoToDrafts}>
+            Go to Drafts
+          </button>
         );
       }
       return successAction ? <>{successAction}</> : null;
@@ -208,7 +214,7 @@ function latestUploadedVideosQuery() {
         params.source_type === 'video' &&
         params.limit === 10,
     );
-  return calls.at(-1);
+  return calls.length > 0 ? calls[calls.length - 1] : undefined;
 }
 
 function titleFromFileName(fileName: string): string {

@@ -22,14 +22,19 @@ import { getCurrentRole } from '@/constants/role';
 import {
   useCreateModuleMutation,
   useDeactivateModuleMutation,
+  useDeleteModuleMutation,
   useFetchModuleDomainOptionsQuery,
   useFetchModulesQuery,
+  useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
+import { NeedsReviewTab } from '@/features/modules/components/NeedsReviewTab';
+import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
+import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
 import type {
   ModuleLibraryItem,
@@ -115,28 +120,7 @@ function createEmptyCreateForm(): CreateModuleFormState {
 }
 
 const moduleBadge = (status: ModuleStatus) => {
-  if (status === 'published') {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-spice-semantic-successBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-success ring-1 ring-spice-semantic-success/25">
-        <span className="h-1.5 w-1.5 rounded-full bg-spice-semantic-success" />
-        Published
-      </span>
-    );
-  }
-  if (status === 'deactivated') {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
-        <span className="h-1.5 w-1.5 rounded-full bg-spice-semantic-error" />
-        Deactivated
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-medium ring-1 ring-spice-border">
-      <span className="h-1.5 w-1.5 rounded-full bg-spice-text-medium" />
-      Draft
-    </span>
-  );
+  return <ModuleStatusBadge status={status} />;
 };
 
 function listingDateColumnDef(
@@ -228,6 +212,27 @@ export const ModuleLibraryPage = () => {
     useDeactivateModuleMutation();
   const [reactivateModule, { isLoading: isReactivating }] =
     useReactivateModuleMutation();
+  const [overrideMergeModule] = useOverrideMergeModuleMutation();
+  const [deleteModule] = useDeleteModuleMutation();
+
+  const handleOverrideMerge = async (moduleId: string) => {
+    await overrideMergeModule({ moduleId }).unwrap();
+    refreshModuleList();
+  };
+
+  const handleSkipReview = async (moduleId: string) => {
+    await deleteModule({ moduleId }).unwrap();
+    refreshModuleList();
+  };
+
+  const handleViewModule = (moduleId: string) => {
+    navigate(
+      paths.adminModuleReviewDetails.replace(
+        ':moduleId',
+        encodeURIComponent(moduleId),
+      ),
+    );
+  };
 
   const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
     activeFilters,
@@ -375,8 +380,12 @@ export const ModuleLibraryPage = () => {
 
   const modulesForDisplay = useMemo(
     () =>
-      modulesForList.filter((module) => module.lifecycle_status !== 'retired'),
-    [modulesForList],
+      tab === 'discarded'
+        ? modulesForList
+        : modulesForList.filter(
+            (module) => module.lifecycle_status !== 'retired',
+          ),
+    [modulesForList, tab],
   );
 
   const documentFilterOptions = useMemo(() => {
@@ -498,8 +507,14 @@ export const ModuleLibraryPage = () => {
 
   const hasNextPage = totalPages > 0 && page + 1 < totalPages;
   const hasPrevPage = page > 0;
-  const rangeStart = filtered.length ? page * pageSize + 1 : 0;
-  const rangeEnd = filtered.length ? page * pageSize + filtered.length : 0;
+  const currentTabItemCount =
+    tab === 'needs_review' || tab === 'discarded'
+      ? modulesForList.length
+      : filtered.length;
+  const rangeStart = currentTabItemCount ? page * pageSize + 1 : 0;
+  const rangeEnd = currentTabItemCount
+    ? page * pageSize + currentTabItemCount
+    : 0;
 
   useEffect(() => {
     if (totalPages > 0 && page >= totalPages) {
@@ -1117,7 +1132,9 @@ export const ModuleLibraryPage = () => {
               items={[
                 { label: 'Drafts', value: 'drafts' },
                 { label: 'Published', value: 'published' },
+                { label: 'Needs Review', value: 'needs_review' },
                 { label: 'Deactivated', value: 'deactivated' },
+                { label: 'Discarded', value: 'discarded' },
                 { label: 'All', value: 'all' },
               ]}
               value={tab}
@@ -1168,13 +1185,29 @@ export const ModuleLibraryPage = () => {
           />
         </SettingsFilterDrawer>
 
-        <Table<ModuleLibraryItem>
-          data={filtered}
-          columns={columns}
-          keyExtractor={(r) => r.id}
-          caption={tableCaption}
-          emptyMessage={emptyMessage}
-        />
+        {tab === 'needs_review' ? (
+          <NeedsReviewTab
+            modules={modulesForList}
+            isLoading={isLoadingModules}
+            onMerge={handleOverrideMerge}
+            onSkip={handleSkipReview}
+            onView={handleViewModule}
+          />
+        ) : tab === 'discarded' ? (
+          <DiscardedTabTable
+            modules={modulesForList}
+            isLoading={isLoadingModules}
+            onView={handleViewModule}
+          />
+        ) : (
+          <Table<ModuleLibraryItem>
+            data={filtered}
+            columns={columns}
+            keyExtractor={(r) => r.id}
+            caption={tableCaption}
+            emptyMessage={emptyMessage}
+          />
+        )}
 
         <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">

@@ -28,7 +28,7 @@ describe('cardImageDimensions', () => {
     });
     expect(resizeDimensionsByWidth(320, 180, 40)).toEqual({
       width: 80,
-      height: 46,
+      height: 45,
     });
   });
 

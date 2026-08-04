@@ -1,4 +1,12 @@
-export type ModuleLibraryTab = 'all' | 'published' | 'drafts' | 'deactivated';
+import type { AdminModuleLifecycleStatus } from '@/features/modules/api/adminModulesApi';
+
+export type ModuleLibraryTab =
+  | 'all'
+  | 'published'
+  | 'drafts'
+  | 'needs_review'
+  | 'deactivated'
+  | 'discarded';
 
 export type ModuleDateFilterType =
   | 'created'
@@ -200,11 +208,13 @@ export function resolveDomainForOptions(
 export function tabToLifecycleStatus(
   tab: ModuleLibraryTab,
   isProgramManager: boolean,
-): 'draft' | 'published' | 'deactivated' | undefined {
+): AdminModuleLifecycleStatus | undefined {
   if (!isProgramManager) return 'published';
   if (tab === 'published') return 'published';
   if (tab === 'drafts') return 'draft';
+  if (tab === 'needs_review') return 'review_pending';
   if (tab === 'deactivated') return 'deactivated';
+  if (tab === 'discarded') return 'retired';
   return undefined;
 }
 
@@ -216,7 +226,9 @@ export function parseModuleLibraryTab(
   if (
     value === 'published' ||
     value === 'drafts' ||
+    value === 'needs_review' ||
     value === 'deactivated' ||
+    value === 'discarded' ||
     value === 'all'
   ) {
     return value;
@@ -352,6 +364,8 @@ export function getModuleListEmptyMessage(
   }
   if (tab === 'drafts') return 'No draft modules yet.';
   if (tab === 'published') return 'No published modules yet.';
+  if (tab === 'needs_review') return 'No modules requiring review.';
   if (tab === 'deactivated') return 'No deactivated modules found.';
+  if (tab === 'discarded') return 'No discarded modules found.';
   return 'No modules yet.';
 }

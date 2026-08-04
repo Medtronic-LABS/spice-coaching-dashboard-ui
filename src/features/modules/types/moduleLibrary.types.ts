@@ -1,12 +1,9 @@
-export type ModuleStatus = 'published' | 'draft' | 'deactivated';
-
-/** Shared list filters for module-library mock/API queries. */
-export interface ModuleLibraryQueryParams {
-  tenant_id: string;
-  date_from: string;
-  date_to: string;
-  upazila_id?: string;
-}
+export type ModuleStatus =
+  | 'published'
+  | 'draft'
+  | 'deactivated'
+  | 'review_pending'
+  | 'retired';
 
 export interface ModuleLibraryItem {
   id: string;

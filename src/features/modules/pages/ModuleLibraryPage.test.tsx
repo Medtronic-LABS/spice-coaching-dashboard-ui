@@ -178,7 +178,7 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByTestId('module-review')).toBeInTheDocument();
   });
 
-  it('orders program manager tabs as Drafts, Published, Deactivated, All', async () => {
+  it('orders program manager tabs as Drafts, Published, Needs Review, Deactivated, Discarded, All', async () => {
     roleState.role = 'programManager';
     renderModuleLibraryPage();
 
@@ -186,7 +186,9 @@ describe('ModuleLibraryPage', () => {
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       'Drafts',
       'Published',
+      'Needs Review',
       'Deactivated',
+      'Discarded',
       'All',
     ]);
   });

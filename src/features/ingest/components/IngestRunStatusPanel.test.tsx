@@ -98,7 +98,7 @@ describe('IngestRunStatusPanel', () => {
     );
   });
 
-  it('renders batch details, timeline, and nodes for running status', () => {
+  it('renders status title, timeline, and nodes for running status', () => {
     mockQuery({
       data: makeStatus({
         sources: [
@@ -127,13 +127,90 @@ describe('IngestRunStatusPanel', () => {
     render(<IngestRunStatusPanel batchId="batch-1" sourceTitle="HTN" />);
 
     expect(screen.getByText('Status · HTN')).toBeInTheDocument();
-    expect(screen.getAllByText('batch-1').length).toBeGreaterThan(0);
     expect(screen.getByText('Extract content')).toBeInTheDocument();
     expect(
       screen.getByText(
         'Ingestion running. Pipeline nodes update below while processing.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('renders Open Modules button when succeeded with fresh generated modules', () => {
+    const onGoToDrafts = vi.fn();
+    mockQuery({
+      data: makeStatus({
+        status: 'succeeded',
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            error: null,
+            nodes: [
+              {
+                key: 'generate',
+                title: 'Generate Module',
+                status: 'succeeded',
+                output_summary: { module_id: 'mod-1' },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    render(
+      <IngestRunStatusPanel batchId="batch-1" onGoToDrafts={onGoToDrafts} />,
+    );
+
+    const btn = screen.getByRole('button', { name: 'Open Modules' });
+    expect(btn).toBeInTheDocument();
+    btn.click();
+    expect(onGoToDrafts).toHaveBeenCalled();
+  });
+
+  it('renders Review Modules (X) button when similarity is detected', () => {
+    const onGoToNeedsReview = vi.fn();
+    mockQuery({
+      data: makeStatus({
+        status: 'succeeded',
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            error: null,
+            nodes: [
+              {
+                key: 'generate',
+                title: 'Generate Review Module',
+                status: 'succeeded',
+                output_summary: {
+                  module_id: 'mod-1',
+                  has_similarity: true,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    render(
+      <IngestRunStatusPanel
+        batchId="batch-1"
+        onGoToNeedsReview={onGoToNeedsReview}
+      />,
+    );
+
+    const btn = screen.getByRole('button', { name: 'Review Modules (1)' });
+    expect(btn).toBeInTheDocument();
+    btn.click();
+    expect(onGoToNeedsReview).toHaveBeenCalled();
   });
 
   it('shows the empty nodes message when there are no nodes', () => {
@@ -207,43 +284,5 @@ describe('IngestRunStatusPanel', () => {
       expect.objectContaining({ skip: false }),
     );
     vi.useRealTimers();
-  });
-
-  it('shows a persistent merge review banner when merge_decisions are present', async () => {
-    const user = userEvent.setup();
-    mockQuery({
-      data: makeStatus({
-        merge_decisions: [
-          {
-            decision_url: '/admin/ingest/batches/batch-1/merge-decision',
-            run_id: 'run-1',
-            candidate_id: 'cand-1',
-            decision: 'accept_merge',
-            module_title: 'HTN counselling',
-            matched_module_id: 'mod-1',
-          },
-        ],
-      }),
-    });
-    render(<IngestRunStatusPanel batchId="batch-1" />);
-
-    expect(
-      screen.getByText(
-        'Some modules require your approval before ingestion can continue.',
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Merge review required before ingestion can continue.'),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'View Details' }));
-    expect(
-      screen.getByRole('heading', { name: 'Review module merge decisions' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('HTN counselling')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Merge' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Skip Merge' }),
-    ).toBeInTheDocument();
   });
 });

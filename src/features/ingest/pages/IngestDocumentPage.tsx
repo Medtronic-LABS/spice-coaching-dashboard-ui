@@ -312,9 +312,18 @@ export const IngestDocumentPage = () => {
     statusData?.completed_at,
   ]);
 
-  const goToDrafts = useCallback(() => {
+  const goToAllModules = useCallback(() => {
     const state: ModuleLibraryLocationState = {
-      tab: 'drafts',
+      tab: 'all',
+      sourceDocumentId: primarySourceDocumentId,
+      sourceDocumentTitle: activeSourceTitle,
+    };
+    navigate(paths.moduleLibrary, { state });
+  }, [activeSourceTitle, navigate, primarySourceDocumentId]);
+
+  const goToNeedsReview = useCallback(() => {
+    const state: ModuleLibraryLocationState = {
+      tab: 'needs_review',
       sourceDocumentId: primarySourceDocumentId,
       sourceDocumentTitle: activeSourceTitle,
     };
@@ -324,7 +333,7 @@ export const IngestDocumentPage = () => {
   const goToModulesForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'drafts',
+        tab: 'all',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -762,7 +771,8 @@ export const IngestDocumentPage = () => {
           uploadLabel="Uploading document…"
           initialPollDelayMs={activeBatchId ? 5000 : 0}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={goToDrafts}
+          onGoToDrafts={goToAllModules}
+          onGoToNeedsReview={goToNeedsReview}
         />
       ) : null}
 

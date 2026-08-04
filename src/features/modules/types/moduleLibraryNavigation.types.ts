@@ -1,4 +1,6 @@
-export type ModuleLibraryTab = 'all' | 'published' | 'drafts' | 'deactivated';
+import type { ModuleLibraryTab } from '@/features/modules/utils/moduleListFilters';
+
+export type { ModuleLibraryTab };
 
 export type ModuleLibraryLocationState = {
   chwId?: string;
