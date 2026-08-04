@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,22 +9,36 @@ import {
   SearchInput,
   Select,
   Tabs,
+  Tooltip,
   TruncatedText,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
+import {
+  SettingsFilterDrawer,
+  SettingsFilterTriggerButton,
+} from '@/components/common/SettingsFilterDrawer';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { paths } from '@/constants/routes';
+import { getCurrentRole } from '@/constants/role';
 import {
   useCreateModuleMutation,
   useDeactivateModuleMutation,
+  useDeleteModuleMutation,
   useFetchModuleDomainOptionsQuery,
   useFetchModulesQuery,
+  useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
+import {
+  NEEDS_REVIEW_TOOLTIP_CONTENT,
+  NeedsReviewTab,
+} from '@/features/modules/components/NeedsReviewTab';
+import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
+import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
 import type {
   ModuleLibraryItem,
@@ -36,15 +50,16 @@ import type {
 } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { sourceDocumentFilterLabel } from '@/features/modules/utils/moduleDocumentFilter';
 import {
-  buildModuleListDateParams,
+  buildModuleListTypedDateParams,
+  EMPTY_MODULE_LIBRARY_FILTERS,
   formatModuleDomainLabel,
   getModuleActivatedAt,
-  getModuleListDateHint,
   getModuleListingDateColumns,
   getModuleListEmptyMessage,
-  isDateRangeInvalid,
+  hasActiveModuleFilters,
+  isAnyVisibleDateRangeInvalid,
   moduleListingDateColumnHeader,
-  resolveDomainForOptions,
+  type ModuleLibraryFilters as ModuleLibraryFilterState,
   type ModuleListingDateColumn,
 } from '@/features/modules/utils/moduleListFilters';
 import {
@@ -66,7 +81,10 @@ import { normalizeModuleTaxonomyLabel } from '@/features/modules/utils/normalize
 import {
   getEstimatedMinutesValidationError,
   MAX_ESTIMATED_MINUTES,
+  formatEstimatedMinutesFieldValue,
+  parseEstimatedMinutesInput,
 } from '@/features/modules/utils/estimatedMinutesValidation';
+import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
 
 const DIFFICULTY_LEVEL_OPTIONS = ['easy', 'moderate', 'hard'] as const;
 
@@ -106,27 +124,7 @@ function createEmptyCreateForm(): CreateModuleFormState {
 }
 
 const moduleBadge = (status: ModuleStatus) => {
-  if (status === 'published') {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-spice-semantic-successBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-success ring-1 ring-spice-semantic-success/25">
-        <span className="h-1.5 w-1.5 rounded-full bg-spice-semantic-success" />
-        Published
-      </span>
-    );
-  }
-  if (status === 'deactivated') {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
-        <span className="h-1.5 w-1.5 rounded-full bg-spice-semantic-error" />
-        Deactivated
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-medium ring-1 ring-spice-border">
-      Draft
-    </span>
-  );
+  return <ModuleStatusBadge status={status} />;
 };
 
 function listingDateColumnDef(
@@ -158,7 +156,8 @@ function listingDateColumnDef(
 }
 
 export const ModuleLibraryPage = () => {
-  const isProgramManager = true;
+  const role = getCurrentRole();
+  const isProgramManager = role === 'programManager';
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -174,7 +173,6 @@ export const ModuleLibraryPage = () => {
     lifecycleStatus,
     setTab,
     setFilters,
-    clearFilters,
     resolveExternalViewSearch,
   } = useModuleListFilters(isProgramManager);
   const [page, setPage] = useState(0);
@@ -190,6 +188,11 @@ export const ModuleLibraryPage = () => {
   }, [page]);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<ModuleLibraryFilterState>(
+    EMPTY_MODULE_LIBRARY_FILTERS,
+  );
+  const [documentSearch, setDocumentSearch] = useState('');
   const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
   const [deactivateModuleData, setDeactivateModuleData] = useState<{
     id: string;
@@ -213,39 +216,45 @@ export const ModuleLibraryPage = () => {
     useDeactivateModuleMutation();
   const [reactivateModule, { isLoading: isReactivating }] =
     useReactivateModuleMutation();
+  const [overrideMergeModule] = useOverrideMergeModuleMutation();
+  const [deleteModule] = useDeleteModuleMutation();
 
-  const dateRangeInvalid = isDateRangeInvalid(
-    activeFilters.dateFrom,
-    activeFilters.dateTo,
-  );
-  const dateParams = buildModuleListDateParams(
-    activeFilters.dateFrom,
-    activeFilters.dateTo,
-  );
-  const {
-    data: domainOptions = [],
-    isSuccess: domainOptionsReady,
-    refetch: refetchDomainOptions,
-  } = useFetchModuleDomainOptionsQuery({
-    status: lifecycleStatus,
-  });
-  const { data: createDomainOptions = [] } = useFetchModuleDomainOptionsQuery(
-    {},
-    { skip: !createOpen },
-  );
+  const handleOverrideMerge = async (moduleId: string) => {
+    await overrideMergeModule({ moduleId }).unwrap();
+    refreshModuleList();
+  };
 
-  // Domain options are status-scoped. Drop a carried-over domain when it is not
-  // valid for the current tab so the dropdown and list request stay aligned.
-  useEffect(() => {
-    if (!domainOptionsReady) return;
-    const nextDomain = resolveDomainForOptions(
-      activeFilters.domain,
-      domainOptions,
+  const handleSkipReview = async (moduleId: string) => {
+    await deleteModule({ moduleId }).unwrap();
+    refreshModuleList();
+  };
+
+  const handleViewModule = (moduleId: string) => {
+    navigate(
+      paths.adminModuleReviewDetails.replace(
+        ':moduleId',
+        encodeURIComponent(moduleId),
+      ),
     );
-    if (nextDomain === activeFilters.domain) return;
-    setFilters({ ...activeFilters, domain: nextDomain });
-    setPage(0);
-  }, [activeFilters, domainOptions, domainOptionsReady, setFilters]);
+  };
+
+  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
+    activeFilters,
+    tab,
+    isProgramManager,
+  );
+  const dateParams = buildModuleListTypedDateParams(
+    activeFilters,
+    tab,
+    isProgramManager,
+  );
+  const filtersActive = hasActiveModuleFilters(
+    activeFilters,
+    tab,
+    isProgramManager,
+  );
+  const { data: domainOptions = [], refetch: refetchDomainOptions } =
+    useFetchModuleDomainOptionsQuery({});
   const {
     data: modulesPage,
     refetch,
@@ -263,27 +272,48 @@ export const ModuleLibraryPage = () => {
     },
     { skip: dateRangeInvalid },
   );
-  const modulesForList = dateRangeInvalid ? [] : (modulesPage?.modules ?? []);
+  const modulesForList = useMemo(
+    () => (dateRangeInvalid ? [] : (modulesPage?.modules ?? [])),
+    [dateRangeInvalid, modulesPage?.modules],
+  );
   const totalModules = modulesPage?.total_modules ?? 0;
   const totalPages = modulesPage?.total_pages ?? 0;
 
-  const refreshModuleList = () => {
+  const refreshModuleList = useCallback(() => {
     if (dateRangeInvalid || modulesQueryUninitialized) return;
     try {
       void refetch().catch(() => undefined);
     } catch {
       // Query may be skipped or unsubscribed after navigation.
     }
+  }, [dateRangeInvalid, modulesQueryUninitialized, refetch]);
+
+  const handleOpenFiltersDrawer = () => {
+    setDraftFilters(activeFilters);
+    setDocumentSearch('');
+    setFiltersDrawerOpen(true);
   };
 
-  const handleFilterChange = (next: typeof activeFilters) => {
-    setFilters(next);
-    setPage(0);
+  const handleCloseFiltersDrawer = () => {
+    setFiltersDrawerOpen(false);
+    setDocumentSearch('');
   };
 
-  const handleClearFilters = () => {
-    clearFilters();
+  const handleApplyFilters = () => {
+    setFilters(draftFilters);
     setPage(0);
+    setDocumentSearch('');
+    setFiltersDrawerOpen(false);
+  };
+
+  const handleClearDraftFilters = () => {
+    const cleared = {
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+    };
+    setDraftFilters(cleared);
+    setFilters(cleared);
+    setPage(0);
+    setDocumentSearch('');
   };
 
   const handleTabChange = (value: string) => {
@@ -341,7 +371,6 @@ export const ModuleLibraryPage = () => {
     tab,
   ]);
 
-  const [documentSearch, setDocumentSearch] = useState('');
   const debouncedDocumentSearch = useDebouncedValue(
     documentSearch,
     MODULE_SEARCH_DEBOUNCE_MS,
@@ -358,8 +387,12 @@ export const ModuleLibraryPage = () => {
 
   const modulesForDisplay = useMemo(
     () =>
-      modulesForList.filter((module) => module.lifecycle_status !== 'retired'),
-    [modulesForList],
+      tab === 'discarded'
+        ? modulesForList
+        : modulesForList.filter(
+            (module) => module.lifecycle_status !== 'retired',
+          ),
+    [modulesForList, tab],
   );
 
   const documentFilterOptions = useMemo(() => {
@@ -393,7 +426,7 @@ export const ModuleLibraryPage = () => {
       options.push({ label, value: document.source_document_id });
     }
 
-    const selectedSourceDocumentId = activeFilters.sourceDocumentId;
+    const selectedSourceDocumentId = draftFilters.sourceDocumentId;
     if (
       selectedSourceDocumentId &&
       !seen.has(selectedSourceDocumentId) &&
@@ -406,10 +439,10 @@ export const ModuleLibraryPage = () => {
     }
 
     return options;
-  }, [activeFilters.sourceDocumentId, documentSearchQ, sourceDocuments]);
+  }, [documentSearchQ, draftFilters.sourceDocumentId, sourceDocuments]);
 
   const selectedDocumentLabel = useMemo(() => {
-    const selectedSourceDocumentId = activeFilters.sourceDocumentId;
+    const selectedSourceDocumentId = draftFilters.sourceDocumentId;
     if (!selectedSourceDocumentId) return 'All documents';
     const fromCatalog = (sourceDocuments ?? []).find(
       (document) => document.id === selectedSourceDocumentId,
@@ -428,7 +461,7 @@ export const ModuleLibraryPage = () => {
       selectedSourceDocumentId,
       fromRecent?.title,
     );
-  }, [activeFilters.sourceDocumentId, sourceDocuments]);
+  }, [draftFilters.sourceDocumentId, sourceDocuments]);
 
   const listedDocumentCount = sourceDocuments?.length ?? 0;
   const documentFilterHint =
@@ -443,7 +476,7 @@ export const ModuleLibraryPage = () => {
       category: formatModuleDomainLabel(m.domain),
       lessons: m.card_count,
       questions: m.quiz_count,
-      durationLabel: `~${m.estimated_minutes} min`,
+      durationLabel: `~${formatEstimatedMinutesDisplay(m.estimated_minutes)}`,
       status:
         m.lifecycle_status === 'published'
           ? 'published'
@@ -479,12 +512,16 @@ export const ModuleLibraryPage = () => {
     isProgramManager,
   );
 
-  const dateHint = getModuleListDateHint(tab, isProgramManager);
-
   const hasNextPage = totalPages > 0 && page + 1 < totalPages;
   const hasPrevPage = page > 0;
-  const rangeStart = filtered.length ? page * pageSize + 1 : 0;
-  const rangeEnd = filtered.length ? page * pageSize + filtered.length : 0;
+  const currentTabItemCount =
+    tab === 'needs_review' || tab === 'discarded'
+      ? modulesForList.length
+      : filtered.length;
+  const rangeStart = currentTabItemCount ? page * pageSize + 1 : 0;
+  const rangeEnd = currentTabItemCount
+    ? page * pageSize + currentTabItemCount
+    : 0;
 
   useEffect(() => {
     if (totalPages > 0 && page >= totalPages) {
@@ -543,10 +580,28 @@ export const ModuleLibraryPage = () => {
         key: 'lessons',
         header: 'Content',
         render: (row) => (
-          <div className="grid grid-cols-[5.5rem_6.5rem_4.5rem] gap-x-1 text-xs text-spice-text-medium">
-            <span>{row.lessons} lessons</span>
+          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>
-              {row.questions > 0 ? `${row.questions} questions` : 'No quiz'}
+              {row.lessons === 1 ? '1 lesson' : `${row.lessons} lessons`}
+            </span>
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
+            {row.questions > 0 ? (
+              <span className="text-center">
+                {row.questions === 1
+                  ? '1 question'
+                  : `${row.questions} questions`}
+              </span>
+            ) : (
+              <span className="inline-flex w-full items-center justify-center">
+                <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                  No quiz
+                </span>
+              </span>
+            )}
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
             </span>
             <span>{row.durationLabel}</span>
           </div>
@@ -560,7 +615,7 @@ export const ModuleLibraryPage = () => {
       ...dateColumns.map(listingDateColumnDef),
       {
         key: 'id',
-        header: '',
+        header: 'Actions',
         className: 'text-left',
         render: (row) => {
           if (row.status === 'deactivated') {
@@ -646,8 +701,7 @@ export const ModuleLibraryPage = () => {
       isReactivating,
       navigate,
       reactivateModule,
-      refetch,
-      tab,
+      refreshModuleList,
     ],
   );
 
@@ -767,7 +821,7 @@ export const ModuleLibraryPage = () => {
                   id="create-module-domain"
                   label="Domain"
                   value={createForm.domain}
-                  options={createDomainOptions}
+                  options={domainOptions}
                   placeholder={CREATE_MODULE_FORM_PLACEHOLDERS.domain}
                   disabled={isCreating}
                   required
@@ -783,16 +837,18 @@ export const ModuleLibraryPage = () => {
                     Estimated minutes
                   </span>
                   <input
-                    type="number"
-                    min={0}
-                    max={MAX_ESTIMATED_MINUTES}
-                    step={1}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
                     className={cn(
                       CREATE_MODULE_INPUT_CLASS,
                       estimatedMinutesError &&
                         'border-spice-semantic-error ring-1 ring-spice-semantic-error',
                     )}
-                    value={createForm.estimated_minutes}
+                    value={formatEstimatedMinutesFieldValue(
+                      createForm.estimated_minutes,
+                    )}
                     disabled={isCreating}
                     aria-invalid={Boolean(estimatedMinutesError)}
                     aria-describedby={
@@ -804,7 +860,9 @@ export const ModuleLibraryPage = () => {
                       setCreateError('');
                       setCreateForm((prev) => ({
                         ...prev,
-                        estimated_minutes: Number(e.target.value || 0),
+                        estimated_minutes: parseEstimatedMinutesInput(
+                          e.target.value,
+                        ),
                       }));
                     }}
                   />
@@ -911,12 +969,16 @@ export const ModuleLibraryPage = () => {
                       domain,
                       sub_domain: null,
                       module_type: createForm.module_type,
-                      estimated_minutes: Math.max(
-                        0,
-                        Number.isFinite(createForm.estimated_minutes)
-                          ? createForm.estimated_minutes
-                          : 0,
+                      estimated_minutes: Math.min(
+                        MAX_ESTIMATED_MINUTES,
+                        Math.max(
+                          1,
+                          Number.isFinite(createForm.estimated_minutes)
+                            ? createForm.estimated_minutes
+                            : 1,
+                        ),
                       ),
+
                       difficulty_level: createForm.difficulty_level,
                       chatbot_faqs_only: createForm.chatbot_faqs_only,
                       module_json: {
@@ -1070,46 +1132,100 @@ export const ModuleLibraryPage = () => {
       </div>
 
       <Card variant="elevated" className="space-y-4">
-        {isProgramManager ? (
-          <Tabs
-            items={[
-              { label: 'Drafts', value: 'drafts' },
-              { label: 'Published', value: 'published' },
-              { label: 'Deactivated', value: 'deactivated' },
-              { label: 'All', value: 'all' },
-            ]}
-            value={tab}
-            onChange={handleTabChange}
-            className="w-fit px-[10px]"
+        <div className="flex items-center justify-between gap-3">
+          {isProgramManager ? (
+            <Tabs
+              items={[
+                { label: 'Drafts', value: 'drafts' },
+                { label: 'Published', value: 'published' },
+                {
+                  label: (
+                    <span className="inline-flex items-center gap-1.5">
+                      Needs Review
+                      <Tooltip
+                        as="span"
+                        label="Needs Review merge and skip information"
+                        content={NEEDS_REVIEW_TOOLTIP_CONTENT}
+                        placement="bottom"
+                      />
+                    </span>
+                  ),
+                  value: 'needs_review',
+                },
+                { label: 'Deactivated', value: 'deactivated' },
+                { label: 'Discarded', value: 'discarded' },
+                { label: 'All', value: 'all' },
+              ]}
+              value={tab}
+              onChange={handleTabChange}
+              className="w-fit px-[10px]"
+            />
+          ) : (
+            <div />
+          )}
+          <SettingsFilterTriggerButton
+            active={filtersActive}
+            expanded={filtersDrawerOpen}
+            onClick={handleOpenFiltersDrawer}
+            tooltip={
+              filtersActive
+                ? 'Results reflect the filters currently applied.'
+                : 'Use filters to narrow results.'
+            }
           />
-        ) : null}
+        </div>
 
-        <ModuleLibraryFilters
-          filters={activeFilters}
-          domains={domainOptions}
-          sourceDocumentOptions={documentFilterOptions}
-          sourceDocumentId={activeFilters.sourceDocumentId}
-          sourceDocumentLabel={selectedDocumentLabel}
-          sourceDocumentSearch={documentSearch}
-          sourceDocumentsLoading={isSearchingDocuments}
-          sourceDocumentsHint={documentFilterHint}
-          onSourceDocumentChange={(value) => {
-            setFilters({ ...activeFilters, sourceDocumentId: value });
-            setPage(0);
-          }}
-          onSourceDocumentSearchChange={setDocumentSearch}
-          dateHint={dateHint}
-          onChange={handleFilterChange}
-          onClear={handleClearFilters}
-        />
+        <SettingsFilterDrawer
+          open={filtersDrawerOpen}
+          onClose={handleCloseFiltersDrawer}
+          title="Filters"
+          description="Choose filters, then click Apply to update the list."
+          titleId="module-library-filters-title"
+          descriptionId="module-library-filters-desc"
+        >
+          <ModuleLibraryFilters
+            filters={draftFilters}
+            tab={tab}
+            isProgramManager={isProgramManager}
+            domains={domainOptions}
+            sourceDocumentOptions={documentFilterOptions}
+            sourceDocumentId={draftFilters.sourceDocumentId}
+            sourceDocumentLabel={selectedDocumentLabel}
+            sourceDocumentSearch={documentSearch}
+            sourceDocumentsLoading={isSearchingDocuments}
+            sourceDocumentsHint={documentFilterHint}
+            onSourceDocumentChange={(value) => {
+              setDraftFilters({ ...draftFilters, sourceDocumentId: value });
+            }}
+            onSourceDocumentSearchChange={setDocumentSearch}
+            onChange={setDraftFilters}
+            onClearAll={handleClearDraftFilters}
+            onApply={handleApplyFilters}
+          />
+        </SettingsFilterDrawer>
 
-        <Table<ModuleLibraryItem>
-          data={filtered}
-          columns={columns}
-          keyExtractor={(r) => r.id}
-          caption={tableCaption}
-          emptyMessage={emptyMessage}
-        />
+        {tab === 'needs_review' ? (
+          <NeedsReviewTab
+            modules={modulesForList}
+            isLoading={isLoadingModules}
+            onMerge={handleOverrideMerge}
+            onSkip={handleSkipReview}
+          />
+        ) : tab === 'discarded' ? (
+          <DiscardedTabTable
+            modules={modulesForList}
+            isLoading={isLoadingModules}
+            onView={handleViewModule}
+          />
+        ) : (
+          <Table<ModuleLibraryItem>
+            data={filtered}
+            columns={columns}
+            keyExtractor={(r) => r.id}
+            caption={tableCaption}
+            emptyMessage={emptyMessage}
+          />
+        )}
 
         <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">

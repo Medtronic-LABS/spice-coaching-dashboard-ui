@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setCurrentRole } from '@/constants/role';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -31,8 +32,8 @@ vi.mock('@/features/modules/hooks/usePresignedFileUrl', () => ({
 }));
 
 const baseModule = baseAdminModuleDetail({
-  lifecycle_status: 'published',
-  clinically_reviewed: true,
+  lifecycle_status: 'draft',
+  clinically_reviewed: false,
   card_count: 1,
   title: { bn: 'Preview Module' },
   description: null,
@@ -77,6 +78,7 @@ function renderPanel(isDirty = false) {
 
 describe('ModulePreviewPanel', () => {
   beforeEach(() => {
+    setCurrentRole('programManager');
     vi.restoreAllMocks();
   });
 

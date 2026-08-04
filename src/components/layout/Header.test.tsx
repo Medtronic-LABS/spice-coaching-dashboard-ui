@@ -19,7 +19,7 @@ describe('Header', () => {
   it('renders the UHIS logo and Coaching label in the header', () => {
     renderWithProviders(<Header {...defaultHeaderProps} />);
     expect(screen.getByRole('img', { name: 'UHIS' })).toBeInTheDocument();
-    expect(screen.getByText('Coaching')).toBeInTheDocument();
+    expect(screen.getByText('AI Coaching')).toBeInTheDocument();
   });
 
   it('renders the disabled profile control with user initials and hover name', () => {

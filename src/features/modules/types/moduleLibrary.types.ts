@@ -1,4 +1,9 @@
-export type ModuleStatus = 'published' | 'draft' | 'deactivated';
+export type ModuleStatus =
+  | 'published'
+  | 'draft'
+  | 'deactivated'
+  | 'review_pending'
+  | 'retired';
 
 export interface ModuleLibraryItem {
   id: string;

@@ -45,7 +45,7 @@ export function ingestRunStatusBadgeClassName(
 ): string {
   switch (tone) {
     case 'processing':
-      return 'bg-spice-brand-pm/15 text-spice-brand-pm';
+      return 'bg-spice-semantic-infoBg text-spice-semantic-info';
     case 'completed':
       return 'bg-spice-semantic-successBg text-spice-semantic-success';
     case 'partial':

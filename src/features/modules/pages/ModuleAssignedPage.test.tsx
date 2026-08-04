@@ -1,20 +1,23 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { paths } from '@/constants/routes';
+import { renderWithProviders } from '@/test-utils/render';
 import { ModuleAssignedPage } from './ModuleAssignedPage';
 
 function renderAssignedPage(state?: Record<string, unknown>) {
-  render(
-    <MemoryRouter initialEntries={[{ pathname: paths.moduleAssigned, state }]}>
-      <Routes>
-        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
-        <Route
-          path={paths.moduleLibrary}
-          element={<div data-testid="library" />}
-        />
-      </Routes>
-    </MemoryRouter>,
+  renderWithProviders(
+    <Routes>
+      <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+      <Route
+        path={paths.moduleLibrary}
+        element={<div data-testid="library" />}
+      />
+    </Routes>,
+    {
+      route: paths.moduleAssigned,
+      initialState: { locationState: state },
+    },
   );
 }
 

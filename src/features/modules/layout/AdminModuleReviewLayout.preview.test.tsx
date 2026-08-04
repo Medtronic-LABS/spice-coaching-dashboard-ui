@@ -3,8 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { paths } from '@/constants/routes';
+import { setCurrentRole } from '@/constants/role';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
 import {
   adminModuleReviewReducer,
@@ -60,7 +61,11 @@ function StepStub() {
   return <div data-testid="editor-step">Editor step</div>;
 }
 
-function renderLayout() {
+function renderLayout(
+  role: 'programManager' | 'supervisor' = 'programManager',
+) {
+  setCurrentRole(role);
+
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -99,6 +104,10 @@ function renderLayout() {
 }
 
 describe('AdminModuleReviewLayout preview integration', () => {
+  beforeEach(() => {
+    setCurrentRole('programManager');
+  });
+
   it('opens and closes preview from the layout toggle', async () => {
     const user = userEvent.setup();
     renderLayout();
@@ -160,5 +169,16 @@ describe('AdminModuleReviewLayout preview integration', () => {
 
     await user.click(screen.getByRole('button', { name: 'Sync preview' }));
     expect(screen.getByText('Updated Card')).toBeInTheDocument();
+  });
+
+  it('hides Sync preview for supervisor read-only role', async () => {
+    const user = userEvent.setup();
+    renderLayout('supervisor');
+
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(screen.getByText('Module Preview')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Sync preview' }),
+    ).not.toBeInTheDocument();
   });
 });

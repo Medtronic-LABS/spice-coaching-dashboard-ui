@@ -1,6 +1,5 @@
 import type {
   IngestAssessmentMode,
-  IngestBatchMode,
   IngestContentDomain,
 } from '@/features/ingest/api/adminIngestApi';
 
@@ -15,11 +14,9 @@ export type IngestModuleCountInput = number | '';
 export const INGEST_FORM_DEFAULTS = {
   content_domain: 'clinical' as IngestContentDomain,
   assessment_mode: 'with_quiz' as IngestAssessmentMode,
-  fuse_sources: false,
   sync_published_visible: false,
   quizzes_per_module: '' as IngestModuleCountInput,
   cards_per_module: '' as IngestModuleCountInput,
-  mode: 'append' as IngestBatchMode,
 } as const;
 
 export function isIngestModuleCountInRange(value: number): boolean {

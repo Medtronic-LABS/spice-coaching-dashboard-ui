@@ -1,14 +1,15 @@
 const ACTIVE_INGEST_SESSION_KEY = 'adminV3ActiveIngest';
 
 export interface ActiveIngestSession {
-  source_document_id: string;
+  batch_id: string;
+  source_document_id?: string;
   title?: string;
 }
 
 function isActiveIngestSession(value: unknown): value is ActiveIngestSession {
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
-  return typeof record.source_document_id === 'string';
+  return typeof record.batch_id === 'string' && record.batch_id.length > 0;
 }
 
 export function readActiveIngestSession(): ActiveIngestSession | null {

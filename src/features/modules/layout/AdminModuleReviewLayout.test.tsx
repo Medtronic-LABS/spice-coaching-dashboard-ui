@@ -4,10 +4,21 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import type { AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import { baseApi } from '@/store/apis/base';
+
+const roleState = vi.hoisted(() => ({ role: 'programManager' as AppRole }));
+
+vi.mock('@/constants/role', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/constants/role')>();
+  return {
+    ...actual,
+    getCurrentRole: () => roleState.role,
+  };
+});
 
 vi.mock('@/features/modules/hooks/useAdminModuleDetailQuery', () => ({
   useAdminModuleDetailQuery: () => ({
@@ -67,6 +78,10 @@ function renderLayout(initialPath: string) {
 }
 
 describe('AdminModuleReviewLayout', () => {
+  beforeEach(() => {
+    roleState.role = 'programManager';
+  });
+
   it('highlights the active review step from the current route', () => {
     renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
 
@@ -76,7 +91,8 @@ describe('AdminModuleReviewLayout', () => {
     expect(screen.getByTestId('details-outlet')).toBeInTheDocument();
   });
 
-  it('shows read-only badge when module detail is unavailable', () => {
+  it('shows read-only badge for supervisors', () => {
+    roleState.role = 'supervisor';
     renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
 
     expect(screen.getByText('Read-only review')).toBeInTheDocument();

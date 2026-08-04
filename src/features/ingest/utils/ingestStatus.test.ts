@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canCompleteIngestFlow,
+  countGeneratedModulesFromIngestStatus,
   hasGeneratedIngestModules,
   isIngestInProgress,
   isIngestRunning,
@@ -32,6 +34,25 @@ describe('ingestStatus', () => {
     expect(shouldPollIngestStatus('doc-id', 'succeeded')).toBe(false);
   });
 
+  it('keeps polling and blocks completion while merge decisions are pending', () => {
+    expect(
+      shouldPollIngestStatus('doc-id', 'succeeded', {
+        hasPendingMergeDecisions: true,
+      }),
+    ).toBe(true);
+    expect(
+      isIngestInProgress('doc-id', 'succeeded', {
+        hasPendingMergeDecisions: true,
+      }),
+    ).toBe(true);
+    expect(
+      canCompleteIngestFlow('succeeded', { hasPendingMergeDecisions: true }),
+    ).toBe(false);
+    expect(
+      canCompleteIngestFlow('succeeded', { hasPendingMergeDecisions: false }),
+    ).toBe(true);
+  });
+
   it('is not in progress without a document id', () => {
     expect(isIngestInProgress('', 'pipeline_queued')).toBe(false);
     expect(isIngestInProgress('doc-id', 'succeeded')).toBe(false);
@@ -42,5 +63,88 @@ describe('ingestStatus', () => {
     expect(hasGeneratedIngestModules(0)).toBe(false);
     expect(hasGeneratedIngestModules(undefined)).toBe(false);
     expect(hasGeneratedIngestModules(Number.NaN)).toBe(false);
+  });
+
+  it('prefers top-level generated_module_count when present', () => {
+    expect(
+      countGeneratedModulesFromIngestStatus({
+        generated_module_count: 2,
+        steps: [
+          {
+            stage: 'card_draft',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            input_summary: null,
+            output_summary: { module_id: 'mod-1' },
+            error: null,
+          },
+        ],
+      }),
+    ).toBe(2);
+  });
+
+  it('counts distinct card_draft module_ids when top-level count is absent', () => {
+    expect(countGeneratedModulesFromIngestStatus(null)).toBe(0);
+    expect(
+      countGeneratedModulesFromIngestStatus({
+        steps: [
+          {
+            stage: 'extract',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            input_summary: null,
+            output_summary: {},
+            error: null,
+          },
+          {
+            stage: 'card_draft',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            input_summary: null,
+            output_summary: {
+              module_id: null,
+              insufficient_reason: 'validator_dropped_too_many_cards',
+            },
+            error: null,
+          },
+        ],
+      }),
+    ).toBe(0);
+    expect(
+      countGeneratedModulesFromIngestStatus({
+        steps: [
+          {
+            stage: 'card_draft',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            input_summary: null,
+            output_summary: { module_id: 'mod-a' },
+            error: null,
+          },
+          {
+            stage: 'card_draft',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            input_summary: null,
+            output_summary: { module_id: 'mod-a' },
+            error: null,
+          },
+          {
+            stage: 'card_draft',
+            status: 'succeeded',
+            started_at: null,
+            completed_at: null,
+            input_summary: null,
+            output_summary: { module_id: 'mod-b' },
+            error: null,
+          },
+        ],
+      }),
+    ).toBe(2);
   });
 });

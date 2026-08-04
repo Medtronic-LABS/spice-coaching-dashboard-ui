@@ -28,7 +28,7 @@ describe('Sidebar', () => {
       screen.getByRole('link', { name: /^module library$/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /upload document/i }),
+      screen.getByRole('link', { name: /ingest document/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /upload video/i }),
@@ -75,7 +75,7 @@ describe('Sidebar', () => {
     );
 
     const modulesLink = screen.getByRole('link', { name: /^module library$/i });
-    const ingestLink = screen.getByRole('link', { name: /upload document/i });
+    const ingestLink = screen.getByRole('link', { name: /ingest document/i });
     const historyLink = screen.getByRole('link', {
       name: /ingestion history/i,
     });
@@ -98,7 +98,7 @@ describe('Sidebar', () => {
     const historyLink = screen.getByRole('link', {
       name: /ingestion history/i,
     });
-    const ingestLink = screen.getByRole('link', { name: /upload document/i });
+    const ingestLink = screen.getByRole('link', { name: /ingest document/i });
 
     expect(historyLink).toHaveClass(
       'bg-spice-brand-pm/20',
@@ -107,14 +107,14 @@ describe('Sidebar', () => {
     expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
   });
 
-  it('highlights upload document but not module library on the ingest route', () => {
+  it('highlights ingest document but not module library on the ingest route', () => {
     render(
       <MemoryRouter initialEntries={[paths.ingestDocument]}>
         <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,
     );
 
-    const ingestLink = screen.getByRole('link', { name: /upload document/i });
+    const ingestLink = screen.getByRole('link', { name: /ingest document/i });
     const modulesLink = screen.getByRole('link', { name: /^module library$/i });
 
     expect(ingestLink).toHaveClass(

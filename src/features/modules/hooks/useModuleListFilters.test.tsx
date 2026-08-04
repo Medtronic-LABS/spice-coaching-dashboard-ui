@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { EMPTY_MODULE_LIBRARY_FILTERS } from '@/features/modules/utils/moduleListFilters';
 import { useModuleListFilters } from './useModuleListFilters';
 
 function createWrapper(initialRoute: string) {
@@ -25,10 +26,8 @@ describe('useModuleListFilters', () => {
 
     expect(result.current.tab).toBe('published');
     expect(result.current.activeFilters).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
       domain: 'Hypertension',
-      dateFrom: '',
-      dateTo: '',
-      sourceDocumentId: '',
     });
   });
 
@@ -42,10 +41,8 @@ describe('useModuleListFilters', () => {
     });
     act(() => {
       result.current.setFilters({
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
         domain: 'Hypertension',
-        dateFrom: '',
-        dateTo: '',
-        sourceDocumentId: '',
       });
     });
 
@@ -72,9 +69,10 @@ describe('useModuleListFilters', () => {
       JSON.stringify({
         tab: 'published',
         filters: {
+          ...EMPTY_MODULE_LIBRARY_FILTERS,
           domain: 'Hypertension',
-          dateFrom: '2026-01-01',
-          dateTo: '2026-01-31',
+          createdFrom: '2026-01-01',
+          createdTo: '2026-01-31',
           sourceDocumentId: 'doc-9',
         },
       }),
@@ -85,12 +83,7 @@ describe('useModuleListFilters', () => {
     });
 
     expect(result.current.tab).toBe('drafts');
-    expect(result.current.activeFilters).toEqual({
-      domain: '',
-      dateFrom: '',
-      dateTo: '',
-      sourceDocumentId: '',
-    });
+    expect(result.current.activeFilters).toEqual(EMPTY_MODULE_LIBRARY_FILTERS);
   });
 
   it('combines an externally passed document with explicit URL filters only', () => {
@@ -99,9 +92,10 @@ describe('useModuleListFilters', () => {
       JSON.stringify({
         tab: 'deactivated',
         filters: {
+          ...EMPTY_MODULE_LIBRARY_FILTERS,
           domain: 'Stale domain',
-          dateFrom: '2025-01-01',
-          dateTo: '2025-01-31',
+          createdFrom: '2025-01-01',
+          createdTo: '2025-01-31',
           sourceDocumentId: 'stale-doc',
         },
       }),
@@ -117,7 +111,7 @@ describe('useModuleListFilters', () => {
     });
 
     expect(resolved).toBe(
-      'tab=all&domain=Hypertension&from=2026-01-01&doc=current-doc',
+      'tab=all&domain=Hypertension&doc=current-doc&published_from=2026-01-01',
     );
   });
 
@@ -132,11 +126,26 @@ describe('useModuleListFilters', () => {
       result.current.clearFilters();
     });
 
-    expect(result.current.activeFilters).toEqual({
-      domain: '',
-      dateFrom: '',
-      dateTo: '',
-      sourceDocumentId: '',
+    expect(result.current.activeFilters).toEqual(EMPTY_MODULE_LIBRARY_FILTERS);
+  });
+
+  it('keeps typed date values across tabs in URL state', () => {
+    const { result } = renderHook(() => useModuleListFilters(true), {
+      wrapper: createWrapper('/module-library?tab=published'),
     });
+
+    act(() => {
+      result.current.setFilters({
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        publishedFrom: '2026-02-01',
+        createdFrom: '2026-01-01',
+      });
+    });
+    act(() => {
+      result.current.setTab('drafts');
+    });
+
+    expect(result.current.activeFilters.publishedFrom).toBe('2026-02-01');
+    expect(result.current.activeFilters.createdFrom).toBe('2026-01-01');
   });
 });

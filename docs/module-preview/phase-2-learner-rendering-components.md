@@ -16,7 +16,7 @@ Build read-only React components that render `RichBlock[]` and media the way CHW
 
 ### 1. Learner rich card body
 
-**New file:** `src/features/modules/components/module-preview/LearnerRichCardBody.tsx`
+**New file:** `src/features/module-library/components/module-preview/LearnerRichCardBody.tsx`
 
 ```typescript
 export interface LearnerRichCardBodyProps {
@@ -49,7 +49,7 @@ Styling:
 
 ### 2. Preview image block
 
-**New file:** `src/features/modules/components/module-preview/PreviewImageBlock.tsx`
+**New file:** `src/features/module-library/components/module-preview/PreviewImageBlock.tsx`
 
 ```typescript
 export interface PreviewImageBlockProps {
@@ -67,7 +67,7 @@ Behavior (mirror `RichImageBlock.kt`):
 
 ### 3. Preview video block
 
-**New file:** `src/features/modules/components/module-preview/PreviewVideoBlock.tsx`
+**New file:** `src/features/module-library/components/module-preview/PreviewVideoBlock.tsx`
 
 Behavior (mirror `RichVideoBlock.kt`):
 
@@ -80,7 +80,7 @@ Optional: resolve thumbnail URL if `attrs.thumbnail` present; still no play.
 
 ### 4. Preview audio block
 
-**New file:** `src/features/modules/components/module-preview/PreviewAudioBlock.tsx`
+**New file:** `src/features/module-library/components/module-preview/PreviewAudioBlock.tsx`
 
 Simple metadata card:
 
@@ -91,13 +91,13 @@ Simple metadata card:
 
 If `LearnerRichCardBody` grows large, extract:
 
-**New file:** `src/features/modules/components/module-preview/PreviewRichInline.tsx`
+**New file:** `src/features/module-library/components/module-preview/PreviewRichInline.tsx`
 
 Renders `RichTextLeaf[]` with mark nesting. Keep colocated if small.
 
 ### 6. Component tests
 
-**New file:** `src/features/modules/components/module-preview/LearnerRichCardBody.test.tsx`
+**New file:** `src/features/module-library/components/module-preview/LearnerRichCardBody.test.tsx`
 
 | Case | Assert |
 |------|--------|
@@ -111,7 +111,7 @@ Renders `RichTextLeaf[]` with mark nesting. Keep colocated if small.
 Mock `usePresignedFileUrl` in tests:
 
 ```typescript
-vi.mock('@/features/modules/hooks/usePresignedFileUrl', () => ({
+vi.mock('@/features/module-library/hooks/usePresignedFileUrl', () => ({
   usePresignedFileUrl: () => ({ url: 'https://example.com/img.png', isLoading: false, isError: false }),
 }));
 ```
@@ -122,12 +122,12 @@ vi.mock('@/features/modules/hooks/usePresignedFileUrl', () => ({
 
 | Action | Path |
 |--------|------|
-| New | `src/features/modules/components/module-preview/LearnerRichCardBody.tsx` |
-| New | `src/features/modules/components/module-preview/PreviewImageBlock.tsx` |
-| New | `src/features/modules/components/module-preview/PreviewVideoBlock.tsx` |
-| New | `src/features/modules/components/module-preview/PreviewAudioBlock.tsx` |
-| New (optional) | `src/features/modules/components/module-preview/PreviewRichInline.tsx` |
-| New | `src/features/modules/components/module-preview/LearnerRichCardBody.test.tsx` |
+| New | `src/features/module-library/components/module-preview/LearnerRichCardBody.tsx` |
+| New | `src/features/module-library/components/module-preview/PreviewImageBlock.tsx` |
+| New | `src/features/module-library/components/module-preview/PreviewVideoBlock.tsx` |
+| New | `src/features/module-library/components/module-preview/PreviewAudioBlock.tsx` |
+| New (optional) | `src/features/module-library/components/module-preview/PreviewRichInline.tsx` |
+| New | `src/features/module-library/components/module-preview/LearnerRichCardBody.test.tsx` |
 
 **Do not wire** into editor layout yet. Test components in isolation with fixture `RichBlock[]` props.
 
@@ -150,7 +150,7 @@ Theme blue for headers comes in Phase 3 (`MobilePreviewFrame`).
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/modules/components/module-preview/LearnerRichCardBody.test.tsx
+npm run test -- src/features/module-library/components/module-preview/LearnerRichCardBody.test.tsx
 npm run typecheck
 ```
 

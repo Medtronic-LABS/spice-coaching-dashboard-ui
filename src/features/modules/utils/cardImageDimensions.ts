@@ -74,7 +74,7 @@ export function resizeDimensionsByWidth(
 ): { width: number; height: number } {
   const aspect = width / height;
   const w = Math.round(nextWidth);
-  const h = Math.max(1, Math.round(w / aspect));
+  const h = Math.max(1, w / aspect);
   return clampImageDimensions(w, h);
 }
 

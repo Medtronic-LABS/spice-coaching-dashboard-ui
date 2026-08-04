@@ -1,12 +1,14 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { paths } from '@/constants/routes';
 import type {
   AdminV3IngestAcceptedResponse,
-  AdminV3IngestStatusResponse,
+  AdminV3IngestBatchStatusResponse,
+  AdminV3IngestUploadResponse,
 } from '@/features/ingest/api/adminIngestApi';
+import { isIngestSucceeded } from '@/features/ingest/utils/ingestStatus';
 import {
   readActiveVideoIngestSessions,
   writeActiveVideoIngestSessions,
@@ -16,6 +18,11 @@ import { VideoUploadPage } from './VideoUploadPage';
 type IngestAcceptedCallback = (
   response: AdminV3IngestAcceptedResponse,
   meta: { isReingest: boolean },
+) => void;
+
+type IngestUploadedCallback = (
+  response: AdminV3IngestUploadResponse,
+  meta: { isReupload: boolean },
 ) => void;
 
 const mocks = vi.hoisted(() => {
@@ -28,12 +35,17 @@ const mocks = vi.hoisted(() => {
     authority_label: '',
     original_filename: 'existing.mp4',
     ingested_at: '2026-07-15T08:00:00Z',
+    description: null as string | null,
+    thumbnail_storage_path: null as string | null,
+    thumbnail_presigned_url: null as string | null,
   };
   return {
     navigate: vi.fn(),
-    submitIngest: vi.fn().mockResolvedValue(null),
+    uploadFiles: vi.fn().mockResolvedValue(null),
+    startIngest: vi.fn().mockResolvedValue(null),
     confirmDuplicate: vi.fn(),
     cancelDuplicate: vi.fn(),
+    updateSourceDocumentThumbnail: vi.fn().mockResolvedValue({ data: {} }),
     duplicateDialog: {
       open: false,
       variant: 'blocked' as 'blocked' | 'skipped',
@@ -44,25 +56,25 @@ const mocks = vi.hoisted(() => {
         existing_source_documents: [];
       }>,
     },
-    // Captures the onAccepted callback the page passes to the ingest hook so a
-    // test can simulate the backend accepting the upload.
     onAcceptedRef: { current: null as IngestAcceptedCallback | null },
-    // When set, the mocked status panel reports this status to its parent,
-    // driving the success/redirect flow.
-    panelStatus: { current: null as AdminV3IngestStatusResponse | null },
+    onUploadedRef: { current: null as IngestUploadedCallback | null },
+    panelStatus: { current: null as AdminV3IngestBatchStatusResponse | null },
     panelProps: {
-      current: [] as Array<{ sourceDocumentId: string; sourceTitle?: string }>,
+      current: [] as Array<{ batchId: string; sourceTitle?: string }>,
     },
+    sourceDocuments: [videoSourceDocument] as Array<typeof videoSourceDocument>,
+    refetchSourceDocuments: vi.fn().mockResolvedValue(undefined),
     useFetchSourceDocumentsQuery: vi.fn(() => ({
       data: {
-        source_documents: [videoSourceDocument],
-        total_source_documents: 1,
+        source_documents: mocks.sourceDocuments,
+        total_source_documents: mocks.sourceDocuments.length,
         total_pages: 1,
         limit: 10,
         offset: 0,
       },
       isFetching: false,
       isError: false,
+      refetch: mocks.refetchSourceDocuments,
     })),
   };
 });
@@ -75,6 +87,17 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mocks.navigate };
 });
 
+vi.mock('@/features/ingest/utils/videoThumbnail', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/ingest/utils/videoThumbnail')
+    >();
+  return {
+    ...actual,
+    captureVideoFirstFrame: vi.fn().mockResolvedValue(null),
+  };
+});
+
 vi.mock(
   '@/features/modules/api/adminSourceDocumentsApi',
   async (importOriginal) => {
@@ -85,21 +108,33 @@ vi.mock(
     return {
       ...actual,
       useFetchSourceDocumentsQuery: mocks.useFetchSourceDocumentsQuery,
+      useUpdateSourceDocumentThumbnailMutation: () => [
+        mocks.updateSourceDocumentThumbnail,
+        { isLoading: false },
+      ],
+      useUpdateSourceDocumentMetadataMutation: () => [
+        vi.fn().mockResolvedValue({ data: {} }),
+        { isLoading: false },
+      ],
     };
   },
 );
 
 vi.mock('@/features/ingest/hooks/useIngestWithDuplicateHandling', () => ({
   useIngestWithDuplicateHandling: (options: {
-    onAccepted: IngestAcceptedCallback;
+    onAccepted?: IngestAcceptedCallback;
+    onUploaded?: IngestUploadedCallback;
   }) => {
-    mocks.onAcceptedRef.current = options.onAccepted;
+    mocks.onAcceptedRef.current = options.onAccepted ?? null;
+    mocks.onUploadedRef.current = options.onUploaded ?? null;
     return {
-      submitIngest: mocks.submitIngest,
+      uploadFiles: mocks.uploadFiles,
+      startIngest: mocks.startIngest,
       confirmDuplicate: mocks.confirmDuplicate,
       cancelDuplicate: mocks.cancelDuplicate,
       duplicateDialog: mocks.duplicateDialog,
       isUploading: false,
+      isStartingIngest: false,
       isConfirmingDuplicate: false,
     };
   },
@@ -109,35 +144,54 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
   const { useEffect } = await import('react');
   return {
     IngestRunStatusPanel: ({
-      sourceDocumentId,
+      batchId,
       sourceTitle,
       onStatusChange,
+      onGoToDrafts,
+      onGoToNeedsReview,
       successAction,
     }: {
-      sourceDocumentId: string;
+      batchId: string;
       sourceTitle?: string;
       onStatusChange?: (
-        sourceDocumentId: string,
-        status: AdminV3IngestStatusResponse | null,
+        batchId: string,
+        status: AdminV3IngestBatchStatusResponse | null,
       ) => void;
-      successAction?: React.ReactNode;
+      onGoToDrafts?: () => void;
+      onGoToNeedsReview?: () => void;
+      successAction?: ReactNode;
     }) => {
       useEffect(() => {
-        mocks.panelProps.current.push({ sourceDocumentId, sourceTitle });
+        mocks.panelProps.current.push({ batchId, sourceTitle });
         return () => {
           mocks.panelProps.current = mocks.panelProps.current.filter(
-            (panel) => panel.sourceDocumentId !== sourceDocumentId,
+            (panel) => panel.batchId !== batchId,
           );
         };
-      }, [sourceDocumentId, sourceTitle]);
+      }, [batchId, sourceTitle]);
       useEffect(() => {
         if (mocks.panelStatus.current) {
-          onStatusChange?.(sourceDocumentId, mocks.panelStatus.current);
+          onStatusChange?.(batchId, mocks.panelStatus.current);
         }
-      }, [sourceDocumentId, onStatusChange]);
-      const succeeded =
-        mocks.panelStatus.current?.status?.toLowerCase() === 'succeeded';
-      return succeeded && successAction ? <>{successAction}</> : null;
+      }, [batchId, onStatusChange]);
+      const status = mocks.panelStatus.current;
+      const succeeded = isIngestSucceeded(status?.status);
+      if (!succeeded) return null;
+      if (onGoToNeedsReview) {
+        return (
+          <button type="button" onClick={onGoToNeedsReview}>
+            Review Modules
+          </button>
+        );
+      }
+      if (onGoToDrafts) {
+        return (
+          <button type="button" onClick={onGoToDrafts}>
+            Go to Drafts
+          </button>
+        );
+      }
+      return successAction ? <>{successAction}</> : null;
     },
   };
 });
@@ -150,77 +204,368 @@ function renderPage() {
   );
 }
 
+function latestUploadedVideosQuery() {
+  const calls = mocks.useFetchSourceDocumentsQuery.mock.calls
+    .map(([params]) => params)
+    .filter(
+      (params) =>
+        params &&
+        typeof params === 'object' &&
+        params.source_type === 'video' &&
+        params.limit === 10,
+    );
+  return calls.length > 0 ? calls[calls.length - 1] : undefined;
+}
+
+function titleFromFileName(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, '');
+}
+
+async function stageAndApiUpload(
+  user: ReturnType<typeof userEvent.setup>,
+  video: File,
+  sourceId = 'uploaded-source-1',
+) {
+  await user.upload(
+    screen.getByLabelText(/upload video/i, { selector: 'input' }),
+    video,
+  );
+  await waitFor(() =>
+    expect(
+      screen.getAllByText(video.name, { exact: false }).length,
+    ).toBeGreaterThan(0),
+  );
+
+  mocks.uploadFiles.mockImplementation(async () => {
+    const existingDocument = mocks.sourceDocuments.find(
+      (document) => document.id === sourceId,
+    );
+    const title = titleFromFileName(video.name);
+    const response: AdminV3IngestUploadResponse = {
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: sourceId,
+          title,
+          source_type: 'video',
+          stored_path: 'path',
+          status: 'uploaded',
+        },
+      ],
+    };
+    mocks.sourceDocuments = [
+      {
+        id: sourceId,
+        title,
+        source_type: 'video',
+        status: existingDocument?.status ?? 'uploaded',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: video.name,
+        ingested_at: existingDocument?.ingested_at ?? '2026-07-16T08:00:00Z',
+        description: existingDocument?.description ?? null,
+        thumbnail_storage_path:
+          existingDocument?.thumbnail_storage_path ?? null,
+        thumbnail_presigned_url:
+          existingDocument?.thumbnail_presigned_url ?? null,
+      },
+      ...mocks.sourceDocuments.filter((document) => document.id !== sourceId),
+    ];
+    mocks.onUploadedRef.current?.(response, { isReupload: false });
+    return response;
+  });
+
+  await user.click(screen.getByRole('button', { name: /^upload$/i }));
+  await waitFor(() => expect(mocks.uploadFiles).toHaveBeenCalled());
+}
+
+async function selectVideoRow(
+  user: ReturnType<typeof userEvent.setup>,
+  title: string,
+) {
+  const checkbox = await screen.findByRole('checkbox', {
+    name: `Select ${title}`,
+  });
+  expect(checkbox).not.toBeChecked();
+  await user.click(checkbox);
+  expect(checkbox).toBeChecked();
+}
+
 describe('VideoUploadPage', () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
-    mocks.submitIngest.mockReset();
-    mocks.submitIngest.mockResolvedValue(null);
+    mocks.uploadFiles.mockReset();
+    mocks.uploadFiles.mockResolvedValue(null);
+    mocks.startIngest.mockReset();
+    mocks.startIngest.mockResolvedValue(null);
     mocks.confirmDuplicate.mockReset();
     mocks.cancelDuplicate.mockReset();
+    mocks.updateSourceDocumentThumbnail.mockReset();
+    mocks.updateSourceDocumentThumbnail.mockResolvedValue({ data: {} });
     mocks.duplicateDialog.open = false;
     mocks.duplicateDialog.variant = 'blocked';
     mocks.duplicateDialog.conflicts = [];
     mocks.onAcceptedRef.current = null;
+    mocks.onUploadedRef.current = null;
     mocks.panelStatus.current = null;
     mocks.panelProps.current = [];
+    mocks.sourceDocuments = [
+      {
+        id: 'video-source-1',
+        title: 'Existing video',
+        source_type: 'video',
+        status: 'ingested',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'existing.mp4',
+        ingested_at: '2026-07-15T08:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+    ];
+    mocks.refetchSourceDocuments.mockReset();
+    mocks.refetchSourceDocuments.mockResolvedValue(undefined);
     window.sessionStorage.clear();
   });
 
-  it('stages a video and ingests it with the configured payload', async () => {
+  it('stages a video, uploads it, then starts ingest with source ids', async () => {
     const user = userEvent.setup();
     renderPage();
     const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
 
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      video,
+    await stageAndApiUpload(user, video);
+
+    expect(mocks.uploadFiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [video],
+        titles: ['new-video'],
+        descriptions: [null],
+        content_domains: ['clinical'],
+        sync_published_visible: [false],
+      }),
     );
-    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    expect(
+      screen.getByRole('button', { name: 'Ingest Selected Videos' }),
+    ).toBeDisabled();
 
-    expect(screen.getByText('new-video.mp4')).toBeInTheDocument();
-    expect(mocks.useFetchSourceDocumentsQuery).toHaveBeenCalledWith({
-      source_type: 'video',
-      limit: 10,
-      offset: 0,
-    });
-
+    await selectVideoRow(user, 'new-video');
     await user.click(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
     );
 
-    await waitFor(() => expect(mocks.submitIngest).toHaveBeenCalledOnce());
-    expect(mocks.submitIngest).toHaveBeenCalledWith(
+    await waitFor(() => expect(mocks.startIngest).toHaveBeenCalledOnce());
+    expect(mocks.startIngest).toHaveBeenCalledWith(
       expect.objectContaining({
-        files: [video],
-        content_domain: 'clinical',
+        source_document_ids: ['uploaded-source-1'],
         assessment_mode: 'with_quiz',
-        override_duplicates: undefined,
+        override_duplicates: null,
       }),
     );
   });
 
-  it('warns before re-ingesting an existing video', async () => {
+  it('shows backend-driven status/date columns and allows selecting ingested rows', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Status' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Date/time' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: 'Upload status' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: 'Ingestion status' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'About uploaded videos' }),
+    ).toBeInTheDocument();
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Select Existing video',
+    });
+    expect(checkbox).toBeEnabled();
+    await user.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    expect(screen.getByText('Ingested')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'View modules' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows Assign button for listed videos', () => {
+    renderPage();
+
+    expect(screen.getByRole('button', { name: 'Assign' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  });
+
+  it('hides View modules when status is not ingested', () => {
+    mocks.sourceDocuments = [
+      {
+        id: 'video-source-uploaded',
+        title: 'Pending video',
+        source_type: 'video',
+        status: 'uploaded',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'pending.mp4',
+        ingested_at: '2026-07-15T08:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+    ];
+    renderPage();
+
+    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Assign' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByText('Not ingested')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'View modules' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows View modules for succeeded status alias', () => {
+    mocks.sourceDocuments = [
+      {
+        id: 'video-source-succeeded',
+        title: 'Succeeded video',
+        source_type: 'video',
+        status: 'succeeded',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'succeeded.mp4',
+        ingested_at: '2026-07-15T08:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+    ];
+    renderPage();
+
+    expect(screen.getByText('Succeeded')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'View modules' }),
+    ).toBeInTheDocument();
+  });
+
+  it('applies and clears uploaded video status filters through the settings drawer', async () => {
+    const user = userEvent.setup();
+    mocks.sourceDocuments = [
+      {
+        id: 'video-source-1',
+        title: 'Existing video',
+        source_type: 'video',
+        status: 'ingested',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'existing.mp4',
+        ingested_at: '2026-07-15T08:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+      {
+        id: 'video-source-2',
+        title: 'Failed video',
+        source_type: 'video',
+        status: 'failed',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'failed.mp4',
+        ingested_at: '2026-07-15T09:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+    ];
+
+    renderPage();
+
+    expect(latestUploadedVideosQuery()).toEqual(
+      expect.objectContaining({
+        source_type: 'video',
+        status: ['uploaded', 'ingesting', 'ingested', 'failed'],
+        limit: 10,
+        offset: 0,
+      }),
+    );
+    expect(
+      screen.queryByRole('combobox', { name: /filter uploaded videos/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /open video filters/i }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Filters' });
+    await user.click(within(dialog).getByLabelText('Failed'));
+    await user.click(within(dialog).getByLabelText('Ingested'));
+    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() =>
+      expect(latestUploadedVideosQuery()).toEqual(
+        expect.objectContaining({
+          source_type: 'video',
+          status: ['failed', 'ingested'],
+          limit: 10,
+          offset: 0,
+        }),
+      ),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /open video filters/i }),
+    );
+    const reopenedDialog = screen.getByRole('dialog', { name: 'Filters' });
+    expect(within(reopenedDialog).getByLabelText('Failed')).toBeChecked();
+    expect(within(reopenedDialog).getByLabelText('Ingested')).toBeChecked();
+    await user.click(
+      within(reopenedDialog).getByRole('button', { name: 'Clear All' }),
+    );
+    expect(within(reopenedDialog).getByLabelText('Failed')).not.toBeChecked();
+    expect(within(reopenedDialog).getByLabelText('Ingested')).not.toBeChecked();
+
+    await waitFor(() => {
+      expect(latestUploadedVideosQuery()).toEqual(
+        expect.objectContaining({
+          source_type: 'video',
+          status: ['uploaded', 'ingesting', 'ingested', 'failed'],
+          limit: 10,
+          offset: 0,
+        }),
+      );
+    });
+  });
+
+  it('warns before re-ingesting an existing video using the shared duplicate dialog', async () => {
     const user = userEvent.setup();
     renderPage();
     const video = new File(['video'], 'existing.mp4', { type: 'video/mp4' });
 
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      video,
-    );
-    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await stageAndApiUpload(user, video, 'video-source-1');
+    await selectVideoRow(user, 'existing');
     await user.click(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Confirm video re-ingestion' }),
+      screen.getByRole('heading', { name: 'Document already ingested' }),
     ).toBeInTheDocument();
-    expect(mocks.submitIngest).not.toHaveBeenCalled();
+    expect(mocks.startIngest).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(mocks.submitIngest).toHaveBeenCalledOnce());
-    expect(mocks.submitIngest).toHaveBeenCalledWith(
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Select existing.mp4 to re-ingest',
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /^re-ingest$/i }));
+    await waitFor(() => expect(mocks.startIngest).toHaveBeenCalledOnce());
+    expect(mocks.startIngest).toHaveBeenCalledWith(
       expect.objectContaining({ override_duplicates: [true] }),
     );
   });
@@ -230,322 +575,131 @@ describe('VideoUploadPage', () => {
     renderPage();
     const video = new File(['video'], 'existing.mp4', { type: 'video/mp4' });
 
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      video,
-    );
-    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await stageAndApiUpload(user, video, 'video-source-1');
+    await selectVideoRow(user, 'existing');
     await user.click(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
     );
-
     expect(
-      screen.getByRole('heading', { name: 'Confirm video re-ingestion' }),
+      screen.getByRole('heading', { name: 'Document already ingested' }),
     ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await user.keyboard('{Escape}');
 
     expect(
-      screen.queryByRole('heading', { name: 'Confirm video re-ingestion' }),
+      screen.queryByRole('heading', { name: 'Document already ingested' }),
     ).not.toBeInTheDocument();
-    expect(mocks.submitIngest).not.toHaveBeenCalled();
-    expect(mocks.cancelDuplicate).not.toHaveBeenCalled();
+    expect(mocks.startIngest).not.toHaveBeenCalled();
   });
 
-  it('confirms backend duplicate conflicts via ReingestConfirmDialog', async () => {
+  it('keeps ingest disabled until uploaded videos are selected', async () => {
     const user = userEvent.setup();
-    mocks.duplicateDialog.open = true;
-    mocks.duplicateDialog.conflicts = [
-      {
-        filename: 'backend-dup.mp4',
-        title: 'Backend dup',
-        content_sha256: 'abc',
-        existing_source_documents: [],
-      },
-    ];
-
     renderPage();
+    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
+
+    await stageAndApiUpload(user, video);
 
     expect(
-      screen.getByRole('heading', { name: 'Confirm video re-ingestion' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('backend-dup.mp4')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(mocks.confirmDuplicate).toHaveBeenCalledOnce();
-    expect(mocks.cancelDuplicate).not.toHaveBeenCalled();
-  });
-
-  it('cancels backend duplicate conflicts via ReingestConfirmDialog', async () => {
-    const user = userEvent.setup();
-    mocks.duplicateDialog.open = true;
-    mocks.duplicateDialog.conflicts = [
-      {
-        filename: 'backend-dup.mp4',
-        title: 'Backend dup',
-        content_sha256: 'abc',
-        existing_source_documents: [],
-      },
-    ];
-
-    renderPage();
-
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(mocks.cancelDuplicate).toHaveBeenCalledOnce();
-    expect(mocks.confirmDuplicate).not.toHaveBeenCalled();
-  });
-
-  it('stages multiple videos and uploads them together', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    const first = new File(['a'], 'first.mp4', { type: 'video/mp4' });
-    const second = new File(['bb'], 'second.mov', { type: 'video/quicktime' });
-
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      [first, second],
-    );
-
-    expect(screen.getByText('first.mp4')).toBeInTheDocument();
-    expect(screen.getByText('second.mov')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Upload 2 videos' }));
-    await user.click(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
-    );
-
-    await waitFor(() => expect(mocks.submitIngest).toHaveBeenCalledOnce());
-    expect(mocks.submitIngest).toHaveBeenCalledWith(
-      expect.objectContaining({ files: [first, second] }),
-    );
-  });
-
-  it('removes a single staged video from the pending list', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    const first = new File(['a'], 'first.mp4', { type: 'video/mp4' });
-    const second = new File(['bb'], 'second.mov', { type: 'video/quicktime' });
-
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      [first, second],
-    );
-    await user.click(screen.getAllByRole('button', { name: 'Remove' })[0]);
-
-    expect(screen.queryByText('first.mp4')).not.toBeInTheDocument();
-    expect(screen.getByText('second.mov')).toBeInTheDocument();
-  });
-
-  it('stages a video dropped onto the upload area', () => {
-    renderPage();
-    const video = new File(['video'], 'dropped.mp4', { type: 'video/mp4' });
-    const dropzone = screen.getByLabelText(/upload video/i, {
-      selector: 'label',
-    });
-
-    fireEvent.drop(dropzone, { dataTransfer: { files: [video] } });
-
-    expect(screen.getByText('dropped.mp4')).toBeInTheDocument();
-  });
-
-  it('rejects a dropped file with an unsupported extension', () => {
-    renderPage();
-    const doc = new File(['doc'], 'notes.pdf', { type: 'application/pdf' });
-    const dropzone = screen.getByLabelText(/upload video/i, {
-      selector: 'label',
-    });
-
-    fireEvent.drop(dropzone, { dataTransfer: { files: [doc] } });
-
+    ).toBeDisabled();
     expect(
-      screen.getByText(/Unsupported file type: notes\.pdf/),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^upload$/i })).toBeDisabled();
-  });
+      screen.getByRole('checkbox', { name: 'Select new-video' }),
+    ).not.toBeChecked();
 
-  it('sends the typed filter text to the source-documents typeahead query', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(
-      screen.getByRole('combobox', { name: /filter uploaded videos/i }),
-    );
-    await user.keyboard('danger');
-
-    await waitFor(() =>
-      expect(mocks.useFetchSourceDocumentsQuery).toHaveBeenCalledWith({
-        source_type: 'video',
-        q: 'danger',
-        limit: 50,
-        offset: 0,
-      }),
-    );
-  });
-
-  it('narrows the table to the video selected in the filter combobox', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
-
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      video,
-    );
-    await user.click(screen.getByRole('button', { name: /^upload$/i }));
-    expect(screen.getByText('new-video.mp4')).toBeInTheDocument();
-
-    const combobox = screen.getByRole('combobox', {
-      name: /filter uploaded videos/i,
-    });
-    await user.click(combobox);
-    await user.click(
-      await screen.findByRole('option', { name: 'existing.mp4' }),
-    );
-
-    await waitFor(() =>
-      expect(screen.queryByText('new-video.mp4')).not.toBeInTheDocument(),
-    );
-    expect(screen.getByText('existing.mp4')).toBeInTheDocument();
-
-    await user.click(combobox);
-    await user.click(screen.getByRole('option', { name: 'All videos' }));
-    await waitFor(() =>
-      expect(screen.getByText('new-video.mp4')).toBeInTheDocument(),
-    );
-  });
-
-  it('narrows the table to a newly staged video selected in the filter combobox', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
-
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      video,
-    );
-    await user.click(screen.getByRole('button', { name: /^upload$/i }));
-
-    await user.click(
-      screen.getByRole('combobox', { name: /filter uploaded videos/i }),
-    );
-    await user.click(
-      await screen.findByRole('option', { name: 'new-video.mp4' }),
-    );
-
-    await waitFor(() =>
-      expect(screen.queryByText('existing.mp4')).not.toBeInTheDocument(),
-    );
-    expect(screen.getByText('new-video.mp4')).toBeInTheDocument();
-  });
-
-  it('opens Modules filtered to the selected video source', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(screen.getByRole('button', { name: 'View modules' }));
-
-    expect(mocks.navigate).toHaveBeenCalledWith(paths.moduleLibrary, {
-      state: {
-        tab: 'all',
-        sourceDocumentId: 'video-source-1',
-        sourceDocumentTitle: 'existing.mp4',
-      },
-    });
-  });
-
-  it('shows Go to Drafts after ingestion succeeds', async () => {
-    const user = userEvent.setup();
-    mocks.panelStatus.current = {
-      run_id: 'run-1',
-      source_document_id: 'video-source-1',
-      status: 'succeeded',
-      started_at: '2026-07-15T08:00:00Z',
-      completed_at: '2026-07-15T08:05:00Z',
-      error: null,
-      steps: [],
-      candidates: [],
-    };
-    mocks.submitIngest.mockImplementation(async () => {
-      mocks.onAcceptedRef.current?.(
-        {
-          status: 'batch_queued',
-          fuse_sources: false,
-          mode: 'append',
-          modules_retired: 0,
-          sources: [
-            {
-              source_document_id: 'video-source-1',
-              title: 'new-video.mp4',
-              source_type: 'video',
-              stored_path: '',
-              poll_url: '',
-            },
-          ],
-        },
-        { isReingest: false },
-      );
-      return null;
-    });
-
-    renderPage();
-    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
-
-    await user.upload(
-      screen.getByLabelText(/upload video/i, { selector: 'input' }),
-      video,
-    );
-    await user.click(screen.getByRole('button', { name: /^upload$/i }));
-    await user.click(
+    await selectVideoRow(user, 'new-video');
+    expect(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
-    );
-
-    expect(
-      await screen.findByText(/ingestion succeeded\. review generated draft/i),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Go to Drafts' }));
-    expect(mocks.navigate).toHaveBeenCalledWith(paths.moduleLibrary, {
-      state: {
-        tab: 'drafts',
-        sourceDocumentId: 'video-source-1',
-        sourceDocumentTitle: 'new-video.mp4',
-      },
-    });
+    ).toBeEnabled();
   });
 
-  it('restores active ingest status panels after a refresh', () => {
+  it('restores batch status panels from session storage', () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'video-source-1', title: 'existing.mp4' },
+      {
+        batch_id: 'batch-1',
+        source_document_id: 'video-source-1',
+        title: 'existing.mp4',
+      },
     ]);
-
     renderPage();
-
     expect(mocks.panelProps.current).toEqual([
-      { sourceDocumentId: 'video-source-1', sourceTitle: 'existing.mp4' },
+      { batchId: 'batch-1', sourceTitle: 'existing.mp4' },
     ]);
-    expect(screen.getByText('Ingestion in progress')).toBeInTheDocument();
-    expect(screen.queryByText('Already Ingested')).not.toBeInTheDocument();
   });
 
-  it('prunes restored ingest sessions once status becomes terminal', async () => {
+  it('prunes restored sessions when batch status is terminal', async () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'video-source-1', title: 'existing.mp4' },
+      {
+        batch_id: 'batch-1',
+        source_document_id: 'video-source-1',
+        title: 'existing.mp4',
+      },
     ]);
     mocks.panelStatus.current = {
-      run_id: 'run-1',
-      source_document_id: 'video-source-1',
+      batch_id: 'batch-1',
       status: 'succeeded',
-      started_at: '2026-07-15T08:00:00Z',
-      completed_at: '2026-07-15T08:05:00Z',
+      created_at: null,
+      completed_at: '2026-07-15T09:00:00Z',
       error: null,
-      steps: [],
-      candidates: [],
+      sources: [
+        {
+          source_document_id: 'video-source-1',
+          run_id: 'run-1',
+          document_label: 'existing.mp4',
+          status: 'succeeded',
+          started_at: null,
+          completed_at: null,
+          error: null,
+          nodes: [],
+        },
+      ],
     };
-
     renderPage();
-
     await waitFor(() => {
       expect(readActiveVideoIngestSessions()).toEqual([]);
-      expect(mocks.panelProps.current).toEqual([]);
     });
+  });
+
+  it('queues ingest after upload and stores batch session', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
+
+    await stageAndApiUpload(user, video);
+
+    mocks.startIngest.mockImplementation(async () => {
+      const response: AdminV3IngestAcceptedResponse = {
+        status: 'batch_queued',
+        batch_id: 'batch-1',
+        poll_url: '/admin/ingest/batches/batch-1',
+        sources: [
+          {
+            source_document_id: 'uploaded-source-1',
+            run_id: 'run-1',
+            title: 'new-video',
+            source_type: 'video',
+            stored_path: '',
+          },
+        ],
+      };
+      mocks.onAcceptedRef.current?.(response, { isReingest: false });
+      return response;
+    });
+
+    await selectVideoRow(user, 'new-video');
+    await user.click(
+      screen.getByRole('button', { name: 'Ingest Selected Videos' }),
+    );
+
+    await waitFor(() =>
+      expect(readActiveVideoIngestSessions()).toEqual([
+        {
+          batch_id: 'batch-1',
+          source_document_id: 'uploaded-source-1',
+          title: 'new-video',
+        },
+      ]),
+    );
+    expect(mocks.panelProps.current).toEqual([
+      { batchId: 'batch-1', sourceTitle: 'new-video' },
+    ]);
   });
 });

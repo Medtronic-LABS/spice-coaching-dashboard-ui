@@ -14,11 +14,7 @@ import {
   ingestRunStatusTone,
   shouldPollIngestionRunList,
 } from '@/features/ingest/utils/ingestRunHistoryUtils';
-import {
-  hasGeneratedIngestModules,
-  isIngestRunning,
-} from '@/features/ingest/utils/ingestStatus';
-import { writeActiveIngestSession } from '@/features/ingest/utils/ingestSessionStorage';
+import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
@@ -37,7 +33,6 @@ type IngestRunHistoryRow = {
   statusTone: ReturnType<typeof ingestRunStatusTone>;
   durationLabel: string;
   uploadedAt: string;
-  isProcessing: boolean;
   hasGeneratedModules: boolean;
   actions: '';
 };
@@ -114,7 +109,6 @@ export const IngestRunHistoryTable = () => {
           run.completed_at,
         ),
         uploadedAt: run.started_at,
-        isProcessing: isIngestRunning(run.status),
         hasGeneratedModules: hasGeneratedIngestModules(
           run.generated_module_count,
         ),
@@ -150,17 +144,6 @@ export const IngestRunHistoryTable = () => {
         ...(row.fileName ? { sourceDocumentTitle: row.fileName } : {}),
       };
       navigate(paths.moduleLibrary, { state });
-    },
-    [navigate],
-  );
-
-  const resumeRun = useCallback(
-    (row: IngestRunHistoryRow) => {
-      writeActiveIngestSession({
-        source_document_id: row.sourceDocumentId,
-        ...(row.fileName ? { title: row.fileName } : {}),
-      });
-      navigate(paths.ingestDocument);
     },
     [navigate],
   );
@@ -210,9 +193,15 @@ export const IngestRunHistoryTable = () => {
         key: 'generatedModuleLabel',
         header: 'Modules / cards / quizzes',
         render: (row) => (
-          <div className="grid w-fit grid-cols-[5.5rem_4.5rem_5rem] gap-x-2 text-xs text-spice-text-medium">
+          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>{row.generatedModuleLabel}</span>
-            <span>{row.generatedCardLabel}</span>
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
+            <span className="text-center">{row.generatedCardLabel}</span>
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
             <span>{row.generatedQuizLabel}</span>
           </div>
         ),
@@ -250,37 +239,26 @@ export const IngestRunHistoryTable = () => {
         key: 'actions',
         header: 'Actions',
         render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            {row.isProcessing ? (
-              <Button
-                variant="secondary"
-                className="h-8 px-3 text-xs"
-                onClick={() => resumeRun(row)}
-              >
-                Monitor
-              </Button>
-            ) : null}
-            <span
-              className="inline-flex"
-              title={
-                row.hasGeneratedModules
-                  ? undefined
-                  : 'No modules were generated for this ingestion.'
-              }
+          <span
+            className="inline-flex"
+            title={
+              row.hasGeneratedModules
+                ? undefined
+                : 'No modules were generated for this ingestion.'
+            }
+          >
+            <Button
+              className="h-8 px-3 text-xs"
+              disabled={!row.sourceDocumentId || !row.hasGeneratedModules}
+              onClick={() => openGeneratedModules(row)}
             >
-              <Button
-                className="h-8 px-3 text-xs"
-                disabled={!row.sourceDocumentId || !row.hasGeneratedModules}
-                onClick={() => openGeneratedModules(row)}
-              >
-                {row.hasGeneratedModules ? 'Open modules' : 'No modules'}
-              </Button>
-            </span>
-          </div>
+              {row.hasGeneratedModules ? 'Open modules' : 'No modules'}
+            </Button>
+          </span>
         ),
       },
     ],
-    [openGeneratedModules, resumeRun],
+    [openGeneratedModules],
   );
 
   return (

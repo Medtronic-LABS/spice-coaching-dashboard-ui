@@ -4,12 +4,23 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import type { AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import { baseAdminModuleDetail } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import { baseApi } from '@/store/apis/base';
 import { AdminModuleDetailsStep } from './AdminModuleDetailsStep';
+
+const roleState = vi.hoisted(() => ({ role: 'programManager' as AppRole }));
+
+vi.mock('@/constants/role', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/constants/role')>();
+  return {
+    ...actual,
+    getCurrentRole: () => roleState.role,
+  };
+});
 
 let mockModule = baseAdminModuleDetail({
   card_count: 2,
@@ -85,6 +96,7 @@ function renderDetailsStep() {
 
 describe('AdminModuleDetailsStep', () => {
   beforeEach(() => {
+    roleState.role = 'programManager';
     mockModule = baseAdminModuleDetail({
       card_count: 2,
       quality_flags: { flags: ['needs_review'] },
@@ -113,7 +125,7 @@ describe('AdminModuleDetailsStep', () => {
   });
 
   it.each(['published', 'deactivated'] as const)(
-    'keeps %s modules read-only on a direct URL',
+    'keeps %s modules read-only for program managers on a direct URL',
     (lifecycleStatus) => {
       mockModule = {
         ...mockModule,

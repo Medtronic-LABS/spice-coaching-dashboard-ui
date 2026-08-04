@@ -130,6 +130,7 @@ describe('ui components', () => {
     fireEvent.change(screen.getByLabelText('Search'), {
       target: { value: 'hi' },
     });
+    expect(screen.getByTestId('search-input-icon')).toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledWith('hi');
   });
 

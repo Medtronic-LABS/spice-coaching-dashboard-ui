@@ -16,7 +16,7 @@ Ensure reordered content is persisted correctly on Save/Publish, displayed corre
 
 ### 1. Persist layer — normalize order before PUT
 
-**Modify:** `src/features/modules/utils/persistAdminModuleDraft.ts`
+**Modify:** `src/features/module-library/utils/persistAdminModuleDraft.ts`
 
 Before building the request body:
 
@@ -35,7 +35,7 @@ This guarantees every save sends cards in editor order and quiz with contiguous 
 
 ### 2. Review / publish display
 
-**Modify:** `src/features/modules/utils/moduleReviewPublishMappers.ts`
+**Modify:** `src/features/module-library/utils/moduleReviewPublishMappers.ts`
 
 - Import `sortQuizItems`.
 - In `mapAdminQuizToRows`, sort quiz before mapping.
@@ -117,9 +117,9 @@ Requires running dashboard against real admin API (`VITE_API_BASE_URL` pointing 
 
 | Action | Path |
 |--------|------|
-| Modify | `src/features/modules/utils/persistAdminModuleDraft.ts` |
-| Modify | `src/features/modules/utils/moduleReviewPublishMappers.ts` |
-| Verify | `src/features/modules/pages/admin-module-review/AdminModulePublishStep.tsx` |
+| Modify | `src/features/module-library/utils/persistAdminModuleDraft.ts` |
+| Modify | `src/features/module-library/utils/moduleReviewPublishMappers.ts` |
+| Verify | `src/features/module-library/pages/admin-module-review/AdminModulePublishStep.tsx` |
 
 ---
 

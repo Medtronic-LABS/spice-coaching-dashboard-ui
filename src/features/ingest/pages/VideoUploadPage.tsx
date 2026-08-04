@@ -1,40 +1,52 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DeleteIcon } from '@/assets/icon';
+import {
+  SettingsFilterDrawer,
+  SettingsFilterTriggerButton,
+} from '@/components/common/SettingsFilterDrawer';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import {
   Button,
   Card,
-  Combobox,
   Loader,
+  SearchInput,
   Select,
   StatusBadge,
-  type ComboboxOption,
+  Tooltip,
+  TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
+  type AdminV3IngestAcceptedResponse,
   type AdminV3IngestAcceptedSource,
-  type AdminV3IngestStatusResponse,
+  type AdminV3IngestBatchStatusResponse,
+  type AdminV3IngestUploadResponse,
+  type AdminV3IngestUploadedSource,
+  type IngestDuplicateConflict,
 } from '@/features/ingest/api/adminIngestApi';
-import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
+import {
+  useFetchSourceDocumentsQuery,
+  useUpdateSourceDocumentThumbnailMutation,
+  type SourceDocumentSummary,
+} from '@/features/modules/api/adminSourceDocumentsApi';
+import { AssignmentDialog } from '@/features/modules/components/AssignmentDialog';
+import { IngestConfigurationPanel } from '@/features/ingest/components/IngestConfigurationPanel';
 import { IngestRunStatusPanel } from '@/features/ingest/components/IngestRunStatusPanel';
-import { ReingestConfirmDialog } from '@/features/ingest/components/ReingestConfirmDialog';
+import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
+import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
+import { VideoMetadataEditDialog } from '@/features/ingest/components/VideoMetadataEditDialog';
+import { VideoUploadFilters } from '@/features/ingest/components/VideoUploadFilters';
 import {
   INGEST_FORM_DEFAULTS,
-  INGEST_MODULE_COUNT_MAX,
-  INGEST_MODULE_COUNT_MIN,
-  INGEST_MODULE_COUNT_RANGE_LABEL,
   type IngestModuleCountInput,
   ingestModuleCountForPayload,
-  isIngestModuleCountInRange,
   isOptionalIngestModuleCountValid,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
-  INGEST_ASSESSMENT_MODE_OPTIONS,
-  INGEST_CONTENT_DOMAIN_OPTIONS,
-} from '@/features/ingest/constants/ingestFormOptions';
-import {
   mergeActiveVideoIngestSessions,
-  pruneActiveVideoIngestSession,
+  pruneActiveVideoIngestBatch,
   readActiveVideoIngestSessions,
 } from '@/features/ingest/utils/videoIngestSessionStorage';
 import {
@@ -44,24 +56,55 @@ import {
   isAcceptedVideoFile,
 } from '@/features/ingest/constants/videoAcceptedFileTypes';
 import { useIngestWithDuplicateHandling } from '@/features/ingest/hooks/useIngestWithDuplicateHandling';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
+import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDecisions';
 import {
   isIngestInProgress,
   isIngestSucceeded,
 } from '@/features/ingest/utils/ingestStatus';
+import {
+  EMPTY_VIDEO_UPLOAD_FILTERS,
+  VIDEO_UPLOAD_STATUS_OPTIONS,
+  hasActiveVideoUploadFilters,
+  normalizeVideoUploadStatuses,
+  toggleVideoUploadStatus,
+  type VideoUploadFiltersState,
+} from '@/features/ingest/utils/videoUploadStatusConfig';
+import {
+  VIDEO_THUMBNAIL_ACCEPT,
+  captureVideoFirstFrame,
+  formatVideoThumbnailRejectionError,
+  isAcceptedVideoThumbnailFile,
+  titleFromVideoFilename,
+} from '@/features/ingest/utils/videoThumbnail';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+
+type PendingVideoItem = {
+  key: string;
+  file: File;
+  title: string;
+  description: string;
+  thumbnailFile: File | null;
+  thumbnailPreviewUrl: string | null;
+  thumbnailSource: 'auto' | 'custom';
+};
+
+type PendingUploadMeta = {
+  title: string;
+  thumbnailFile: File | null;
+};
 
 type VideoRow = {
   id: string;
   selection: string;
   name: string;
+  title: string;
+  description: string | null;
   uploadedAt: string;
-  uploadStatus: string;
-  ingestionStatus: string;
+  status: string;
   actions: string;
   sourceDocumentId?: string;
-  file?: File;
-  syncPublishedVisible: boolean;
 };
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50].map((value) => ({
@@ -69,44 +112,34 @@ const PAGE_SIZE_OPTIONS = [5, 10, 25, 50].map((value) => ({
   value: String(value),
 }));
 
-/** Page size for the server-side video typeahead in the filter combobox. */
-const VIDEO_FILTER_SEARCH_LIMIT = 50;
+const VIDEO_SEARCH_DEBOUNCE_MS = 300;
 
-const ALL_VIDEOS_OPTION: ComboboxOption = { label: 'All videos', value: '' };
+function pendingVideoKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
 
-function formatDateTime(value: string): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+function revokePreviewUrl(url: string | null): void {
+  if (url) URL.revokeObjectURL(url);
 }
 
 function serverStatusLabel(status: string): string {
-  const normalized = status.toLowerCase();
-  if (normalized === 'ingested' || normalized === 'succeeded') {
-    return 'Already Ingested';
-  }
-  if (normalized.includes('fail') || normalized.includes('error')) {
-    return 'Failed';
-  }
-  if (normalized.includes('ingest') || normalized.includes('queue')) {
-    return 'Ingestion in progress';
-  }
-  return status || 'Not ingested';
+  const normalized = status.trim().toLowerCase();
+  if (!normalized) return 'Uploaded';
+  return normalized
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
-function tableIngestionStatusLabel(
+function tableStatusLabel(
   pipelineStatus: string | undefined,
   options?: { assumeInProgress?: boolean },
 ): string | null {
   if (pipelineStatus) {
-    if (isIngestSucceeded(pipelineStatus)) return 'Already Ingested';
-    const normalized = pipelineStatus.toLowerCase();
-    if (normalized.includes('fail') || normalized.includes('error')) {
-      return 'Failed';
-    }
-    return 'Ingestion in progress';
+    return serverStatusLabel(pipelineStatus);
   }
-  if (options?.assumeInProgress) return 'Ingestion in progress';
+  if (options?.assumeInProgress) return 'Running';
   return null;
 }
 
@@ -114,43 +147,80 @@ function statusBadgeProps(status: string): {
   status: 'success' | 'warning' | 'critical' | 'info' | 'neutral';
   label: string;
 } {
-  if (status === 'Already Ingested') {
+  const normalized = status.trim().toLowerCase();
+  if (isViewModulesStatus(normalized)) {
     return { status: 'success', label: status };
   }
-  if (status === 'Failed') return { status: 'critical', label: status };
-  if (status === 'Ingestion in progress') {
+  if (normalized.includes('fail') || normalized.includes('error')) {
+    return { status: 'critical', label: status };
+  }
+  if (
+    normalized.includes('queue') ||
+    normalized.includes('running') ||
+    normalized.includes('ingest')
+  ) {
     return { status: 'info', label: status };
   }
   return { status: 'neutral', label: status };
 }
 
+/** Statuses that mean ingestion finished successfully enough to open modules. */
+function isViewModulesStatus(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return (
+    normalized === 'ingested' ||
+    normalized === 'succeeded' ||
+    normalized === 'partially_succeeded' ||
+    normalized === 'partially succeeded'
+  );
+}
+
 export const VideoUploadPage = () => {
   const navigate = useNavigate();
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [sessionRows, setSessionRows] = useState<VideoRow[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingVideoItem[]>([]);
+  const [pendingTitleErrorKeys, setPendingTitleErrorKeys] = useState<
+    Set<string>
+  >(() => new Set());
+  const pendingItemsRef = useRef<PendingVideoItem[]>([]);
+  const pendingUploadMetaRef = useRef<PendingUploadMeta[]>([]);
+  const thumbnailInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
   const [restoredAcceptedSources, setRestoredAcceptedSources] = useState<
     AdminV3IngestAcceptedSource[]
   >(() =>
     readActiveVideoIngestSessions().map((session) => ({
       source_document_id: session.source_document_id,
+      run_id: '',
       title: session.title ?? session.source_document_id,
       source_type: 'video',
       stored_path: '',
-      poll_url: '',
     })),
   );
+  const [activeBatchId, setActiveBatchId] = useState(
+    () => readActiveVideoIngestSessions()[0]?.batch_id ?? '',
+  );
+  const [batchStatus, setBatchStatus] =
+    useState<AdminV3IngestBatchStatusResponse | null>(null);
+  const [uploadedSources, setUploadedSources] = useState<
+    AdminV3IngestUploadedSource[]
+  >([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isAdding, setIsAdding] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [fileError, setFileError] = useState('');
   const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
+  const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [videoFilterSearch, setVideoFilterSearch] = useState('');
-  const debouncedVideoFilterSearch = useDebouncedValue(videoFilterSearch, 300);
-  const videoFilterSearchQ = debouncedVideoFilterSearch.trim();
-  const [selectedVideo, setSelectedVideo] =
-    useState<ComboboxOption>(ALL_VIDEOS_OPTION);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<VideoUploadFiltersState>(
+    EMPTY_VIDEO_UPLOAD_FILTERS,
+  );
+  const [draftFilters, setDraftFilters] = useState<VideoUploadFiltersState>(
+    EMPTY_VIDEO_UPLOAD_FILTERS,
+  );
   const [contentDomain, setContentDomain] = useState(
     INGEST_FORM_DEFAULTS.content_domain,
   );
@@ -162,10 +232,66 @@ export const VideoUploadPage = () => {
   const [cardsPerModule, setCardsPerModule] = useState<IngestModuleCountInput>(
     INGEST_FORM_DEFAULTS.cards_per_module,
   );
-  const [fuseSources, setFuseSources] = useState<boolean>(
-    INGEST_FORM_DEFAULTS.fuse_sources,
-  );
   const [ingestionInstructions, setIngestionInstructions] = useState('');
+  const [assignTarget, setAssignTarget] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [editDocument, setEditDocument] =
+    useState<SourceDocumentSummary | null>(null);
+  const [documentOverrides, setDocumentOverrides] = useState<
+    Record<string, SourceDocumentSummary>
+  >({});
+
+  const [updateSourceDocumentThumbnail] =
+    useUpdateSourceDocumentThumbnailMutation();
+
+  pendingItemsRef.current = pendingItems;
+
+  useEffect(() => {
+    return () => {
+      for (const item of pendingItemsRef.current) {
+        revokePreviewUrl(item.thumbnailPreviewUrl);
+      }
+    };
+  }, []);
+
+  const filtersActive = hasActiveVideoUploadFilters(appliedFilters);
+  const combinedStatuses = useMemo(() => {
+    const selected = normalizeVideoUploadStatuses(appliedFilters.statuses);
+    // Backend defaults to "ingested" when status is omitted; always send an
+    // explicit status list so uploaded / ingesting / failed videos remain visible.
+    if (selected.length) return selected;
+    return VIDEO_UPLOAD_STATUS_OPTIONS.map((option) => option.value);
+  }, [appliedFilters]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQ]);
+
+  const handleOpenFiltersDrawer = useCallback(() => {
+    setDraftFilters(appliedFilters);
+    setFiltersDrawerOpen(true);
+  }, [appliedFilters]);
+
+  const handleCloseFiltersDrawer = useCallback(() => {
+    setDraftFilters(appliedFilters);
+    setFiltersDrawerOpen(false);
+  }, [appliedFilters]);
+
+  const handleClearDraftFilters = useCallback(() => {
+    setDraftFilters(EMPTY_VIDEO_UPLOAD_FILTERS);
+    setAppliedFilters(EMPTY_VIDEO_UPLOAD_FILTERS);
+    setPage(0);
+  }, []);
+
+  const handleApplyFilters = useCallback(() => {
+    setAppliedFilters({
+      statuses: normalizeVideoUploadStatuses(draftFilters.statuses),
+    });
+    setPage(0);
+    setFiltersDrawerOpen(false);
+  }, [draftFilters]);
 
   const stageVideoFiles = useCallback((files: ArrayLike<File> | null) => {
     const picked = Array.from(files ?? []);
@@ -178,82 +304,160 @@ export const VideoUploadPage = () => {
     );
     if (!accepted.length) return;
 
-    setPendingFiles((previous) => {
-      const staged = new Set(
-        previous.map(
-          (file) => `${file.name}:${file.size}:${file.lastModified}`,
-        ),
-      );
-      const additions = accepted.filter((file) => {
-        const key = `${file.name}:${file.size}:${file.lastModified}`;
-        if (staged.has(key)) return false;
+    setPendingItems((previous) => {
+      const staged = new Set(previous.map((item) => item.key));
+      const additions: PendingVideoItem[] = [];
+      for (const file of accepted) {
+        const key = pendingVideoKey(file);
+        if (staged.has(key)) continue;
         staged.add(key);
-        return true;
-      });
+        additions.push({
+          key,
+          file,
+          title: titleFromVideoFilename(file.name),
+          description: '',
+          thumbnailFile: null,
+          thumbnailPreviewUrl: null,
+          thumbnailSource: 'auto',
+        });
+      }
+      if (!additions.length) return previous;
+
+      for (const item of additions) {
+        void captureVideoFirstFrame(item.file).then((thumbnail) => {
+          if (!thumbnail) return;
+          const previewUrl = URL.createObjectURL(thumbnail);
+          setPendingItems((current) => {
+            const existing = current.find((entry) => entry.key === item.key);
+            if (!existing) {
+              revokePreviewUrl(previewUrl);
+              return current;
+            }
+            if (existing.thumbnailSource === 'custom') {
+              revokePreviewUrl(previewUrl);
+              return current;
+            }
+            revokePreviewUrl(existing.thumbnailPreviewUrl);
+            return current.map((entry) =>
+              entry.key === item.key
+                ? {
+                    ...entry,
+                    thumbnailFile: thumbnail,
+                    thumbnailPreviewUrl: previewUrl,
+                    thumbnailSource: 'auto' as const,
+                  }
+                : entry,
+            );
+          });
+        });
+      }
+
       return [...previous, ...additions];
     });
   }, []);
 
-  const removePendingFile = useCallback((index: number) => {
-    setPendingFiles((previous) => previous.filter((_, i) => i !== index));
+  const removePendingItem = useCallback((key: string) => {
+    setPendingItems((previous) => {
+      const item = previous.find((entry) => entry.key === key);
+      revokePreviewUrl(item?.thumbnailPreviewUrl ?? null);
+      return previous.filter((entry) => entry.key !== key);
+    });
+    setPendingTitleErrorKeys((previous) => {
+      if (!previous.has(key)) return previous;
+      const next = new Set(previous);
+      next.delete(key);
+      return next;
+    });
   }, []);
+
+  const updatePendingItem = useCallback(
+    (key: string, patch: Partial<PendingVideoItem>) => {
+      setPendingItems((previous) =>
+        previous.map((item) =>
+          item.key === key ? { ...item, ...patch } : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handlePendingThumbnailReplace = useCallback(
+    (key: string, fileList: FileList | null) => {
+      const file = fileList?.[0] ?? null;
+      if (!file) return;
+
+      const rejection = formatVideoThumbnailRejectionError(file);
+      if (!isAcceptedVideoThumbnailFile(file) || rejection) {
+        setFileError(
+          rejection || 'Invalid thumbnail. Use PNG, JPEG, or WebP up to 5 MB.',
+        );
+        return;
+      }
+
+      setFileError('');
+      const previewUrl = URL.createObjectURL(file);
+      setPendingItems((previous) =>
+        previous.map((item) => {
+          if (item.key !== key) return item;
+          revokePreviewUrl(item.thumbnailPreviewUrl);
+          return {
+            ...item,
+            thumbnailFile: file,
+            thumbnailPreviewUrl: previewUrl,
+            thumbnailSource: 'custom' as const,
+          };
+        }),
+      );
+    },
+    [],
+  );
+
   const [acceptedSources, setAcceptedSources] = useState<
     AdminV3IngestAcceptedSource[]
   >([]);
-  const [statusesBySourceId, setStatusesBySourceId] = useState<
-    Record<string, AdminV3IngestStatusResponse | null>
-  >({});
-  const [precheckVideoNames, setPrecheckVideoNames] = useState<string[]>([]);
-  const submittedRowIdsRef = useRef<string[]>([]);
+  const [precheckConflicts, setPrecheckConflicts] = useState<
+    IngestDuplicateConflict[]
+  >([]);
 
-  // Selecting a server-backed video narrows the paginated table query by its
-  // filename; session-only selections are matched client-side below.
-  const selectedServerVideoName = selectedVideo.value.startsWith('source:')
-    ? selectedVideo.label
-    : '';
   const {
     data: sourceDocumentList,
     isFetching: isLoadingVideos,
     isError: isVideoListError,
+    refetch: refetchSourceDocumentList,
   } = useFetchSourceDocumentsQuery({
     source_type: 'video',
-    ...(selectedServerVideoName ? { q: selectedServerVideoName } : {}),
+    ...(combinedStatuses.length ? { status: combinedStatuses } : {}),
+    ...(searchQ ? { q: searchQ } : {}),
     limit: pageSize,
     offset: page * pageSize,
   });
 
-  // Independent typeahead query feeding the filter combobox options.
-  const { data: videoFilterList, isFetching: isSearchingVideoFilter } =
-    useFetchSourceDocumentsQuery({
-      source_type: 'video',
-      ...(videoFilterSearchQ ? { q: videoFilterSearchQ } : {}),
-      limit: VIDEO_FILTER_SEARCH_LIMIT,
-      offset: 0,
-    });
-
   const serverRows = useMemo<VideoRow[]>(
     () =>
-      (sourceDocumentList?.source_documents ?? []).map((document) => ({
-        id: `source:${document.id}`,
-        selection: '',
-        name: document.original_filename || document.title || document.id,
-        uploadedAt: document.ingested_at,
-        uploadStatus: 'Uploaded',
-        ingestionStatus: serverStatusLabel(document.status),
-        actions: '',
-        sourceDocumentId: document.id,
-        syncPublishedVisible: INGEST_FORM_DEFAULTS.sync_published_visible,
-      })),
-    [sourceDocumentList],
+      (sourceDocumentList?.source_documents ?? []).map((document) => {
+        const latest = documentOverrides[document.id] ?? document;
+        return {
+          id: `source:${latest.id}`,
+          selection: '',
+          name: latest.original_filename || latest.title || latest.id,
+          title: latest.title || latest.original_filename || latest.id,
+          description: latest.description,
+          uploadedAt: latest.ingested_at,
+          status: serverStatusLabel(latest.status),
+          actions: '',
+          sourceDocumentId: latest.id,
+        };
+      }),
+    [documentOverrides, sourceDocumentList],
   );
 
-  const displayedServerRows = useMemo(
-    () =>
-      selectedVideo.value
-        ? serverRows.filter((row) => row.id === selectedVideo.value)
-        : serverRows,
-    [selectedVideo.value, serverRows],
-  );
+  const sourceDocumentsById = useMemo(() => {
+    const map = new Map<string, SourceDocumentSummary>();
+    for (const document of sourceDocumentList?.source_documents ?? []) {
+      map.set(document.id, documentOverrides[document.id] ?? document);
+    }
+    return map;
+  }, [documentOverrides, sourceDocumentList]);
 
   const activeSourceIds = useMemo(() => {
     const ids = new Set<string>();
@@ -266,109 +470,102 @@ export const VideoUploadPage = () => {
     return ids;
   }, [acceptedSources, restoredAcceptedSources]);
 
-  // Session rows (new uploads and rows re-armed with file bytes) stay pinned on
-  // top of whichever server page is showing so they remain selectable while
-  // paging. When a video is selected in the filter combobox, both server and
-  // pinned rows are narrowed to that selection.
   const rows = useMemo(() => {
-    const sessionById = new Map(sessionRows.map((row) => [row.id, row]));
-    const serverIds = new Set(displayedServerRows.map((row) => row.id));
-    const merged = displayedServerRows.map(
-      (row) => sessionById.get(row.id) ?? row,
-    );
-    const pinned = sessionRows
-      .filter((row) => !serverIds.has(row.id))
-      .filter((row) => !selectedVideo.value || row.id === selectedVideo.value)
-      .sort((a, b) => {
-        const aTime = new Date(a.uploadedAt).getTime() || 0;
-        const bTime = new Date(b.uploadedAt).getTime() || 0;
-        return bTime - aTime;
-      });
-    return [...pinned, ...merged].map((row) => {
+    return serverRows.map((row) => {
       if (!row.sourceDocumentId) return row;
-      const liveLabel = tableIngestionStatusLabel(
-        statusesBySourceId[row.sourceDocumentId]?.status,
-        { assumeInProgress: activeSourceIds.has(row.sourceDocumentId) },
-      );
-      if (!liveLabel || liveLabel === row.ingestionStatus) return row;
-      return { ...row, ingestionStatus: liveLabel };
-    });
-  }, [
-    activeSourceIds,
-    displayedServerRows,
-    selectedVideo.value,
-    sessionRows,
-    statusesBySourceId,
-  ]);
-
-  const videoFilterOptions = useMemo(() => {
-    const term = videoFilterSearchQ.toLowerCase();
-    const options = [ALL_VIDEOS_OPTION];
-    const seen = new Set<string>();
-
-    // New uploads may not be searchable server-side yet; merge them in,
-    // honouring the typed term client-side.
-    for (const row of sessionRows) {
-      if (seen.has(row.id)) continue;
-      if (term && !row.name.toLowerCase().includes(term)) continue;
-      seen.add(row.id);
-      options.push({ label: row.name, value: row.id });
-    }
-
-    for (const document of videoFilterList?.source_documents ?? []) {
-      const value = `source:${document.id}`;
-      if (seen.has(value)) continue;
-      seen.add(value);
-      options.push({
-        label: document.original_filename || document.title || document.id,
-        value,
+      const sourceStatus = batchStatus?.sources.find(
+        (source) => source.source_document_id === row.sourceDocumentId,
+      )?.status;
+      const liveLabel = tableStatusLabel(sourceStatus ?? batchStatus?.status, {
+        assumeInProgress: activeSourceIds.has(row.sourceDocumentId),
       });
-    }
-
-    return options;
-  }, [sessionRows, videoFilterList, videoFilterSearchQ]);
-
-  const totalFilterVideos = videoFilterList?.total_source_documents ?? 0;
-  const listedFilterVideos = videoFilterList?.source_documents.length ?? 0;
-  const videoFilterHint =
-    totalFilterVideos > listedFilterVideos
-      ? `Showing ${listedFilterVideos} of ${totalFilterVideos} videos — type to narrow down`
-      : undefined;
+      if (!liveLabel || liveLabel === row.status) return row;
+      return { ...row, status: liveLabel };
+    });
+  }, [activeSourceIds, batchStatus, serverRows]);
 
   const totalServerVideos = sourceDocumentList?.total_source_documents ?? 0;
   const totalPages = Math.max(1, sourceDocumentList?.total_pages ?? 1);
-  const sessionOnlyCount = rows.length - displayedServerRows.length;
 
   useEffect(() => {
     if (page >= totalPages) setPage(totalPages - 1);
   }, [page, totalPages]);
 
-  useEffect(() => {
-    setPage(0);
-  }, [selectedVideo.value]);
+  const uploadPendingThumbnails = useCallback(
+    async (
+      sources: AdminV3IngestUploadedSource[],
+      metas: PendingUploadMeta[],
+    ) => {
+      if (!sources.length || !metas.length) return;
 
-  const selectedRows = useMemo(
-    () => rows.filter((row) => selectedIds.has(row.id) && row.file),
-    [rows, selectedIds],
+      const failures: string[] = [];
+      for (let index = 0; index < sources.length; index += 1) {
+        const source = sources[index];
+        const meta =
+          metas[index] ??
+          metas.find((entry) => entry.title === source.title) ??
+          null;
+        if (!meta?.thumbnailFile) continue;
+        try {
+          await updateSourceDocumentThumbnail({
+            sourceDocumentId: source.source_document_id,
+            file: meta.thumbnailFile,
+          }).unwrap();
+        } catch (error) {
+          failures.push(formatRtkQueryError(error));
+        }
+      }
+
+      if (failures.length) {
+        setActionError(
+          failures[0] ?? 'Some video thumbnails could not be uploaded.',
+        );
+      }
+    },
+    [updateSourceDocumentThumbnail],
+  );
+
+  const clearPendingAfterUpload = useCallback(() => {
+    setPendingItems((previous) => {
+      for (const item of previous) {
+        revokePreviewUrl(item.thumbnailPreviewUrl);
+      }
+      return [];
+    });
+    setPendingTitleErrorKeys(new Set());
+  }, []);
+
+  const handleUploaded = useCallback(
+    (
+      response: AdminV3IngestUploadResponse,
+      {
+        isReupload,
+      }: {
+        isReupload: boolean;
+        overriddenFilenames: string[];
+        duplicateConflicts: IngestDuplicateConflict[];
+      },
+    ) => {
+      setUploadedSources((previous) =>
+        isReupload ? [...previous, ...response.sources] : response.sources,
+      );
+      const metas = pendingUploadMetaRef.current;
+      pendingUploadMetaRef.current = [];
+      clearPendingAfterUpload();
+      void uploadPendingThumbnails(response.sources, metas).then(() => {
+        void refetchSourceDocumentList();
+      });
+      setActionSuccess('Videos uploaded successfully.');
+    },
+    [
+      clearPendingAfterUpload,
+      refetchSourceDocumentList,
+      uploadPendingThumbnails,
+    ],
   );
 
   const handleIngestAccepted = useCallback(
-    (
-      response: {
-        sources: AdminV3IngestAcceptedSource[];
-        skipped_duplicates?: { filename: string }[];
-      },
-      { isReingest }: { isReingest: boolean },
-    ) => {
-      const skippedNames = new Set(
-        response.skipped_duplicates?.map((item) => item.filename) ?? [],
-      );
-      const submittedIds = submittedRowIdsRef.current;
-      const submittedRows = rows.filter((row) => submittedIds.includes(row.id));
-      const acceptedRows = submittedRows.filter(
-        (row) => !skippedNames.has(row.name),
-      );
-
+    (response: AdminV3IngestAcceptedResponse) => {
       setAcceptedSources((previous) => {
         const byId = new Map(
           [...previous, ...response.sources].map((source) => [
@@ -387,165 +584,144 @@ export const VideoUploadPage = () => {
         );
         return [...byId.values()];
       });
-      mergeActiveVideoIngestSessions(response.sources);
-
-      setSessionRows((previous) =>
-        previous.map((row) => {
-          const index = acceptedRows.findIndex((item) => item.id === row.id);
-          const source = index >= 0 ? response.sources[index] : undefined;
-          if (!source) return row;
-          return {
-            ...row,
-            sourceDocumentId: source.source_document_id,
-            ingestionStatus: 'Ingestion in progress',
-          };
-        }),
-      );
-
-      if (response.skipped_duplicates?.length && !isReingest) {
-        submittedRowIdsRef.current = submittedRows
-          .filter((row) => skippedNames.has(row.name))
-          .map((row) => row.id);
+      if (response.batch_id) {
+        setActiveBatchId(response.batch_id);
+        mergeActiveVideoIngestSessions(response.batch_id, response.sources);
       }
+      setUploadedSources([]);
     },
-    [rows],
+    [],
   );
 
   const {
-    submitIngest,
+    uploadFiles,
+    startIngest,
     confirmDuplicate,
     cancelDuplicate,
     duplicateDialog,
     isUploading,
+    isStartingIngest,
     isConfirmingDuplicate,
   } = useIngestWithDuplicateHandling({
-    onAccepted: handleIngestAccepted,
+    onUploaded: handleUploaded,
+    onAccepted: (response) => handleIngestAccepted(response),
     onError: setActionError,
   });
 
-  const anyIngestionInProgress = acceptedSources.some((source) =>
-    isIngestInProgress(
-      source.source_document_id,
-      statusesBySourceId[source.source_document_id]?.status,
-    ),
+  const pendingMergeDecisions = hasPendingMergeDecisions(
+    batchStatus?.merge_decisions,
+  );
+  const anyIngestionInProgress = isIngestInProgress(
+    activeBatchId,
+    batchStatus?.status,
+    { hasPendingMergeDecisions: pendingMergeDecisions },
   );
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
     isOptionalIngestModuleCountValid(cardsPerModule);
+
+  const selectedRows = useMemo(
+    () => rows.filter((row) => selectedIds.has(row.id)),
+    [rows, selectedIds],
+  );
+
+  const selectedRowsReadyToIngest = useMemo(
+    () => selectedRows.filter((row) => Boolean(row.sourceDocumentId)),
+    [selectedRows],
+  );
+
   const canIngest =
-    selectedRows.length > 0 &&
+    selectedRowsReadyToIngest.length > 0 &&
     moduleCountsValid &&
     !isUploading &&
+    !isStartingIngest &&
     !anyIngestionInProgress;
 
   const runIngest = useCallback(
     async (allowKnownDuplicates: boolean) => {
-      if (!selectedRows.length) return;
+      const rowsToIngest = selectedRowsReadyToIngest;
+      if (!rowsToIngest.length) return;
       setActionError('');
+      setActionSuccess('');
       setAcceptedSources([]);
-      setStatusesBySourceId({});
-      submittedRowIdsRef.current = selectedRows.map((row) => row.id);
-      const overrideDuplicates = selectedRows.map(
+      setBatchStatus(null);
+      const overrideDuplicates = rowsToIngest.map(
         (row) =>
-          allowKnownDuplicates && row.ingestionStatus === 'Already Ingested',
+          allowKnownDuplicates && row.status.toLowerCase() === 'ingested',
       );
-      await submitIngest({
-        files: selectedRows.map((row) => row.file as File),
-        fuse_sources: fuseSources && selectedRows.length >= 2,
-        sync_published_visible: selectedRows.map(
-          (row) => row.syncPublishedVisible,
+      await startIngest({
+        source_document_ids: rowsToIngest.map(
+          (row) => row.sourceDocumentId as string,
         ),
-        content_domain: contentDomain,
         assessment_mode: assessmentMode,
-        quizzes_per_module: ingestModuleCountForPayload(quizzesPerModule),
-        cards_per_module: ingestModuleCountForPayload(cardsPerModule),
-        mode: INGEST_FORM_DEFAULTS.mode,
+        quizzes_per_module:
+          ingestModuleCountForPayload(quizzesPerModule) ?? null,
+        cards_per_module: ingestModuleCountForPayload(cardsPerModule) ?? null,
         ingestion_instructions: ingestionInstructions.trim() || null,
         override_duplicates: overrideDuplicates.some(Boolean)
           ? overrideDuplicates
-          : undefined,
+          : null,
       });
     },
     [
       assessmentMode,
       cardsPerModule,
-      contentDomain,
-      fuseSources,
       ingestionInstructions,
       quizzesPerModule,
-      selectedRows,
-      submitIngest,
+      selectedRowsReadyToIngest,
+      startIngest,
     ],
   );
 
   const handleStatusChange = useCallback(
-    (sourceDocumentId: string, status: AdminV3IngestStatusResponse | null) => {
-      setStatusesBySourceId((previous) => {
-        if (previous[sourceDocumentId] === status) return previous;
-        return { ...previous, [sourceDocumentId]: status };
-      });
-      setRestoredAcceptedSources((previous) => {
-        if (!status) return previous;
-        const remainingSessions = pruneActiveVideoIngestSession(
-          sourceDocumentId,
-          status.status,
-        );
-        const remainingIds = new Set(
-          remainingSessions.map((session) => session.source_document_id),
-        );
-        return previous.filter((source) =>
-          remainingIds.has(source.source_document_id),
-        );
-      });
+    (batchId: string, status: AdminV3IngestBatchStatusResponse | null) => {
+      setBatchStatus(status);
       if (!status) return;
-      const liveLabel = tableIngestionStatusLabel(status.status);
-      if (liveLabel) {
-        setSessionRows((previous) =>
-          previous.map((row) => {
-            if (row.sourceDocumentId !== sourceDocumentId) return row;
-            return { ...row, ingestionStatus: liveLabel };
-          }),
-        );
+      const remainingSessions = pruneActiveVideoIngestBatch(
+        batchId,
+        hasPendingMergeDecisions(status.merge_decisions)
+          ? undefined
+          : status.status,
+      );
+      const remainingIds = new Set(
+        remainingSessions.map((session) => session.source_document_id),
+      );
+      setRestoredAcceptedSources((previous) =>
+        previous.filter((source) =>
+          remainingIds.has(source.source_document_id),
+        ),
+      );
+      if (
+        isIngestSucceeded(status.status) &&
+        !hasPendingMergeDecisions(status.merge_decisions)
+      ) {
+        setSelectedIds((previous) => {
+          const next = new Set(previous);
+          for (const sourceId of status.sources.map(
+            (source) => source.source_document_id,
+          )) {
+            next.delete(`source:${sourceId}`);
+          }
+          return next;
+        });
       }
     },
     [],
   );
 
-  const allAcceptedSucceeded =
-    acceptedSources.length > 0 &&
-    acceptedSources.every((source) =>
-      isIngestSucceeded(statusesBySourceId[source.source_document_id]?.status),
-    );
+  const activeStatusTitle = useMemo(() => {
+    const first =
+      acceptedSources[0] ??
+      restoredAcceptedSources[0] ??
+      uploadedSources[0] ??
+      null;
+    return first?.title;
+  }, [acceptedSources, restoredAcceptedSources, uploadedSources]);
 
-  const activeStatusSources = useMemo(() => {
-    const byId = new Map<string, AdminV3IngestAcceptedSource>();
-    for (const source of restoredAcceptedSources) {
-      byId.set(source.source_document_id, source);
-    }
-    for (const source of acceptedSources) {
-      byId.set(source.source_document_id, source);
-    }
-    return [...byId.values()];
-  }, [acceptedSources, restoredAcceptedSources]);
-
-  useEffect(() => {
-    if (!allAcceptedSucceeded) return;
-    const successfulIds = new Set(
-      acceptedSources.map((source) => source.source_document_id),
-    );
-    setSessionRows((previous) =>
-      previous.map((row) =>
-        row.sourceDocumentId && successfulIds.has(row.sourceDocumentId)
-          ? { ...row, ingestionStatus: 'Already Ingested' }
-          : row,
-      ),
-    );
-  }, [acceptedSources, allAcceptedSucceeded]);
-
-  const goToDraftsForSource = useCallback(
+  const goToAllModulesForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'drafts',
+        tab: 'all',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -554,103 +730,70 @@ export const VideoUploadPage = () => {
     [navigate],
   );
 
-  const rowIdForFile = useCallback(
-    (file: File): string => {
-      const serverMatch = serverRows.find(
-        (row) => row.name.toLowerCase() === file.name.toLowerCase(),
-      );
-      return (
-        serverMatch?.id ??
-        `local:${file.name}:${file.size}:${file.lastModified}`
-      );
+  const goToNeedsReviewForSource = useCallback(
+    (sourceDocumentId: string, sourceTitle?: string) => {
+      const state: ModuleLibraryLocationState = {
+        tab: 'needs_review',
+        sourceDocumentId,
+        sourceDocumentTitle: sourceTitle,
+      };
+      navigate(paths.moduleLibrary, { state });
     },
-    [serverRows],
+    [navigate],
   );
 
-  const addPendingFiles = useCallback(() => {
-    const files = pendingFiles.filter(isAcceptedVideoFile);
-    if (!files.length) return;
-    setIsAdding(true);
-    setSessionRows((previous) => {
-      let next = previous;
-      for (const file of files) {
-        const serverMatch = serverRows.find(
-          (row) => row.name.toLowerCase() === file.name.toLowerCase(),
-        );
-        const id = rowIdForFile(file);
-        const existing = next.find((row) => row.id === id);
-        const nextRow: VideoRow = {
-          ...(serverMatch ?? existing),
-          id,
-          selection: '',
-          name: file.name,
-          uploadedAt:
-            serverMatch?.uploadedAt ||
-            existing?.uploadedAt ||
-            new Date().toISOString(),
-          uploadStatus: 'Uploaded',
-          ingestionStatus:
-            serverMatch?.ingestionStatus ||
-            existing?.ingestionStatus ||
-            'Not ingested',
-          actions: '',
-          sourceDocumentId:
-            serverMatch?.sourceDocumentId ?? existing?.sourceDocumentId,
-          file,
-          syncPublishedVisible:
-            existing?.syncPublishedVisible ??
-            INGEST_FORM_DEFAULTS.sync_published_visible,
-        };
-        next = existing
-          ? next.map((row) => (row.id === id ? nextRow : row))
-          : [...next, nextRow];
-      }
-      return next;
-    });
-    setSelectedIds((previous) => {
-      const next = new Set(previous);
-      for (const file of files) next.add(rowIdForFile(file));
-      return next;
-    });
-    setPendingFiles([]);
-    setFileError('');
-    setIsAdding(false);
-  }, [pendingFiles, rowIdForFile, serverRows]);
+  const uploadPendingFiles = useCallback(async () => {
+    const items = pendingItems.filter((item) => isAcceptedVideoFile(item.file));
+    if (!items.length) return;
 
-  const selectablePageRows = rows.filter((row) => row.file);
-  const allPageRowsSelected =
-    selectablePageRows.length > 0 &&
-    selectablePageRows.every((row) => selectedIds.has(row.id));
+    const emptyTitleKeys = items
+      .filter((item) => !item.title.trim())
+      .map((item) => item.key);
+    if (emptyTitleKeys.length) {
+      setPendingTitleErrorKeys(new Set(emptyTitleKeys));
+      setFileError('Title is required for each video.');
+      return;
+    }
+
+    setPendingTitleErrorKeys(new Set());
+    setActionError('');
+    setActionSuccess('');
+    setFileError('');
+
+    pendingUploadMetaRef.current = items.map((item) => ({
+      title: item.title.trim(),
+      thumbnailFile: item.thumbnailFile,
+    }));
+
+    const response = await uploadFiles({
+      files: items.map((item) => item.file),
+      titles: items.map((item) => item.title.trim()),
+      descriptions: items.map((item) =>
+        item.description.trim() ? item.description.trim() : null,
+      ),
+      content_domains: items.map(() => contentDomain),
+      sync_published_visible: items.map(
+        () => INGEST_FORM_DEFAULTS.sync_published_visible,
+      ),
+    });
+    // Pending items are cleared in handleUploaded after a successful upload
+    // (including duplicate-confirm flows). Keep them if the dialog opens.
+    if (!response) return;
+  }, [contentDomain, pendingItems, uploadFiles]);
 
   const columns = useMemo<Array<ColumnDef<VideoRow>>>(
     () => [
       {
         key: 'selection',
-        header: (
-          <input
-            type="checkbox"
-            aria-label="Select all videos on this page"
-            checked={allPageRowsSelected}
-            disabled={!selectablePageRows.length || isUploading}
-            onChange={(event) => {
-              setSelectedIds((previous) => {
-                const next = new Set(previous);
-                for (const row of selectablePageRows) {
-                  if (event.target.checked) next.add(row.id);
-                  else next.delete(row.id);
-                }
-                return next;
-              });
-            }}
-          />
-        ),
+        header: '',
+        className: 'w-10 max-w-10 px-2 sm:px-3',
+        headerClassName: 'w-10 max-w-10 px-2 sm:px-3',
         render: (row) => (
           <input
             type="checkbox"
-            aria-label={`Select ${row.name}`}
+            aria-label={`Select ${row.title}`}
             checked={selectedIds.has(row.id)}
-            disabled={!row.file || isUploading}
-            title={row.file ? undefined : 'Choose this file again to re-ingest'}
+            disabled={isUploading}
             onChange={(event) => {
               setSelectedIds((previous) => {
                 const next = new Set(previous);
@@ -662,70 +805,112 @@ export const VideoUploadPage = () => {
           />
         ),
       },
-      { key: 'name', header: 'Video name' },
+      {
+        key: 'name',
+        header: 'Video',
+        className: 'whitespace-normal',
+        render: (row) => (
+          <div className="max-w-[22rem] sm:max-w-[28rem]">
+            <TruncatedText
+              text={row.title}
+              focusable
+              className="font-medium text-spice-text-primary"
+            />
+            {row.description ? (
+              <p className="mt-0.5 line-clamp-2 text-[11px] text-spice-text-muted">
+                {row.description}
+              </p>
+            ) : null}
+          </div>
+        ),
+      },
       {
         key: 'uploadedAt',
-        header: 'Upload date/time',
-        render: (row) => formatDateTime(row.uploadedAt),
+        header: 'Date/time',
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
+        render: (row) => formatDisplayDateTime(row.uploadedAt),
       },
       {
-        key: 'uploadStatus',
-        header: 'Upload status',
-        render: (row) => (
-          <StatusBadge status="success" label={row.uploadStatus} />
-        ),
-      },
-      {
-        key: 'ingestionStatus',
-        header: 'Ingestion status',
-        render: (row) => (
-          <StatusBadge {...statusBadgeProps(row.ingestionStatus)} />
-        ),
+        key: 'status',
+        header: 'Status',
+        className: 'whitespace-nowrap',
+        render: (row) => <StatusBadge {...statusBadgeProps(row.status)} />,
       },
       {
         key: 'actions',
         header: 'Actions',
-        render: (row) =>
-          row.sourceDocumentId ? (
-            <Button
-              variant="ghost"
-              className="h-8 px-2 text-xs hover:bg-[#ffcdd2] active:bg-[#ef9a9a]"
-              onClick={() => {
-                const state: ModuleLibraryLocationState = {
-                  tab: 'all',
-                  sourceDocumentId: row.sourceDocumentId,
-                  sourceDocumentTitle: row.name,
-                };
-                navigate(paths.moduleLibrary, { state });
-              }}
-            >
-              View modules
-            </Button>
-          ) : (
-            <span className="text-xs text-spice-text-muted">Not ingested</span>
-          ),
+        className: 'min-w-[18rem] whitespace-nowrap',
+        headerClassName: 'min-w-[18rem] whitespace-nowrap',
+        render: (row) => {
+          if (!row.sourceDocumentId) {
+            return <span className="text-xs text-spice-text-muted">—</span>;
+          }
+
+          return (
+            <div className="inline-flex flex-nowrap items-center gap-2">
+              <Button
+                className="h-8 shrink-0 px-3 text-xs"
+                onClick={() => {
+                  setActionError('');
+                  setActionSuccess('');
+                  setAssignTarget({
+                    id: row.sourceDocumentId as string,
+                    title: row.title,
+                  });
+                }}
+              >
+                Assign
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-8 shrink-0 px-3 text-xs"
+                onClick={() => {
+                  const document = sourceDocumentsById.get(
+                    row.sourceDocumentId as string,
+                  );
+                  if (!document) return;
+                  setActionError('');
+                  setActionSuccess('');
+                  setEditDocument(document);
+                }}
+              >
+                Edit
+              </Button>
+              {isViewModulesStatus(row.status) ? (
+                <Button
+                  variant="secondary"
+                  className="h-8 shrink-0 px-3 text-xs"
+                  onClick={() => {
+                    const state: ModuleLibraryLocationState = {
+                      tab: 'all',
+                      sourceDocumentId: row.sourceDocumentId,
+                      sourceDocumentTitle: row.title,
+                    };
+                    navigate(paths.moduleLibrary, { state });
+                  }}
+                >
+                  View modules
+                </Button>
+              ) : (
+                <span className="inline-flex h-8 shrink-0 items-center text-xs text-spice-text-muted ml-3">
+                  Not ingested
+                </span>
+              )}
+            </div>
+          );
+        },
       },
     ],
-    [
-      allPageRowsSelected,
-      isUploading,
-      navigate,
-      selectablePageRows,
-      selectedIds,
-    ],
+    [isUploading, navigate, selectedIds, sourceDocumentsById],
   );
 
-  const dialogIsBackendDuplicate = duplicateDialog.open;
-  const dialogNames = dialogIsBackendDuplicate
-    ? duplicateDialog.conflicts.map((conflict) => conflict.filename)
-    : precheckVideoNames;
-
-  const uploadBusy = isAdding || isUploading || anyIngestionInProgress;
+  const uploadBusy = isUploading || isStartingIngest || anyIngestionInProgress;
   let uploadButtonLabel = 'Upload';
-  if (isAdding) {
+  if (isUploading) {
     uploadButtonLabel = 'Uploading…';
-  } else if (pendingFiles.length > 1) {
-    uploadButtonLabel = `Upload ${pendingFiles.length} videos`;
+  } else if (pendingItems.length > 1) {
+    uploadButtonLabel = `Upload ${pendingItems.length} videos`;
   }
   let dropzoneStateClasses =
     'cursor-pointer border-spice-border-mid bg-spice-bg-tint hover:border-spice-border hover:bg-spice-bg-surface';
@@ -762,69 +947,168 @@ export const VideoUploadPage = () => {
           {actionError}
         </div>
       ) : null}
+      {actionSuccess ? (
+        <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
+          {actionSuccess}
+        </div>
+      ) : null}
 
       <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
         <div className="text-sm font-semibold text-spice-text-primary">
           Upload
         </div>
 
-        <div className="space-y-2">
-          {pendingFiles.map((file, index) => (
-            <div
-              key={`${file.name}:${file.size}:${file.lastModified}`}
-              className="flex items-center gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5"
-            >
+        <div className="space-y-3">
+          {pendingItems.map((item) => {
+            const titleInvalid = pendingTitleErrorKeys.has(item.key);
+            return (
               <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-spice-bg-tint text-spice-text-muted"
-                aria-hidden
+                key={item.key}
+                className="space-y-3 rounded-lg border border-spice-border bg-spice-bg-surface p-3"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M14 3v5h5"
-                  />
-                </svg>
-              </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <div className="space-y-2 sm:w-40 sm:shrink-0">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+                          Thumbnail
+                        </span>
+                        <button
+                          type="button"
+                          disabled={uploadBusy}
+                          title="Edit thumbnail"
+                          aria-label="Edit thumbnail"
+                          onClick={() =>
+                            thumbnailInputRefs.current.get(item.key)?.click()
+                          }
+                          className="rounded-md p-1 text-spice-text-muted transition-colors hover:bg-spice-bg-tint hover:text-spice-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint">
+                        {item.thumbnailPreviewUrl ? (
+                          <img
+                            src={item.thumbnailPreviewUrl}
+                            alt=""
+                            className="aspect-video w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex aspect-video items-center justify-center text-[11px] text-spice-text-muted">
+                            Capturing…
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      ref={(element) => {
+                        if (element) {
+                          thumbnailInputRefs.current.set(item.key, element);
+                        } else {
+                          thumbnailInputRefs.current.delete(item.key);
+                        }
+                      }}
+                      type="file"
+                      accept={VIDEO_THUMBNAIL_ACCEPT}
+                      className="sr-only"
+                      disabled={uploadBusy}
+                      onChange={(event) => {
+                        handlePendingThumbnailReplace(
+                          item.key,
+                          event.target.files,
+                        );
+                        event.target.value = '';
+                      }}
+                    />
+                  </div>
 
-              <div className="min-w-0 flex-1">
-                <div
-                  className="truncate text-sm font-medium text-spice-text-primary"
-                  title={file.name}
-                >
-                  {file.name}
-                </div>
-                <div className="mt-0.5 text-[11px] text-spice-text-muted">
-                  {Math.round(file.size / 1024)} KB
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="truncate text-xs text-spice-text-muted">
+                      {item.file.name} · {Math.round(item.file.size / 1024)} KB
+                    </div>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-semibold text-spice-text-primary">
+                        Title{' '}
+                        <span className="text-spice-semantic-error">*</span>
+                      </span>
+                      <input
+                        type="text"
+                        value={item.title}
+                        disabled={uploadBusy}
+                        aria-invalid={titleInvalid}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          updatePendingItem(item.key, { title: value });
+                          if (value.trim()) {
+                            setPendingTitleErrorKeys((previous) => {
+                              if (!previous.has(item.key)) return previous;
+                              const next = new Set(previous);
+                              next.delete(item.key);
+                              return next;
+                            });
+                          }
+                        }}
+                        className={`w-full rounded-md border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20 ${
+                          titleInvalid
+                            ? 'border-spice-semantic-error'
+                            : 'border-spice-border'
+                        }`}
+                      />
+                      {titleInvalid ? (
+                        <span className="text-[11px] text-spice-semantic-error">
+                          Title is required.
+                        </span>
+                      ) : null}
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-semibold text-spice-text-primary">
+                        Description
+                      </span>
+                      <textarea
+                        value={item.description}
+                        disabled={uploadBusy}
+                        rows={2}
+                        onChange={(event) =>
+                          updatePendingItem(item.key, {
+                            description: event.target.value,
+                          })
+                        }
+                        className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+                      />
+                    </label>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center self-start p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                    disabled={uploadBusy}
+                    aria-label={`Remove ${item.file.name}`}
+                    title="Remove"
+                    onClick={() => removePendingItem(item.key)}
+                  >
+                    <DeleteIcon className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-
-              <Button
-                variant="ghost"
-                className="h-8 shrink-0 px-2 text-[11px] text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-                disabled={isAdding || isUploading || anyIngestionInProgress}
-                onClick={() => removePendingFile(index)}
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
+            );
+          })}
 
           <label
             aria-label={
-              pendingFiles.length ? 'Add more videos' : 'Upload video'
+              pendingItems.length ? 'Add more videos' : 'Upload video'
             }
             className={`flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors ${dropzoneStateClasses}`}
             onDragOver={(event) => {
@@ -845,7 +1129,7 @@ export const VideoUploadPage = () => {
               multiple
               accept={VIDEO_FILE_INPUT_ACCEPT}
               className="sr-only"
-              disabled={isAdding || isUploading || anyIngestionInProgress}
+              disabled={uploadBusy}
               onChange={(event) => {
                 const files = event.target.files;
                 stageVideoFiles(files);
@@ -869,7 +1153,7 @@ export const VideoUploadPage = () => {
               </svg>
             </span>
             <span className="text-xs font-semibold text-spice-text-primary">
-              {pendingFiles.length ? 'Add more videos' : 'Upload videos'}
+              {pendingItems.length ? 'Add more videos' : 'Upload videos'}
             </span>
             <span className="text-[11px] text-spice-text-muted">
               Click to select or drag and drop videos
@@ -887,50 +1171,45 @@ export const VideoUploadPage = () => {
           {VIDEO_ACCEPTED_FILE_TYPES_LABEL}
         </p>
 
+        <IngestUploadProgress active={isUploading} label="Uploading videos…" />
+
         <div className="flex flex-wrap justify-end gap-2">
           <Button
-            disabled={
-              !pendingFiles.length ||
-              isAdding ||
-              isUploading ||
-              anyIngestionInProgress
-            }
-            onClick={addPendingFiles}
+            disabled={!pendingItems.length || uploadBusy}
+            onClick={() => void uploadPendingFiles()}
           >
             {uploadButtonLabel}
           </Button>
         </div>
       </Card>
 
-      <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-spice-text-primary">
-              Uploaded videos
-            </div>
-            <p className="mt-1 text-xs text-spice-text-muted">
-              Previously ingested videos must be chosen again before they can be
-              selected for re-ingestion.
-            </p>
+      <Card variant="elevated" className="space-y-2 p-4 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold text-spice-text-primary">
+            <span>Uploaded videos</span>
+            <Tooltip
+              label="About uploaded videos"
+              content="Previously ingested videos must be chosen again before they can be selected for re-ingestion."
+            />
           </div>
-          <div className="w-full sm:w-72">
-            <Combobox
-              aria-label="Filter uploaded videos"
-              value={selectedVideo.value}
-              selectedLabel={selectedVideo.label}
-              options={videoFilterOptions}
-              searchTerm={videoFilterSearch}
-              onSearchTermChange={setVideoFilterSearch}
-              onChange={(value) => {
-                setSelectedVideo(
-                  videoFilterOptions.find((option) => option.value === value) ??
-                    ALL_VIDEOS_OPTION,
-                );
-              }}
-              isLoading={isSearchingVideoFilter}
-              hint={videoFilterHint}
-              placeholder="Type to search videos…"
-              emptyMessage="No videos match your search"
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search videos…"
+              aria-label="Search uploaded videos"
+              className="h-9"
+            />
+            <SettingsFilterTriggerButton
+              ariaLabel="Open video filters"
+              active={filtersActive}
+              expanded={filtersDrawerOpen}
+              tooltip={
+                filtersActive
+                  ? 'Status filters are applied. Open filters to edit or clear them.'
+                  : 'Filter uploaded videos by status'
+              }
+              onClick={handleOpenFiltersDrawer}
             />
           </div>
         </div>
@@ -940,6 +1219,26 @@ export const VideoUploadPage = () => {
             Unable to load uploaded videos.
           </div>
         ) : null}
+        <SettingsFilterDrawer
+          open={filtersDrawerOpen}
+          onClose={handleCloseFiltersDrawer}
+          title="Filters"
+          description="Choose one or more statuses, then click Apply to update the table."
+          closeLabel="Close video filters"
+          titleId="video-upload-filters-title"
+          descriptionId="video-upload-filters-desc"
+        >
+          <VideoUploadFilters
+            filters={draftFilters}
+            onToggleStatus={(status) => {
+              setDraftFilters((current) =>
+                toggleVideoUploadStatus(current, status),
+              );
+            }}
+            onClearAll={handleClearDraftFilters}
+            onApply={handleApplyFilters}
+          />
+        </SettingsFilterDrawer>
         <Loader open={isLoadingVideos} label="Loading uploaded videos…" />
         <Table
           data={rows}
@@ -951,10 +1250,8 @@ export const VideoUploadPage = () => {
 
         <div className="flex flex-col gap-3 border-t border-spice-border pt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-spice-text-muted">
-            Showing {displayedServerRows.length ? page * pageSize + 1 : 0}–
-            {page * pageSize + displayedServerRows.length} of{' '}
-            {totalServerVideos}
-            {sessionOnlyCount > 0 ? ` (+${sessionOnlyCount} new)` : ''}
+            Showing {serverRows.length ? page * pageSize + 1 : 0}–
+            {page * pageSize + serverRows.length} of {totalServerVideos}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-spice-text-muted">Rows</span>
@@ -992,200 +1289,137 @@ export const VideoUploadPage = () => {
       </Card>
 
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          Ingestion configuration
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
-              Module content
-            </span>
-            <Select
-              className="w-full"
-              options={INGEST_ASSESSMENT_MODE_OPTIONS}
-              value={assessmentMode}
-              disabled={isUploading || anyIngestionInProgress}
-              onChange={(value) =>
-                setAssessmentMode(value as typeof assessmentMode)
-              }
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
-              Content domain type
-            </span>
-            <Select
-              className="w-full"
-              options={INGEST_CONTENT_DOMAIN_OPTIONS}
-              value={contentDomain}
-              disabled={isUploading || anyIngestionInProgress}
-              onChange={(value) =>
-                setContentDomain(value as typeof contentDomain)
-              }
-            />
-          </label>
-          {[
-            {
-              label: 'Learning Material per Module (Optional)',
-              value: cardsPerModule,
-              setValue: setCardsPerModule,
-            },
-            {
-              label: 'Quizzes per Module (Optional)',
-              value: quizzesPerModule,
-              setValue: setQuizzesPerModule,
-            },
-          ].map((field) => (
-            <label key={field.label} className="block space-y-1">
-              <span className="text-xs font-semibold text-spice-text-primary">
-                {field.label}
-              </span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={INGEST_MODULE_COUNT_MIN}
-                max={INGEST_MODULE_COUNT_MAX}
-                className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-                value={field.value}
-                disabled={isUploading || anyIngestionInProgress}
-                placeholder="e.g. 5"
-                onChange={(event) => {
-                  if (!event.target.value) {
-                    field.setValue('');
-                    return;
-                  }
-                  const parsed = Number.parseInt(event.target.value, 10);
-                  if (!Number.isNaN(parsed)) field.setValue(parsed);
-                }}
-              />
-              {field.value !== '' &&
-              !isIngestModuleCountInRange(field.value) ? (
-                <span className="text-[11px] text-spice-semantic-error">
-                  Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
-                  {INGEST_MODULE_COUNT_MAX}.
-                </span>
-              ) : (
-                <span className="text-[11px] text-spice-text-muted">
-                  {INGEST_MODULE_COUNT_RANGE_LABEL}
-                </span>
-              )}
-            </label>
-          ))}
-        </div>
-
-        <label className="flex items-start gap-3 rounded-lg border border-spice-border px-3 py-2.5">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={fuseSources}
-            disabled={
-              selectedRows.length < 2 || isUploading || anyIngestionInProgress
-            }
-            onChange={(event) => setFuseSources(event.target.checked)}
-          />
-          <span className="text-sm text-spice-text-medium">
-            <span className="font-semibold text-spice-text-primary">
-              Merge sources
-            </span>
-            <span className="block text-xs text-spice-text-muted">
-              Combine selected videos into one ingestion run. Requires at least
-              2 videos.
-            </span>
-          </span>
-        </label>
-
-        <label className="block space-y-1">
-          <span className="text-xs text-spice-text-muted">
-            Ingestion instructions (optional)
-          </span>
-          <textarea
-            className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
-            value={ingestionInstructions}
-            disabled={isUploading || anyIngestionInProgress}
-            onChange={(event) => setIngestionInstructions(event.target.value)}
-            placeholder="e.g. Focus on the key workflows demonstrated in the video…"
-          />
-        </label>
+        <IngestConfigurationPanel
+          disabled={isUploading || isStartingIngest || anyIngestionInProgress}
+          assessmentMode={assessmentMode}
+          onAssessmentModeChange={setAssessmentMode}
+          contentDomain={contentDomain}
+          onContentDomainChange={setContentDomain}
+          cardsPerModule={cardsPerModule}
+          onCardsPerModuleChange={setCardsPerModule}
+          quizzesPerModule={quizzesPerModule}
+          onQuizzesPerModuleChange={setQuizzesPerModule}
+          ingestionInstructions={ingestionInstructions}
+          onIngestionInstructionsChange={setIngestionInstructions}
+          instructionsPlaceholder="e.g. Focus on the key workflows demonstrated in the video…"
+        />
 
         <div className="flex flex-col gap-2 sm:items-end">
-          <Button
-            disabled={!canIngest}
-            onClick={() => {
-              const alreadyIngestedNames = selectedRows
-                .filter((row) => row.ingestionStatus === 'Already Ingested')
-                .map((row) => row.name);
-              if (alreadyIngestedNames.length) {
-                setPrecheckVideoNames(alreadyIngestedNames);
-                return;
-              }
-              void runIngest(false);
-            }}
-          >
-            {isUploading
-              ? 'Uploading…'
-              : anyIngestionInProgress
-                ? 'Ingestion in progress…'
-                : 'Ingest Selected Videos'}
-          </Button>
-          <div className="flex w-full items-center gap-3 rounded-xl bg-spice-semantic-infoBg px-4 py-3 ring-1 ring-[color:var(--color-blue-tint-mid)]">
-            <span
-              aria-hidden="true"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-spice-semantic-info text-[13px] font-bold leading-none text-white"
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              disabled={!canIngest}
+              onClick={() => {
+                const alreadyIngestedRows = selectedRowsReadyToIngest.filter(
+                  (row) => row.status.toLowerCase() === 'ingested',
+                );
+                if (alreadyIngestedRows.length) {
+                  setPrecheckConflicts(
+                    alreadyIngestedRows.map((row) => ({
+                      filename: row.name,
+                      title: row.title,
+                      content_sha256: row.sourceDocumentId ?? row.id,
+                      existing_source_documents: row.sourceDocumentId
+                        ? [
+                            {
+                              source_document_id: row.sourceDocumentId,
+                              title: row.title,
+                              original_filename: row.name,
+                              ingested_at: row.uploadedAt,
+                              status: row.status,
+                            },
+                          ]
+                        : [],
+                    })),
+                  );
+                  return;
+                }
+                void runIngest(false);
+              }}
             >
-              i
-            </span>
-            <p className="text-sm leading-relaxed text-spice-text-medium">
-              <span className="font-semibold text-spice-text-primary">
-                Ingest Selected Videos:
-              </span>{' '}
-              This action processes the selected videos and automatically
-              creates learning modules from their content.
-            </p>
+              {isStartingIngest
+                ? 'Starting…'
+                : anyIngestionInProgress
+                  ? 'Ingestion in progress…'
+                  : 'Ingest Selected Videos'}
+            </Button>
           </div>
         </div>
       </Card>
 
-      {activeStatusSources.map((source) => (
+      {activeBatchId ? (
         <IngestRunStatusPanel
-          key={source.source_document_id}
-          sourceDocumentId={source.source_document_id}
-          sourceTitle={source.title}
+          batchId={activeBatchId}
+          sourceTitle={activeStatusTitle}
           initialPollDelayMs={5000}
           onStatusChange={handleStatusChange}
-          successAction={
-            <div className="flex flex-col gap-2 rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Ingestion succeeded. Review generated draft modules or upload
-                another video.
-              </span>
-              <Button
-                className="h-8 shrink-0 text-xs"
-                onClick={() =>
-                  goToDraftsForSource(source.source_document_id, source.title)
-                }
-              >
-                Go to Drafts
-              </Button>
-            </div>
-          }
+          onGoToDrafts={() => {
+            const first =
+              acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
+            if (!first) return;
+            goToAllModulesForSource(first.source_document_id, first.title);
+          }}
+          onGoToNeedsReview={() => {
+            const first =
+              acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
+            if (!first) return;
+            goToNeedsReviewForSource(first.source_document_id, first.title);
+          }}
         />
-      ))}
+      ) : null}
 
-      <ReingestConfirmDialog
-        open={Boolean(precheckVideoNames.length) || dialogIsBackendDuplicate}
-        videoNames={dialogNames}
+      <DuplicateIngestConfirmDialog
+        open={precheckConflicts.length > 0 && !duplicateDialog.open}
+        variant="blocked"
+        conflicts={precheckConflicts}
         isConfirming={isConfirmingDuplicate}
-        onCancel={() => {
-          if (dialogIsBackendDuplicate) cancelDuplicate();
-          else setPrecheckVideoNames([]);
+        onCancel={() => setPrecheckConflicts([])}
+        onConfirm={(selectedFilenames) => {
+          setPrecheckConflicts([]);
+          void runIngest(selectedFilenames.length > 0);
         }}
-        onConfirm={() => {
-          if (dialogIsBackendDuplicate) {
-            void confirmDuplicate();
-            return;
-          }
-          setPrecheckVideoNames([]);
-          void runIngest(true);
+      />
+
+      <DuplicateIngestConfirmDialog
+        open={duplicateDialog.open}
+        variant={duplicateDialog.variant}
+        conflicts={duplicateDialog.conflicts}
+        onCancel={() => {
+          pendingUploadMetaRef.current = [];
+          cancelDuplicate();
+        }}
+        onConfirm={(selectedFilenames) => {
+          void confirmDuplicate(selectedFilenames);
+        }}
+        isConfirming={isConfirmingDuplicate}
+      />
+
+      {assignTarget ? (
+        <AssignmentDialog
+          open
+          onClose={() => setAssignTarget(null)}
+          target={{
+            kind: 'video',
+            id: assignTarget.id,
+            title: assignTarget.title,
+          }}
+          onAssigned={() => {
+            setActionSuccess('Video assigned successfully.');
+            setAssignTarget(null);
+          }}
+        />
+      ) : null}
+
+      <VideoMetadataEditDialog
+        open={Boolean(editDocument)}
+        document={editDocument}
+        onClose={() => setEditDocument(null)}
+        onSaved={(document) => {
+          setDocumentOverrides((previous) => ({
+            ...previous,
+            [document.id]: document,
+          }));
+          setActionSuccess('Video details updated.');
+          void refetchSourceDocumentList();
         }}
       />
     </section>

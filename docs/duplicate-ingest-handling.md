@@ -27,7 +27,7 @@ Backend reference: `coaching-platform/services/platform/src/platform_service/api
 ## Architecture
 
 ```
-IngestDocumentPage / ModuleCreatePage
+IngestDocumentPage / CourseCreatePage
         │
         ▼
 useIngestWithDuplicateHandling (hook)
@@ -45,13 +45,13 @@ useIngestWithDuplicateHandling (hook)
 
 | Action | Path |
 |--------|------|
-| Modify | `src/features/modules/api/adminIngestApi.ts` |
-| Create | `src/features/modules/utils/parseIngestDuplicateError.ts` |
-| Create | `src/features/modules/utils/parseIngestDuplicateError.test.ts` |
-| Create | `src/features/modules/components/DuplicateIngestConfirmDialog.tsx` |
-| Create | `src/features/modules/hooks/useIngestWithDuplicateHandling.ts` |
-| Modify | `src/features/modules/pages/IngestDocumentPage.tsx` |
-| Modify | `src/features/program/pages/ModuleCreatePage.tsx` |
+| Modify | `src/features/module-library/api/adminIngestApi.ts` |
+| Create | `src/features/module-library/utils/parseIngestDuplicateError.ts` |
+| Create | `src/features/module-library/utils/parseIngestDuplicateError.test.ts` |
+| Create | `src/features/module-library/components/DuplicateIngestConfirmDialog.tsx` |
+| Create | `src/features/module-library/hooks/useIngestWithDuplicateHandling.ts` |
+| Modify | `src/features/module-library/pages/IngestDocumentPage.tsx` |
+| Modify | `src/features/program-manager/pages/CourseCreatePage.tsx` |
 
 ---
 
@@ -259,19 +259,17 @@ onClick={async () => {
   await submitIngest({
     files,
     titles: titles.length === files.length ? titles : null,
-    fuse_sources: fuseSources,
     content_domain: contentDomain,
     assessment_mode: assessmentMode,
     authority_label: authorityLabel,
     primary_language: primaryLanguage,
-    mode,
   });
 }}
 ```
 
 ---
 
-## Step 6 — `ModuleCreatePage.tsx` integration
+## Step 6 — `CourseCreatePage.tsx` integration
 
 Same hook + dialog. Single-file upload only needs the `blocked` (409) path.
 

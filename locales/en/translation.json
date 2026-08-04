@@ -44,7 +44,7 @@
       },
       "nav": {
         "moduleLibrary": "Module Library",
-        "ingestDocument": "Upload Document",
+        "ingestDocument": "Ingest Document",
         "videoUpload": "Upload Video",
         "ingestHistory": "Ingestion History",
         "configs": "Configurations"
@@ -69,6 +69,12 @@
       "languageOptions": {
         "en": "English",
         "bn": "বাংলা"
+      },
+      "switchRole": "Switch to {{role}}",
+      "switchRoleAriaLabel": "Switch role to {{role}}",
+      "roles": {
+        "supervisor": "Supervisor",
+        "programManager": "Program Manager"
       }
     }
   },
@@ -120,18 +126,6 @@
       }
     }
   },
-  "quizPerformance": {
-    "title": "Quiz Performance",
-    "description": "Review quiz outcomes and trends."
-  },
-  "leaderboard": {
-    "title": "Leaderboard",
-    "description": "See top performance across CHWs."
-  },
-  "reports": {
-    "title": "Reports",
-    "description": "Export and review reporting summaries."
-  },
   "errorBoundary": {
     "description": "The dashboard hit an unexpected error. You can refresh the page or go back to the home screen.",
     "detailsDevOnly": "Details (dev only)",
@@ -152,115 +146,6 @@
     "flat": "Flat",
     "unknown": "Trend"
   },
-  "home": {
-    "dashboard": {
-      "loading": {
-        "initialLabel": "Loading dashboard",
-        "summaryLabel": "Loading summary",
-        "leaderboardLabel": "Loading leaderboard",
-        "performanceLabel": "Loading CHW matrix",
-        "flagsLabel": "Loading flags",
-        "modulesLabel": "Loading modules"
-      },
-      "error": {
-        "allTitle": "Dashboard unavailable",
-        "allDescription": "Please try again in a moment.",
-        "summaryDescription": "We couldn’t load KPIs."
-      },
-      "empty": {
-        "title": "No dashboard data yet",
-        "description": "Once activity is available, you’ll see KPIs, flags, and progress here."
-      },
-      "header": {
-        "title": "Dashboard",
-        "subtitle": "Quick overview of performance, flags, and module progress."
-      },
-      "actions": {
-        "viewAll": "View All →",
-        "exportReport": "Export Report",
-        "assignModule": "Assign Module"
-      },
-      "sections": {
-        "summary": "Summary",
-        "leaderboard": "Leaderboard",
-        "performance": "CHW matrix",
-        "flags": "Flags",
-        "modules": "Module progress",
-        "topPerformance": "Top Performance",
-        "priorityFlags": "Priority Flags",
-        "performanceMatrix": "CHW Performance Matrix",
-        "moduleProgress": "Module Progress"
-      },
-      "topPerformance": {
-        "subtitle": "{{passRate}}% Pass Rate • {{points}} pts"
-      },
-      "flags": {
-        "subtitle": "{{count}} CHWs need attention",
-        "severity": {
-          "critical": "CRITICAL",
-          "warning": "WARNING",
-          "info": "INFO"
-        },
-        "dueToday": "Due Today",
-        "overdueDays": "{{days}}d Overdue",
-        "actions": {
-          "assignModule": "Assign Module",
-          "viewProfile": "View Profile"
-        }
-      },
-      "performance": {
-        "searchPlaceholder": "Search workers...",
-        "filters": {
-          "all": "All",
-          "flagged": "Flagged",
-          "overdue": "Overdue"
-        }
-      },
-      "modules": {
-        "actions": {
-          "new": "+ New"
-        },
-        "rowMeta": "{{completed}} / {{total}} completed",
-        "status": {
-          "complete": "Complete",
-          "inProgress": "In Progress",
-          "overdue": "Overdue"
-        }
-      }
-    },
-    "dashboardEmpty": {
-      "title": "Welcome, {{name}}",
-      "description": "Your coaching dashboard is ready. Start by adding your Community Health Workers, then create your first learning module to get started.",
-      "actions": {
-        "addChws": "Add CHWs",
-        "createModule": "Create Module"
-      }
-    },
-    "leaderboard": {
-      "rowAriaLabel": "Leaderboard row: {{name}}",
-      "subtitle": "Score: {{score}} • Completion: {{completion}}% • {{trend}}"
-    },
-    "flags": {
-      "rowAriaLabel": "Flag: {{name}}"
-    },
-    "modules": {
-      "rowAriaLabel": "Module: {{name}}",
-      "progressLine": "{{progress}}% completion - {{completed}}/{{total}}"
-    },
-    "performanceMatrix": {
-      "title": "Performance matrix",
-      "columns": {
-        "name": "Name",
-        "modulesDone": "Modules done",
-        "deadlineStatus": "Deadline status",
-        "passFail": "Pass/Fail",
-        "overallStatus": "Overall status"
-      },
-      "allCompleted": "All Completed",
-      "remaining": "{{count}} remaining",
-      "attemptedFails": "{{attempted}} attempted - {{fails}} fails"
-    }
-  },
   "ui": {
     "search": {
       "placeholder": "Search...",
@@ -272,159 +157,6 @@
     },
     "infoCard": {
       "emptyFallback": "-"
-    }
-  },
-  "uiPreview": {
-    "title": "UI Components Preview",
-    "subtitle": "Reusable components with variants and edge states",
-    "cardsAndHeaders": "Cards and Headers",
-    "defaultCardSurface": "Default card surface",
-    "borderedCardSurface": "Bordered card surface",
-    "elevatedCardSurface": "Elevated card surface",
-    "statsAndInfo": "Stats and Info",
-    "completionRate": "Completion Rate",
-    "aiUsage": "AI Usage",
-    "monthlySessions": "Monthly Sessions",
-    "longContentTitle": "Long content",
-    "longContentDescription": "This card demonstrates handling long descriptions safely without breaking layouts in narrow containers.",
-    "successTitle": "Success",
-    "successDescription": "Performance improved this week.",
-    "warningTitle": "Warning",
-    "warningDescription": "Drop detected in one district.",
-    "criticalTitle": "Critical",
-    "criticalDescription": "Data sync failure needs attention.",
-    "filtersAndInputs": "Filters and Inputs",
-    "regionFilterAriaLabel": "Region filter",
-    "searchPlaceholder": "Search CHW or district",
-    "allRegions": "All Regions",
-    "north": "North",
-    "south": "South",
-    "badgesListKeyValue": "Badges, List, and KeyValue",
-    "defaultBadge": "Default Badge",
-    "status": {
-      "active": "Active",
-      "atRisk": "At Risk",
-      "blocked": "Blocked",
-      "pending": "Pending"
-    },
-    "region": "Region",
-    "cluster": "Cluster",
-    "supervisor": "Supervisor",
-    "regionValue": "Dhaka",
-    "clusterValue": "North 03",
-    "personOneName": "Anika Rahman",
-    "personOneSubtitle": "12 completions this week",
-    "personTwoName": "Extremely Long Name To Validate Text Truncation In Narrow Rows",
-    "personTwoSubtitle": "Subtitle with long metadata that should truncate safely",
-    "newBadge": "New",
-    "actionsTabsStates": "Actions, Tabs, and States",
-    "button": {
-      "primary": "Primary",
-      "secondary": "Secondary",
-      "ghost": "Ghost",
-      "disabled": "Disabled"
-    },
-    "tabs": {
-      "summary": "Summary",
-      "details": "Details",
-      "history": "History",
-      "activeTab": "Active tab: {{tab}}"
-    },
-    "warningBanner": "This is a warning banner for high-priority communication.",
-    "emptyStateTitle": "No records found",
-    "emptyStateDescription": "Try broadening your filters.",
-    "loadingMetrics": "Loading dashboard metrics...",
-    "errorStateTitle": "Could not load data",
-    "errorStateDescription": "Please try again in a few minutes."
-  },
-  "chwProfiles": {
-    "status": {
-      "overdue": "Overdue",
-      "flagged": "Flagged"
-    },
-    "deadline": {
-      "overdue": "Overdue"
-    },
-    "module": {
-      "completed": "Completed",
-      "inProgress": "In progress"
-    },
-    "quiz": {
-      "pass": "Pass",
-      "fail": "Fail"
-    },
-    "list": {
-      "title": "CHW Profiles",
-      "subtitle": "Track module progress, quiz performance, and engagement status.",
-      "searchPlaceholder": "Search modules...",
-      "tableTitle": "CHW Profiles",
-      "empty": "No CHW profiles found.",
-      "attempts": "{{count}} attempts",
-      "daysShort": "{{count}}d",
-      "columns": {
-        "chw": "CHW",
-        "modulesDone": "Modules done",
-        "deadline": "Deadline",
-        "passRate": "Pass rate",
-        "streak": "Streak",
-        "lastActive": "Last active",
-        "status": "Status"
-      }
-    },
-    "detail": {
-      "title": "Profile Detail",
-      "subtitle": "CHW Profiles  ›  Profile Details",
-      "loading": "Loading profile...",
-      "errorTitle": "Profile unavailable",
-      "missingIdTitle": "Missing CHW id",
-      "missingIdDescription": "The profile route is missing an id parameter.",
-      "backToList": "Back to CHW profiles",
-      "streakBadge": "{{days}}d streak",
-      "daysValue": "{{count}}d",
-      "points": "{{count}} pts",
-      "badgesCount": "{{count}} badges",
-      "meta": {
-        "joined": "Joined",
-        "lastActive": "Last active",
-        "totalPoints": "Total points",
-        "leaderboardRank": "Leaderboard rank",
-        "badges": "Badges earned"
-      },
-      "actions": {
-        "assign": "Assign Module",
-        "flag": "Flag for Mentoring"
-      },
-      "metrics": {
-        "modulesDone": "Modules done",
-        "applicationKnowledge": "Application knowledge",
-        "passRate": "Pass rate",
-        "totalAttempts": "Total attempts",
-        "allComplete": "All complete",
-        "bestLabel": "Best: 21 days",
-        "accuracyLabel": "Accuracy",
-        "attemptsLabel": "Attempts"
-      },
-      "modules": {
-        "title": "Module progress",
-        "empty": "No modules found.",
-        "columns": {
-          "title": "Module",
-          "status": "Status",
-          "passRate": "Pass %",
-          "attempts": "Attempts",
-          "dueDate": "Due date"
-        }
-      },
-      "quiz": {
-        "title": "Quiz attempt history",
-        "empty": "No quizzes found.",
-        "columns": {
-          "title": "Quiz",
-          "score": "Score",
-          "date": "Date",
-          "status": "Status"
-        }
-      }
     }
   }
 }

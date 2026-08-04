@@ -4,6 +4,7 @@ import { isTerminalIngestStatus } from '@/features/ingest/utils/ingestStatus';
 const ACTIVE_VIDEO_INGEST_SESSIONS_KEY = 'adminV3ActiveVideoIngests';
 
 export interface ActiveVideoIngestSession {
+  batch_id: string;
   source_document_id: string;
   title?: string;
 }
@@ -13,7 +14,11 @@ function isActiveVideoIngestSession(
 ): value is ActiveVideoIngestSession {
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
-  return typeof record.source_document_id === 'string';
+  return (
+    typeof record.batch_id === 'string' &&
+    record.batch_id.length > 0 &&
+    typeof record.source_document_id === 'string'
+  );
 }
 
 export function readActiveVideoIngestSessions(): ActiveVideoIngestSession[] {
@@ -45,6 +50,7 @@ export function clearActiveVideoIngestSessions(): void {
 }
 
 export function mergeActiveVideoIngestSessions(
+  batchId: string,
   sources: AdminV3IngestAcceptedSource[],
 ): ActiveVideoIngestSession[] {
   const merged = new Map(
@@ -55,6 +61,7 @@ export function mergeActiveVideoIngestSessions(
   );
   for (const source of sources) {
     merged.set(source.source_document_id, {
+      batch_id: batchId,
       source_document_id: source.source_document_id,
       title: source.title,
     });
@@ -73,6 +80,21 @@ export function pruneActiveVideoIngestSession(
   const next = sessions.filter(
     (session) => session.source_document_id !== sourceDocumentId,
   );
+  if (next.length) {
+    writeActiveVideoIngestSessions(next);
+  } else {
+    clearActiveVideoIngestSessions();
+  }
+  return next;
+}
+
+export function pruneActiveVideoIngestBatch(
+  batchId: string,
+  status: string | undefined,
+): ActiveVideoIngestSession[] {
+  const sessions = readActiveVideoIngestSessions();
+  if (!batchId || !isTerminalIngestStatus(status)) return sessions;
+  const next = sessions.filter((session) => session.batch_id !== batchId);
   if (next.length) {
     writeActiveVideoIngestSessions(next);
   } else {

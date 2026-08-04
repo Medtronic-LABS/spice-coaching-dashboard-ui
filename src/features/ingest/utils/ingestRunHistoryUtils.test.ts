@@ -163,7 +163,10 @@ describe('ingestRunHistoryUtils', () => {
     expect(ingestRunStatusTone('unknown_state')).toBe('neutral');
 
     expect(ingestRunStatusBadgeClassName('processing')).toContain(
-      'text-spice-brand-pm',
+      'text-spice-semantic-info',
+    );
+    expect(ingestRunStatusBadgeClassName('processing')).toContain(
+      'bg-spice-semantic-infoBg',
     );
     expect(ingestRunStatusBadgeClassName('completed')).toContain(
       'text-spice-semantic-success',

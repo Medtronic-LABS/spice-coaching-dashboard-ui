@@ -17,7 +17,8 @@ export type AdminModuleLifecycleStatus =
   | 'draft'
   | 'published'
   | 'retired'
-  | 'deactivated';
+  | 'deactivated'
+  | 'review_pending';
 
 export type AdminModuleDifficulty = 'easy' | 'medium' | 'hard' | string;
 
@@ -28,6 +29,7 @@ export interface AdminModulesListItem {
   title: LocalizedString;
   description: LocalizedString | null;
   domain: string;
+  category?: string | null;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
   clinically_reviewed: boolean;
@@ -47,6 +49,11 @@ export interface AdminModulesListItem {
   thumbnail_presigned_expires_seconds?: number | null;
   /** Populated when the modules list API includes document linkage. */
   source_document_ids?: string[];
+  merge_source_module_id?: string | null;
+  merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
+  merge_primary_module_id?: string | null;
+  merge_secondary_module_id?: string | null;
+  is_merge_secondary?: boolean;
 }
 
 export interface AdminModuleSourceDocument {
@@ -78,6 +85,7 @@ export interface AdminModuleDetailResponse {
   title: LocalizedString;
   description: LocalizedString | null;
   domain: string;
+  category?: string | null;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
   clinically_reviewed: boolean;
@@ -94,6 +102,10 @@ export interface AdminModuleDetailResponse {
   thumbnail_storage_path?: string | null;
   thumbnail_presigned_url?: string | null;
   thumbnail_presigned_expires_seconds?: number | null;
+  merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
+  merge_primary_module_id?: string | null;
+  merge_secondary_module_id?: string | null;
+  is_merge_secondary?: boolean;
 }
 
 export interface EditAdminModuleRequestBody {
@@ -161,6 +173,12 @@ function normalizeModuleSummary(
     title,
     description: Object.keys(descriptionRaw).length ? descriptionRaw : null,
     domain: typeof item.domain === 'string' ? item.domain : '',
+    category:
+      typeof item.category === 'string'
+        ? item.category
+        : typeof item.domain === 'string'
+          ? item.domain
+          : null,
     module_type: typeof item.module_type === 'string' ? item.module_type : '',
     lifecycle_status:
       (item.lifecycle_status as AdminModuleLifecycleStatus) ?? 'draft',
@@ -206,6 +224,27 @@ function normalizeModuleSummary(
         ? item.thumbnail_presigned_expires_seconds
         : null,
     source_document_ids: normalizeSourceDocumentIds(item.source_document_ids),
+    merge_source_module_id:
+      typeof item.merge_source_module_id === 'string'
+        ? item.merge_source_module_id
+        : typeof item.merge_source_module === 'string'
+          ? item.merge_source_module
+          : null,
+    merge_source_module:
+      item.merge_source_module && typeof item.merge_source_module === 'object'
+        ? normalizeModuleSummary(
+            item.merge_source_module as Record<string, unknown>,
+          )
+        : null,
+    merge_primary_module_id:
+      typeof item.merge_primary_module_id === 'string'
+        ? item.merge_primary_module_id
+        : null,
+    merge_secondary_module_id:
+      typeof item.merge_secondary_module_id === 'string'
+        ? item.merge_secondary_module_id
+        : null,
+    is_merge_secondary: Boolean(item.is_merge_secondary),
   };
 }
 
@@ -282,6 +321,12 @@ function normalizeModuleDetail(
     title,
     description: Object.keys(descriptionRaw).length ? descriptionRaw : null,
     domain: typeof response.domain === 'string' ? response.domain : '',
+    category:
+      typeof response.category === 'string'
+        ? response.category
+        : typeof response.domain === 'string'
+          ? response.domain
+          : null,
     module_type:
       typeof response.module_type === 'string' ? response.module_type : '',
     lifecycle_status:
@@ -320,6 +365,22 @@ function normalizeModuleDetail(
       typeof response.thumbnail_presigned_expires_seconds === 'number'
         ? response.thumbnail_presigned_expires_seconds
         : null,
+    merge_source_module:
+      response.merge_source_module &&
+      typeof response.merge_source_module === 'object'
+        ? normalizeModuleDetail(
+            response.merge_source_module as Record<string, unknown>,
+          )
+        : null,
+    merge_primary_module_id:
+      typeof response.merge_primary_module_id === 'string'
+        ? response.merge_primary_module_id
+        : null,
+    merge_secondary_module_id:
+      typeof response.merge_secondary_module_id === 'string'
+        ? response.merge_secondary_module_id
+        : null,
+    is_merge_secondary: Boolean(response.is_merge_secondary),
   };
 }
 
@@ -375,8 +436,14 @@ export interface FetchModulesQueryArgs {
   offset: number;
   status?: AdminModuleLifecycleStatus | null;
   domain?: string | null;
-  date_from?: string | null;
-  date_to?: string | null;
+  created_from?: string | null;
+  created_to?: string | null;
+  published_from?: string | null;
+  published_to?: string | null;
+  activated_from?: string | null;
+  activated_to?: string | null;
+  deactivated_from?: string | null;
+  deactivated_to?: string | null;
   sourceDocumentId?: string | null;
   /** Server-side search; omit when empty or below the UI minimum length. */
   q?: string | null;
@@ -462,8 +529,14 @@ export const adminModulesApi = baseApi.injectEndpoints({
         offset,
         status,
         domain,
-        date_from,
-        date_to,
+        created_from,
+        created_to,
+        published_from,
+        published_to,
+        activated_from,
+        activated_to,
+        deactivated_from,
+        deactivated_to,
         sourceDocumentId,
         q,
       }) => ({
@@ -475,8 +548,14 @@ export const adminModulesApi = baseApi.injectEndpoints({
           latest_version_only: true,
           ...(status ? { status } : {}),
           ...(domain ? { domain } : {}),
-          ...(date_from ? { date_from } : {}),
-          ...(date_to ? { date_to } : {}),
+          ...(created_from ? { created_from } : {}),
+          ...(created_to ? { created_to } : {}),
+          ...(published_from ? { published_from } : {}),
+          ...(published_to ? { published_to } : {}),
+          ...(activated_from ? { activated_from } : {}),
+          ...(activated_to ? { activated_to } : {}),
+          ...(deactivated_from ? { deactivated_from } : {}),
+          ...(deactivated_to ? { deactivated_to } : {}),
           ...(sourceDocumentId ? { source_document_id: sourceDocumentId } : {}),
           ...(q ? { q } : {}),
         },
@@ -579,6 +658,15 @@ export const adminModulesApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+    overrideMergeModule: builder.mutation<
+      { id: string; lifecycle_status: AdminModuleLifecycleStatus },
+      { moduleId: string }
+    >({
+      query: ({ moduleId }) => ({
+        url: `/admin/ingest/modules/${encodeURIComponent(moduleId)}/override-merge`,
+        method: 'POST',
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -593,4 +681,5 @@ export const {
   useDeleteModuleMutation,
   useDeactivateModuleMutation,
   useReactivateModuleMutation,
+  useOverrideMergeModuleMutation,
 } = adminModulesApi;

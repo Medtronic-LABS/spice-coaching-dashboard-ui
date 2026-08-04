@@ -72,6 +72,17 @@ describe('ModulePreviewNavigator', () => {
     expect(screen.getByText('Card 1')).toBeInTheDocument();
   });
 
+  it('shows progress only in the header and full-width nav buttons', () => {
+    render(<NavigatorHarness snapshot={buildSnapshot(2, 1)} />);
+
+    expect(screen.getAllByText('Learning 1 of 2')).toHaveLength(1);
+    expect(screen.queryByText('Preview Module')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toHaveClass(
+      'flex-1',
+    );
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveClass('flex-1');
+  });
+
   it('walks through all cards and reaches the quiz phase', async () => {
     const user = userEvent.setup();
     render(<NavigatorHarness snapshot={buildSnapshot(2, 1)} />);
@@ -84,6 +95,8 @@ describe('ModulePreviewNavigator', () => {
       screen.getByTestId('quiz-question-preview-screen'),
     ).toBeInTheDocument();
     expect(screen.getByText('Question 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Question 1/1')).toHaveLength(2);
+    expect(screen.queryByText('Explanation')).not.toBeInTheDocument();
   });
 
   it('returns to the last card when going previous from quiz 0', async () => {

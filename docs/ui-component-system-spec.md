@@ -126,7 +126,7 @@ Each component file **must include clear comments**:
 
 ### 🔹 3. Component Test / Preview Page (MANDATORY)
 
-* Create a dedicated page (e.g., `/ui-preview` or `/components-preview`)
+* Create a dedicated page (e.g., component tests / local Story-style pages)
 * This page should render **all custom components in isolation**
 * Each component should have:
 

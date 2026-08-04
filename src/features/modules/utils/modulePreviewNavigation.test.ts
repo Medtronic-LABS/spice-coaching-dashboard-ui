@@ -46,7 +46,7 @@ describe('modulePreviewNavigation', () => {
       'Learning 2 of 5',
     );
     expect(getStepLabel({ phase: 'quiz', index: 2 }, snap)).toBe(
-      'Question 3 of 10',
+      'Question 3/10',
     );
   });
 

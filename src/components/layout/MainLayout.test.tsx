@@ -20,7 +20,7 @@ describe('MainLayout', () => {
 
     // Verify Header and Sidebar content exists
     expect(screen.getByText('SPICE • AI COACHING')).toBeInTheDocument();
-    expect(screen.getByText(/welcome back/i)).toBeInTheDocument();
+    expect(screen.getByText('AI Coaching')).toBeInTheDocument();
     expect(screen.getByTestId('outlet-content')).toBeInTheDocument();
   });
 });
