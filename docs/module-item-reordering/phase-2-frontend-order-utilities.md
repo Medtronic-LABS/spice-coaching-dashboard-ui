@@ -16,7 +16,7 @@ Add pure TypeScript utilities and save/load normalization for card and quiz orde
 
 ### 1. Card reorder utilities
 
-**New file:** `src/features/modules/utils/adminModuleCardUtils.ts`
+**New file:** `src/features/module-library/utils/adminModuleCardUtils.ts`
 
 Export:
 
@@ -34,7 +34,7 @@ Rules:
 
 ### 2. Extend quiz reorder utilities
 
-**Modify:** `src/features/modules/utils/adminModuleQuizUtils.ts`
+**Modify:** `src/features/module-library/utils/adminModuleQuizUtils.ts`
 
 Add:
 
@@ -51,7 +51,7 @@ All reorder helpers should operate on **sorted** quiz lists (use `sortQuizItems`
 
 ### 3. Save payload preparation
 
-**New file:** `src/features/modules/utils/prepareModuleJsonForSave.ts`
+**New file:** `src/features/module-library/utils/prepareModuleJsonForSave.ts`
 
 ```typescript
 export function prepareModuleJsonForSave(
@@ -67,14 +67,14 @@ Behavior:
 
 ### 4. API normalization on load
 
-**Modify:** `src/features/modules/api/adminModulesApi.ts` — `normalizeModuleDetail()`
+**Modify:** `src/features/module-library/api/adminModulesApi.ts` — `normalizeModuleDetail()`
 
 - Keep cards in API array order (no sort by `card_order`).
 - Sort quiz with `sortQuizItems()` before storing in normalized response.
 
 ### 5. Redux slice typing fix
 
-**Modify:** `src/features/modules/store/adminModuleReviewSlice.ts`
+**Modify:** `src/features/module-library/store/adminModuleReviewSlice.ts`
 
 - Change `setCards` payload from `unknown[]` to `AdminModuleCard[]`.
 
@@ -82,12 +82,12 @@ Behavior:
 
 **New files:**
 
-- `src/features/modules/utils/adminModuleCardUtils.test.ts`
-- `src/features/modules/utils/prepareModuleJsonForSave.test.ts`
+- `src/features/module-library/utils/adminModuleCardUtils.test.ts`
+- `src/features/module-library/utils/prepareModuleJsonForSave.test.ts`
 
 **Extend:**
 
-- `src/features/modules/utils/adminModuleQuizUtils.test.ts` (create if missing)
+- `src/features/module-library/utils/adminModuleQuizUtils.test.ts` (create if missing)
 
 Test cases:
 
@@ -105,11 +105,11 @@ Test cases:
 
 | Action | Path |
 |--------|------|
-| New | `src/features/modules/utils/adminModuleCardUtils.ts` |
-| New | `src/features/modules/utils/prepareModuleJsonForSave.ts` |
-| Extend | `src/features/modules/utils/adminModuleQuizUtils.ts` |
-| Modify | `src/features/modules/api/adminModulesApi.ts` |
-| Modify | `src/features/modules/store/adminModuleReviewSlice.ts` |
+| New | `src/features/module-library/utils/adminModuleCardUtils.ts` |
+| New | `src/features/module-library/utils/prepareModuleJsonForSave.ts` |
+| Extend | `src/features/module-library/utils/adminModuleQuizUtils.ts` |
+| Modify | `src/features/module-library/api/adminModulesApi.ts` |
+| Modify | `src/features/module-library/store/adminModuleReviewSlice.ts` |
 | New/extend tests | `*.test.ts` files above |
 
 **Do not modify** editor step components or `package.json` in this phase.
@@ -120,9 +120,9 @@ Test cases:
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/modules/utils/adminModuleCardUtils.test.ts
-npm run test -- src/features/modules/utils/adminModuleQuizUtils.test.ts
-npm run test -- src/features/modules/utils/prepareModuleJsonForSave.test.ts
+npm run test -- src/features/module-library/utils/adminModuleCardUtils.test.ts
+npm run test -- src/features/module-library/utils/adminModuleQuizUtils.test.ts
+npm run test -- src/features/module-library/utils/prepareModuleJsonForSave.test.ts
 npm run typecheck
 ```
 

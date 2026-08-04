@@ -16,7 +16,7 @@ Define preview types and pure utilities that transform editor module data into a
 
 ### 1. Preview types
 
-**New file:** `src/features/modules/types/modulePreview.types.ts`
+**New file:** `src/features/module-library/types/modulePreview.types.ts`
 
 Export:
 
@@ -52,11 +52,11 @@ export interface ModulePreviewSnapshot {
 }
 ```
 
-Import `RichBlock` from `@/features/modules/types/moduleDraft.types`.
+Import `RichBlock` from `@/features/modules/types/richText.types`.
 
 ### 2. Snapshot generator
 
-**New file:** `src/features/modules/utils/generateModulePreviewSnapshot.ts`
+**New file:** `src/features/module-library/utils/generateModulePreviewSnapshot.ts`
 
 ```typescript
 export function generateModulePreviewSnapshot(
@@ -83,7 +83,7 @@ Behavior:
 
 ### 3. Navigation helpers
 
-**New file:** `src/features/modules/utils/modulePreviewNavigation.ts`
+**New file:** `src/features/module-library/utils/modulePreviewNavigation.ts`
 
 Export:
 
@@ -123,7 +123,7 @@ Rules:
 
 ### 4. Quiz answer card state
 
-**New file:** `src/features/modules/utils/previewAnswerCardState.ts`
+**New file:** `src/features/module-library/utils/previewAnswerCardState.ts`
 
 Port Android `AnswerCardState` logic from `SharedQuizContent.kt`:
 
@@ -151,9 +151,9 @@ Rules (match Android):
 
 **New files:**
 
-- `src/features/modules/utils/generateModulePreviewSnapshot.test.ts`
-- `src/features/modules/utils/modulePreviewNavigation.test.ts`
-- `src/features/modules/utils/previewAnswerCardState.test.ts`
+- `src/features/module-library/utils/generateModulePreviewSnapshot.test.ts`
+- `src/features/module-library/utils/modulePreviewNavigation.test.ts`
+- `src/features/module-library/utils/previewAnswerCardState.test.ts`
 
 #### Snapshot test cases
 
@@ -194,10 +194,10 @@ Use fixtures inspired by `LessonCardsJsonParserTest` / `QuizJsonParserTest` (see
 
 | Action | Path |
 |--------|------|
-| New | `src/features/modules/types/modulePreview.types.ts` |
-| New | `src/features/modules/utils/generateModulePreviewSnapshot.ts` |
-| New | `src/features/modules/utils/modulePreviewNavigation.ts` |
-| New | `src/features/modules/utils/previewAnswerCardState.ts` |
+| New | `src/features/module-library/types/modulePreview.types.ts` |
+| New | `src/features/module-library/utils/generateModulePreviewSnapshot.ts` |
+| New | `src/features/module-library/utils/modulePreviewNavigation.ts` |
+| New | `src/features/module-library/utils/previewAnswerCardState.ts` |
 | New | `*.test.ts` for each util above |
 
 **Do not modify** editor components, layout, or Redux in this phase.
@@ -208,9 +208,9 @@ Use fixtures inspired by `LessonCardsJsonParserTest` / `QuizJsonParserTest` (see
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/modules/utils/generateModulePreviewSnapshot.test.ts
-npm run test -- src/features/modules/utils/modulePreviewNavigation.test.ts
-npm run test -- src/features/modules/utils/previewAnswerCardState.test.ts
+npm run test -- src/features/module-library/utils/generateModulePreviewSnapshot.test.ts
+npm run test -- src/features/module-library/utils/modulePreviewNavigation.test.ts
+npm run test -- src/features/module-library/utils/previewAnswerCardState.test.ts
 npm run typecheck
 ```
 

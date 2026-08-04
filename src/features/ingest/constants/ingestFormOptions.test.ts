@@ -12,11 +12,17 @@ describe('ingestFormOptions', () => {
       { label: 'Cards and Quizzes', value: 'with_quiz' },
       { label: 'Cards Only', value: 'read_only' },
     ]);
-    expect(INGEST_CONTENT_DOMAIN_OPTIONS[1]).toEqual({
-      label: 'Clinical',
-      value: 'clinical',
-    });
+    expect(INGEST_CONTENT_DOMAIN_OPTIONS).toEqual([
+      { label: 'Clinical', value: 'clinical' },
+      { label: 'Digital', value: 'digital' },
+      { label: 'Operational', value: 'operational' },
+      {
+        label: 'Clinical with app workflows',
+        value: 'clinical_with_app_workflows',
+      },
+    ]);
     expect(getIngestAssessmentModeLabel('read_only')).toBe('Cards Only');
     expect(getIngestContentDomainLabel('clinical')).toBe('Clinical');
+    expect(getIngestContentDomainLabel('operational')).toBe('Operational');
   });
 });

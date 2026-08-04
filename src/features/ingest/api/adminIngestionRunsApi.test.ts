@@ -2,23 +2,18 @@ import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const baseQuerySpy = vi.hoisted(() => vi.fn());
+const mockBaseQuerySpy = vi.fn();
 
-vi.mock('@reduxjs/toolkit/query/react', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@reduxjs/toolkit/query/react')>();
-  return {
-    ...actual,
-    fetchBaseQuery: () => baseQuerySpy,
-  };
-});
+vi.mock('@/store/apis/mockBaseQuery', () => ({
+  mockBaseQuery: (...args: unknown[]) => mockBaseQuerySpy(...args),
+}));
 
 async function dispatchFetchIngestionRuns(arg: {
   status?: string;
   limit?: number;
   offset?: number;
 }) {
-  baseQuerySpy.mockResolvedValue({
+  mockBaseQuerySpy.mockResolvedValue({
     data: {
       runs: [],
       total_runs: 0,
@@ -39,14 +34,14 @@ async function dispatchFetchIngestionRuns(arg: {
     adminIngestionRunsApi.endpoints.fetchIngestionRuns.initiate(arg),
   );
   return {
-    request: baseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs,
+    request: mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs,
     data: result.data,
   };
 }
 
 describe('adminIngestionRunsApi', () => {
   afterEach(() => {
-    baseQuerySpy.mockReset();
+    mockBaseQuerySpy.mockReset();
   });
 
   it('requests paginated ingestion runs with limit and offset', async () => {
@@ -73,7 +68,7 @@ describe('adminIngestionRunsApi', () => {
   });
 
   it('normalizes the paginated envelope with document_label and counts', async () => {
-    baseQuerySpy.mockResolvedValueOnce({
+    mockBaseQuerySpy.mockResolvedValueOnce({
       data: {
         runs: [
           {
@@ -125,7 +120,7 @@ describe('adminIngestionRunsApi', () => {
   });
 
   it('defaults missing counts to 0 and trims document_label', async () => {
-    baseQuerySpy.mockResolvedValueOnce({
+    mockBaseQuerySpy.mockResolvedValueOnce({
       data: {
         runs: [
           {
@@ -158,7 +153,7 @@ describe('adminIngestionRunsApi', () => {
   });
 
   it('marks the last envelope page as having no next page', async () => {
-    baseQuerySpy.mockResolvedValueOnce({
+    mockBaseQuerySpy.mockResolvedValueOnce({
       data: {
         runs: [
           {

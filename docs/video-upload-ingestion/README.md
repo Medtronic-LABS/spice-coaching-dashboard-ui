@@ -51,14 +51,14 @@ Table: checkbox | name | date | upload status | ingestion status | actions
 
 | Path | Role |
 |------|------|
-| `src/features/modules/pages/VideoUploadPage.tsx` | Video upload & ingest UI |
-| `src/features/modules/pages/IngestDocumentPage.tsx` | Document-only ingest (video excluded; uses shared status panel) |
-| `src/features/modules/constants/videoAcceptedFileTypes.ts` | Video accept/reject rules |
-| `src/features/modules/constants/ingestAcceptedFileTypes.ts` | Document types (no video) |
-| `src/features/modules/components/ReingestConfirmDialog.tsx` | Re-ingest confirmation + `REINGEST_VIDEO_WARNING` |
-| `src/features/modules/components/IngestRunStatusPanel.tsx` | Shared ingest progress / polling UI |
-| `src/features/modules/utils/videoIngestSessionStorage.ts` | Multi-session restore across refresh |
-| `src/features/modules/pages/ModuleLibraryPage.tsx` | Modules list + source-document filter |
+| `src/features/module-library/pages/VideoUploadPage.tsx` | Video upload & ingest UI |
+| `src/features/module-library/pages/IngestDocumentPage.tsx` | Document-only ingest (video excluded; uses shared status panel) |
+| `src/features/module-library/constants/videoAcceptedFileTypes.ts` | Video accept/reject rules |
+| `src/features/module-library/constants/ingestAcceptedFileTypes.ts` | Document types (no video) |
+| `src/features/module-library/components/ReingestConfirmDialog.tsx` | Re-ingest confirmation + `REINGEST_VIDEO_WARNING` |
+| `src/features/module-library/components/IngestRunStatusPanel.tsx` | Shared ingest progress / polling UI |
+| `src/features/module-library/utils/videoIngestSessionStorage.ts` | Multi-session restore across refresh |
+| `src/features/module-library/pages/ModuleLibraryPage.tsx` | Modules list + source-document filter |
 | `src/constants/routes.ts` / `src/routes/AppRoutes.tsx` | `paths.videoUpload` |
 | `src/components/layout/Sidebar.tsx` | **Ingest video** nav (PM only) |
 

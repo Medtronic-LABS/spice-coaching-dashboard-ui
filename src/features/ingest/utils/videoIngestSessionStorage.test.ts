@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   clearActiveVideoIngestSessions,
   mergeActiveVideoIngestSessions,
+  pruneActiveVideoIngestBatch,
   pruneActiveVideoIngestSession,
   readActiveVideoIngestSessions,
   writeActiveVideoIngestSessions,
@@ -20,13 +21,13 @@ describe('videoIngestSessionStorage', () => {
 
   it('writes and reads sessions', () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'doc-1', title: 'a.mp4' },
-      { source_document_id: 'doc-2' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-2' },
     ]);
 
     expect(readActiveVideoIngestSessions()).toEqual([
-      { source_document_id: 'doc-1', title: 'a.mp4' },
-      { source_document_id: 'doc-2' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-2' },
     ]);
   });
 
@@ -42,7 +43,8 @@ describe('videoIngestSessionStorage', () => {
     window.sessionStorage.setItem(
       STORAGE_KEY,
       JSON.stringify([
-        { source_document_id: 'doc-1', title: 'ok.mp4' },
+        { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'ok.mp4' },
+        { source_document_id: 'doc-2', title: 'missing-batch' },
         { title: 'missing-id' },
         null,
         'string',
@@ -50,12 +52,14 @@ describe('videoIngestSessionStorage', () => {
     );
 
     expect(readActiveVideoIngestSessions()).toEqual([
-      { source_document_id: 'doc-1', title: 'ok.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'ok.mp4' },
     ]);
   });
 
   it('clears the session storage key', () => {
-    writeActiveVideoIngestSessions([{ source_document_id: 'doc-1' }]);
+    writeActiveVideoIngestSessions([
+      { batch_id: 'batch-1', source_document_id: 'doc-1' },
+    ]);
     clearActiveVideoIngestSessions();
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
     expect(readActiveVideoIngestSessions()).toEqual([]);
@@ -63,49 +67,61 @@ describe('videoIngestSessionStorage', () => {
 
   it('merges accepted sources and dedupes by source_document_id', () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'doc-1', title: 'old.mp4' },
-      { source_document_id: 'doc-2', title: 'keep.mp4' },
+      { batch_id: 'batch-old', source_document_id: 'doc-1', title: 'old.mp4' },
+      { batch_id: 'batch-old', source_document_id: 'doc-2', title: 'keep.mp4' },
     ]);
 
-    const merged = mergeActiveVideoIngestSessions([
+    const merged = mergeActiveVideoIngestSessions('batch-new', [
       {
         source_document_id: 'doc-1',
+        run_id: 'run-1',
         title: 'new.mp4',
         source_type: 'video',
         stored_path: '',
-        poll_url: '',
       },
       {
         source_document_id: 'doc-3',
+        run_id: 'run-3',
         title: 'third.mp4',
         source_type: 'video',
         stored_path: '',
-        poll_url: '',
       },
     ]);
 
     expect(merged).toEqual([
-      { source_document_id: 'doc-1', title: 'new.mp4' },
-      { source_document_id: 'doc-2', title: 'keep.mp4' },
-      { source_document_id: 'doc-3', title: 'third.mp4' },
+      {
+        batch_id: 'batch-new',
+        source_document_id: 'doc-1',
+        title: 'new.mp4',
+      },
+      {
+        batch_id: 'batch-old',
+        source_document_id: 'doc-2',
+        title: 'keep.mp4',
+      },
+      {
+        batch_id: 'batch-new',
+        source_document_id: 'doc-3',
+        title: 'third.mp4',
+      },
     ]);
     expect(readActiveVideoIngestSessions()).toEqual(merged);
   });
 
   it('does not prune sessions for non-terminal statuses', () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
     ]);
 
     expect(pruneActiveVideoIngestSession('doc-1', 'running')).toEqual([
-      { source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
     ]);
     expect(readActiveVideoIngestSessions()).toHaveLength(1);
   });
 
   it('prunes a terminal session and clears storage when empty', () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
     ]);
 
     expect(pruneActiveVideoIngestSession('doc-1', 'succeeded')).toEqual([]);
@@ -114,22 +130,35 @@ describe('videoIngestSessionStorage', () => {
 
   it('prunes one terminal session and keeps the rest', () => {
     writeActiveVideoIngestSessions([
-      { source_document_id: 'doc-1', title: 'a.mp4' },
-      { source_document_id: 'doc-2', title: 'b.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-2', title: 'b.mp4' },
     ]);
 
     expect(pruneActiveVideoIngestSession('doc-1', 'failed')).toEqual([
-      { source_document_id: 'doc-2', title: 'b.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-2', title: 'b.mp4' },
     ]);
     expect(readActiveVideoIngestSessions()).toEqual([
-      { source_document_id: 'doc-2', title: 'b.mp4' },
+      { batch_id: 'batch-1', source_document_id: 'doc-2', title: 'b.mp4' },
+    ]);
+  });
+
+  it('prunes an entire terminal batch', () => {
+    writeActiveVideoIngestSessions([
+      { batch_id: 'batch-1', source_document_id: 'doc-1', title: 'a.mp4' },
+      { batch_id: 'batch-2', source_document_id: 'doc-2', title: 'b.mp4' },
+    ]);
+
+    expect(pruneActiveVideoIngestBatch('batch-1', 'succeeded')).toEqual([
+      { batch_id: 'batch-2', source_document_id: 'doc-2', title: 'b.mp4' },
     ]);
   });
 
   it('ignores prune when sourceDocumentId is empty', () => {
-    writeActiveVideoIngestSessions([{ source_document_id: 'doc-1' }]);
+    writeActiveVideoIngestSessions([
+      { batch_id: 'batch-1', source_document_id: 'doc-1' },
+    ]);
     expect(pruneActiveVideoIngestSession('', 'succeeded')).toEqual([
-      { source_document_id: 'doc-1' },
+      { batch_id: 'batch-1', source_document_id: 'doc-1' },
     ]);
   });
 });

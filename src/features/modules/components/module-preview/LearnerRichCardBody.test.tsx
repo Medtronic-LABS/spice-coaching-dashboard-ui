@@ -109,16 +109,21 @@ describe('LearnerRichCardBody', () => {
       },
     ];
 
-    render(<LearnerRichCardBody blocks={blocks} />);
+    const { container } = render(<LearnerRichCardBody blocks={blocks} />);
 
     expect(screen.getByRole('img', { name: 'Lesson image' })).toHaveAttribute(
       'src',
       'https://example.com/img.png',
     );
     expect(screen.queryByText('Diagram')).not.toBeInTheDocument();
+    expect(container.querySelector('figure')).toHaveClass(
+      'flex',
+      'justify-center',
+    );
+    expect(container.querySelector('.aspect-video')).toBeInTheDocument();
   });
 
-  it('applies stored image display dimensions in preview', () => {
+  it('centers stored image display dimensions in preview', () => {
     const blocks: RichBlock[] = [
       {
         type: 'image',
@@ -130,10 +135,16 @@ describe('LearnerRichCardBody', () => {
       },
     ];
 
-    render(<LearnerRichCardBody blocks={blocks} />);
+    const { container } = render(<LearnerRichCardBody blocks={blocks} />);
 
     const image = screen.getByRole('img', { name: 'Lesson image' });
     expect(image).toHaveStyle({ width: '240px', height: '135px' });
+    expect(image).toHaveClass('max-w-full', 'object-contain');
+    expect(container.querySelector('figure')).toHaveClass(
+      'flex',
+      'justify-center',
+    );
+    expect(container.querySelector('.aspect-video')).not.toBeInTheDocument();
   });
 
   it('renders playable video with native controls and no filename', () => {

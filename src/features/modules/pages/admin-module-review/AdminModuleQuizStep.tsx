@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DeleteIcon } from '@/assets/icon';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
@@ -137,10 +138,11 @@ export const AdminModuleQuizStep = () => {
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
-                className="h-9 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+                className="inline-flex h-9 items-center gap-1.5 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
                 disabled={busy || sortedQuiz.length === 0}
                 onClick={() => applyQuiz(clearAllQuizItems())}
               >
+                <DeleteIcon className="h-3.5 w-3.5" />
                 Remove all
               </Button>
               <Button
@@ -199,13 +201,15 @@ export const AdminModuleQuizStep = () => {
                         {!isReadonly ? (
                           <Button
                             variant="secondary"
-                            className="h-8 px-2 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+                            className="inline-flex h-8 w-8 items-center justify-center p-0 text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
                             disabled={busy}
+                            aria-label={`Remove question ${index + 1}`}
+                            title="Remove"
                             onClick={() =>
                               applyQuiz(removeQuizItem(working.quiz, m.id))
                             }
                           >
-                            Remove
+                            <DeleteIcon className="h-4 w-4" />
                           </Button>
                         ) : null}
                       </div>
@@ -284,8 +288,10 @@ export const AdminModuleQuizStep = () => {
                             {!isReadonly ? (
                               <button
                                 type="button"
-                                className="text-xs font-semibold text-spice-semantic-error"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-spice-semantic-error transition-colors hover:bg-spice-semantic-errorBg disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={busy || displayOptions.length <= 2}
+                                aria-label={`Remove option ${optionIndex + 1}`}
+                                title="Remove"
                                 onClick={() => {
                                   const next = displayOptions.filter(
                                     (_, i) => i !== optionIndex,
@@ -306,7 +312,7 @@ export const AdminModuleQuizStep = () => {
                                   });
                                 }}
                               >
-                                Remove
+                                <DeleteIcon className="h-3.5 w-3.5" />
                               </button>
                             ) : null}
                           </label>

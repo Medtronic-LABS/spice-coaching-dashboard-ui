@@ -45,13 +45,7 @@ export const ModulePreviewNavigator = ({
     if (position.phase === 'card') {
       const card = snapshot.cards[position.index];
       if (!card) return null;
-      return (
-        <LessonCardPreviewScreen
-          card={card}
-          cardIndex={position.index}
-          totalCards={snapshot.cards.length}
-        />
-      );
+      return <LessonCardPreviewScreen card={card} />;
     }
 
     const item = snapshot.quiz[position.index];
@@ -66,20 +60,19 @@ export const ModulePreviewNavigator = ({
   }, [position, snapshot]);
 
   const footer = (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center gap-3">
       <Button
         variant="secondary"
+        className="min-w-0 flex-1"
         disabled={!previousEnabled}
         onClick={() => onPositionChange(goPrevious(position, snapshot))}
         aria-label="Previous"
       >
         Previous
       </Button>
-      <span className="min-w-0 flex-1 truncate text-center text-xs font-semibold text-spice-text-muted">
-        {stepLabel}
-      </span>
       <Button
         variant="primary"
+        className="min-w-0 flex-1"
         disabled={!nextEnabled}
         onClick={() => onPositionChange(goNext(position, snapshot))}
         aria-label={nextLabel}
@@ -90,12 +83,7 @@ export const ModulePreviewNavigator = ({
   );
 
   return (
-    <MobilePreviewFrame
-      headerTitle={snapshot.moduleTitle}
-      headerSubtitle={stepLabel}
-      footer={footer}
-      fillContainer
-    >
+    <MobilePreviewFrame headerTitle={stepLabel} footer={footer} fillContainer>
       {activeScreen}
     </MobilePreviewFrame>
   );

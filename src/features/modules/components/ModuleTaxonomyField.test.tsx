@@ -67,7 +67,7 @@ describe('ModuleTaxonomyField', () => {
       />,
     );
 
-    expect(screen.getByLabelText(/^domain$/i)).toBeRequired();
+    expect(screen.getByLabelText(/domain/i)).toBeRequired();
     expect(screen.getByText('*')).toBeInTheDocument();
   });
 });

@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildModuleListDateParams,
   buildModuleListSearchParams,
+  buildModuleListTypedDateParams,
+  dateRangeValidationMessage,
   EMPTY_MODULE_LIBRARY_FILTERS,
   formatModuleDomainLabel,
+  getAvailableDateFilterTypes,
   getModuleActivatedAt,
-  getModuleListDateHint,
-  getModuleListingDate,
   getModuleListingDateColumns,
   getModuleListEmptyMessage,
   hasActiveModuleFilters,
+  isAnyVisibleDateRangeInvalid,
   isDateRangeInvalid,
   moduleListingDateColumnHeader,
   parseFiltersFromSearchParams,
@@ -29,18 +30,78 @@ describe('moduleListFilters', () => {
     expect(formatModuleDomainLabel('spice_app')).toBe('Spice App');
   });
 
-  it('builds ISO date params for API requests', () => {
-    expect(buildModuleListDateParams('2026-04-01', '2026-04-30')).toEqual({
-      date_from: '2026-04-01T00:00:00.000Z',
-      date_to: '2026-04-30T23:59:59.999Z',
+  it('builds typed ISO date params for visible types only', () => {
+    const filters = {
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      createdFrom: '2026-04-01',
+      createdTo: '2026-04-30',
+      publishedFrom: '2026-05-01',
+      publishedTo: '2026-05-31',
+      deactivatedFrom: '2026-06-01',
+    };
+    expect(buildModuleListTypedDateParams(filters, 'drafts', true)).toEqual({
+      created_from: '2026-04-01T00:00:00.000Z',
+      created_to: '2026-04-30T23:59:59.999Z',
     });
-    expect(buildModuleListDateParams('', '')).toEqual({});
+    expect(buildModuleListTypedDateParams(filters, 'published', true)).toEqual({
+      created_from: '2026-04-01T00:00:00.000Z',
+      created_to: '2026-04-30T23:59:59.999Z',
+      published_from: '2026-05-01T00:00:00.000Z',
+      published_to: '2026-05-31T23:59:59.999Z',
+    });
+    expect(
+      buildModuleListTypedDateParams(filters, 'deactivated', true)
+        .deactivated_from,
+    ).toBe('2026-06-01T00:00:00.000Z');
+  });
+
+  it('returns available date types by tab', () => {
+    expect(getAvailableDateFilterTypes('drafts', true)).toEqual(['created']);
+    expect(getAvailableDateFilterTypes('published', true)).toEqual([
+      'created',
+      'published',
+    ]);
+    expect(getAvailableDateFilterTypes('all', true)).toEqual([
+      'created',
+      'published',
+      'activated',
+      'deactivated',
+    ]);
+    expect(getAvailableDateFilterTypes('published', false)).toEqual([
+      'created',
+      'published',
+    ]);
   });
 
   it('detects invalid date ranges', () => {
     expect(isDateRangeInvalid('2026-04-30', '2026-04-01')).toBe(true);
     expect(isDateRangeInvalid('2026-04-01', '2026-04-30')).toBe(false);
-    expect(isDateRangeInvalid('2026-04-01', '')).toBe(false);
+    expect(isDateRangeInvalid('2026-04-01', '')).toBe(true);
+  });
+
+  it('returns specific date range validation messages', () => {
+    expect(dateRangeValidationMessage('', '')).toBeNull();
+    expect(dateRangeValidationMessage('2026-04-01', '')).toBe(
+      'Both from and to dates are required.',
+    );
+    expect(dateRangeValidationMessage('', '2026-04-30')).toBe(
+      'Both from and to dates are required.',
+    );
+    expect(dateRangeValidationMessage('2026-04-30', '2026-04-01')).toBe(
+      'From date must be on or before to date.',
+    );
+  });
+
+  it('ignores hidden date types for badge / invalid checks on drafts', () => {
+    const filters = {
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      publishedFrom: '2026-05-01',
+      publishedTo: '2026-04-01',
+    };
+    expect(hasActiveModuleFilters(filters, 'drafts', true)).toBe(false);
+    expect(isAnyVisibleDateRangeInvalid(filters, 'drafts', true)).toBe(false);
+    expect(hasActiveModuleFilters(filters, 'published', true)).toBe(true);
+    expect(isAnyVisibleDateRangeInvalid(filters, 'published', true)).toBe(true);
   });
 
   it('detects active filters', () => {
@@ -68,29 +129,25 @@ describe('moduleListFilters', () => {
     expect(tabToLifecycleStatus('all', false)).toBe('published');
   });
 
-  it('parses and builds URL search params', () => {
-    const params = new URLSearchParams(
+  it('parses typed URL keys and migrates legacy from/to once', () => {
+    const legacy = new URLSearchParams(
       'tab=published&domain=rmnch&from=2026-01-01',
     );
-    expect(parseModuleLibraryTab(params.get('tab'), true)).toBe('published');
-    expect(parseFiltersFromSearchParams(params)).toEqual({
+    expect(parseModuleLibraryTab(legacy.get('tab'), true)).toBe('published');
+    expect(parseFiltersFromSearchParams(legacy, 'published', true)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
       domain: 'rmnch',
-      dateFrom: '2026-01-01',
-      dateTo: '',
-      sourceDocumentId: '',
+      publishedFrom: '2026-01-01',
     });
+
+    const typed = {
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      domain: 'rmnch',
+      publishedFrom: '2026-01-01',
+    };
     expect(
-      buildModuleListSearchParams(
-        'published',
-        {
-          domain: 'rmnch',
-          dateFrom: '2026-01-01',
-          dateTo: '',
-          sourceDocumentId: '',
-        },
-        true,
-      ).toString(),
-    ).toBe('tab=published&domain=rmnch&from=2026-01-01');
+      buildModuleListSearchParams('published', typed, true).toString(),
+    ).toBe('tab=published&domain=rmnch&published_from=2026-01-01');
   });
 
   it('round-trips the source document filter through the doc param', () => {
@@ -115,20 +172,6 @@ describe('moduleListFilters', () => {
     expect(parseModuleLibraryTab(params.get('tab'), true)).toBe('all');
   });
 
-  it('returns tab-aware date hints', () => {
-    expect(getModuleListDateHint('published', true)).toBe(
-      'Date range filters by publish date.',
-    );
-    expect(getModuleListDateHint('drafts', true)).toBe(
-      'Date range filters by creation date.',
-    );
-    expect(getModuleListDateHint('deactivated', true)).toBe('');
-    expect(getModuleListDateHint('all', true)).toContain('publish date');
-    expect(getModuleListDateHint('published', false)).toBe(
-      'Date range filters by publish date.',
-    );
-  });
-
   it('returns tab-aware date columns', () => {
     expect(getModuleListingDateColumns('drafts', true)).toEqual(['created']);
     expect(getModuleListingDateColumns('published', true)).toEqual([
@@ -151,31 +194,10 @@ describe('moduleListFilters', () => {
   });
 
   it('labels date columns', () => {
-    expect(moduleListingDateColumnHeader('created')).toBe('Created');
-    expect(moduleListingDateColumnHeader('published')).toBe('Published');
-    expect(moduleListingDateColumnHeader('activated')).toBe('Activated');
-    expect(moduleListingDateColumnHeader('deactivated')).toBe('Deactivated');
-  });
-
-  it('picks listing dates by tab', () => {
-    const module = {
-      lifecycle_status: 'deactivated',
-      published_at: '2026-01-01T00:00:00.000Z',
-      created_at: '2025-12-01T00:00:00.000Z',
-      first_activated_at: '2026-01-01T00:00:00.000Z',
-      last_reactivated_at: '2026-02-10T00:00:00.000Z',
-      last_deactivated_at: '2026-03-15T00:00:00.000Z',
-    };
-    expect(getModuleListingDate(module, 'deactivated', true)).toBe(
-      '2026-02-10T00:00:00.000Z',
-    );
-    expect(getModuleActivatedAt(module)).toBe('2026-02-10T00:00:00.000Z');
-    expect(getModuleListingDate(module, 'published', true)).toBe(
-      '2026-01-01T00:00:00.000Z',
-    );
-    expect(getModuleListingDate(module, 'drafts', true)).toBe(
-      '2025-12-01T00:00:00.000Z',
-    );
+    expect(moduleListingDateColumnHeader('created')).toBe('Created at');
+    expect(moduleListingDateColumnHeader('published')).toBe('Published at');
+    expect(moduleListingDateColumnHeader('activated')).toBe('Activated at');
+    expect(moduleListingDateColumnHeader('deactivated')).toBe('Deactivated at');
   });
 
   it('prefers last_reactivated_at for Activated, then falls back', () => {
@@ -212,7 +234,7 @@ describe('moduleListFilters', () => {
         'published',
         true,
       ),
-    ).toBe('No modules match for the selected filters..');
+    ).toBe('No modules match for the selected filters.');
     expect(
       getModuleListEmptyMessage(EMPTY_MODULE_LIBRARY_FILTERS, 'drafts', true),
     ).toBe('No draft modules yet.');

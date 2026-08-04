@@ -14,7 +14,11 @@ export function useModuleListFilters(isProgramManager: boolean) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tab = parseModuleLibraryTab(searchParams.get('tab'), isProgramManager);
-  const activeFilters = parseFiltersFromSearchParams(searchParams);
+  const activeFilters = parseFiltersFromSearchParams(
+    searchParams,
+    tab,
+    isProgramManager,
+  );
   const lifecycleStatus = tabToLifecycleStatus(tab, isProgramManager);
 
   const applyTabAndFilters = useCallback(
@@ -56,7 +60,11 @@ export function useModuleListFilters(isProgramManager: boolean) {
       partial: Partial<ModuleLibraryFilters>,
     ): string => {
       const merged = {
-        ...parseFiltersFromSearchParams(searchParams),
+        ...parseFiltersFromSearchParams(
+          searchParams,
+          nextTab,
+          isProgramManager,
+        ),
         ...partial,
       };
       return buildModuleListSearchParams(

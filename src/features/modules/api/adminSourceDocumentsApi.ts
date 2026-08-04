@@ -1,6 +1,10 @@
 import { baseApi } from '@/store/apis/base';
 
-export type SourceDocumentStatus = 'ingesting' | 'ingested' | 'failed';
+export type SourceDocumentStatus =
+  | 'uploaded'
+  | 'ingesting'
+  | 'ingested'
+  | 'failed';
 
 export type SourceDocumentSourceType =
   | 'pdf'
@@ -17,6 +21,9 @@ export interface SourceDocumentSummary {
   content_domain: string;
   authority_label: string;
   original_filename: string | null;
+  description: string | null;
+  thumbnail_storage_path: string | null;
+  thumbnail_presigned_url?: string | null;
   ingested_at: string;
 }
 
@@ -30,13 +37,24 @@ export interface SourceDocumentListResponse {
 }
 
 export interface FetchSourceDocumentsParams {
-  status?: SourceDocumentStatus;
+  /** Repeated or comma-separated values are accepted by the backend. */
+  status?: SourceDocumentStatus | SourceDocumentStatus[];
   /** Repeated or comma-separated values are accepted by the backend. */
   source_type?: SourceDocumentSourceType | SourceDocumentSourceType[];
   /** Case-insensitive substring match on original_filename or title. */
   q?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface UpdateSourceDocumentMetadataRequest {
+  title?: string;
+  description?: string | null;
+}
+
+export interface UpdateSourceDocumentThumbnailRequest {
+  sourceDocumentId: string;
+  file: File;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -58,6 +76,15 @@ function normalizeSourceDocumentSummary(
     original_filename:
       typeof item.original_filename === 'string'
         ? item.original_filename
+        : null,
+    description: typeof item.description === 'string' ? item.description : null,
+    thumbnail_storage_path:
+      typeof item.thumbnail_storage_path === 'string'
+        ? item.thumbnail_storage_path
+        : null,
+    thumbnail_presigned_url:
+      typeof item.thumbnail_presigned_url === 'string'
+        ? item.thumbnail_presigned_url
         : null,
     ingested_at: typeof item.ingested_at === 'string' ? item.ingested_at : '',
   };
@@ -110,8 +137,48 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
         };
       },
     }),
+    updateSourceDocumentMetadata: builder.mutation<
+      SourceDocumentSummary,
+      { sourceDocumentId: string; body: UpdateSourceDocumentMetadataRequest }
+    >({
+      query: ({ sourceDocumentId, body }) => ({
+        url: `/admin/source-documents/${encodeURIComponent(sourceDocumentId)}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (response: unknown): SourceDocumentSummary => {
+        if (!isPlainObject(response)) {
+          return normalizeSourceDocumentSummary({});
+        }
+        return normalizeSourceDocumentSummary(response);
+      },
+    }),
+    updateSourceDocumentThumbnail: builder.mutation<
+      SourceDocumentSummary,
+      UpdateSourceDocumentThumbnailRequest
+    >({
+      query: ({ sourceDocumentId, file }) => {
+        const form = new FormData();
+        form.append('file', file, file.name);
+        return {
+          url: `/admin/source-documents/${encodeURIComponent(sourceDocumentId)}/thumbnail`,
+          method: 'PUT',
+          body: form,
+        };
+      },
+      transformResponse: (response: unknown): SourceDocumentSummary => {
+        if (!isPlainObject(response)) {
+          return normalizeSourceDocumentSummary({});
+        }
+        return normalizeSourceDocumentSummary(response);
+      },
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useFetchSourceDocumentsQuery } = adminSourceDocumentsApi;
+export const {
+  useFetchSourceDocumentsQuery,
+  useUpdateSourceDocumentMetadataMutation,
+  useUpdateSourceDocumentThumbnailMutation,
+} = adminSourceDocumentsApi;

@@ -14,14 +14,14 @@ export const INGEST_ASSESSMENT_MODE_OPTIONS: SelectOption[] = [
 ];
 
 export const INGEST_CONTENT_DOMAIN_OPTIONS: SelectOption[] = [
-  ingestOption('Digital', 'digital' satisfies IngestContentDomain),
   ingestOption('Clinical', 'clinical' satisfies IngestContentDomain),
+  ingestOption('Digital', 'digital' satisfies IngestContentDomain),
+  ingestOption('Operational', 'operational' satisfies IngestContentDomain),
   ingestOption(
     'Clinical with app workflows',
     'clinical_with_app_workflows' satisfies IngestContentDomain,
   ),
 ];
-
 function findIngestOptionLabel(options: SelectOption[], value: string): string {
   return options.find((option) => option.value === value)?.label ?? value;
 }

@@ -16,7 +16,7 @@ Introduce `ModulePreviewContext` to own `previewSnapshot`, navigation position, 
 
 ### 1. Preview context
 
-**New file:** `src/features/modules/context/ModulePreviewContext.tsx`
+**New file:** `src/features/module-library/context/ModulePreviewContext.tsx`
 
 ```typescript
 export interface ModulePreviewContextValue {
@@ -49,7 +49,7 @@ State held in provider (React `useState` + `useCallback`):
 
 **Export:** `ModulePreviewProvider` + `useModulePreview` hook
 
-**New file:** `src/features/modules/hooks/useModulePreview.ts`
+**New file:** `src/features/module-library/hooks/useModulePreview.ts`
 
 Thin re-export of context hook with runtime guard:
 
@@ -160,7 +160,7 @@ const registerEditorContext = useCallback((context: Partial<ModulePreviewPositio
 
 ### 8. Module preview panel shell
 
-**New file:** `src/features/modules/components/module-preview/ModulePreviewPanel.tsx`
+**New file:** `src/features/module-library/components/module-preview/ModulePreviewPanel.tsx`
 
 Consumes `useModulePreview()`:
 
@@ -174,7 +174,7 @@ Props: `onClose` for modal mode (Phase 5).
 
 ### 9. Tests
 
-**New file:** `src/features/modules/context/ModulePreviewContext.test.tsx`
+**New file:** `src/features/module-library/context/ModulePreviewContext.test.tsx`
 
 Setup: `ModulePreviewProvider` + mock Redux store with `working` / `baseline`.
 
@@ -187,7 +187,7 @@ Setup: `ModulePreviewProvider` + mock Redux store with `working` / `baseline`.
 | `openPreview({ phase: 'quiz', index: 2 })` | Position set correctly |
 | Re-sync after card delete | Position clamped |
 
-**New file:** `src/features/modules/components/module-preview/ModulePreviewPanel.test.tsx`
+**New file:** `src/features/module-library/components/module-preview/ModulePreviewPanel.test.tsx`
 
 | Case | Assert |
 |------|--------|
@@ -201,9 +201,9 @@ Setup: `ModulePreviewProvider` + mock Redux store with `working` / `baseline`.
 
 | Action | Path |
 |--------|------|
-| New | `src/features/modules/context/ModulePreviewContext.tsx` |
-| New | `src/features/modules/hooks/useModulePreview.ts` |
-| New | `src/features/modules/components/module-preview/ModulePreviewPanel.tsx` |
+| New | `src/features/module-library/context/ModulePreviewContext.tsx` |
+| New | `src/features/module-library/hooks/useModulePreview.ts` |
+| New | `src/features/module-library/components/module-preview/ModulePreviewPanel.tsx` |
 | New | `ModulePreviewContext.test.tsx` |
 | New | `ModulePreviewPanel.test.tsx` |
 
@@ -225,8 +225,8 @@ For tests, wrap provider around panel:
 
 ```bash
 cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
-npm run test -- src/features/modules/context/ModulePreviewContext.test.tsx
-npm run test -- src/features/modules/components/module-preview/ModulePreviewPanel.test.tsx
+npm run test -- src/features/module-library/context/ModulePreviewContext.test.tsx
+npm run test -- src/features/module-library/components/module-preview/ModulePreviewPanel.test.tsx
 npm run typecheck
 ```
 

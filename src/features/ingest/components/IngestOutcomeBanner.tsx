@@ -25,8 +25,8 @@ export const IngestOutcomeBanner = ({
       {hasGeneratedModules ? (
         <>
           <span>
-            Ingestion generated draft modules. Review them or upload another
-            document.
+            Ingestion generated draft modules. Review them or start another
+            ingestion.
           </span>
           <Button className="h-8 shrink-0 text-xs" onClick={onGoToDrafts}>
             Go to Drafts
@@ -34,7 +34,8 @@ export const IngestOutcomeBanner = ({
         </>
       ) : (
         <span>
-          Ingestion completed successfully, but no draft modules were created.
+          Ingestion completed, but no modules were generated from this
+          ingestion.
         </span>
       )}
     </div>

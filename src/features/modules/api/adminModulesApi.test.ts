@@ -2,16 +2,11 @@ import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const baseQuerySpy = vi.hoisted(() => vi.fn());
+const mockBaseQuerySpy = vi.fn();
 
-vi.mock('@reduxjs/toolkit/query/react', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@reduxjs/toolkit/query/react')>();
-  return {
-    ...actual,
-    fetchBaseQuery: () => baseQuerySpy,
-  };
-});
+vi.mock('@/store/apis/mockBaseQuery', () => ({
+  mockBaseQuery: (...args: unknown[]) => mockBaseQuerySpy(...args),
+}));
 
 async function dispatchFetchModules(arg: {
   limit: number;
@@ -20,7 +15,7 @@ async function dispatchFetchModules(arg: {
   sourceDocumentId?: string | null;
   q?: string | null;
 }): Promise<FetchArgs> {
-  baseQuerySpy.mockResolvedValue({ data: [] });
+  mockBaseQuerySpy.mockResolvedValue({ data: [] });
   const { baseApi } = await import('@/store/apis/base');
   const { adminModulesApi } = await import('./adminModulesApi');
   const store = configureStore({
@@ -39,12 +34,12 @@ async function dispatchFetchModules(arg: {
     )
     .unwrap();
 
-  return baseQuerySpy.mock.calls[0]?.[0] as FetchArgs;
+  return mockBaseQuerySpy.mock.calls[0]?.[0] as FetchArgs;
 }
 
 describe('adminModulesApi fetchModules request', () => {
   afterEach(() => {
-    baseQuerySpy.mockReset();
+    mockBaseQuerySpy.mockReset();
   });
 
   it('sends source_document_id when a document filter is selected', async () => {
@@ -103,15 +98,38 @@ describe('adminModulesApi fetchModules request', () => {
 
     expect(request.params).not.toHaveProperty('q');
   });
+
+  it('sends typed date range params when provided', async () => {
+    const request = await dispatchFetchModules({
+      limit: 20,
+      offset: 0,
+      status: 'published',
+      created_from: '2026-01-01T00:00:00.000Z',
+      created_to: '2026-01-31T23:59:59.999Z',
+      published_from: '2026-02-01T00:00:00.000Z',
+    });
+
+    expect(request.params).toEqual({
+      limit: 20,
+      offset: 0,
+      latest_version_only: true,
+      status: 'published',
+      created_from: '2026-01-01T00:00:00.000Z',
+      created_to: '2026-01-31T23:59:59.999Z',
+      published_from: '2026-02-01T00:00:00.000Z',
+    });
+    expect(request.params).not.toHaveProperty('date_from');
+    expect(request.params).not.toHaveProperty('date_to');
+  });
 });
 
 describe('adminModulesApi fetchModules response', () => {
   afterEach(() => {
-    baseQuerySpy.mockReset();
+    mockBaseQuerySpy.mockReset();
   });
 
   it('normalizes paginated modules payload', async () => {
-    baseQuerySpy.mockResolvedValue({
+    mockBaseQuerySpy.mockResolvedValue({
       data: {
         modules: [
           {
@@ -156,9 +174,18 @@ describe('adminModulesApi fetchModules response', () => {
       )
       .unwrap();
 
-    expect(result.modules).toHaveLength(1);
-    expect(result.modules[0]?.id).toBe('mod-1');
-    expect(result.total_modules).toBe(5);
-    expect(result.total_pages).toBe(3);
+    expect(result).toEqual({
+      modules: [
+        expect.objectContaining({
+          id: 'mod-1',
+          domain: 'clinical',
+          lifecycle_status: 'draft',
+        }),
+      ],
+      total_modules: 5,
+      total_pages: 3,
+      limit: 2,
+      offset: 0,
+    });
   });
 });

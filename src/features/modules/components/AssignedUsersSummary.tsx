@@ -207,6 +207,10 @@ export const AssignedUsersSummary = ({
     (entry): entry is AssignedGeographicalEntry =>
       entry.kind === 'geographical' && entry.name.startsWith('Organization #'),
   );
+  const otherGeographicalEntries = entries.filter(
+    (entry): entry is AssignedGeographicalEntry =>
+      entry.kind === 'geographical' && !entry.name.startsWith('Organization #'),
+  );
   const nonGeographicalEntries = entries.filter(
     (entry) => entry.kind !== 'geographical',
   );
@@ -214,6 +218,9 @@ export const AssignedUsersSummary = ({
   return (
     <div className="space-y-2">
       {organizationEntries.map((entry) => (
+        <GeographicalCard key={entry.name} entry={entry} />
+      ))}
+      {otherGeographicalEntries.map((entry) => (
         <GeographicalCard key={entry.name} entry={entry} />
       ))}
 

@@ -5,6 +5,10 @@ export interface PreviewImageBlockProps {
   attrs: RichImageBlock['attrs'];
 }
 
+/**
+ * Preview mirrors the editor display size when width/height are set, but always
+ * centers the image in the phone frame (unlike TipTap's left-aligned node view).
+ */
 export const PreviewImageBlock = ({ attrs }: PreviewImageBlockProps) => {
   const { url, isLoading, isError } = usePresignedFileUrl(attrs.object_name, {
     legacyUrl: attrs.url,
@@ -12,7 +16,7 @@ export const PreviewImageBlock = ({ attrs }: PreviewImageBlockProps) => {
   const hasDisplayDimensions = Boolean(attrs.width && attrs.height);
 
   return (
-    <figure className="my-3">
+    <figure className="my-3 flex justify-center">
       <div
         className={
           hasDisplayDimensions

@@ -14,7 +14,7 @@ export function getStepLabel(
   if (position.phase === 'card') {
     return `Learning ${position.index + 1} of ${snapshot.cards.length}`;
   }
-  return `Question ${position.index + 1} of ${snapshot.quiz.length}`;
+  return `Question ${position.index + 1}/${snapshot.quiz.length}`;
 }
 
 export function canGoPrevious(

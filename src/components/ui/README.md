@@ -136,4 +136,4 @@ export const Example = () => {
 
 ## Preview
 
-See `paths.uiPreview` route (`/ui-preview`) for a complete visual preview page, including component variants and edge cases.
+Use Story-style pages and component tests in this folder to verify variants and edge cases locally.

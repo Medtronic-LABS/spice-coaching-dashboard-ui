@@ -375,8 +375,14 @@ export interface FetchModulesQueryArgs {
   offset: number;
   status?: AdminModuleLifecycleStatus | null;
   domain?: string | null;
-  date_from?: string | null;
-  date_to?: string | null;
+  created_from?: string | null;
+  created_to?: string | null;
+  published_from?: string | null;
+  published_to?: string | null;
+  activated_from?: string | null;
+  activated_to?: string | null;
+  deactivated_from?: string | null;
+  deactivated_to?: string | null;
   sourceDocumentId?: string | null;
   /** Server-side search; omit when empty or below the UI minimum length. */
   q?: string | null;
@@ -462,8 +468,14 @@ export const adminModulesApi = baseApi.injectEndpoints({
         offset,
         status,
         domain,
-        date_from,
-        date_to,
+        created_from,
+        created_to,
+        published_from,
+        published_to,
+        activated_from,
+        activated_to,
+        deactivated_from,
+        deactivated_to,
         sourceDocumentId,
         q,
       }) => ({
@@ -475,8 +487,14 @@ export const adminModulesApi = baseApi.injectEndpoints({
           latest_version_only: true,
           ...(status ? { status } : {}),
           ...(domain ? { domain } : {}),
-          ...(date_from ? { date_from } : {}),
-          ...(date_to ? { date_to } : {}),
+          ...(created_from ? { created_from } : {}),
+          ...(created_to ? { created_to } : {}),
+          ...(published_from ? { published_from } : {}),
+          ...(published_to ? { published_to } : {}),
+          ...(activated_from ? { activated_from } : {}),
+          ...(activated_to ? { activated_to } : {}),
+          ...(deactivated_from ? { deactivated_from } : {}),
+          ...(deactivated_to ? { deactivated_to } : {}),
           ...(sourceDocumentId ? { source_document_id: sourceDocumentId } : {}),
           ...(q ? { q } : {}),
         },

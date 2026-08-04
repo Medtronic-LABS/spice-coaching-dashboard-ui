@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { setCurrentRole, type AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import {
   baseAdminModuleDetail,
@@ -52,7 +53,9 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   };
 });
 
-function renderQuizStep() {
+function renderQuizStep(role: AppRole = 'programManager') {
+  setCurrentRole(role);
+
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -85,11 +88,20 @@ function renderQuizStep() {
 }
 
 describe('AdminModuleQuizStep reorder', () => {
-  it('shows drag handles for draft modules', () => {
+  it('shows drag handles for program manager', () => {
+    setCurrentRole('programManager');
     renderQuizStep();
 
     expect(
       screen.getAllByRole('button', { name: 'Drag to reorder' }),
     ).toHaveLength(3);
+  });
+
+  it('hides reorder controls for supervisor read-only role', () => {
+    renderQuizStep('supervisor');
+
+    expect(
+      screen.queryByRole('button', { name: 'Drag to reorder' }),
+    ).not.toBeInTheDocument();
   });
 });

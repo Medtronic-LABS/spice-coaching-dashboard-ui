@@ -1,3 +1,5 @@
+import { DeleteIcon } from '@/assets/icon';
+
 interface RichTextMediaNodeHeaderProps {
   label: string;
   title?: string;
@@ -26,14 +28,16 @@ export const RichTextMediaNodeHeader = ({
     {onRemove ? (
       <button
         type="button"
-        className="shrink-0 text-[11px] font-semibold text-spice-semantic-error hover:underline"
+        aria-label="Remove"
+        title="Remove"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-spice-semantic-error transition-colors hover:bg-spice-semantic-errorBg"
         onMouseDown={(event) => {
           event.preventDefault();
           event.stopPropagation();
         }}
         onClick={onRemove}
       >
-        Remove
+        <DeleteIcon className="h-4 w-4" />
       </button>
     ) : null}
   </div>

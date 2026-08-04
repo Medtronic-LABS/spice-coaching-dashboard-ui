@@ -15,7 +15,7 @@ describe('IngestOutcomeBanner', () => {
 
     expect(
       screen.getByText(
-        'Ingestion completed successfully, but no draft modules were created.',
+        'Ingestion completed, but no modules were generated from this ingestion.',
       ),
     ).toBeInTheDocument();
     expect(
@@ -36,6 +36,11 @@ describe('IngestOutcomeBanner', () => {
         />,
       );
 
+      expect(
+        screen.getByText(
+          'Ingestion generated draft modules. Review them or start another ingestion.',
+        ),
+      ).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Go to Drafts' }));
 
       expect(onGoToDrafts).toHaveBeenCalledOnce();

@@ -1,20 +1,20 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { paths } from '@/constants/routes';
+import { renderWithProviders } from '@/test-utils/render';
 import { ModuleAssignedPage } from './ModuleAssignedPage';
 
 function renderAssignedPage(state?: Record<string, unknown>) {
-  render(
-    <MemoryRouter initialEntries={[{ pathname: paths.moduleAssigned, state }]}>
-      <Routes>
-        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
-        <Route
-          path={paths.moduleLibrary}
-          element={<div data-testid="library" />}
-        />
-      </Routes>
-    </MemoryRouter>,
+  renderWithProviders(
+    <Routes>
+      <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+      <Route
+        path={paths.moduleLibrary}
+        element={<div data-testid="library" />}
+      />
+    </Routes>,
+    { route: paths.moduleAssigned, routerState: state },
   );
 }
 
@@ -54,7 +54,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 2,
     });
 
-    expect(screen.getByText(/assigned to — individual/i)).toBeInTheDocument();
+    expect(screen.getByText(/newly assigned user/i)).toBeInTheDocument();
     expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
     expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
   });
@@ -77,7 +77,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 3,
     });
 
-    expect(screen.getByText(/assigned to — po \+ sks/i)).toBeInTheDocument();
+    expect(screen.getByText(/newly assigned user/i)).toBeInTheDocument();
     expect(screen.getByText('Sobita Rani')).toBeInTheDocument();
     expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
 
@@ -124,7 +124,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 1,
     });
 
-    expect(screen.getByText(/assigned to — organization/i)).toBeInTheDocument();
+    expect(screen.getByText(/newly assigned user/i)).toBeInTheDocument();
     expect(screen.getByText('Bo District')).toBeInTheDocument();
   });
 });

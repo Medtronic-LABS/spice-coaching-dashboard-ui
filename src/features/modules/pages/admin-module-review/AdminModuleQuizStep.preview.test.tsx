@@ -3,8 +3,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { paths } from '@/constants/routes';
+import { setCurrentRole } from '@/constants/role';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -82,6 +83,8 @@ function PreviewHarness() {
 }
 
 function renderQuizPreview() {
+  setCurrentRole('programManager');
+
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -114,6 +117,10 @@ function renderQuizPreview() {
 }
 
 describe('AdminModuleQuizStep preview integration', () => {
+  beforeEach(() => {
+    setCurrentRole('programManager');
+  });
+
   it('opens preview at the focused quiz question', async () => {
     const user = userEvent.setup();
     renderQuizPreview();
@@ -131,6 +138,7 @@ describe('AdminModuleQuizStep preview integration', () => {
     await user.click(screen.getByRole('button', { name: 'Open preview' }));
 
     expect(screen.getByText('Question B')).toBeInTheDocument();
+    expect(screen.getAllByText('Question 2/3')).toHaveLength(2);
   });
 
   it('updates quiz order in preview after reorder and sync', async () => {

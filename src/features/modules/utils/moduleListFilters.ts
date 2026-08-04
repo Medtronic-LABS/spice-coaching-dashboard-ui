@@ -1,17 +1,55 @@
 export type ModuleLibraryTab = 'all' | 'published' | 'drafts' | 'deactivated';
 
+export type ModuleDateFilterType =
+  | 'created'
+  | 'published'
+  | 'activated'
+  | 'deactivated';
+
 export type ModuleLibraryFilters = {
   domain: string;
-  dateFrom: string;
-  dateTo: string;
   sourceDocumentId: string;
+  createdFrom: string;
+  createdTo: string;
+  publishedFrom: string;
+  publishedTo: string;
+  activatedFrom: string;
+  activatedTo: string;
+  deactivatedFrom: string;
+  deactivatedTo: string;
 };
 
 export const EMPTY_MODULE_LIBRARY_FILTERS: ModuleLibraryFilters = {
   domain: '',
-  dateFrom: '',
-  dateTo: '',
   sourceDocumentId: '',
+  createdFrom: '',
+  createdTo: '',
+  publishedFrom: '',
+  publishedTo: '',
+  activatedFrom: '',
+  activatedTo: '',
+  deactivatedFrom: '',
+  deactivatedTo: '',
+};
+
+const DATE_TYPE_URL_KEYS: Record<
+  ModuleDateFilterType,
+  { from: keyof ModuleLibraryFilters; to: keyof ModuleLibraryFilters }
+> = {
+  created: { from: 'createdFrom', to: 'createdTo' },
+  published: { from: 'publishedFrom', to: 'publishedTo' },
+  activated: { from: 'activatedFrom', to: 'activatedTo' },
+  deactivated: { from: 'deactivatedFrom', to: 'deactivatedTo' },
+};
+
+const DATE_TYPE_API_KEYS: Record<
+  ModuleDateFilterType,
+  { from: string; to: string }
+> = {
+  created: { from: 'created_from', to: 'created_to' },
+  published: { from: 'published_from', to: 'published_to' },
+  activated: { from: 'activated_from', to: 'activated_to' },
+  deactivated: { from: 'deactivated_from', to: 'deactivated_to' },
 };
 
 const KNOWN_DOMAIN_ACRONYMS = new Set(['rmnch', 'ncd', 'anc']);
@@ -35,39 +73,121 @@ function endOfDayUtcFromDateInput(dateInput: string): string {
   return date.toISOString();
 }
 
-export function buildModuleListDateParams(
+export function moduleDateFilterTypeLabel(type: ModuleDateFilterType): string {
+  if (type === 'published') return 'Published Date';
+  if (type === 'activated') return 'Activated Date';
+  if (type === 'deactivated') return 'Deactivated Date';
+  return 'Created Date';
+}
+
+export function getAvailableDateFilterTypes(
+  tab: ModuleLibraryTab,
+  isProgramManager: boolean,
+): ModuleDateFilterType[] {
+  if (!isProgramManager) {
+    return ['created', 'published'];
+  }
+  if (tab === 'drafts') return ['created'];
+  if (tab === 'published') return ['created', 'published'];
+  return ['created', 'published', 'activated', 'deactivated'];
+}
+
+function primaryDateTypeForTab(
+  tab: ModuleLibraryTab,
+  isProgramManager: boolean,
+): ModuleDateFilterType {
+  if (!isProgramManager || tab === 'published') return 'published';
+  if (tab === 'drafts') return 'created';
+  if (tab === 'deactivated') return 'deactivated';
+  return 'published';
+}
+
+export function dateRangeValidationMessage(
   dateFrom: string,
   dateTo: string,
-): { date_from?: string; date_to?: string } {
-  const result: { date_from?: string; date_to?: string } = {};
-  if (dateFrom.trim()) {
-    result.date_from = `${dateFrom.trim()}T00:00:00.000Z`;
-  }
-  if (dateTo.trim()) {
-    result.date_to = endOfDayUtcFromDateInput(dateTo);
+): string | null {
+  const from = dateFrom.trim();
+  const to = dateTo.trim();
+  if (!from && !to) return null;
+  if (!from || !to) return 'Both from and to dates are required.';
+  if (from > to) return 'From date must be on or before to date.';
+  return null;
+}
+
+export function isDateRangeInvalid(dateFrom: string, dateTo: string): boolean {
+  return dateRangeValidationMessage(dateFrom, dateTo) !== null;
+}
+
+export function isAnyVisibleDateRangeInvalid(
+  filters: ModuleLibraryFilters,
+  tab: ModuleLibraryTab,
+  isProgramManager: boolean,
+): boolean {
+  return getAvailableDateFilterTypes(tab, isProgramManager).some((type) => {
+    const keys = DATE_TYPE_URL_KEYS[type];
+    return isDateRangeInvalid(
+      String(filters[keys.from]),
+      String(filters[keys.to]),
+    );
+  });
+}
+
+export function buildModuleListTypedDateParams(
+  filters: ModuleLibraryFilters,
+  tab: ModuleLibraryTab,
+  isProgramManager: boolean,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const type of getAvailableDateFilterTypes(tab, isProgramManager)) {
+    const fieldKeys = DATE_TYPE_URL_KEYS[type];
+    const apiKeys = DATE_TYPE_API_KEYS[type];
+    const fromValue = String(filters[fieldKeys.from]).trim();
+    const toValue = String(filters[fieldKeys.to]).trim();
+    if (fromValue) {
+      result[apiKeys.from] = `${fromValue}T00:00:00.000Z`;
+    }
+    if (toValue) {
+      result[apiKeys.to] = endOfDayUtcFromDateInput(toValue);
+    }
   }
   return result;
 }
 
-export function isDateRangeInvalid(dateFrom: string, dateTo: string): boolean {
-  if (!dateFrom.trim() || !dateTo.trim()) return false;
-  return dateFrom.trim() > dateTo.trim();
+function hasVisibleDateFilters(
+  filters: ModuleLibraryFilters,
+  tab: ModuleLibraryTab,
+  isProgramManager: boolean,
+): boolean {
+  return getAvailableDateFilterTypes(tab, isProgramManager).some((type) => {
+    const keys = DATE_TYPE_URL_KEYS[type];
+    return Boolean(filters[keys.from] || filters[keys.to]);
+  });
 }
 
-export function hasActiveModuleFilters(filters: ModuleLibraryFilters): boolean {
+export function hasActiveModuleFilters(
+  filters: ModuleLibraryFilters,
+  tab?: ModuleLibraryTab,
+  isProgramManager?: boolean,
+): boolean {
+  if (filters.domain || filters.sourceDocumentId) return true;
+  if (tab !== undefined && isProgramManager !== undefined) {
+    return hasVisibleDateFilters(filters, tab, isProgramManager);
+  }
   return Boolean(
-    filters.domain ||
-    filters.dateFrom ||
-    filters.dateTo ||
-    filters.sourceDocumentId,
+    filters.createdFrom ||
+    filters.createdTo ||
+    filters.publishedFrom ||
+    filters.publishedTo ||
+    filters.activatedFrom ||
+    filters.activatedTo ||
+    filters.deactivatedFrom ||
+    filters.deactivatedTo,
   );
 }
 
 /**
- * Domain options are scoped to the current lifecycle tab. If a carried-over
- * domain is not in the tab's options, treat it as cleared so the UI and list
- * request stay in sync (Select would otherwise show "All domains" while the
- * API still receives the stale domain).
+ * Keep a selected domain only when it appears in the provided options list.
+ * Used by callers that need to validate a domain against a known option set.
  */
 export function resolveDomainForOptions(
   domain: string,
@@ -106,13 +226,36 @@ export function parseModuleLibraryTab(
 
 export function parseFiltersFromSearchParams(
   params: URLSearchParams,
+  tab: ModuleLibraryTab = 'drafts',
+  isProgramManager = true,
 ): ModuleLibraryFilters {
-  return {
+  const filters: ModuleLibraryFilters = {
     domain: params.get('domain') ?? '',
-    dateFrom: params.get('from') ?? '',
-    dateTo: params.get('to') ?? '',
     sourceDocumentId: params.get('doc') ?? '',
+    createdFrom: params.get('created_from') ?? '',
+    createdTo: params.get('created_to') ?? '',
+    publishedFrom: params.get('published_from') ?? '',
+    publishedTo: params.get('published_to') ?? '',
+    activatedFrom: params.get('activated_from') ?? '',
+    activatedTo: params.get('activated_to') ?? '',
+    deactivatedFrom: params.get('deactivated_from') ?? '',
+    deactivatedTo: params.get('deactivated_to') ?? '',
   };
+
+  const legacyFrom = params.get('from') ?? '';
+  const legacyTo = params.get('to') ?? '';
+  if (legacyFrom || legacyTo) {
+    const primary = primaryDateTypeForTab(tab, isProgramManager);
+    const keys = DATE_TYPE_URL_KEYS[primary];
+    if (!filters[keys.from] && legacyFrom) {
+      filters[keys.from] = legacyFrom;
+    }
+    if (!filters[keys.to] && legacyTo) {
+      filters[keys.to] = legacyTo;
+    }
+  }
+
+  return filters;
 }
 
 export function buildModuleListSearchParams(
@@ -125,26 +268,23 @@ export function buildModuleListSearchParams(
     params.set('tab', tab);
   }
   if (filters.domain) params.set('domain', filters.domain);
-  if (filters.dateFrom) params.set('from', filters.dateFrom);
-  if (filters.dateTo) params.set('to', filters.dateTo);
   if (filters.sourceDocumentId) params.set('doc', filters.sourceDocumentId);
-  return params;
-}
 
-export function getModuleListDateHint(
-  tab: ModuleLibraryTab,
-  isProgramManager: boolean,
-): string {
-  if (!isProgramManager || tab === 'published') {
-    return 'Date range filters by publish date.';
+  for (const type of [
+    'created',
+    'published',
+    'activated',
+    'deactivated',
+  ] as const) {
+    const fieldKeys = DATE_TYPE_URL_KEYS[type];
+    const apiKeys = DATE_TYPE_API_KEYS[type];
+    const fromValue = String(filters[fieldKeys.from]);
+    const toValue = String(filters[fieldKeys.to]);
+    if (fromValue) params.set(apiKeys.from, fromValue);
+    if (toValue) params.set(apiKeys.to, toValue);
   }
-  if (tab === 'drafts') {
-    return 'Date range filters by creation date.';
-  }
-  if (tab === 'deactivated') {
-    return '';
-  }
-  return 'Date range uses publish date when available, otherwise creation date.';
+
+  return params;
 }
 
 export type ModuleListingDateSource = {
@@ -182,10 +322,10 @@ export function getModuleListingDateColumns(
 export function moduleListingDateColumnHeader(
   column: ModuleListingDateColumn,
 ): string {
-  if (column === 'published') return 'Published';
-  if (column === 'activated') return 'Activated';
-  if (column === 'deactivated') return 'Deactivated';
-  return 'Created';
+  if (column === 'published') return 'Published at';
+  if (column === 'activated') return 'Activated at';
+  if (column === 'deactivated') return 'Deactivated at';
+  return 'Created at';
 }
 
 export function getModuleActivatedAt(
@@ -199,37 +339,13 @@ export function getModuleActivatedAt(
   );
 }
 
-export function getModuleListingDate(
-  module: ModuleListingDateSource,
-  tab: ModuleLibraryTab,
-  isProgramManager: boolean,
-): string {
-  const effectiveTab = isProgramManager ? tab : 'published';
-  if (effectiveTab === 'drafts') {
-    return module.created_at;
-  }
-  if (effectiveTab === 'published') {
-    return module.published_at ?? module.created_at;
-  }
-  if (effectiveTab === 'deactivated') {
-    return (
-      getModuleActivatedAt(module) ??
-      module.last_deactivated_at ??
-      module.created_at
-    );
-  }
-  return module.lifecycle_status === 'published' && module.published_at
-    ? module.published_at
-    : module.created_at;
-}
-
 export function getModuleListEmptyMessage(
   activeFilters: ModuleLibraryFilters,
   tab: ModuleLibraryTab,
   isProgramManager: boolean,
 ): string {
-  if (hasActiveModuleFilters(activeFilters)) {
-    return 'No modules match for the selected filters..';
+  if (hasActiveModuleFilters(activeFilters, tab, isProgramManager)) {
+    return 'No modules match for the selected filters.';
   }
   if (!isProgramManager) {
     return 'No published modules yet.';

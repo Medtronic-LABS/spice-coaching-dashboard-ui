@@ -15,21 +15,23 @@ const item: PreviewQuizItem = {
 };
 
 describe('QuizQuestionPreviewScreen', () => {
-  it('renders case setup when present', () => {
+  it('shows Question X/Y above the question and hides case setup', () => {
     render(
       <QuizQuestionPreviewScreen
         item={item}
         questionIndex={0}
-        totalQuestions={1}
+        totalQuestions={4}
       />,
     );
 
-    expect(screen.getByTestId('quiz-case-setup')).toHaveTextContent(
-      'A patient arrives with symptoms.',
+    expect(screen.getByText('Question 1/4')).toBeInTheDocument();
+    expect(screen.queryByTestId('quiz-case-setup')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
+      'What is the correct answer?',
     );
   });
 
-  it('reveals explanation after tapping an option', async () => {
+  it('reveals why-this-matters after tapping an option', async () => {
     const user = userEvent.setup();
     render(
       <QuizQuestionPreviewScreen
@@ -42,8 +44,14 @@ describe('QuizQuestionPreviewScreen', () => {
     await user.click(screen.getByRole('button', { name: /Wrong answer/i }));
 
     expect(screen.getByTestId('quiz-explanation')).toHaveTextContent(
+      'Why this matters',
+    );
+    expect(screen.getByTestId('quiz-explanation')).toHaveTextContent(
       'Option B is correct because of clinical guidelines.',
     );
+    expect(
+      screen.queryByText('Use Next below to continue.'),
+    ).not.toBeInTheDocument();
   });
 
   it('disables answer options after reveal', async () => {
