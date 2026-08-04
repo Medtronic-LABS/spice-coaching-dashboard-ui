@@ -1,4 +1,4 @@
-import { Button, Card, KeyValue, Loader, Modal } from '@/components/ui';
+import { Card, KeyValue, Loader, Modal } from '@/components/ui';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -53,16 +53,29 @@ export const IngestMatchedModulePreviewModal = ({
               id="ingest-matched-module-preview-title"
               className="text-lg font-semibold text-spice-text-primary"
             >
-              Existing module content
+              Module Content
             </h2>
           </div>
-          <Button
-            variant="ghost"
-            className="h-8 shrink-0 text-xs"
+          <button
+            type="button"
             onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-spice-text-muted hover:bg-spice-bg-tint hover:text-spice-text-primary focus:outline-none transition-colors"
+            aria-label="Close modal"
           >
-            Close
-          </Button>
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">

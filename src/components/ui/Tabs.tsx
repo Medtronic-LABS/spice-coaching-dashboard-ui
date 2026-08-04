@@ -10,7 +10,7 @@ import { cn } from '@/utils';
  */
 export interface TabItem {
   /** Visible tab label. */
-  label: string;
+  label: React.ReactNode;
   /** Stable tab identifier used for selection state. */
   value: string;
 }

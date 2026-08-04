@@ -186,7 +186,7 @@ describe('ModuleLibraryPage', () => {
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       'Drafts',
       'Published',
-      'Needs Review',
+      'Needs Reviewi',
       'Deactivated',
       'Discarded',
       'All',

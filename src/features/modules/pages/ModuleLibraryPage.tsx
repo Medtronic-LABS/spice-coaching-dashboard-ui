@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,6 +9,7 @@ import {
   SearchInput,
   Select,
   Tabs,
+  Tooltip,
   TruncatedText,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
@@ -32,7 +33,10 @@ import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSource
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
-import { NeedsReviewTab } from '@/features/modules/components/NeedsReviewTab';
+import {
+  NEEDS_REVIEW_TOOLTIP_CONTENT,
+  NeedsReviewTab,
+} from '@/features/modules/components/NeedsReviewTab';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
@@ -268,18 +272,21 @@ export const ModuleLibraryPage = () => {
     },
     { skip: dateRangeInvalid },
   );
-  const modulesForList = dateRangeInvalid ? [] : (modulesPage?.modules ?? []);
+  const modulesForList = useMemo(
+    () => (dateRangeInvalid ? [] : (modulesPage?.modules ?? [])),
+    [dateRangeInvalid, modulesPage?.modules],
+  );
   const totalModules = modulesPage?.total_modules ?? 0;
   const totalPages = modulesPage?.total_pages ?? 0;
 
-  const refreshModuleList = () => {
+  const refreshModuleList = useCallback(() => {
     if (dateRangeInvalid || modulesQueryUninitialized) return;
     try {
       void refetch().catch(() => undefined);
     } catch {
       // Query may be skipped or unsubscribed after navigation.
     }
-  };
+  }, [dateRangeInvalid, modulesQueryUninitialized, refetch]);
 
   const handleOpenFiltersDrawer = () => {
     setDraftFilters(activeFilters);
@@ -694,8 +701,7 @@ export const ModuleLibraryPage = () => {
       isReactivating,
       navigate,
       reactivateModule,
-      refetch,
-      tab,
+      refreshModuleList,
     ],
   );
 
@@ -1132,7 +1138,20 @@ export const ModuleLibraryPage = () => {
               items={[
                 { label: 'Drafts', value: 'drafts' },
                 { label: 'Published', value: 'published' },
-                { label: 'Needs Review', value: 'needs_review' },
+                {
+                  label: (
+                    <span className="inline-flex items-center gap-1.5">
+                      Needs Review
+                      <Tooltip
+                        as="span"
+                        label="Needs Review merge and skip information"
+                        content={NEEDS_REVIEW_TOOLTIP_CONTENT}
+                        placement="bottom"
+                      />
+                    </span>
+                  ),
+                  value: 'needs_review',
+                },
                 { label: 'Deactivated', value: 'deactivated' },
                 { label: 'Discarded', value: 'discarded' },
                 { label: 'All', value: 'all' },
@@ -1191,7 +1210,6 @@ export const ModuleLibraryPage = () => {
             isLoading={isLoadingModules}
             onMerge={handleOverrideMerge}
             onSkip={handleSkipReview}
-            onView={handleViewModule}
           />
         ) : tab === 'discarded' ? (
           <DiscardedTabTable

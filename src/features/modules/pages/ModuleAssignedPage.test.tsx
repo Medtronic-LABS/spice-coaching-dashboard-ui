@@ -14,7 +14,10 @@ function renderAssignedPage(state?: Record<string, unknown>) {
         element={<div data-testid="library" />}
       />
     </Routes>,
-    { route: paths.moduleAssigned, routerState: state },
+    {
+      route: paths.moduleAssigned,
+      initialState: { locationState: state },
+    },
   );
 }
 
@@ -54,7 +57,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 2,
     });
 
-    expect(screen.getByText(/newly assigned user/i)).toBeInTheDocument();
+    expect(screen.getByText(/assigned to — individual/i)).toBeInTheDocument();
     expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
     expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
   });
@@ -77,7 +80,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 3,
     });
 
-    expect(screen.getByText(/newly assigned user/i)).toBeInTheDocument();
+    expect(screen.getByText(/assigned to — po \+ sks/i)).toBeInTheDocument();
     expect(screen.getByText('Sobita Rani')).toBeInTheDocument();
     expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
 
@@ -124,7 +127,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 1,
     });
 
-    expect(screen.getByText(/newly assigned user/i)).toBeInTheDocument();
+    expect(screen.getByText(/assigned to — organization/i)).toBeInTheDocument();
     expect(screen.getByText('Bo District')).toBeInTheDocument();
   });
 });

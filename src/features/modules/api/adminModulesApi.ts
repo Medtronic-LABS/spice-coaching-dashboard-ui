@@ -29,6 +29,7 @@ export interface AdminModulesListItem {
   title: LocalizedString;
   description: LocalizedString | null;
   domain: string;
+  category?: string | null;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
   clinically_reviewed: boolean;
@@ -84,6 +85,7 @@ export interface AdminModuleDetailResponse {
   title: LocalizedString;
   description: LocalizedString | null;
   domain: string;
+  category?: string | null;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
   clinically_reviewed: boolean;
@@ -171,6 +173,12 @@ function normalizeModuleSummary(
     title,
     description: Object.keys(descriptionRaw).length ? descriptionRaw : null,
     domain: typeof item.domain === 'string' ? item.domain : '',
+    category:
+      typeof item.category === 'string'
+        ? item.category
+        : typeof item.domain === 'string'
+          ? item.domain
+          : null,
     module_type: typeof item.module_type === 'string' ? item.module_type : '',
     lifecycle_status:
       (item.lifecycle_status as AdminModuleLifecycleStatus) ?? 'draft',
@@ -313,6 +321,12 @@ function normalizeModuleDetail(
     title,
     description: Object.keys(descriptionRaw).length ? descriptionRaw : null,
     domain: typeof response.domain === 'string' ? response.domain : '',
+    category:
+      typeof response.category === 'string'
+        ? response.category
+        : typeof response.domain === 'string'
+          ? response.domain
+          : null,
     module_type:
       typeof response.module_type === 'string' ? response.module_type : '',
     lifecycle_status:

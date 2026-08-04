@@ -36,6 +36,8 @@ export interface TooltipProps {
    * Flips among all four sides when the preferred side does not fit.
    */
   placement?: TooltipPlacement;
+  /** Element type to render for the trigger. Defaults to 'button'. */
+  as?: 'button' | 'span';
 }
 
 export function InfoIcon({ className }: { className?: string }) {
@@ -66,6 +68,7 @@ export const Tooltip = ({
   children,
   className,
   placement = 'bottom',
+  as = 'button',
 }: TooltipProps) => {
   const tooltipId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -211,11 +214,19 @@ export const Tooltip = ({
 
   useEffect(() => () => clearCloseTimeout(), [clearCloseTimeout]);
 
+  const TriggerComponent = as === 'span' ? 'span' : 'button';
+
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
+      <TriggerComponent
+        ref={
+          triggerRef as unknown as React.Ref<
+            HTMLSpanElement & HTMLButtonElement
+          >
+        }
+        type={as === 'span' ? undefined : 'button'}
+        role={as === 'span' ? 'button' : undefined}
+        tabIndex={as === 'span' ? 0 : undefined}
         className={cn(
           children
             ? 'inline-block min-w-0 max-w-full border-0 bg-transparent p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-border'
@@ -253,12 +264,27 @@ export const Tooltip = ({
             show();
           }
         }}
+        onKeyDown={(event) => {
+          if (as === 'span' && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (visible) {
+              clearCloseTimeout();
+              setVisible(false);
+              triggerHoveredRef.current = false;
+              contentHoveredRef.current = false;
+              focusedRef.current = false;
+            } else {
+              show();
+            }
+          }
+        }}
         onMouseDown={(event) => {
           event.preventDefault();
         }}
       >
         {children ?? <InfoIcon />}
-      </button>
+      </TriggerComponent>
       {visible && position && hasContent
         ? createPortal(
             <div

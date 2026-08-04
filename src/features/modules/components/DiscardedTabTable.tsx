@@ -89,7 +89,7 @@ export const DiscardedTabTable = ({
     () => [
       {
         key: 'title',
-        header: 'Module Title',
+        header: 'Module',
         render: (row) => (
           <span className="font-medium text-spice-text-primary">
             {row.title}
@@ -135,8 +135,8 @@ export const DiscardedTabTable = ({
         headerClassName: 'text-right',
         render: (row) => (
           <Button
-            variant="ghost"
-            className="h-8 text-xs text-spice-brand-accent hover:bg-spice-bg-tint"
+            variant="secondary"
+            className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
             onClick={() => onView(row.id)}
           >
             View
