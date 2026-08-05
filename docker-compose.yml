@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://agent-qa.beehyv.com/medtronics-api}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://spice-dev-backend.uhis.labsplatform.com/micro-coaching/medtronics-api}
         VITE_COACHING_SUITE_ACCESS: ${VITE_COACHING_SUITE_ACCESS:-coaching}
         VITE_ROUTE_PREFIX: ${VITE_ROUTE_PREFIX:-/ai-coaching}
     ports:

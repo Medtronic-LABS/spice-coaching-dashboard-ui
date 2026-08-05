@@ -8,7 +8,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG VITE_API_BASE_URL=https://agent-qa.beehyv.com/medtronics-api
+ARG VITE_API_BASE_URL=https://spice-dev-backend.uhis.labsplatform.com/micro-coaching/medtronics-api
 ARG VITE_COACHING_SUITE_ACCESS=coaching
 ARG VITE_ROUTE_PREFIX=/ai-coaching
 
