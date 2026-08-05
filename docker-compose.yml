@@ -9,6 +9,7 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://spice-dev-backend.uhis.labsplatform.com/micro-coaching/medtronics-api}
         VITE_COACHING_SUITE_ACCESS: ${VITE_COACHING_SUITE_ACCESS:-coaching}
         VITE_ROUTE_PREFIX: ${VITE_ROUTE_PREFIX:-/ai-coaching}
+        VITE_DEV_AUTH_BYPASS: ${VITE_DEV_AUTH_BYPASS:-true}
     ports:
       - "${WEB_PORT:-8080}:80"
     restart: unless-stopped
