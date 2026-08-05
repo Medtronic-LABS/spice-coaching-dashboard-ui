@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import {
+  addQuizItem,
+  duplicateQuizItem,
   moveQuizDown,
   moveQuizUp,
   removeQuizItem,
@@ -8,6 +10,7 @@ import {
   renumberQuestionOrders,
   sortQuizItems,
 } from '@/features/modules/utils/adminModuleQuizUtils';
+import { DEPLOYMENT_PRIMARY_LOCALE } from '@/config/deploymentLocale';
 import { readLocaleText } from '@/types/localized';
 
 function quizItem(
@@ -65,5 +68,44 @@ describe('adminModuleQuizUtils reorder helpers', () => {
     const result = renumberQuestionOrders(shuffled);
     expect(result.map((q) => q.id)).toEqual(['q3', 'q1', 'q2']);
     expect(result.map((q) => q.question_order)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('adminModuleQuizUtils create helpers', () => {
+  it('addQuizItem appends a question with four empty options', () => {
+    const result = addQuizItem([]);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.options[DEPLOYMENT_PRIMARY_LOCALE]).toEqual([
+      '',
+      '',
+      '',
+      '',
+    ]);
+    expect(result[0]?.correct_indices).toEqual([0]);
+  });
+
+  it('duplicateQuizItem inserts a deep copy after the source', () => {
+    const source = quizItem('q1', 1, 'Blood pressure');
+    source.options = { bn: ['a', 'b', 'c', 'd'] };
+    source.correct_indices = [2];
+    source.explanation = { bn: 'Because …' };
+
+    const result = duplicateQuizItem(
+      [source, quizItem('q2', 2, 'Other')],
+      'q1',
+    );
+    expect(result).toHaveLength(3);
+    expect(result.map((q) => q.id)).toEqual([
+      'q1',
+      expect.stringMatching(/^temp-/),
+      'q2',
+    ]);
+    expect(result.map((q) => q.question_order)).toEqual([1, 2, 3]);
+    expect(questionText(result[1]!)).toBe('Blood pressure');
+    expect(result[1]?.options.bn).toEqual(['a', 'b', 'c', 'd']);
+    expect(result[1]?.options.bn).not.toBe(source.options.bn);
+    expect(result[1]?.correct_indices).toEqual([2]);
+    expect(result[1]?.explanation).toEqual({ bn: 'Because …' });
+    expect(result[1]?.id).not.toBe('q1');
   });
 });

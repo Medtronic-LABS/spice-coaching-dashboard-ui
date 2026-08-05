@@ -135,7 +135,7 @@ describe('AdminModuleDetailsStep', () => {
 
       expect(screen.getByLabelText(/title \(bn\)/i)).toBeDisabled();
       expect(
-        screen.queryByRole('button', { name: /^save$/i }),
+        screen.queryByRole('button', { name: /save draft/i }),
       ).not.toBeInTheDocument();
     },
   );
@@ -148,5 +148,13 @@ describe('AdminModuleDetailsStep', () => {
       screen.getByRole('button', { name: 'Continue to Lessons' }),
     );
     expect(screen.getByTestId('lessons-step')).toBeInTheDocument();
+  });
+
+  it('shows Save draft CTA for editable drafts', () => {
+    renderDetailsStep();
+
+    expect(
+      screen.getByRole('button', { name: /save draft/i }),
+    ).toBeInTheDocument();
   });
 });

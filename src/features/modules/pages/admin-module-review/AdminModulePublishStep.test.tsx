@@ -187,4 +187,51 @@ describe('AdminModulePublishStep', () => {
       });
     });
   });
+
+  it('shows Save draft for editable drafts', () => {
+    renderPublishStep();
+
+    expect(
+      screen.getByRole('button', { name: /save draft/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides source document card when none are linked', () => {
+    renderPublishStep();
+
+    expect(screen.queryByText('Source document')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /preview source document/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows source document card and opens preview panel', async () => {
+    const user = userEvent.setup();
+    mockModule = {
+      ...createMockModule(),
+      source_documents: [
+        {
+          source_document_id: 'doc-1',
+          presigned_url:
+            'https://example.com/files/bangladesh_htn_protocol_v3.pdf?response-content-disposition=attachment%3B%20filename%3D%22bangladesh_htn_protocol_v3.pdf%22&response-content-type=application%2Fpdf',
+          presigned_expires_seconds: 3600,
+        },
+      ],
+    };
+    renderPublishStep();
+
+    expect(screen.getByText('Source document')).toBeInTheDocument();
+    expect(
+      screen.getByText('bangladesh_htn_protocol_v3.pdf'),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /preview source document/i }),
+    );
+
+    expect(screen.getByText(/compare with original/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^close$/i }),
+    ).toBeInTheDocument();
+  });
 });
