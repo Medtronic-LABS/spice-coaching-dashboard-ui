@@ -186,6 +186,19 @@ describe('AdminModuleQuizStep editor UI', () => {
     expect(screen.getByText('QUESTION 4')).toBeInTheDocument();
   });
 
+  it('removes a question and renumbers the remaining items', async () => {
+    const user = userEvent.setup();
+    const { store } = renderQuizStep();
+
+    await user.click(screen.getByRole('button', { name: 'Remove question 2' }));
+
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz.map((item) => item.id)).toEqual(['q1', 'q3']);
+    expect(quiz.map((item) => item.question_order)).toEqual([1, 2]);
+    expect(screen.queryByText('QUESTION 3')).not.toBeInTheDocument();
+    expect(screen.getByText('QUESTION 2')).toBeInTheDocument();
+  });
+
   it('keeps Add question below the question list', () => {
     renderQuizStep();
 

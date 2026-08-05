@@ -4,7 +4,6 @@ export interface SaveDraftIconProps extends SVGProps<SVGSVGElement> {
   title?: string;
 }
 
-/** Floppy-disk glyph for Save draft actions. */
 export const SaveDraftIcon = ({
   title,
   className,

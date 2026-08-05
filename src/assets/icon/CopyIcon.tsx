@@ -4,7 +4,6 @@ export interface CopyIconProps extends SVGProps<SVGSVGElement> {
   title?: string;
 }
 
-/** Overlapping-squares glyph for duplicate/copy actions. */
 export const CopyIcon = ({ title, className, ...props }: CopyIconProps) => (
   <svg
     viewBox="0 0 24 24"

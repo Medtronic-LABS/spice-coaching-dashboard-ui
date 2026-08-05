@@ -299,7 +299,7 @@ export const AdminModuleDetailsStep = () => {
             <Button
               variant="secondary"
               className="inline-flex h-9 items-center gap-1.5 text-xs"
-              disabled={busy || isReadonly}
+              disabled={busy}
               onClick={async () => {
                 setActionError('');
                 try {

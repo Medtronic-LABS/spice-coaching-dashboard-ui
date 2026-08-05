@@ -90,12 +90,8 @@ export const AdminModuleQuizStep = () => {
   useEffect(() => {
     const targetId = scrollToQuestionIdRef.current;
     if (!targetId) return;
-    const escapedId =
-      typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-        ? CSS.escape(targetId)
-        : targetId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     const node = document.querySelector(
-      `[data-quiz-question-id="${escapedId}"]`,
+      `[data-quiz-question-id="${CSS.escape(targetId)}"]`,
     );
     if (node instanceof HTMLElement) {
       node.scrollIntoView?.({ behavior: 'smooth', block: 'start' });

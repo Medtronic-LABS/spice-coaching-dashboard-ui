@@ -4,7 +4,6 @@ export interface ArrowRightIconProps extends SVGProps<SVGSVGElement> {
   title?: string;
 }
 
-/** Right-arrow glyph for Continue CTAs. */
 export const ArrowRightIcon = ({
   title,
   className,
