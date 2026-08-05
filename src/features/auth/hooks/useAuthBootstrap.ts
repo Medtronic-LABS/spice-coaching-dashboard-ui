@@ -17,9 +17,11 @@ function seedTestAuthSession(): void {
   }
 }
 
+const DEV_AUTH_BYPASS = import.meta.env.VITE_DEV_AUTH_BYPASS === 'true';
+
 export function useAuthBootstrap(): AuthBootstrapStatus {
   const [status, setStatus] = useState<AuthBootstrapStatus>(() => {
-    if (import.meta.env.MODE === 'test') {
+    if (import.meta.env.MODE === 'test' || DEV_AUTH_BYPASS) {
       seedTestAuthSession();
       return 'ready';
     }
@@ -27,7 +29,7 @@ export function useAuthBootstrap(): AuthBootstrapStatus {
   });
 
   useEffect(() => {
-    if (import.meta.env.MODE === 'test') return;
+    if (import.meta.env.MODE === 'test' || DEV_AUTH_BYPASS) return;
 
     let cancelled = false;
 
