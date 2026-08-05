@@ -829,4 +829,21 @@ describe('ModuleLibraryPage', () => {
       expect(screen.getByTestId('module-review')).toBeInTheDocument();
     });
   });
+
+  it('switches to needs review tab with expanded accordion when Resolve is clicked for a review_pending module from all tab', async () => {
+    roleState.role = 'programManager';
+    mockModuleLibrary.modules[6].status = 'review_pending';
+    const user = userEvent.setup();
+    renderModuleLibraryPage(`${paths.moduleLibrary}?tab=all`);
+
+    const resolveButton = await screen.findByRole('button', {
+      name: 'Resolve',
+    });
+    await user.click(resolveButton);
+
+    const needsReviewTab = await screen.findByRole('tab', {
+      name: /needs review/i,
+    });
+    expect(needsReviewTab).toHaveAttribute('aria-selected', 'true');
+  });
 });

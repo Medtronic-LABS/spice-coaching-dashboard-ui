@@ -59,7 +59,7 @@ describe('NeedsReviewTab', () => {
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByText('Module')).toBeInTheDocument();
     expect(screen.getByText('Candidate Module 1')).toBeInTheDocument();
-    expect(screen.getByText('Cardiology')).toBeInTheDocument();
+    expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
   });
 
   it('toggles accordion row and shows comparison cards on click', async () => {

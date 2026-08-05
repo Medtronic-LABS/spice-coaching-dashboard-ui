@@ -24,7 +24,7 @@ export function getModuleStatusBadgeProps(status: UnifiedModuleStatus): {
       return { semanticStatus: 'success', label: 'Published' };
     case 'review_pending':
     case 'review pending':
-      return { semanticStatus: 'warning', label: 'Review Pending' };
+      return { semanticStatus: 'warning', label: 'Review' };
     case 'retired':
     case 'discarded':
       return { semanticStatus: 'neutral', label: 'Discarded' };

@@ -45,6 +45,8 @@ export interface FetchSourceDocumentsParams {
   q?: string;
   limit?: number;
   offset?: number;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
 }
 
 export interface UpdateSourceDocumentMetadataRequest {

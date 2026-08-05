@@ -9,6 +9,9 @@ interface DiscardedTabTableProps {
   modules: AdminModulesListItem[];
   isLoading?: boolean;
   onView: (moduleId: string) => void;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
 }
 
 interface DiscardedTableRow {
@@ -72,6 +75,9 @@ export const DiscardedTabTable = ({
   modules,
   // isLoading,
   onView,
+  sortBy,
+  sortDir,
+  onSort,
 }: DiscardedTabTableProps) => {
   const data = useMemo<DiscardedTableRow[]>(() => {
     return (modules ?? []).map((m) => ({
@@ -90,6 +96,8 @@ export const DiscardedTabTable = ({
       {
         key: 'title',
         header: 'Module',
+        sortable: true,
+        sortKey: 'title',
         render: (row) => (
           <span className="font-medium text-spice-text-primary">
             {row.title}
@@ -99,11 +107,13 @@ export const DiscardedTabTable = ({
       {
         key: 'status',
         header: 'Status',
+        sortable: false,
         render: (row) => <ModuleStatusBadge status={row.status} />,
       },
       {
         key: 'previousStatus',
         header: 'Previous Status',
+        sortable: false,
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.previousStatus}
@@ -113,6 +123,7 @@ export const DiscardedTabTable = ({
       {
         key: 'discardedBy',
         header: 'Discarded By',
+        sortable: false,
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.discardedBy}
@@ -122,6 +133,8 @@ export const DiscardedTabTable = ({
       {
         key: 'discardedAt',
         header: 'Discarded At',
+        sortable: true,
+        sortKey: 'last_deactivated_at',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.discardedAt}
@@ -131,6 +144,7 @@ export const DiscardedTabTable = ({
       {
         key: 'id',
         header: 'Actions',
+        sortable: false,
         className: 'text-right',
         headerClassName: 'text-right',
         render: (row) => (
@@ -153,6 +167,9 @@ export const DiscardedTabTable = ({
       columns={columns}
       keyExtractor={(r) => r.id}
       emptyMessage="No discarded modules found."
+      sortBy={sortBy}
+      sortDir={sortDir}
+      onSort={onSort}
     />
   );
 };

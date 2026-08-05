@@ -419,6 +419,18 @@ export const VideoUploadPage = () => {
     IngestDuplicateConflict[]
   >([]);
 
+  const [sortBy, setSortBy] = useState<string | undefined>('ingested_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = useCallback(
+    (newSortBy: string, newSortDir: 'asc' | 'desc') => {
+      setSortBy(newSortBy);
+      setSortDir(newSortDir);
+      setPage(0);
+    },
+    [],
+  );
+
   const {
     data: sourceDocumentList,
     isFetching: isLoadingVideos,
@@ -430,6 +442,8 @@ export const VideoUploadPage = () => {
     ...(searchQ ? { q: searchQ } : {}),
     limit: pageSize,
     offset: page * pageSize,
+    sort_by: sortBy,
+    sort_dir: sortDir,
   });
 
   const serverRows = useMemo<VideoRow[]>(
@@ -786,6 +800,7 @@ export const VideoUploadPage = () => {
       {
         key: 'selection',
         header: '',
+        sortable: false,
         className: 'w-10 max-w-10 px-2 sm:px-3',
         headerClassName: 'w-10 max-w-10 px-2 sm:px-3',
         render: (row) => (
@@ -808,6 +823,8 @@ export const VideoUploadPage = () => {
       {
         key: 'name',
         header: 'Video',
+        sortable: true,
+        sortKey: 'title',
         className: 'whitespace-normal',
         render: (row) => (
           <div className="max-w-[22rem] sm:max-w-[28rem]">
@@ -827,6 +844,8 @@ export const VideoUploadPage = () => {
       {
         key: 'uploadedAt',
         header: 'Date/time',
+        sortable: true,
+        sortKey: 'ingested_at',
         className: 'whitespace-nowrap',
         headerClassName: 'whitespace-nowrap',
         render: (row) => formatDisplayDateTime(row.uploadedAt),
@@ -834,12 +853,15 @@ export const VideoUploadPage = () => {
       {
         key: 'status',
         header: 'Status',
+        sortable: true,
+        sortKey: 'status',
         className: 'whitespace-nowrap',
         render: (row) => <StatusBadge {...statusBadgeProps(row.status)} />,
       },
       {
         key: 'actions',
         header: 'Actions',
+        sortable: false,
         className: 'min-w-[18rem] whitespace-nowrap',
         headerClassName: 'min-w-[18rem] whitespace-nowrap',
         render: (row) => {
@@ -1246,6 +1268,9 @@ export const VideoUploadPage = () => {
           keyExtractor={(row) => row.id}
           caption="Uploaded videos"
           emptyMessage="No videos uploaded yet."
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={handleSort}
         />
 
         <div className="flex flex-col gap-3 border-t border-spice-border pt-3 sm:flex-row sm:items-center sm:justify-between">

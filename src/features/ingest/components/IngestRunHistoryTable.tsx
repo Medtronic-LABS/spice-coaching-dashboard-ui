@@ -59,13 +59,26 @@ export const IngestRunHistoryTable = () => {
   const [pageSize, setPageSize] = useState(DEFAULT_RUN_HISTORY_PAGE_SIZE);
   const [pageInput, setPageInput] = useState('1');
   const [pollIntervalMs, setPollIntervalMs] = useState(0);
+  const [sortBy, setSortBy] = useState<string | undefined>('started_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = useCallback(
+    (newSortBy: string, newSortDir: 'asc' | 'desc') => {
+      setSortBy(newSortBy);
+      setSortDir(newSortDir);
+      setPage(0);
+    },
+    [],
+  );
 
   const queryArgs = useMemo(
     () => ({
       limit: pageSize,
       offset: page * pageSize,
+      sort_by: sortBy,
+      sort_dir: sortDir,
     }),
-    [page, pageSize],
+    [page, pageSize, sortBy, sortDir],
   );
 
   const {
@@ -178,6 +191,8 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'fileName',
         header: 'File name',
+        sortable: true,
+        sortKey: 'document_label',
         className: 'whitespace-normal',
         render: (row) => (
           <div className="min-w-[12rem] max-w-[20rem]">
@@ -192,6 +207,7 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'generatedModuleLabel',
         header: 'Modules / cards / quizzes',
+        sortable: false,
         render: (row) => (
           <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>{row.generatedModuleLabel}</span>
@@ -209,6 +225,8 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'statusLabel',
         header: 'Status',
+        sortable: true,
+        sortKey: 'status',
         render: (row) => (
           <span
             className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ${ingestRunStatusBadgeClassName(row.statusTone)}`}
@@ -220,6 +238,7 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'durationLabel',
         header: 'Duration',
+        sortable: false,
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.durationLabel}
@@ -229,6 +248,8 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'uploadedAt',
         header: 'Uploaded Date',
+        sortable: true,
+        sortKey: 'started_at',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {formatIngestRunTimestamp(row.uploadedAt)}
@@ -238,6 +259,7 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'actions',
         header: 'Actions',
+        sortable: false,
         render: (row) => (
           <span
             className="inline-flex"
@@ -312,6 +334,9 @@ export const IngestRunHistoryTable = () => {
             ? 'Loading run history…'
             : 'No ingestion history available. Upload your first document to generate learning modules.'
         }
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={handleSort}
       />
 
       <div className="flex flex-col gap-3 border-t border-spice-border pt-3 sm:flex-row sm:items-center sm:justify-between">

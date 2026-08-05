@@ -8,6 +8,8 @@ export type ColumnDef<T extends object> = {
   headerClassName?: string;
   className?: string;
   render?: (row: T) => React.ReactNode;
+  sortable?: boolean;
+  sortKey?: string;
 };
 
 export type TableProps<T extends object> = Omit<
@@ -20,4 +22,7 @@ export type TableProps<T extends object> = Omit<
   containerClassName?: string;
   emptyMessage?: React.ReactNode;
   caption?: React.ReactNode;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
 };

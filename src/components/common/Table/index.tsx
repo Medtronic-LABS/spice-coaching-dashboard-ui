@@ -11,6 +11,9 @@ export function Table<T extends object>({
   className,
   emptyMessage = 'No data available',
   caption,
+  sortBy,
+  sortDir,
+  onSort,
   ...tableProps
 }: TableProps<T>) {
   return (
@@ -30,18 +33,94 @@ export function Table<T extends object>({
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium">
           <tr>
-            {columns.map((col) => (
-              <th
-                key={String(col.key)}
-                scope="col"
-                className={cn(
-                  'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
-                  col.headerClassName,
-                )}
-              >
-                {col.header}
-              </th>
-            ))}
+            {columns.map((col) => {
+              const sortKey = col.sortKey ?? String(col.key);
+              const isSortable = Boolean(col.sortable && onSort);
+              const isActive = Boolean(sortBy && sortBy === sortKey);
+              const isAsc = isActive && sortDir === 'asc';
+              const isDesc = isActive && sortDir === 'desc';
+
+              const handleHeaderClick = () => {
+                if (!isSortable || !onSort) return;
+                const nextDir = isActive && sortDir === 'asc' ? 'desc' : 'asc';
+                onSort(sortKey, nextDir);
+              };
+
+              return (
+                <th
+                  key={String(col.key)}
+                  scope="col"
+                  className={cn(
+                    'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
+                    isSortable && onSort && 'cursor-pointer select-none group',
+                    col.headerClassName,
+                  )}
+                  onClick={isSortable && onSort ? handleHeaderClick : undefined}
+                >
+                  <div className="inline-flex items-center gap-1.5">
+                    {isSortable && onSort ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-left uppercase font-medium tracking-wider focus:outline-none focus-visible:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleHeaderClick();
+                        }}
+                      >
+                        <span>{col.header}</span>
+                        <span className="inline-flex shrink-0 ml-1">
+                          {isAsc ? (
+                            <svg
+                              className="h-3.5 w-3.5 text-spice-brand-primary stroke-[2.5]"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 19.5V4.5m0 0l-6.75 6.75M12 4.5l6.75 6.75"
+                              />
+                            </svg>
+                          ) : isDesc ? (
+                            <svg
+                              className="h-3.5 w-3.5 text-spice-brand-primary stroke-[2.5]"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 4.5v15m0 0l6.75-6.75M12 19.5l-6.75-6.75"
+                              />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="h-3.5 w-3.5 text-spice-text-muted/40 group-hover:text-spice-brand-primary transition-colors stroke-[2]"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+                              />
+                            </svg>
+                          )}
+                        </span>
+                      </button>
+                    ) : (
+                      col.header
+                    )}
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-spice-border bg-spice-bg-surface">

@@ -23,3 +23,11 @@ export interface ModuleLibraryItem {
 export interface ModuleLibraryResponse {
   modules: ModuleLibraryItem[];
 }
+
+export interface ModuleLibraryQueryParams {
+  status?: ModuleStatus;
+  category?: string;
+  q?: string;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
+}

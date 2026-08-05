@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Button, Card } from '@/components/ui';
 import {
   useGetModuleDetailQuery,
@@ -8,6 +8,7 @@ import {
 import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/IngestMatchedModulePreviewModal';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
 
 interface NeedsReviewTabProps {
   modules: AdminModulesListItem[];
@@ -16,17 +17,22 @@ interface NeedsReviewTabProps {
   onMerge: (moduleId: string) => Promise<void>;
   onSkip: (moduleId: string) => Promise<void>;
   onView?: (moduleId: string) => void;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
+  initialExpandedId?: string | null;
+  emptyMessage?: string;
 }
 
 export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
-  <div className="space-y-3 p-3.5 text-xs max-w-sm">
-    <div className="border-b border-spice-border pb-3">
+  <div className="space-y-3.5 p-3.5 text-xs max-w-sm">
+    <div className="border-b border-spice-border/60 pb-3">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="inline-flex items-center rounded-md bg-spice-semantic-warningBg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-warning">
           Merge
         </span>
       </div>
-      <p className="text-spice-text-medium leading-relaxed text-[11px]">
+      <p className="pl-3 text-spice-text-medium leading-relaxed text-[11px]">
         Moves the new module to{' '}
         <strong className="text-spice-text-primary">Drafts</strong>. The
         existing similar module is{' '}
@@ -38,11 +44,11 @@ export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
     </div>
     <div>
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
+        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-text-muted ring-1 ring-spice-border/50">
           Skip
         </span>
       </div>
-      <p className="text-spice-text-medium leading-relaxed text-[11px]">
+      <p className="pl-3 text-spice-text-medium leading-relaxed text-[11px]">
         Deletes the new module. The existing module remains unchanged.
       </p>
     </div>
@@ -301,11 +307,104 @@ export const NeedsReviewTab = ({
   onMerge,
   onSkip,
   onView,
+  sortBy,
+  sortDir,
+  onSort,
+  initialExpandedId,
+  emptyMessage,
 }: NeedsReviewTabProps) => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<'merge' | 'skip' | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    if (initialExpandedId) {
+      initial.add(initialExpandedId);
+    }
+    return initial;
+  });
   const [previewModuleId, setPreviewModuleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialExpandedId) {
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        next.add(initialExpandedId);
+        return next;
+      });
+      const timer = setTimeout(() => {
+        const element = document.getElementById(
+          `needs-review-row-${initialExpandedId}`,
+        );
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialExpandedId]);
+
+  const renderSortHeader = (label: string, sortKey: string) => {
+    if (!onSort) return label;
+    const isActive = sortBy === sortKey;
+    const isAsc = isActive && sortDir === 'asc';
+    const isDesc = isActive && sortDir === 'desc';
+    const handleHeaderClick = () => {
+      const nextDir = isActive && sortDir === 'asc' ? 'desc' : 'asc';
+      onSort(sortKey, nextDir);
+    };
+    return (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 text-left uppercase font-bold tracking-wider text-spice-text-muted hover:text-spice-text-primary focus:outline-none"
+        onClick={handleHeaderClick}
+      >
+        <span>{label}</span>
+        <span className="inline-flex shrink-0 ml-1">
+          {isAsc ? (
+            <svg
+              className="h-3.5 w-3.5 text-spice-brand-primary stroke-[2.5]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75"
+              />
+            </svg>
+          ) : isDesc ? (
+            <svg
+              className="h-3.5 w-3.5 text-spice-brand-primary stroke-[2.5]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4.5v15m0 0l6.75-6.75M12 19.5l-6.75-6.75"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="h-3.5 w-3.5 text-spice-text-muted/40 group-hover:text-spice-brand-primary transition-colors stroke-[2]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+              />
+            </svg>
+          )}
+        </span>
+      </button>
+    );
+  };
 
   const handleViewClick = (moduleId: string) => {
     setPreviewModuleId(moduleId);
@@ -371,18 +470,57 @@ export const NeedsReviewTab = ({
 
   if (!modules.length) {
     return (
-      <Card
-        variant="bordered"
-        className="p-12 text-center text-sm text-spice-text-muted rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
-      >
-        <div className="text-2xl mb-2">🎉</div>
-        <div className="font-semibold text-spice-text-primary">
-          All caught up!
+      <div className="w-full overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-spice-text-medium border-collapse">
+            <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium border-b border-spice-border">
+              <tr>
+                <th scope="col" className="w-12 px-3 py-2 text-center" />
+                <th
+                  scope="col"
+                  className="px-4 py-2 font-medium tracking-wider"
+                >
+                  {renderSortHeader('Module', 'title')}
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-2 font-medium tracking-wider"
+                >
+                  Content
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-2 font-medium tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-2 font-medium tracking-wider"
+                >
+                  {renderSortHeader('Created At', 'created_at')}
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-2 font-medium tracking-wider text-left"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-spice-border/70 bg-spice-bg-surface">
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-3 py-8 text-center text-spice-text-muted sm:px-6"
+                >
+                  {emptyMessage ?? 'No modules requiring review.'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div className="text-xs text-spice-text-muted mt-1">
-          No modules requiring review.
-        </div>
-      </Card>
+      </div>
     );
   }
 
@@ -391,36 +529,36 @@ export const NeedsReviewTab = ({
       <div className="w-full overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-spice-text-medium border-collapse">
-            <thead className="bg-spice-bg-tint/70 text-[11px] uppercase font-bold tracking-wider text-spice-text-muted border-b border-spice-border">
+            <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium border-b border-spice-border">
               <tr>
-                <th scope="col" className="w-12 px-3 py-3 text-center" />
+                <th scope="col" className="w-12 px-3 py-2 text-center" />
                 <th
                   scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
+                  className="px-4 py-2 font-medium tracking-wider"
                 >
-                  Module
+                  {renderSortHeader('Module', 'title')}
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
+                  className="px-4 py-2 font-medium tracking-wider"
                 >
                   Content
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
+                  className="px-4 py-2 font-medium tracking-wider"
                 >
                   Status
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
+                  className="px-4 py-2 font-medium tracking-wider"
                 >
-                  Created
+                  {renderSortHeader('Created At', 'created_at')}
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 font-medium tracking-wider text-right"
+                  className="px-4 py-2 font-medium tracking-wider text-left"
                 >
                   Actions
                 </th>
@@ -448,6 +586,7 @@ export const NeedsReviewTab = ({
                 return (
                   <Fragment key={primary.id ?? Math.random().toString()}>
                     <tr
+                      id={`needs-review-row-${primary.id}`}
                       className={`transition-colors duration-150 ${isExpanded ? 'bg-spice-bg-tint/30' : 'hover:bg-spice-bg-tint/20'}`}
                     >
                       <td className="px-3 py-3.5 text-center">
@@ -473,30 +612,45 @@ export const NeedsReviewTab = ({
                         >
                           {formatModuleTitle(primary)}
                         </button>
-                        {primary.category ? (
-                          <div className="mt-0.5">
-                            <span className="inline-block rounded bg-spice-bg-tint/70 px-2 py-0.5 text-[10px] font-medium text-spice-text-muted">
-                              {primary.category}
-                            </span>
-                          </div>
-                        ) : null}
                       </td>
                       <td className="px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-spice-text-primary">
-                            {primary.card_count}
+                        <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+                          <span>
+                            {primary.card_count === 1
+                              ? '1 lesson'
+                              : `${primary.card_count} lessons`}
                           </span>
-                          <span className="text-spice-text-muted">lessons</span>
-                          <span className="text-spice-text-muted">•</span>
-                          <span className="font-semibold text-spice-text-primary">
-                            {primary.quiz_count}
+                          <span
+                            className="text-spice-text-muted"
+                            aria-hidden="true"
+                          >
+                            |
                           </span>
-                          <span className="text-spice-text-muted">quizzes</span>
-                          <span className="text-spice-text-muted">•</span>
-                          <span className="font-semibold text-spice-text-primary">
-                            {primary.estimated_minutes}
+                          {primary.quiz_count > 0 ? (
+                            <span className="text-center">
+                              {primary.quiz_count === 1
+                                ? '1 question'
+                                : `${primary.quiz_count} questions`}
+                            </span>
+                          ) : (
+                            <span className="inline-flex w-full items-center justify-center">
+                              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                                No quiz
+                              </span>
+                            </span>
+                          )}
+                          <span
+                            className="text-spice-text-muted"
+                            aria-hidden="true"
+                          >
+                            |
                           </span>
-                          <span className="text-spice-text-muted">min</span>
+                          <span>
+                            ~
+                            {formatEstimatedMinutesDisplay(
+                              primary.estimated_minutes,
+                            )}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 whitespace-nowrap">
@@ -514,16 +668,8 @@ export const NeedsReviewTab = ({
                           </div>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                            onClick={() => handleViewClick(primary.id)}
-                          >
-                            <EyeIcon />
-                            View
-                          </Button>
+                      <td className="px-4 py-3.5 text-left whitespace-nowrap">
+                        <div className="flex items-center justify-start gap-2">
                           <Button
                             variant="secondary"
                             className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"

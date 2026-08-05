@@ -138,9 +138,19 @@ function listingDateColumnDef(
         : column === 'deactivated'
           ? 'deactivatedAt'
           : 'createdAt';
+  const sortKey =
+    column === 'published'
+      ? 'published_at'
+      : column === 'activated'
+        ? 'activated_at'
+        : column === 'deactivated'
+          ? 'last_deactivated_at'
+          : 'created_at';
   return {
     key,
     header: moduleListingDateColumnHeader(column),
+    sortable: true,
+    sortKey,
     render: (row) => (
       <span className="text-xs text-spice-text-medium">
         {column === 'published'
@@ -188,6 +198,9 @@ export const ModuleLibraryPage = () => {
   }, [page]);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [expandedReviewModuleId, setExpandedReviewModuleId] = useState<
+    string | null
+  >(null);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<ModuleLibraryFilterState>(
     EMPTY_MODULE_LIBRARY_FILTERS,
@@ -253,6 +266,18 @@ export const ModuleLibraryPage = () => {
     tab,
     isProgramManager,
   );
+  const [sortBy, setSortBy] = useState<string | undefined>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = useCallback(
+    (newSortBy: string, newSortDir: 'asc' | 'desc') => {
+      setSortBy(newSortBy);
+      setSortDir(newSortDir);
+      setPage(0);
+    },
+    [],
+  );
+
   const { data: domainOptions = [], refetch: refetchDomainOptions } =
     useFetchModuleDomainOptionsQuery({});
   const {
@@ -269,6 +294,8 @@ export const ModuleLibraryPage = () => {
       ...dateParams,
       sourceDocumentId: activeFilters.sourceDocumentId || undefined,
       q: searchQ,
+      sort_by: sortBy,
+      sort_dir: sortDir,
     },
     { skip: dateRangeInvalid },
   );
@@ -477,12 +504,7 @@ export const ModuleLibraryPage = () => {
       lessons: m.card_count,
       questions: m.quiz_count,
       durationLabel: `~${formatEstimatedMinutesDisplay(m.estimated_minutes)}`,
-      status:
-        m.lifecycle_status === 'published'
-          ? 'published'
-          : m.lifecycle_status === 'deactivated'
-            ? 'deactivated'
-            : 'draft',
+      status: (m.lifecycle_status as ModuleStatus) ?? 'draft',
       createdAt: formatDisplayDateTime(m.created_at),
       publishedAt: formatDisplayDateTime(m.published_at),
       activatedAt: formatDisplayDateTime(getModuleActivatedAt(m)),
@@ -559,20 +581,34 @@ export const ModuleLibraryPage = () => {
       {
         key: 'title',
         header: 'Module',
+        sortable: true,
+        sortKey: 'title',
         render: (row) => (
           <div className="min-w-0">
             <TruncatedText text={row.title}>
-              <Link
-                to={paths.adminModuleReviewDetails.replace(
-                  ':moduleId',
-                  encodeURIComponent(row.id),
-                )}
-                className="font-semibold text-spice-brand-primary underline decoration-spice-brand-primary/40 underline-offset-2 hover:decoration-spice-brand-primary"
-              >
-                {row.title}
-              </Link>
+              {row.status === 'review_pending' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExpandedReviewModuleId(row.id);
+                    setTab('needs_review');
+                  }}
+                  className="font-semibold text-spice-brand-primary hover:underline text-left"
+                >
+                  {row.title}
+                </button>
+              ) : (
+                <Link
+                  to={paths.adminModuleReviewDetails.replace(
+                    ':moduleId',
+                    encodeURIComponent(row.id),
+                  )}
+                  className="font-semibold text-spice-brand-primary hover:underline"
+                >
+                  {row.title}
+                </Link>
+              )}
             </TruncatedText>
-            <div className="text-xs text-spice-text-muted">{row.category}</div>
           </div>
         ),
       },
@@ -610,7 +646,12 @@ export const ModuleLibraryPage = () => {
       {
         key: 'status',
         header: 'Status',
-        render: (row) => moduleBadge(row.status),
+        className: 'whitespace-nowrap',
+        sortable: tab === 'all',
+        sortKey: 'lifecycle_status',
+        render: (row) => (
+          <div className="flex items-center">{moduleBadge(row.status)}</div>
+        ),
       },
       ...dateColumns.map(listingDateColumnDef),
       {
@@ -679,16 +720,21 @@ export const ModuleLibraryPage = () => {
             <div className="flex justify-start gap-2">
               <Button
                 className="h-8 px-3 text-xs"
-                onClick={() =>
-                  navigate(
-                    paths.adminModuleReviewDetails.replace(
-                      ':moduleId',
-                      encodeURIComponent(row.id),
-                    ),
-                  )
-                }
+                onClick={() => {
+                  if (row.status === 'review_pending') {
+                    setExpandedReviewModuleId(row.id);
+                    setTab('needs_review');
+                  } else {
+                    navigate(
+                      paths.adminModuleReviewDetails.replace(
+                        ':moduleId',
+                        encodeURIComponent(row.id),
+                      ),
+                    );
+                  }
+                }}
               >
-                Review
+                {row.status === 'review_pending' ? 'Resolve' : 'Review'}
               </Button>
             </div>
           );
@@ -702,6 +748,8 @@ export const ModuleLibraryPage = () => {
       navigate,
       reactivateModule,
       refreshModuleList,
+      setTab,
+      tab,
     ],
   );
 
@@ -1210,12 +1258,20 @@ export const ModuleLibraryPage = () => {
             isLoading={isLoadingModules}
             onMerge={handleOverrideMerge}
             onSkip={handleSkipReview}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
+            initialExpandedId={expandedReviewModuleId}
+            emptyMessage={emptyMessage}
           />
         ) : tab === 'discarded' ? (
           <DiscardedTabTable
             modules={modulesForList}
             isLoading={isLoadingModules}
             onView={handleViewModule}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
           />
         ) : (
           <Table<ModuleLibraryItem>
@@ -1224,6 +1280,9 @@ export const ModuleLibraryPage = () => {
             keyExtractor={(r) => r.id}
             caption={tableCaption}
             emptyMessage={emptyMessage}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
           />
         )}
 

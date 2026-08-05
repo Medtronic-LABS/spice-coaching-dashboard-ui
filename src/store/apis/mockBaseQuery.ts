@@ -376,6 +376,61 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         );
       });
 
+    const sortBy = asString(paramBag.sort_by);
+    const sortDir = asString(paramBag.sort_dir) === 'desc' ? -1 : 1;
+
+    if (sortBy) {
+      items.sort((a, b) => {
+        let valA: string | number = '';
+        let valB: string | number = '';
+        if (sortBy === 'title') {
+          valA = a.title.bn || '';
+          valB = b.title.bn || '';
+        } else if (sortBy === 'domain' || sortBy === 'category') {
+          valA = a.domain || '';
+          valB = b.domain || '';
+        } else if (sortBy === 'card_count') {
+          valA = a.card_count;
+          valB = b.card_count;
+        } else if (sortBy === 'estimated_minutes') {
+          valA = a.estimated_minutes;
+          valB = b.estimated_minutes;
+        } else if (sortBy === 'status' || sortBy === 'lifecycle_status') {
+          valA = a.lifecycle_status || '';
+          valB = b.lifecycle_status || '';
+        } else if (sortBy === 'created_at') {
+          valA = a.created_at || '';
+          valB = b.created_at || '';
+        } else if (sortBy === 'published_at') {
+          valA = a.published_at || '';
+          valB = b.published_at || '';
+        } else if (
+          sortBy === 'first_activated_at' ||
+          sortBy === 'activated_at'
+        ) {
+          valA = a.first_activated_at || '';
+          valB = b.first_activated_at || '';
+        } else if (
+          sortBy === 'last_deactivated_at' ||
+          sortBy === 'deactivated_at'
+        ) {
+          valA = a.last_deactivated_at || '';
+          valB = b.last_deactivated_at || '';
+        } else {
+          const rawA = (a as Record<string, unknown>)[sortBy];
+          const rawB = (b as Record<string, unknown>)[sortBy];
+          valA =
+            typeof rawA === 'string' || typeof rawA === 'number' ? rawA : '';
+          valB =
+            typeof rawB === 'string' || typeof rawB === 'number' ? rawB : '';
+        }
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return (valA - valB) * sortDir;
+        }
+        return String(valA).localeCompare(String(valB)) * sortDir;
+      });
+    }
+
     return {
       data: {
         modules: items.slice(offset, offset + limit),
@@ -396,6 +451,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             q?: unknown;
             limit?: unknown;
             offset?: unknown;
+            sort_by?: unknown;
+            sort_dir?: unknown;
           })
         : {};
     // Backend defaults to "ingested" when the status param is omitted.
@@ -417,6 +474,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const filenameQuery = (asString(query.q) ?? '').trim().toLowerCase();
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
+    const docSortBy = asString(query.sort_by);
+    const docSortDir = asString(query.sort_dir) === 'desc' ? -1 : 1;
 
     const items = mockSourceDocuments
       .filter((doc) => effectiveStatuses.includes(doc.status.toLowerCase()))
@@ -433,6 +492,34 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             doc.title.toLowerCase().includes(filenameQuery)
           : true,
       );
+
+    if (docSortBy) {
+      items.sort((a, b) => {
+        let valA: string | number = '';
+        let valB: string | number = '';
+        if (docSortBy === 'title' || docSortBy === 'name') {
+          valA = a.title || a.original_filename || '';
+          valB = b.title || b.original_filename || '';
+        } else if (docSortBy === 'ingested_at' || docSortBy === 'created_at') {
+          valA = a.ingested_at || '';
+          valB = b.ingested_at || '';
+        } else if (docSortBy === 'status') {
+          valA = a.status || '';
+          valB = b.status || '';
+        } else {
+          const rawA = (a as Record<string, unknown>)[docSortBy];
+          const rawB = (b as Record<string, unknown>)[docSortBy];
+          valA =
+            typeof rawA === 'string' || typeof rawA === 'number' ? rawA : '';
+          valB =
+            typeof rawB === 'string' || typeof rawB === 'number' ? rawB : '';
+        }
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return (valA - valB) * docSortDir;
+        }
+        return String(valA).localeCompare(String(valB)) * docSortDir;
+      });
+    }
 
     return {
       data: {

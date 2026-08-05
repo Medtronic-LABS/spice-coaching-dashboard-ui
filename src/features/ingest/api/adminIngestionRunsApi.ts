@@ -26,6 +26,8 @@ export interface FetchIngestionRunsQueryArgs {
   status?: string;
   limit?: number;
   offset?: number;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -126,13 +128,15 @@ export const adminIngestionRunsApi = baseApi.injectEndpoints({
       IngestionRunListResponse,
       FetchIngestionRunsQueryArgs
     >({
-      query: ({ limit, offset, status }) => ({
+      query: ({ limit, offset, status, sort_by, sort_dir }) => ({
         url: '/admin/ingestion-runs',
         method: 'GET',
         params: {
           limit,
           offset,
           ...(status ? { status } : {}),
+          ...(sort_by ? { sort_by } : {}),
+          ...(sort_dir ? { sort_dir } : {}),
         },
       }),
       transformResponse: (response: unknown, _meta, arg) =>

@@ -447,6 +447,8 @@ export interface FetchModulesQueryArgs {
   sourceDocumentId?: string | null;
   /** Server-side search; omit when empty or below the UI minimum length. */
   q?: string | null;
+  sort_by?: string | null;
+  sort_dir?: 'asc' | 'desc' | null;
 }
 
 export interface FetchModulesResponse {
@@ -539,6 +541,8 @@ export const adminModulesApi = baseApi.injectEndpoints({
         deactivated_to,
         sourceDocumentId,
         q,
+        sort_by,
+        sort_dir,
       }) => ({
         url: '/admin/modules',
         method: 'GET',
@@ -558,6 +562,8 @@ export const adminModulesApi = baseApi.injectEndpoints({
           ...(deactivated_to ? { deactivated_to } : {}),
           ...(sourceDocumentId ? { source_document_id: sourceDocumentId } : {}),
           ...(q ? { q } : {}),
+          ...(sort_by ? { sort_by } : {}),
+          ...(sort_dir ? { sort_dir } : {}),
         },
       }),
       transformResponse: (response: unknown) =>
