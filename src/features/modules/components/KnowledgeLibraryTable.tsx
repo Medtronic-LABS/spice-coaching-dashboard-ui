@@ -27,7 +27,7 @@ import {
   usePatchKnowledgeAssetMutation,
   usePutKnowledgeAssetThumbnailMutation,
 } from '@/features/modules/api/adminKnowledgeApi';
-import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   KNOWLEDGE_LIBRARY_FILTER_DEFAULTS,
   type KnowledgeAsset,

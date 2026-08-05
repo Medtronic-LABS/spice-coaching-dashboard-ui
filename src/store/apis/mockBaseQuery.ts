@@ -44,6 +44,13 @@ function withoutLeadingSlash(value: string): string {
   return value.startsWith('/') ? value.slice(1) : value;
 }
 
+function pageSlice<T>(items: T[], page: number, limit: number): T[] {
+  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : items.length;
+  const start = (safePage - 1) * safeLimit;
+  return items.slice(start, start + safeLimit);
+}
+
 let courseDraftState: ModuleDraftData = JSON.parse(
   JSON.stringify(mockCourseDraft),
 ) as ModuleDraftData;

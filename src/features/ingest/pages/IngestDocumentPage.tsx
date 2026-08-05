@@ -99,6 +99,45 @@ export const IngestDocumentPage = () => {
     setUploadDuplicateConflicts([]);
   }, []);
 
+  const removeFileAtIndex = useCallback(
+    (index: number) => {
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+      clearUploadedState();
+    },
+    [clearUploadedState],
+  );
+
+  const appendFiles = useCallback(
+    (picked: File[]) => {
+      const acceptedFiles = picked.filter(isIngestAcceptedFile);
+      const rejected = picked.filter((file) => !isIngestAcceptedFile(file));
+
+      setFileSelectionError(
+        rejected.length ? formatIngestFileRejectionError(rejected) : '',
+      );
+
+      if (!acceptedFiles.length) return;
+
+      clearUploadedState();
+
+      setFiles((prev) => {
+        const existing = new Set(
+          prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`),
+        );
+        const next = [...prev];
+        for (const file of acceptedFiles) {
+          const key = `${file.name}-${file.size}-${file.lastModified}`;
+          if (existing.has(key)) continue;
+          next.push(file);
+          existing.add(key);
+          if (next.length >= 10) break;
+        }
+        return next;
+      });
+    },
+    [clearUploadedState],
+  );
+
   const handleUploaded = useCallback(
     (
       res: AdminV3IngestUploadResponse,

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui';
 import { ProgressBar as CommonProgressBar } from '@/components/common/ProgressBar';
 import { paths } from '@/constants/routes';
-import { formatRtkQueryError } from '@/features/program-manager/utils/formatRtkQueryError';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   useGetKnowledgeUploadStatusQuery,
   usePutKnowledgeAssetThumbnailMutation,
