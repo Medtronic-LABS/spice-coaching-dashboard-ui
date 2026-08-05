@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronIcon } from '@/assets/icon';
 import type {
   AssignedGeographicalEntry,
   AssignedIndividualUser,
@@ -23,21 +24,6 @@ function TypeBadge({ label }: { label: string }) {
     </span>
   );
 }
-
-const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
-  <svg
-    className={`h-4 w-4 text-spice-text-muted transition-transform ${
-      expanded ? 'rotate-180' : ''
-    }`}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-  </svg>
-);
 
 function RoleBadge({ role }: RoleBadgeProps) {
   return (

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 /**
  * KeyValue
  * Compact label-value pair for simple metadata.
@@ -7,7 +9,7 @@
  */
 export interface KeyValueProps {
   label: string;
-  value: string | number | null | undefined;
+  value: ReactNode;
 }
 
 export const KeyValue = ({ label, value }: KeyValueProps) => {

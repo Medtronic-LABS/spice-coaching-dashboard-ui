@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { CloseIcon, MenuIcon } from '@/assets/icon';
 import uhisLogo from '@/assets/img/uhis-logo.png';
 import {
   getAuthDisplayName,
@@ -10,39 +11,6 @@ interface HeaderProps {
   isSidebarOpen: boolean;
   onMenuToggle: () => void;
 }
-
-const MenuIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M4 6h16" />
-    <path d="M4 12h16" />
-    <path d="M4 18h16" />
-  </svg>
-);
-
-const CloseIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M6 6l12 12" />
-    <path d="M18 6 6 18" />
-  </svg>
-);
 
 export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
   const { t } = useTranslation();

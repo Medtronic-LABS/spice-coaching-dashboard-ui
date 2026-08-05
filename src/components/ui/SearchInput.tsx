@@ -1,5 +1,6 @@
 import { type InputHTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SearchIcon } from '@/assets/icon';
 import { cn } from '@/utils';
 
 /**
@@ -21,23 +22,6 @@ export interface SearchInputProps extends Omit<
   onChange: (value: string) => void;
 }
 
-const SearchIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    data-testid="search-input-icon"
-  >
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-);
-
 export const SearchInput = ({
   value,
   onChange,
@@ -52,7 +36,10 @@ export const SearchInput = ({
 
   return (
     <div className="relative w-full min-w-0 sm:min-w-56">
-      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-spice-text-muted" />
+      <SearchIcon
+        data-testid="search-input-icon"
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-spice-text-muted"
+      />
       <input
         type="search"
         value={value}

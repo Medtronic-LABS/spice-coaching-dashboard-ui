@@ -175,6 +175,18 @@ function isViewModulesStatus(status: string): boolean {
   );
 }
 
+/** Statuses that mean modules need review due to similarity or merge requirement. */
+function isNeedsReviewStatus(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return (
+    normalized === 'needs_review' ||
+    normalized === 'review_pending' ||
+    normalized === 'pending_review' ||
+    normalized === 'review pending' ||
+    normalized === 'needs review'
+  );
+}
+
 export const VideoUploadPage = () => {
   const navigate = useNavigate();
   const [pendingItems, setPendingItems] = useState<PendingVideoItem[]>([]);
@@ -415,9 +427,6 @@ export const VideoUploadPage = () => {
   const [acceptedSources, setAcceptedSources] = useState<
     AdminV3IngestAcceptedSource[]
   >([]);
-  const [precheckConflicts, setPrecheckConflicts] = useState<
-    IngestDuplicateConflict[]
-  >([]);
 
   const [sortBy, setSortBy] = useState<string | undefined>('ingested_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -487,10 +496,12 @@ export const VideoUploadPage = () => {
   const rows = useMemo(() => {
     return serverRows.map((row) => {
       if (!row.sourceDocumentId) return row;
-      const sourceStatus = batchStatus?.sources.find(
+      const batchSource = batchStatus?.sources.find(
         (source) => source.source_document_id === row.sourceDocumentId,
-      )?.status;
-      const liveLabel = tableStatusLabel(sourceStatus ?? batchStatus?.status, {
+      );
+      const sourceStatus =
+        batchSource?.status ?? (batchSource ? batchStatus?.status : undefined);
+      const liveLabel = tableStatusLabel(sourceStatus, {
         assumeInProgress: activeSourceIds.has(row.sourceDocumentId),
       });
       if (!liveLabel || liveLabel === row.status) return row;
@@ -651,41 +662,31 @@ export const VideoUploadPage = () => {
     !isStartingIngest &&
     !anyIngestionInProgress;
 
-  const runIngest = useCallback(
-    async (allowKnownDuplicates: boolean) => {
-      const rowsToIngest = selectedRowsReadyToIngest;
-      if (!rowsToIngest.length) return;
-      setActionError('');
-      setActionSuccess('');
-      setAcceptedSources([]);
-      setBatchStatus(null);
-      const overrideDuplicates = rowsToIngest.map(
-        (row) =>
-          allowKnownDuplicates && row.status.toLowerCase() === 'ingested',
-      );
-      await startIngest({
-        source_document_ids: rowsToIngest.map(
-          (row) => row.sourceDocumentId as string,
-        ),
-        assessment_mode: assessmentMode,
-        quizzes_per_module:
-          ingestModuleCountForPayload(quizzesPerModule) ?? null,
-        cards_per_module: ingestModuleCountForPayload(cardsPerModule) ?? null,
-        ingestion_instructions: ingestionInstructions.trim() || null,
-        override_duplicates: overrideDuplicates.some(Boolean)
-          ? overrideDuplicates
-          : null,
-      });
-    },
-    [
-      assessmentMode,
-      cardsPerModule,
-      ingestionInstructions,
-      quizzesPerModule,
-      selectedRowsReadyToIngest,
-      startIngest,
-    ],
-  );
+  const runIngest = useCallback(async () => {
+    const rowsToIngest = selectedRowsReadyToIngest;
+    if (!rowsToIngest.length) return;
+    setActionError('');
+    setActionSuccess('');
+    setAcceptedSources([]);
+    setBatchStatus(null);
+    await startIngest({
+      source_document_ids: rowsToIngest.map(
+        (row) => row.sourceDocumentId as string,
+      ),
+      assessment_mode: assessmentMode,
+      quizzes_per_module: ingestModuleCountForPayload(quizzesPerModule) ?? null,
+      cards_per_module: ingestModuleCountForPayload(cardsPerModule) ?? null,
+      ingestion_instructions: ingestionInstructions.trim() || null,
+      override_duplicates: null,
+    });
+  }, [
+    assessmentMode,
+    cardsPerModule,
+    ingestionInstructions,
+    quizzesPerModule,
+    selectedRowsReadyToIngest,
+    startIngest,
+  ]);
 
   const handleStatusChange = useCallback(
     (batchId: string, status: AdminV3IngestBatchStatusResponse | null) => {
@@ -899,17 +900,28 @@ export const VideoUploadPage = () => {
               >
                 Edit
               </Button>
-              {isViewModulesStatus(row.status) ? (
+              {isNeedsReviewStatus(row.status) ? (
+                <Button
+                  variant="secondary"
+                  className="h-8 shrink-0 px-3 text-xs font-semibold text-spice-brand-primary"
+                  onClick={() => {
+                    goToNeedsReviewForSource(
+                      row.sourceDocumentId as string,
+                      row.title,
+                    );
+                  }}
+                >
+                  Review modules
+                </Button>
+              ) : isViewModulesStatus(row.status) ? (
                 <Button
                   variant="secondary"
                   className="h-8 shrink-0 px-3 text-xs"
                   onClick={() => {
-                    const state: ModuleLibraryLocationState = {
-                      tab: 'all',
-                      sourceDocumentId: row.sourceDocumentId,
-                      sourceDocumentTitle: row.title,
-                    };
-                    navigate(paths.moduleLibrary, { state });
+                    goToAllModulesForSource(
+                      row.sourceDocumentId as string,
+                      row.title,
+                    );
                   }}
                 >
                   View modules
@@ -1331,36 +1343,7 @@ export const VideoUploadPage = () => {
 
         <div className="flex flex-col gap-2 sm:items-end">
           <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              disabled={!canIngest}
-              onClick={() => {
-                const alreadyIngestedRows = selectedRowsReadyToIngest.filter(
-                  (row) => row.status.toLowerCase() === 'ingested',
-                );
-                if (alreadyIngestedRows.length) {
-                  setPrecheckConflicts(
-                    alreadyIngestedRows.map((row) => ({
-                      filename: row.name,
-                      title: row.title,
-                      content_sha256: row.sourceDocumentId ?? row.id,
-                      existing_source_documents: row.sourceDocumentId
-                        ? [
-                            {
-                              source_document_id: row.sourceDocumentId,
-                              title: row.title,
-                              original_filename: row.name,
-                              ingested_at: row.uploadedAt,
-                              status: row.status,
-                            },
-                          ]
-                        : [],
-                    })),
-                  );
-                  return;
-                }
-                void runIngest(false);
-              }}
-            >
+            <Button disabled={!canIngest} onClick={() => void runIngest()}>
               {isStartingIngest
                 ? 'Starting…'
                 : anyIngestionInProgress
@@ -1380,29 +1363,25 @@ export const VideoUploadPage = () => {
           onGoToDrafts={() => {
             const first =
               acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
-            if (!first) return;
-            goToAllModulesForSource(first.source_document_id, first.title);
+            const sourceId =
+              first?.source_document_id ??
+              batchStatus?.sources[0]?.source_document_id;
+            const sourceTitle =
+              first?.title ?? batchStatus?.sources[0]?.document_label;
+            goToAllModulesForSource(sourceId ?? '', sourceTitle);
           }}
           onGoToNeedsReview={() => {
             const first =
               acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
-            if (!first) return;
-            goToNeedsReviewForSource(first.source_document_id, first.title);
+            const sourceId =
+              first?.source_document_id ??
+              batchStatus?.sources[0]?.source_document_id;
+            const sourceTitle =
+              first?.title ?? batchStatus?.sources[0]?.document_label;
+            goToNeedsReviewForSource(sourceId ?? '', sourceTitle);
           }}
         />
       ) : null}
-
-      <DuplicateIngestConfirmDialog
-        open={precheckConflicts.length > 0 && !duplicateDialog.open}
-        variant="blocked"
-        conflicts={precheckConflicts}
-        isConfirming={isConfirmingDuplicate}
-        onCancel={() => setPrecheckConflicts([])}
-        onConfirm={(selectedFilenames) => {
-          setPrecheckConflicts([]);
-          void runIngest(selectedFilenames.length > 0);
-        }}
-      />
 
       <DuplicateIngestConfirmDialog
         open={duplicateDialog.open}

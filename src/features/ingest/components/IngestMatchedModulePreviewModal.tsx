@@ -54,7 +54,7 @@ export const IngestMatchedModulePreviewModal = ({
               id="ingest-matched-module-preview-title"
               className="text-lg font-semibold text-spice-text-primary"
             >
-              Module Content
+              Module Details
             </h2>
           </div>
           <button
@@ -95,9 +95,6 @@ export const IngestMatchedModulePreviewModal = ({
           {module ? (
             <div className="space-y-5">
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-spice-text-primary">
-                  Module details
-                </h3>
                 <div className="grid gap-2.5 rounded-lg border border-spice-border bg-spice-bg-tint/40 p-3.5 sm:grid-cols-2">
                   <KeyValue
                     label="Title"
@@ -118,11 +115,9 @@ export const IngestMatchedModulePreviewModal = ({
                   />
                   <KeyValue label="Quizzes" value={String(quizzes.length)} />
                   <KeyValue
-                    label="Estimation"
+                    label="Estimated (mins)"
                     value={
-                      module.estimated_minutes
-                        ? `${module.estimated_minutes} mins`
-                        : '—'
+                      module.estimated_minutes ? module.estimated_minutes : '—'
                     }
                   />
                   {module.published_at ? (
@@ -135,7 +130,7 @@ export const IngestMatchedModulePreviewModal = ({
                 {module.description ? (
                   <div className="space-y-1 mt-3">
                     <span className="text-xs font-semibold uppercase tracking-wider text-spice-text-muted">
-                      Description
+                      Module Description
                     </span>
                     <div className="text-xs text-spice-text-medium rounded-lg border border-spice-border bg-spice-bg-surface p-3">
                       {resolveDisplayText(module.description)}

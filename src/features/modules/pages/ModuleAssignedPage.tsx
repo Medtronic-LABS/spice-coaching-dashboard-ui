@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ClipboardIcon } from '@/assets/icon';
 import { Badge, Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
@@ -33,24 +34,6 @@ type ModuleAssignedState = {
   removedUsers?: AssignedUserEntry[];
   assignmentType?: AssignmentType;
 };
-
-const ClipboardIcon = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    className="text-spice-brand-primary"
-  >
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-    <path d="M9 2h6v4H9V2Z" />
-  </svg>
-);
 
 export const ModuleAssignedPage = () => {
   const { t } = useTranslation();
@@ -263,7 +246,7 @@ export const ModuleAssignedPage = () => {
       >
         <div className="shrink-0 border-b border-spice-border/70 bg-spice-bg-tint/30 px-6 py-5 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-spice-bg-surface ring-1 ring-spice-border">
-            <ClipboardIcon />
+            <ClipboardIcon className="h-5 w-5 text-spice-brand-primary" />
           </div>
           <Badge className="mt-3 bg-spice-bg-surface text-spice-brand-primary ring-1 ring-spice-border">
             {t('moduleLibrary.assigned.badge')}

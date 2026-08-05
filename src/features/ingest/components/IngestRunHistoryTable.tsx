@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RefreshIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { Button, Card, Loader, Select, TruncatedText } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -36,22 +37,6 @@ type IngestRunHistoryRow = {
   hasGeneratedModules: boolean;
   actions: '';
 };
-
-const RefreshIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-    <path d="M21 3v6h-6" />
-  </svg>
-);
 
 export const IngestRunHistoryTable = () => {
   const navigate = useNavigate();

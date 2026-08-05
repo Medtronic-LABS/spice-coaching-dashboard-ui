@@ -549,14 +549,41 @@ describe('VideoUploadPage', () => {
 
     await stageAndApiUpload(user, video, 'video-source-1');
     await selectVideoRow(user, 'existing');
+
+    mocks.startIngest.mockImplementationOnce(async () => {
+      mocks.duplicateDialog.open = true;
+      mocks.duplicateDialog.variant = 'blocked';
+      mocks.duplicateDialog.conflicts = [
+        {
+          filename: 'existing.mp4',
+          title: 'Existing video',
+          content_sha256: 'video-source-1',
+          existing_source_documents: [
+            {
+              source_document_id: 'video-source-1',
+              title: 'Existing video',
+              original_filename: 'existing.mp4',
+              ingested_at: '2026-07-15T08:00:00Z',
+              status: 'ingested',
+            },
+          ],
+        },
+      ];
+      return null;
+    });
+
     await user.click(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Document already ingested' }),
-    ).toBeInTheDocument();
-    expect(mocks.startIngest).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'Document already ingested' }),
+      ).toBeInTheDocument(),
+    );
+    expect(mocks.startIngest).toHaveBeenCalledWith(
+      expect.objectContaining({ override_duplicates: null }),
+    );
 
     await user.click(
       screen.getByRole('checkbox', {
@@ -564,31 +591,50 @@ describe('VideoUploadPage', () => {
       }),
     );
     await user.click(screen.getByRole('button', { name: /^re-ingest$/i }));
-    await waitFor(() => expect(mocks.startIngest).toHaveBeenCalledOnce());
-    expect(mocks.startIngest).toHaveBeenCalledWith(
-      expect.objectContaining({ override_duplicates: [true] }),
-    );
+    expect(mocks.confirmDuplicate).toHaveBeenCalledWith(['existing.mp4']);
   });
 
-  it('cancels client-side re-ingest confirmation without submitting', async () => {
+  it('cancels re-ingest confirmation without submitting', async () => {
     const user = userEvent.setup();
     renderPage();
     const video = new File(['video'], 'existing.mp4', { type: 'video/mp4' });
 
     await stageAndApiUpload(user, video, 'video-source-1');
     await selectVideoRow(user, 'existing');
+
+    mocks.startIngest.mockImplementationOnce(async () => {
+      mocks.duplicateDialog.open = true;
+      mocks.duplicateDialog.variant = 'blocked';
+      mocks.duplicateDialog.conflicts = [
+        {
+          filename: 'existing.mp4',
+          title: 'Existing video',
+          content_sha256: 'video-source-1',
+          existing_source_documents: [
+            {
+              source_document_id: 'video-source-1',
+              title: 'Existing video',
+              original_filename: 'existing.mp4',
+              ingested_at: '2026-07-15T08:00:00Z',
+              status: 'ingested',
+            },
+          ],
+        },
+      ];
+      return null;
+    });
+
     await user.click(
       screen.getByRole('button', { name: 'Ingest Selected Videos' }),
     );
-    expect(
-      screen.getByRole('heading', { name: 'Document already ingested' }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'Document already ingested' }),
+      ).toBeInTheDocument(),
+    );
     await user.keyboard('{Escape}');
 
-    expect(
-      screen.queryByRole('heading', { name: 'Document already ingested' }),
-    ).not.toBeInTheDocument();
-    expect(mocks.startIngest).not.toHaveBeenCalled();
+    expect(mocks.cancelDuplicate).toHaveBeenCalled();
   });
 
   it('keeps ingest disabled until uploaded videos are selected', async () => {
@@ -701,5 +747,156 @@ describe('VideoUploadPage', () => {
     expect(mocks.panelProps.current).toEqual([
       { batchId: 'batch-1', sourceTitle: 'new-video' },
     ]);
+  });
+
+  it('does not set status to Running for unrelated videos when batch status is running', () => {
+    writeActiveVideoIngestSessions([
+      {
+        batch_id: 'batch-active',
+        source_document_id: 'video-source-1',
+        title: 'existing.mp4',
+      },
+    ]);
+    mocks.sourceDocuments = [
+      {
+        id: 'video-source-1',
+        title: 'Existing video',
+        source_type: 'video',
+        status: 'ingested',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'existing.mp4',
+        ingested_at: '2026-07-15T08:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+      {
+        id: 'video-source-2',
+        title: 'Unrelated video',
+        source_type: 'video',
+        status: 'uploaded',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'unrelated.mp4',
+        ingested_at: '2026-07-15T09:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+    ];
+    mocks.panelStatus.current = {
+      batch_id: 'batch-active',
+      status: 'running',
+      created_at: null,
+      completed_at: null,
+      error: null,
+      sources: [
+        {
+          source_document_id: 'video-source-1',
+          run_id: 'run-1',
+          document_label: 'existing.mp4',
+          status: 'running',
+          started_at: null,
+          completed_at: null,
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+    renderPage();
+
+    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+  });
+
+  it('triggers duplicate confirmation flow via API and confirms selective re-ingest', async () => {
+    const user = userEvent.setup();
+    mocks.sourceDocuments = [
+      {
+        id: 'video-source-1',
+        title: 'Video One',
+        source_type: 'video',
+        status: 'ingested',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'video1.mp4',
+        ingested_at: '2026-07-15T08:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+      {
+        id: 'video-source-2',
+        title: 'Video Two',
+        source_type: 'video',
+        status: 'ingested',
+        content_domain: 'clinical',
+        authority_label: '',
+        original_filename: 'video2.mp4',
+        ingested_at: '2026-07-15T09:00:00Z',
+        description: null,
+        thumbnail_storage_path: null,
+        thumbnail_presigned_url: null,
+      },
+    ];
+    renderPage();
+
+    await selectVideoRow(user, 'Video One');
+    await selectVideoRow(user, 'Video Two');
+
+    mocks.startIngest.mockImplementationOnce(async () => {
+      mocks.duplicateDialog.open = true;
+      mocks.duplicateDialog.variant = 'blocked';
+      mocks.duplicateDialog.conflicts = [
+        {
+          filename: 'video1.mp4',
+          title: 'Video One',
+          content_sha256: 'video-source-1',
+          existing_source_documents: [
+            {
+              source_document_id: 'video-source-1',
+              title: 'Video One',
+              original_filename: 'video1.mp4',
+              ingested_at: '2026-07-15T08:00:00Z',
+              status: 'ingested',
+            },
+          ],
+        },
+        {
+          filename: 'video2.mp4',
+          title: 'Video Two',
+          content_sha256: 'video-source-2',
+          existing_source_documents: [
+            {
+              source_document_id: 'video-source-2',
+              title: 'Video Two',
+              original_filename: 'video2.mp4',
+              ingested_at: '2026-07-15T09:00:00Z',
+              status: 'ingested',
+            },
+          ],
+        },
+      ];
+      return null;
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: 'Ingest Selected Videos' }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'Documents already ingested' }),
+      ).toBeInTheDocument(),
+    );
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Select video1.mp4 to re-ingest',
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /^re-ingest$/i }));
+
+    expect(mocks.confirmDuplicate).toHaveBeenCalledWith(['video1.mp4']);
   });
 });

@@ -1,5 +1,12 @@
 import { matchPath, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  BookIcon,
+  ClipboardIcon,
+  HistoryIcon,
+  SettingsIcon,
+  VideoIcon,
+} from '@/assets/icon';
 import { paths } from '@/constants/routes';
 import {
   getAuthDisplayName,
@@ -12,75 +19,6 @@ interface SidebarProps {
   isMobileOpen: boolean;
   onMobileClose: () => void;
 }
-
-type NavIconProps = { className?: string };
-
-const BookIcon = ({ className }: NavIconProps) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M4 19a2 2 0 0 0 2 2h14" />
-    <path d="M6 2h14v20H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
-  </svg>
-);
-
-const ClipboardIcon = ({ className }: NavIconProps) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-    <path d="M9 2h6v4H9V2Z" />
-    <path d="M9 12h6" />
-    <path d="M9 16h6" />
-  </svg>
-);
-
-const HistoryIcon = ({ className }: NavIconProps) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M3 12a9 9 0 1 0 3-6.7" />
-    <path d="M3 3v5h5" />
-    <path d="M12 7v5l3 2" />
-  </svg>
-);
-
-const SettingsIcon = ({ className }: NavIconProps) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
 
 export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
   const { t } = useTranslation();
@@ -178,7 +116,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           >
             {({ isActive }) => (
               <>
-                <ClipboardIcon className={iconClassName({ isActive })} />
+                <VideoIcon className={iconClassName({ isActive })} />
                 {t('layout.sidebar.nav.videoUpload')}
               </>
             )}

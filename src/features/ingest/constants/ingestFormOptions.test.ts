@@ -16,10 +16,6 @@ describe('ingestFormOptions', () => {
       { label: 'Clinical', value: 'clinical' },
       { label: 'Digital', value: 'digital' },
       { label: 'Operational', value: 'operational' },
-      {
-        label: 'Clinical with app workflows',
-        value: 'clinical_with_app_workflows',
-      },
     ]);
     expect(getIngestAssessmentModeLabel('read_only')).toBe('Cards Only');
     expect(getIngestContentDomainLabel('clinical')).toBe('Clinical');

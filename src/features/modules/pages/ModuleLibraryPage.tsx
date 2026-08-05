@@ -127,6 +127,17 @@ const moduleBadge = (status: ModuleStatus) => {
   return <ModuleStatusBadge status={status} />;
 };
 
+function isNeedsReviewStatus(status?: string): boolean {
+  const norm = (status || '').trim().toLowerCase();
+  return (
+    norm === 'review_pending' ||
+    norm === 'needs_review' ||
+    norm === 'review pending' ||
+    norm === 'pending_review' ||
+    norm === 'needs review'
+  );
+}
+
 function listingDateColumnDef(
   column: ModuleListingDateColumn,
 ): ColumnDef<ModuleLibraryItem> {
@@ -586,7 +597,7 @@ export const ModuleLibraryPage = () => {
         render: (row) => (
           <div className="min-w-0">
             <TruncatedText text={row.title}>
-              {row.status === 'review_pending' ? (
+              {isNeedsReviewStatus(row.status) ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -721,7 +732,7 @@ export const ModuleLibraryPage = () => {
               <Button
                 className="h-8 px-3 text-xs"
                 onClick={() => {
-                  if (row.status === 'review_pending') {
+                  if (isNeedsReviewStatus(row.status)) {
                     setExpandedReviewModuleId(row.id);
                     setTab('needs_review');
                   } else {
@@ -734,7 +745,7 @@ export const ModuleLibraryPage = () => {
                   }
                 }}
               >
-                {row.status === 'review_pending' ? 'Resolve' : 'Review'}
+                {isNeedsReviewStatus(row.status) ? 'Resolve' : 'Review'}
               </Button>
             </div>
           );
