@@ -110,3 +110,45 @@ describe('AdminModuleLessonsStep reorder', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('AdminModuleLessonsStep actions', () => {
+  it('shows Save draft, Continue to Quiz, and Delete as icon-only', () => {
+    setCurrentRole('programManager');
+    renderLessonsStep();
+
+    expect(
+      screen.getByRole('button', { name: /save draft/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /continue to quiz/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Delete card' }),
+    ).toBeInTheDocument();
+  });
+
+  it('orders Reset card before Delete card', () => {
+    setCurrentRole('programManager');
+    renderLessonsStep();
+
+    const reset = screen.getByRole('button', { name: /reset card/i });
+    const remove = screen.getByRole('button', { name: 'Delete card' });
+    expect(
+      reset.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('hides card mutation actions for supervisor', () => {
+    renderLessonsStep('supervisor');
+
+    expect(
+      screen.queryByRole('button', { name: /add card/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete card' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /save draft/i }),
+    ).not.toBeInTheDocument();
+  });
+});

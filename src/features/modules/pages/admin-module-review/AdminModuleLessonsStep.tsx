@@ -1,3 +1,4 @@
+import { ArrowRightIcon, DeleteIcon, SaveDraftIcon } from '@/assets/icon';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
@@ -306,22 +307,6 @@ export const AdminModuleLessonsStep = () => {
                   <Button
                     variant="secondary"
                     className="h-9 text-xs"
-                    disabled={busy || !cards.length}
-                    onClick={() => {
-                      setActionError('');
-                      const idx = selectedIndex;
-                      dispatch(removeCardAtIndex({ index: idx }));
-                      const nextIndex =
-                        idx > 0 ? idx - 1 : Math.max(0, cards.length - 2);
-                      setSelectedIndex(nextIndex);
-                      setEditorRevision((revision) => revision + 1);
-                    }}
-                  >
-                    Delete card
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="h-9 text-xs"
                     disabled={busy || !cards.length || !cardIsEdited}
                     onClick={() => {
                       setActionError('');
@@ -337,6 +322,24 @@ export const AdminModuleLessonsStep = () => {
                     }}
                   >
                     Reset card
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="inline-flex h-9 w-9 items-center justify-center p-0 text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+                    disabled={busy || !cards.length}
+                    aria-label="Delete card"
+                    title="Delete card"
+                    onClick={() => {
+                      setActionError('');
+                      const idx = selectedIndex;
+                      dispatch(removeCardAtIndex({ index: idx }));
+                      const nextIndex =
+                        idx > 0 ? idx - 1 : Math.max(0, cards.length - 2);
+                      setSelectedIndex(nextIndex);
+                      setEditorRevision((revision) => revision + 1);
+                    }}
+                  >
+                    <DeleteIcon className="h-4 w-4" />
                   </Button>
                 </>
               ) : null}
@@ -406,7 +409,7 @@ export const AdminModuleLessonsStep = () => {
             {!isReadonly ? (
               <Button
                 variant="secondary"
-                className="h-9 text-xs"
+                className="inline-flex h-9 items-center gap-1.5 text-xs"
                 disabled={busy}
                 onClick={async () => {
                   setActionError('');
@@ -417,11 +420,12 @@ export const AdminModuleLessonsStep = () => {
                   }
                 }}
               >
-                {isSaving ? 'Saving…' : 'Save'}
+                <SaveDraftIcon className="h-3.5 w-3.5" />
+                {isSaving ? 'Saving…' : 'Save draft'}
               </Button>
             ) : null}
             <Button
-              className="h-9 text-xs"
+              className="inline-flex h-9 items-center gap-1.5 text-xs"
               disabled={busy}
               onClick={() =>
                 navigate(
@@ -433,6 +437,7 @@ export const AdminModuleLessonsStep = () => {
               }
             >
               Continue to Quiz
+              <ArrowRightIcon className="h-3.5 w-3.5" />
             </Button>
           </div>
         </Card>

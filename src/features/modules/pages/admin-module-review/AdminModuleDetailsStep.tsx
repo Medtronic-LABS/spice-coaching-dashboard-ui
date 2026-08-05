@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
 import { Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
@@ -297,7 +298,7 @@ export const AdminModuleDetailsStep = () => {
           {!isReadonly ? (
             <Button
               variant="secondary"
-              className="h-9 text-xs"
+              className="inline-flex h-9 items-center gap-1.5 text-xs"
               disabled={busy || isReadonly}
               onClick={async () => {
                 setActionError('');
@@ -308,11 +309,12 @@ export const AdminModuleDetailsStep = () => {
                 }
               }}
             >
-              {isSaving ? 'Saving…' : 'Save'}
+              <SaveDraftIcon className="h-3.5 w-3.5" />
+              {isSaving ? 'Saving…' : 'Save draft'}
             </Button>
           ) : null}
           <Button
-            className="h-9 text-xs"
+            className="inline-flex h-9 items-center gap-1.5 text-xs"
             disabled={busy}
             onClick={() =>
               navigate(
@@ -324,6 +326,7 @@ export const AdminModuleDetailsStep = () => {
             }
           >
             Continue to Lessons
+            <ArrowRightIcon className="h-3.5 w-3.5" />
           </Button>
         </div>
       </Card>

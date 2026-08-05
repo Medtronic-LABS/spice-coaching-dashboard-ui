@@ -1,4 +1,5 @@
 import { Button, Card } from '@/components/ui';
+import { EyeIcon, SaveDraftIcon } from '@/assets/icon';
 
 export interface ModuleReviewPublishLessonRow {
   id: string;
@@ -24,6 +25,7 @@ export interface ModuleReviewPublishViewProps {
   estimateMinutes: number;
   sourceFileName?: string;
   sourceFileSizeLabel?: string;
+  onPreviewSource?: () => void;
   onEditDetails: () => void;
   onEditLessons: () => void;
   onEditQuiz: () => void;
@@ -90,6 +92,7 @@ export const ModuleReviewPublishView = ({
   estimateMinutes,
   sourceFileName,
   sourceFileSizeLabel,
+  onPreviewSource,
   onEditDetails,
   onEditLessons,
   onEditQuiz,
@@ -270,13 +273,13 @@ export const ModuleReviewPublishView = ({
           {sourceFileName ? (
             <Card variant="elevated" className="space-y-2 p-4">
               <h3 className="text-sm font-semibold text-spice-text-primary">
-                Source Document
+                Source document
               </h3>
               <div className="flex items-center gap-3 rounded-lg bg-spice-bg-tint px-3 py-3 ring-1 ring-spice-border">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-lg ring-1 ring-spice-border">
                   📄
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-spice-text-primary">
                     {sourceFileName}
                   </div>
@@ -286,6 +289,17 @@ export const ModuleReviewPublishView = ({
                     </div>
                   ) : null}
                 </div>
+                {onPreviewSource ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-spice-bg-surface text-spice-text-medium ring-1 ring-spice-border transition-colors hover:text-spice-text-primary"
+                    aria-label="Preview source document"
+                    title="Preview"
+                    onClick={onPreviewSource}
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+                ) : null}
               </div>
             </Card>
           ) : null}
@@ -345,11 +359,12 @@ export const ModuleReviewPublishView = ({
               {!readonly && onSave ? (
                 <Button
                   variant="ghost"
-                  className="h-10 w-full text-white ring-1 ring-white/40 hover:bg-white/10"
+                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 text-white ring-1 ring-white/40 hover:bg-white/10"
                   disabled={isPublishing || isSaving}
                   onClick={onSave}
                 >
-                  {isSaving ? 'Saving…' : 'Save'}
+                  <SaveDraftIcon className="h-4 w-4" />
+                  {isSaving ? 'Saving…' : 'Save draft'}
                 </Button>
               ) : null}
             </div>

@@ -108,4 +108,17 @@ describe('AdminModuleReviewLayout', () => {
     await user.click(screen.getByRole('button', { name: /lessons/i }));
     expect(screen.getByTestId('lessons-outlet')).toBeInTheDocument();
   });
+
+  it('renders breadcrumb for the current review step', () => {
+    renderLayout(paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'));
+
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(breadcrumb).toHaveTextContent(/Modules/);
+    expect(breadcrumb).toHaveTextContent(/Untitled module/);
+    expect(breadcrumb).toHaveTextContent(/Lessons/);
+    expect(screen.getByRole('link', { name: 'Modules' })).toHaveAttribute(
+      'href',
+      paths.moduleLibrary,
+    );
+  });
 });

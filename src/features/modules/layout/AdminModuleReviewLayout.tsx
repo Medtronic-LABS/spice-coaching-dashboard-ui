@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { Button, UnsavedChangesDialog } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { resolveDisplayText } from '@/config/deploymentLocale';
 import { ModuleVersionConflictDialog } from '@/features/modules/components/ModuleVersionConflictDialog';
 import {
   ModulePreviewChrome,
@@ -13,19 +14,24 @@ import { useAdminModuleReviewNavigation } from '@/features/modules/hooks/useAdmi
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModuleVersionConflictReload } from '@/features/modules/hooks/useModuleVersionConflictReload';
 import { useQuizExplanationReview } from '@/features/modules/hooks/useQuizExplanationReview';
-import { clearAdminModuleReview } from '@/features/modules/store/adminModuleReviewSlice';
-import { useAppDispatch } from '@/store/hooks';
+import {
+  clearAdminModuleReview,
+  selectAdminModuleWorking,
+} from '@/features/modules/store/adminModuleReviewSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 type StepKey = 'details' | 'lessons' | 'quiz' | 'review';
 
 const stepMeta: Array<{
   key: StepKey;
   label: string;
+  breadcrumbLabel: string;
   path: (moduleId: string) => string;
 }> = [
   {
     key: 'details',
     label: 'Module Details',
+    breadcrumbLabel: 'Details',
     path: (moduleId) =>
       paths.adminModuleReviewDetails.replace(
         ':moduleId',
@@ -35,6 +41,7 @@ const stepMeta: Array<{
   {
     key: 'lessons',
     label: 'Lessons',
+    breadcrumbLabel: 'Lessons',
     path: (moduleId) =>
       paths.adminModuleReviewLessons.replace(
         ':moduleId',
@@ -44,6 +51,7 @@ const stepMeta: Array<{
   {
     key: 'quiz',
     label: 'Quiz',
+    breadcrumbLabel: 'Quiz',
     path: (moduleId) =>
       paths.adminModuleReviewQuiz.replace(
         ':moduleId',
@@ -53,6 +61,7 @@ const stepMeta: Array<{
   {
     key: 'review',
     label: 'Review & Publish',
+    breadcrumbLabel: 'Review',
     path: (moduleId) =>
       paths.adminModuleReviewPublish.replace(
         ':moduleId',
@@ -73,12 +82,13 @@ export const AdminModuleReviewLayout = () => {
   const dispatch = useAppDispatch();
   const { pathname } = useLocation();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
+  const working = useAppSelector(selectAdminModuleWorking);
   const isReadonly = useAdminModuleReviewReadonly();
   const steps = useMemo(
     () =>
       stepMeta.map((step) =>
         step.key === 'review' && isReadonly
-          ? { ...step, label: 'Review' }
+          ? { ...step, label: 'Review', breadcrumbLabel: 'Review' }
           : step,
       ),
     [isReadonly],
@@ -86,6 +96,11 @@ export const AdminModuleReviewLayout = () => {
 
   const currentStep = stepFromPathname(pathname);
   const currentIndex = steps.findIndex((s) => s.key === currentStep);
+  const currentStepMeta = steps[currentIndex] ?? steps[0];
+  const moduleTitle = working
+    ? resolveDisplayText(working.title, 'Untitled module')
+    : 'Untitled module';
+  const detailsPath = stepMeta[0].path(moduleId);
 
   const {
     isDirty,
@@ -128,6 +143,33 @@ export const AdminModuleReviewLayout = () => {
           onReload={() => void reloadLatestTip()}
           isReloading={isReloading}
         />
+        <nav
+          aria-label="Breadcrumb"
+          className="flex flex-wrap items-center gap-1.5 text-sm"
+        >
+          <Link
+            to={paths.moduleLibrary}
+            className="font-medium text-spice-brand-primary hover:underline"
+          >
+            Modules
+          </Link>
+          <span className="text-spice-text-muted" aria-hidden="true">
+            &gt;
+          </span>
+          <Link
+            to={detailsPath}
+            className="max-w-[16rem] truncate font-medium text-spice-brand-primary hover:underline"
+            title={moduleTitle}
+          >
+            {moduleTitle}
+          </Link>
+          <span className="text-spice-text-muted" aria-hidden="true">
+            &gt;
+          </span>
+          <span className="font-medium text-spice-text-primary">
+            {currentStepMeta?.breadcrumbLabel ?? 'Details'}
+          </span>
+        </nav>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-spice-bg-surface px-4 py-3 ring-1 ring-spice-border">
             {isReadonly ? (
