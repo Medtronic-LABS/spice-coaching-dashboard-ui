@@ -1402,9 +1402,10 @@ export const VideoUploadPage = () => {
           open
           onClose={() => setAssignTarget(null)}
           target={{
-            kind: 'video',
+            kind: 'sourceDocument',
             id: assignTarget.id,
             title: assignTarget.title,
+            noun: 'video',
           }}
           onAssigned={() => {
             setActionSuccess('Video assigned successfully.');

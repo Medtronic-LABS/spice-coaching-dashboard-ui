@@ -100,6 +100,7 @@ export const adminVideoAssignmentApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
+      invalidatesTags: ['SourceDocuments'],
     }),
     revokeVideoAssignment: builder.mutation<
       RevokeVideoAssignmentResponse,
@@ -109,6 +110,7 @@ export const adminVideoAssignmentApi = baseApi.injectEndpoints({
         url: `/admin/video-assignments/${encodeURIComponent(id)}`,
         method: 'DELETE',
       }),
+      invalidatesTags: ['SourceDocuments'],
     }),
   }),
   overrideExisting: false,

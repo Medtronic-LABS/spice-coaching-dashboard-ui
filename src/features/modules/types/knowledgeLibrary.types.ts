@@ -1,30 +1,23 @@
 /** Upload mode: full document vs page-range splits (mutually exclusive). */
 export type KnowledgeUploadMode = 'original' | 'split';
 
-export type KnowledgeAssetStatus =
-  | 'processing'
-  | 'ready'
-  | 'failed'
-  | 'deactivated';
+export type KnowledgeLibraryStatusTab = 'active' | 'retired';
 
 /** Frontend view model for a knowledge library row. */
-export interface KnowledgeAsset {
+export interface KnowledgeLibraryItem {
   id: string;
   title: string;
   fileType: 'pdf';
-  startPage: number;
-  endPage: number;
-  /** Page count of the parent PDF when known. */
-  pageCount?: number;
-  thumbnailUrl: string | null;
+  storedPath: string;
+  originalFilename: string | null;
+  thumbnailStoragePath: string | null;
   uploadedAt: string;
-  uploadedBy: string;
   updatedAt: string;
+  uploadedBy: string | null;
   assigned: boolean;
-  /** Whether the source document has been ingested. */
   ingested: boolean;
-  status: KnowledgeAssetStatus;
-  parentUploadId: string;
+  status: string;
+  description: string | null;
 }
 
 export interface KnowledgeSplitDraft {
@@ -35,7 +28,7 @@ export interface KnowledgeSplitDraft {
   thumbnailFile?: File | null;
   /**
    * When true, hide the auto PDF preview so the slot stays blank.
-   * Backend will generate the thumbnail later.
+   * No thumbnail is sent to the backend.
    */
   suppressAutoThumbnail?: boolean;
 }
@@ -51,20 +44,17 @@ export function createEmptyKnowledgeSplitDraft(): KnowledgeSplitDraft {
   };
 }
 
-/** Default list filters for the knowledge library table. */
-export type KnowledgeYesNoFilter = 'all' | 'yes' | 'no';
+export type KnowledgeYesNoFilter = '' | 'true' | 'false';
 
 export interface KnowledgeLibraryFilters {
   q: string;
+  status: KnowledgeLibraryStatusTab;
+  uploadedAtFrom: string;
+  uploadedAtTo: string;
   uploadedBy: string;
   assigned: KnowledgeYesNoFilter;
   ingested: KnowledgeYesNoFilter;
-  status: 'active' | 'deactivated';
-  uploadedAtFrom: string;
-  uploadedAtTo: string;
-  updatedAtFrom: string;
-  updatedAtTo: string;
-  sortBy: 'uploaded_at' | 'updated_at' | 'title' | 'uploaded_by';
+  sortBy: 'uploaded_date' | 'title';
   sortOrder: 'asc' | 'desc';
   page: number;
   pageSize: number;
@@ -72,15 +62,13 @@ export interface KnowledgeLibraryFilters {
 
 export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilters = {
   q: '',
-  uploadedBy: '',
-  assigned: 'all',
-  ingested: 'all',
   status: 'active',
   uploadedAtFrom: '',
   uploadedAtTo: '',
-  updatedAtFrom: '',
-  updatedAtTo: '',
-  sortBy: 'uploaded_at',
+  uploadedBy: '',
+  assigned: '',
+  ingested: '',
+  sortBy: 'uploaded_date',
   sortOrder: 'desc',
   page: 1,
   pageSize: 20,

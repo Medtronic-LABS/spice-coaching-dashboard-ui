@@ -25,8 +25,11 @@ describe('adminSourceDocumentsApi', () => {
       )
       .unwrap();
 
-    expect(result.source_documents).toHaveLength(mockSourceDocuments.length);
-    expect(result.total_source_documents).toBe(mockSourceDocuments.length);
+    const ingestedDocs = mockSourceDocuments.filter(
+      (doc) => doc.status === 'ingested',
+    );
+    expect(result.source_documents).toHaveLength(ingestedDocs.length);
+    expect(result.total_source_documents).toBe(ingestedDocs.length);
     expect(result.total_pages).toBe(1);
     expect(result.limit).toBe(200);
     expect(result.offset).toBe(0);
@@ -37,11 +40,17 @@ describe('adminSourceDocumentsApi', () => {
       status: 'ingested',
       content_domain: 'Hypertension',
       authority_label: 'MoH Bangladesh',
+      stored_path: 'medtronics-storage/source-documents/doc-htn-protocol.pdf',
       original_filename: 'htn_referral_protocol.pdf',
       description: null,
       thumbnail_storage_path: null,
       thumbnail_presigned_url: null,
+      uploaded_date: '2026-04-08T09:00:00Z',
       ingested_at: '2026-04-08T09:00:00Z',
+      updated_at: '2026-04-08T09:00:00Z',
+      uploaded_by: 'ingest-bot',
+      assigned: false,
+      sync_published_visible: false,
     });
   });
 
@@ -114,5 +123,36 @@ describe('adminSourceDocumentsApi', () => {
         ['ingested', 'uploaded'].includes(doc.status),
       ),
     ).toBe(true);
+  });
+
+  it('filters knowledge catalog rows by assigned and uploaded_by', async () => {
+    const store = makeStore();
+
+    const assigned = await store
+      .dispatch(
+        adminSourceDocumentsApi.endpoints.fetchSourceDocuments.initiate({
+          sync_published_visible: true,
+          assigned: true,
+        }),
+      )
+      .unwrap();
+
+    expect(assigned.source_documents.map((doc) => doc.id)).toEqual([
+      'knowledge-asset-1',
+    ]);
+    expect(assigned.source_documents[0]?.assigned).toBe(true);
+
+    const byUploader = await store
+      .dispatch(
+        adminSourceDocumentsApi.endpoints.fetchSourceDocuments.initiate({
+          sync_published_visible: true,
+          uploaded_by: 'alice',
+        }),
+      )
+      .unwrap();
+
+    expect(byUploader.source_documents.map((doc) => doc.id)).toEqual([
+      'knowledge-asset-1',
+    ]);
   });
 });

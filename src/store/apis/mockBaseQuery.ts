@@ -44,13 +44,6 @@ function withoutLeadingSlash(value: string): string {
   return value.startsWith('/') ? value.slice(1) : value;
 }
 
-function pageSlice<T>(items: T[], page: number, limit: number): T[] {
-  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : items.length;
-  const start = (safePage - 1) * safeLimit;
-  return items.slice(start, start + safeLimit);
-}
-
 let courseDraftState: ModuleDraftData = JSON.parse(
   JSON.stringify(mockCourseDraft),
 ) as ModuleDraftData;
@@ -123,141 +116,6 @@ let mockConfigsState: MockConfigThreshold[] = [
     updated_at: '2026-07-02T12:00:00Z',
   },
 ];
-
-interface MockKnowledgeAsset {
-  id: string;
-  title: string;
-  file_type: 'pdf';
-  start_page: number;
-  end_page: number;
-  page_count: number;
-  thumbnail_url: string | null;
-  uploaded_at: string;
-  uploaded_by: string;
-  updated_at: string;
-  assigned: boolean;
-  ingested: boolean;
-  status: 'processing' | 'ready' | 'failed' | 'deactivated';
-  parent_upload_id: string;
-  original_filename: string;
-}
-
-interface MockKnowledgeUpload {
-  upload_id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  progress_percent: number;
-  asset_ids: string[];
-  error: string | null;
-  created_at: number;
-}
-
-const mockKnowledgeAssetsState: MockKnowledgeAsset[] = [
-  {
-    id: 'knowledge-asset-1',
-    title: 'HTN Referral Guidelines',
-    file_type: 'pdf',
-    start_page: 1,
-    end_page: 12,
-    page_count: 12,
-    thumbnail_url: 'https://mock-storage.example/knowledge/htn-referral.png',
-    uploaded_at: '2026-07-10T09:00:00Z',
-    uploaded_by: 'Program Manager',
-    updated_at: '2026-07-10T09:05:00Z',
-    assigned: true,
-    ingested: true,
-    status: 'ready',
-    parent_upload_id: 'knowledge-upload-seed-1',
-    original_filename: 'htn-referral-guidelines.pdf',
-  },
-  {
-    id: 'knowledge-asset-2',
-    title: 'Visit Workflow — Overview',
-    file_type: 'pdf',
-    start_page: 1,
-    end_page: 4,
-    page_count: 20,
-    thumbnail_url: 'https://mock-storage.example/knowledge/visit-overview.png',
-    uploaded_at: '2026-07-12T11:30:00Z',
-    uploaded_by: 'Content Admin',
-    updated_at: '2026-07-12T11:35:00Z',
-    assigned: false,
-    ingested: true,
-    status: 'ready',
-    parent_upload_id: 'knowledge-upload-seed-2',
-    original_filename: 'visit-workflow.pdf',
-  },
-  {
-    id: 'knowledge-asset-3',
-    title: 'Visit Workflow — Escalation',
-    file_type: 'pdf',
-    start_page: 5,
-    end_page: 8,
-    page_count: 20,
-    thumbnail_url:
-      'https://mock-storage.example/knowledge/visit-escalation.png',
-    uploaded_at: '2026-07-12T11:30:00Z',
-    uploaded_by: 'Content Admin',
-    updated_at: '2026-07-12T11:35:00Z',
-    assigned: false,
-    ingested: false,
-    status: 'ready',
-    parent_upload_id: 'knowledge-upload-seed-2',
-    original_filename: 'visit-workflow.pdf',
-  },
-  {
-    id: 'knowledge-asset-4',
-    title: 'Retired Protocol Notes',
-    file_type: 'pdf',
-    start_page: 1,
-    end_page: 6,
-    page_count: 6,
-    thumbnail_url:
-      'https://mock-storage.example/knowledge/retired-protocol.png',
-    uploaded_at: '2026-06-01T08:00:00Z',
-    uploaded_by: 'Program Manager',
-    updated_at: '2026-07-01T10:00:00Z',
-    assigned: false,
-    ingested: true,
-    status: 'deactivated',
-    parent_upload_id: 'knowledge-upload-seed-3',
-    original_filename: 'retired-protocol.pdf',
-  },
-];
-
-const mockKnowledgeUploadsState = new Map<string, MockKnowledgeUpload>();
-
-function resolveKnowledgeUploadProgress(
-  upload: MockKnowledgeUpload,
-): MockKnowledgeUpload {
-  if (upload.status === 'completed' || upload.status === 'failed') {
-    return upload;
-  }
-  const elapsed = Date.now() - upload.created_at;
-  if (elapsed >= 1500) {
-    const next: MockKnowledgeUpload = {
-      ...upload,
-      status: 'completed',
-      progress_percent: 100,
-    };
-    mockKnowledgeUploadsState.set(upload.upload_id, next);
-    for (const assetId of next.asset_ids) {
-      const asset = mockKnowledgeAssetsState.find((row) => row.id === assetId);
-      if (asset && asset.status === 'processing') {
-        asset.status = 'ready';
-        asset.ingested = true;
-        asset.updated_at = new Date().toISOString();
-      }
-    }
-    return next;
-  }
-  const next: MockKnowledgeUpload = {
-    ...upload,
-    status: 'processing',
-    progress_percent: Math.min(90, Math.round((elapsed / 1500) * 100)),
-  };
-  mockKnowledgeUploadsState.set(upload.upload_id, next);
-  return next;
-}
 
 let mockAssignmentsState: MockAssignment[] = [
   {
@@ -337,13 +195,13 @@ let mockAssignmentsState: MockAssignment[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
+];
+
+const mockVideoAssignmentsState: MockVideoAssignment[] = [
   {
     id: 'assign-knowledge-1',
-    module_id: 'knowledge-asset-1',
-    module_title: {
-      bn: 'HTN Referral Guidelines',
-      en: 'HTN Referral Guidelines',
-    },
+    source_document_id: 'knowledge-asset-1',
+    video_title: 'HTN Referral Guidelines',
     assignment_type: 'individual',
     tenant_id: null,
     user_id: 101,
@@ -361,8 +219,6 @@ let mockAssignmentsState: MockAssignment[] = [
     updated_at: '2026-07-10T09:10:00Z',
   },
 ];
-
-const mockVideoAssignmentsState: MockVideoAssignment[] = [];
 
 const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   // Simulate real network latency.
@@ -614,13 +470,18 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             status?: unknown;
             source_type?: unknown;
             q?: unknown;
+            sync_published_visible?: unknown;
+            uploaded_from?: unknown;
+            uploaded_to?: unknown;
+            uploaded_by?: unknown;
+            assigned?: unknown;
+            ingested?: unknown;
             limit?: unknown;
             offset?: unknown;
             sort_by?: unknown;
             sort_dir?: unknown;
           })
         : {};
-    // Backend defaults to "ingested" when the status param is omitted.
     const rawStatuses = Array.isArray(query.status)
       ? query.status
       : [query.status];
@@ -628,7 +489,6 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       .flatMap((value) => (asString(value) ?? '').split(','))
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
-    const effectiveStatuses = statuses.length ? statuses : ['ingested'];
     const rawSourceTypes = Array.isArray(query.source_type)
       ? query.source_type
       : [query.source_type];
@@ -637,18 +497,62 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
     const filenameQuery = (asString(query.q) ?? '').trim().toLowerCase();
+    const syncPublishedVisible =
+      query.sync_published_visible === true ||
+      query.sync_published_visible === 'true'
+        ? true
+        : query.sync_published_visible === false ||
+            query.sync_published_visible === 'false'
+          ? false
+          : undefined;
+    const uploadedFrom = asString(query.uploaded_from);
+    const uploadedTo = asString(query.uploaded_to);
+    const uploadedBy = asString(query.uploaded_by);
+    const assignedFilter =
+      query.assigned === true || query.assigned === 'true'
+        ? true
+        : query.assigned === false || query.assigned === 'false'
+          ? false
+          : undefined;
+    const ingestedFilter =
+      query.ingested === true || query.ingested === 'true'
+        ? true
+        : query.ingested === false || query.ingested === 'false'
+          ? false
+          : undefined;
+    const assignedIds = new Set(
+      mockVideoAssignmentsState.map(
+        (assignment) => assignment.source_document_id,
+      ),
+    );
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
     const docSortBy = asString(query.sort_by);
     const docSortDir = asString(query.sort_dir) === 'desc' ? -1 : 1;
 
     const items = mockSourceDocuments
-      .filter((doc) => effectiveStatuses.includes(doc.status.toLowerCase()))
+      .filter((doc) =>
+        statuses.length
+          ? statuses.includes(doc.status.toLowerCase())
+          : doc.status.toLowerCase() !== 'retired',
+      )
       .filter((doc) =>
         sourceTypes.length
           ? sourceTypes.includes(doc.source_type.toLowerCase())
           : true,
       )
+      .filter((doc) =>
+        syncPublishedVisible === undefined
+          ? true
+          : Boolean(doc.sync_published_visible) === syncPublishedVisible,
+      )
+      .filter((doc) => {
+        if (!uploadedFrom && !uploadedTo) return true;
+        const uploadedAt = doc.uploaded_date || doc.ingested_at;
+        if (uploadedFrom && uploadedAt < uploadedFrom) return false;
+        if (uploadedTo && uploadedAt > uploadedTo) return false;
+        return true;
+      })
       .filter((doc) =>
         filenameQuery
           ? (doc.original_filename ?? '')
@@ -656,7 +560,22 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
               .includes(filenameQuery) ||
             doc.title.toLowerCase().includes(filenameQuery)
           : true,
-      );
+      )
+      .filter((doc) => (uploadedBy ? doc.uploaded_by === uploadedBy : true))
+      .filter((doc) =>
+        assignedFilter === undefined
+          ? true
+          : assignedIds.has(doc.id) === assignedFilter,
+      )
+      .filter((doc) =>
+        ingestedFilter === undefined
+          ? true
+          : (doc.status === 'ingested') === ingestedFilter,
+      )
+      .map((doc) => ({
+        ...doc,
+        assigned: assignedIds.has(doc.id),
+      }));
 
     if (docSortBy) {
       items.sort((a, b) => {
@@ -665,19 +584,34 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         if (docSortBy === 'title' || docSortBy === 'name') {
           valA = a.title || a.original_filename || '';
           valB = b.title || b.original_filename || '';
-        } else if (docSortBy === 'ingested_at' || docSortBy === 'created_at') {
-          valA = a.ingested_at || '';
-          valB = b.ingested_at || '';
+        } else if (
+          docSortBy === 'ingested_at' ||
+          docSortBy === 'created_at' ||
+          docSortBy === 'uploaded_date'
+        ) {
+          valA =
+            docSortBy === 'uploaded_date'
+              ? a.uploaded_date || a.ingested_at || ''
+              : a.ingested_at || '';
+          valB =
+            docSortBy === 'uploaded_date'
+              ? b.uploaded_date || b.ingested_at || ''
+              : b.ingested_at || '';
         } else if (docSortBy === 'status') {
           valA = a.status || '';
           valB = b.status || '';
+        } else if (docSortBy === 'source_type') {
+          valA = a.source_type || '';
+          valB = b.source_type || '';
+        } else if (docSortBy === 'content_domain') {
+          valA = a.content_domain || '';
+          valB = b.content_domain || '';
+        } else if (docSortBy === 'original_filename') {
+          valA = a.original_filename || '';
+          valB = b.original_filename || '';
         } else {
-          const rawA = (a as Record<string, unknown>)[docSortBy];
-          const rawB = (b as Record<string, unknown>)[docSortBy];
-          valA =
-            typeof rawA === 'string' || typeof rawA === 'number' ? rawA : '';
-          valB =
-            typeof rawB === 'string' || typeof rawB === 'number' ? rawB : '';
+          valA = '';
+          valB = '';
         }
         if (typeof valA === 'number' && typeof valB === 'number') {
           return (valA - valB) * docSortDir;
@@ -791,11 +725,19 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       const sourceDoc = mockSourceDocuments.find(
         (doc) => doc.id === payload.source_document_id,
       );
-      if (!sourceDoc || sourceDoc.source_type !== 'video') {
+      if (!sourceDoc) {
         return {
           error: {
             status: 404,
-            data: { detail: 'Video source document not found' },
+            data: { detail: 'Source document not found' },
+          },
+        };
+      }
+      if (sourceDoc.status === 'retired') {
+        return {
+          error: {
+            status: 400,
+            data: { detail: 'Cannot assign a retired source document' },
           },
         };
       }
@@ -1514,17 +1456,6 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         }
       }
 
-      // If this assignment targets a knowledge asset (mock module_id == asset.id),
-      // keep the `assigned` flag in sync so list filters reflect reality.
-      const affectedKnowledgeAsset = mockKnowledgeAssetsState.find(
-        (row) => row.id === payload.module_id,
-      );
-      if (affectedKnowledgeAsset) {
-        affectedKnowledgeAsset.assigned = mockAssignmentsState.some(
-          (a) => a.module_id === payload.module_id,
-        );
-        affectedKnowledgeAsset.updated_at = now;
-      }
       return {
         data: {
           assigned_count: newIds.length,
@@ -1536,23 +1467,9 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
 
   if (url.startsWith('admin/assignments/') && method === 'DELETE') {
     const assignId = decodeURIComponent(url.slice('admin/assignments/'.length));
-    const removed = mockAssignmentsState.find((a) => a.id === assignId);
     mockAssignmentsState = mockAssignmentsState.filter(
       (a) => a.id !== assignId,
     );
-
-    // If this affects a knowledge asset, keep its assigned flag consistent.
-    if (removed) {
-      const asset = mockKnowledgeAssetsState.find(
-        (row) => row.id === removed.module_id,
-      );
-      if (asset) {
-        asset.assigned = mockAssignmentsState.some(
-          (a) => a.module_id === removed.module_id,
-        );
-        asset.updated_at = new Date().toISOString();
-      }
-    }
     return { data: { status: 'revoked' } };
   }
 
@@ -1620,18 +1537,22 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     };
   }
 
-  // Knowledge library (provisional contract — see docs/knowledge-library/BACKEND_HANDOFF.md)
-  if (url === 'admin/knowledge/uploads' && method === 'POST') {
+  // Knowledge library — matches coaching-platform ingestion-merge contract.
+  if (url === 'admin/knowledge/upload' && method === 'POST') {
     const form = body instanceof FormData ? body : null;
     const file = form?.get('file');
-    const mode = asString(form?.get('mode')) ?? 'original';
     const title =
       asString(form?.get('title')) ??
       (file instanceof File
         ? file.name.replace(/\.pdf$/i, '')
         : 'Untitled Knowledge');
-    let splits: Array<{ title: string; start_page: number; end_page: number }> =
-      [];
+    const thumbnailStoragePath = asString(form?.get('thumbnail_storage_path'));
+    let splits: Array<{
+      title: string;
+      start_page: number;
+      end_page: number;
+      thumbnail_storage_path?: string | null;
+    }> = [];
     const splitsRaw = form?.get('splits');
     if (typeof splitsRaw === 'string' && splitsRaw.trim()) {
       try {
@@ -1645,6 +1566,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
                 title: string;
                 start_page: number;
                 end_page: number;
+                thumbnail_storage_path?: string | null;
               } =>
                 Boolean(
                   row &&
@@ -1659,6 +1581,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
               title: row.title,
               start_page: row.start_page,
               end_page: row.end_page,
+              thumbnail_storage_path: row.thumbnail_storage_path ?? null,
             }));
         }
       } catch {
@@ -1666,317 +1589,88 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       }
     }
 
-    const uploadId = `knowledge-upload-${Date.now()}`;
     const now = new Date().toISOString();
-    const pageCount = 20;
     const filename =
       file instanceof File ? file.name : 'knowledge-document.pdf';
-    const customThumbnail = form?.get('thumbnail');
-    const assetDefs =
-      mode === 'split' && splits.length
-        ? splits
-        : [{ title, start_page: 1, end_page: pageCount }];
+    const defs = splits.length
+      ? splits
+      : [
+          {
+            title,
+            start_page: null as number | null,
+            end_page: null as number | null,
+            thumbnail_storage_path: thumbnailStoragePath ?? null,
+          },
+        ];
 
-    const assetIds: string[] = [];
-    for (const [index, def] of assetDefs.entries()) {
-      const id = `${uploadId}-asset-${index + 1}`;
-      assetIds.push(id);
-      const useCustomThumb =
-        mode === 'original' && index === 0 && customThumbnail instanceof File;
-      mockKnowledgeAssetsState.unshift({
+    const sources = defs.map((def, index) => {
+      const id = `knowledge-upload-${Date.now()}-${index + 1}`;
+      const originalFilename = splits.length
+        ? `${filename.replace(/\.pdf$/i, '')}_p${def.start_page}-${def.end_page}.pdf`
+        : filename;
+      const storedPath = `medtronics-storage/source-documents/knowledge/${id}.pdf`;
+      mockSourceDocuments.unshift({
         id,
         title: def.title,
-        file_type: 'pdf',
+        source_type: 'pdf',
+        status: 'uploaded',
+        content_domain: 'clinical',
+        authority_label: '',
+        stored_path: storedPath,
+        original_filename: originalFilename,
+        description: null,
+        thumbnail_storage_path: def.thumbnail_storage_path ?? null,
+        uploaded_date: now,
+        ingested_at: now,
+        updated_at: now,
+        uploaded_by: 'admin',
+        assigned: false,
+        sync_published_visible: true,
+      });
+      return {
+        source_document_id: id,
+        title: def.title,
+        stored_path: storedPath,
+        thumbnail_storage_path: def.thumbnail_storage_path ?? null,
         start_page: def.start_page,
         end_page: def.end_page,
-        page_count: pageCount,
-        thumbnail_url: useCustomThumb
-          ? `https://mock-storage.example/knowledge/${encodeURIComponent(id)}-custom.png`
-          : `https://mock-storage.example/knowledge/${encodeURIComponent(id)}.png`,
-        uploaded_at: now,
-        uploaded_by: 'Program Manager',
-        updated_at: now,
-        assigned: false,
-        ingested: false,
-        status: 'processing',
-        parent_upload_id: uploadId,
-        original_filename: filename,
-      });
-    }
-
-    mockKnowledgeUploadsState.set(uploadId, {
-      upload_id: uploadId,
-      status: 'queued',
-      progress_percent: 0,
-      asset_ids: assetIds,
-      error: null,
-      created_at: Date.now(),
+      };
     });
 
-    return {
-      data: {
-        upload_id: uploadId,
-        status: 'queued',
-        poll_url: `/admin/knowledge/uploads/${uploadId}`,
-        asset_ids: assetIds,
-      },
-    };
-  }
-
-  if (url.startsWith('admin/knowledge/uploads/') && method === 'GET') {
-    const uploadId = decodeURIComponent(
-      url.slice('admin/knowledge/uploads/'.length),
-    );
-    const upload = mockKnowledgeUploadsState.get(uploadId);
-    if (!upload) {
-      return {
-        error: {
-          status: 404,
-          data: { message: `Unknown knowledge upload ${uploadId}` },
-        },
-      };
-    }
-    const resolved = resolveKnowledgeUploadProgress(upload);
-    const assets = mockKnowledgeAssetsState.filter((asset) =>
-      resolved.asset_ids.includes(asset.id),
-    );
-    return {
-      data: {
-        upload_id: resolved.upload_id,
-        status: resolved.status,
-        progress_percent: resolved.progress_percent,
-        assets,
-        error: resolved.error,
-      },
-    };
+    return { data: { sources } };
   }
 
   if (url === 'admin/knowledge/uploaders' && method === 'GET') {
-    const q =
-      typeof params === 'object' && params && 'q' in params
-        ? asString((params as { q?: unknown }).q)?.toLowerCase()
-        : undefined;
-    const seen = new Set<string>();
-    const uploaders: Array<{ value: string; label: string }> = [];
-    for (const asset of mockKnowledgeAssetsState) {
-      const name = asset.uploaded_by.trim();
-      if (!name || seen.has(name)) continue;
-      if (q && !name.toLowerCase().includes(q)) continue;
-      seen.add(name);
-      uploaders.push({ value: name, label: name });
-    }
-    uploaders.sort((a, b) => a.label.localeCompare(b.label));
-    return { data: { uploaders } };
+    const query =
+      params && typeof params === 'object' ? (params as { q?: unknown }) : {};
+    const term = (asString(query.q) ?? '').trim().toLowerCase();
+    const actors = Array.from(
+      new Set(
+        mockSourceDocuments
+          .filter((doc) => doc.sync_published_visible)
+          .map((doc) => doc.uploaded_by)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    )
+      .filter((actor) => (term ? actor.toLowerCase().includes(term) : true))
+      .sort((a, b) => a.localeCompare(b))
+      .map((actor) => ({ value: actor, label: actor }));
+    return { data: { uploaders: actors } };
   }
 
-  if (url === 'admin/knowledge/assets' && method === 'GET') {
-    const q =
-      typeof params === 'object' && params && 'q' in params
-        ? asString((params as { q?: unknown }).q)?.toLowerCase()
-        : undefined;
-    const uploadedBy =
-      typeof params === 'object' && params && 'uploaded_by' in params
-        ? asString((params as { uploaded_by?: unknown }).uploaded_by)
-        : undefined;
-    const assigned =
-      typeof params === 'object' && params && 'assigned' in params
-        ? asString((params as { assigned?: unknown }).assigned)
-        : undefined;
-    const ingested =
-      typeof params === 'object' && params && 'ingested' in params
-        ? asString((params as { ingested?: unknown }).ingested)
-        : undefined;
-    const statusFilter =
-      typeof params === 'object' && params && 'status' in params
-        ? asString((params as { status?: unknown }).status)
-        : 'active';
-    const sortBy =
-      typeof params === 'object' && params && 'sort_by' in params
-        ? asString((params as { sort_by?: unknown }).sort_by)
-        : 'uploaded_at';
-    const sortOrder =
-      typeof params === 'object' && params && 'sort_order' in params
-        ? asString((params as { sort_order?: unknown }).sort_order)
-        : 'desc';
-    const page =
-      typeof params === 'object' && params && 'page' in params
-        ? Number((params as { page?: unknown }).page)
-        : 1;
-    const pageSize =
-      typeof params === 'object' && params && 'page_size' in params
-        ? Number((params as { page_size?: unknown }).page_size)
-        : 20;
-    const uploadedAtFrom =
-      typeof params === 'object' && params && 'uploaded_at_from' in params
-        ? asString((params as { uploaded_at_from?: unknown }).uploaded_at_from)
-        : undefined;
-    const uploadedAtTo =
-      typeof params === 'object' && params && 'uploaded_at_to' in params
-        ? asString((params as { uploaded_at_to?: unknown }).uploaded_at_to)
-        : undefined;
-    const updatedAtFrom =
-      typeof params === 'object' && params && 'updated_at_from' in params
-        ? asString((params as { updated_at_from?: unknown }).updated_at_from)
-        : undefined;
-    const updatedAtTo =
-      typeof params === 'object' && params && 'updated_at_to' in params
-        ? asString((params as { updated_at_to?: unknown }).updated_at_to)
-        : undefined;
-
-    let results = [...mockKnowledgeAssetsState];
-    if (statusFilter === 'deactivated') {
-      results = results.filter((asset) => asset.status === 'deactivated');
-    } else {
-      results = results.filter((asset) => asset.status !== 'deactivated');
-    }
-    if (q) {
-      results = results.filter((asset) =>
-        asset.title.toLowerCase().includes(q),
-      );
-    }
-    if (uploadedBy) {
-      results = results.filter((asset) => asset.uploaded_by === uploadedBy);
-    }
-    if (assigned === 'yes') {
-      results = results.filter((asset) => asset.assigned);
-    } else if (assigned === 'no') {
-      results = results.filter((asset) => !asset.assigned);
-    }
-    if (ingested === 'yes') {
-      results = results.filter((asset) => asset.ingested);
-    } else if (ingested === 'no') {
-      results = results.filter((asset) => !asset.ingested);
-    }
-    if (uploadedAtFrom) {
-      results = results.filter(
-        (asset) => asset.uploaded_at.slice(0, 10) >= uploadedAtFrom,
-      );
-    }
-    if (uploadedAtTo) {
-      results = results.filter(
-        (asset) => asset.uploaded_at.slice(0, 10) <= uploadedAtTo,
-      );
-    }
-    if (updatedAtFrom) {
-      results = results.filter(
-        (asset) => asset.updated_at.slice(0, 10) >= updatedAtFrom,
-      );
-    }
-    if (updatedAtTo) {
-      results = results.filter(
-        (asset) => asset.updated_at.slice(0, 10) <= updatedAtTo,
-      );
-    }
-
-    results.sort((a, b) => {
-      const key =
-        sortBy === 'title'
-          ? 'title'
-          : sortBy === 'uploaded_by'
-            ? 'uploaded_by'
-            : sortBy === 'updated_at'
-              ? 'updated_at'
-              : 'uploaded_at';
-      const left = a[key];
-      const right = b[key];
-      const cmp = String(left).localeCompare(String(right));
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-
-    const total = results.length;
-    const sliced = pageSlice(results, page, pageSize);
-    return {
-      data: {
-        assets: sliced,
-        total,
-        page: Number.isFinite(page) && page > 0 ? page : 1,
-        page_size: Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 20,
-      },
-    };
-  }
-
-  if (
-    url.startsWith('admin/knowledge/assets/') &&
-    url.endsWith('/thumbnail') &&
-    method === 'PUT'
-  ) {
-    const id = decodeURIComponent(
-      url.slice('admin/knowledge/assets/'.length, -'/thumbnail'.length),
-    );
-    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
-    if (!asset) {
+  if (url.startsWith('admin/knowledge/') && method === 'DELETE') {
+    const id = decodeURIComponent(url.slice('admin/knowledge/'.length));
+    const doc = mockSourceDocuments.find((row) => row.id === id);
+    if (!doc) {
       return {
-        error: { status: 404, data: { message: `Unknown asset ${id}` } },
+        error: { status: 404, data: { code: 'source_not_found' } },
       };
     }
-    asset.thumbnail_url = `https://mock-storage.example/knowledge/${encodeURIComponent(id)}-custom.png`;
-    asset.updated_at = new Date().toISOString();
-    return { data: { ...asset } };
-  }
-
-  if (
-    url.startsWith('admin/knowledge/assets/') &&
-    url.endsWith('/deactivate') &&
-    method === 'POST'
-  ) {
-    const id = decodeURIComponent(
-      url.slice('admin/knowledge/assets/'.length, -'/deactivate'.length),
-    );
-    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
-    if (!asset) {
-      return {
-        error: { status: 404, data: { message: `Unknown asset ${id}` } },
-      };
+    if (doc.sync_published_visible === false) {
+      return { error: { status: 403, data: { code: 'forbidden' } } };
     }
-    asset.status = 'deactivated';
-    asset.assigned = false;
-    asset.updated_at = new Date().toISOString();
-    mockAssignmentsState = mockAssignmentsState.filter(
-      (assignment) => assignment.module_id !== id,
-    );
-    return { data: { id } };
-  }
-
-  if (
-    url.startsWith('admin/knowledge/assets/') &&
-    url.endsWith('/download') &&
-    method === 'GET'
-  ) {
-    const id = decodeURIComponent(
-      url.slice('admin/knowledge/assets/'.length, -'/download'.length),
-    );
-    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
-    if (!asset) {
-      return {
-        error: { status: 404, data: { message: `Unknown asset ${id}` } },
-      };
-    }
-    return {
-      data: {
-        download_url: `https://mock-storage.example/knowledge/${encodeURIComponent(asset.parent_upload_id)}.pdf`,
-        filename: asset.original_filename,
-      },
-    };
-  }
-
-  if (url.startsWith('admin/knowledge/assets/') && method === 'PATCH') {
-    const id = decodeURIComponent(url.slice('admin/knowledge/assets/'.length));
-    const asset = mockKnowledgeAssetsState.find((row) => row.id === id);
-    if (!asset) {
-      return {
-        error: { status: 404, data: { message: `Unknown asset ${id}` } },
-      };
-    }
-    const title =
-      typeof body === 'object' &&
-      body &&
-      'title' in body &&
-      typeof (body as { title?: unknown }).title === 'string'
-        ? (body as { title: string }).title.trim()
-        : asset.title;
-    asset.title = title || asset.title;
-    asset.updated_at = new Date().toISOString();
-    return { data: { ...asset } };
+    doc.status = 'retired';
+    return { data: undefined };
   }
 
   return {

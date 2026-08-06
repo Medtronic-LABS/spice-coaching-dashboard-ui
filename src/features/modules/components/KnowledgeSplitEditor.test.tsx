@@ -26,7 +26,7 @@ function draft(
 }
 
 describe('KnowledgeSplitEditor', () => {
-  it('shows PDF auto preview and clearing leaves intentional blank for backend', async () => {
+  it('shows PDF auto preview and clearing leaves an intentional blank thumbnail', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -59,7 +59,7 @@ describe('KnowledgeSplitEditor', () => {
     );
   });
 
-  it('blank state shows backend copy and can restore PDF preview', async () => {
+  it('blank state shows optional copy and can restore PDF preview', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -74,11 +74,9 @@ describe('KnowledgeSplitEditor', () => {
       />,
     );
 
+    expect(screen.getByText(/thumbnail \(none\)/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/thumbnail \(blank — backend will generate\)/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/optional — leave blank for backend/i),
+      screen.getByText(/optional — leave blank for none/i),
     ).toBeInTheDocument();
     expect(screen.queryByAltText('Split 1 thumbnail')).not.toBeInTheDocument();
 

@@ -4,6 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
 import { KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS } from '@/features/modules/utils/knowledgeLibraryFilters';
 
+const defaultFilterProps = {
+  uploaderOptions: [{ value: 'alice', label: 'alice' }],
+  uploaderSearch: '',
+  onUploaderSearchChange: vi.fn(),
+};
+
 describe('KnowledgeLibraryFilters', () => {
   it('disables Apply when a date range is invalid', () => {
     render(
@@ -13,15 +19,10 @@ describe('KnowledgeLibraryFilters', () => {
           uploadedAtFrom: '2026-04-30',
           uploadedAtTo: '2026-04-01',
         }}
-        uploaderOptions={[
-          { label: 'Program Manager', value: 'Program Manager' },
-        ]}
-        uploadedByLabel="All uploaders"
-        uploadedBySearch=""
-        onUploadedBySearchChange={vi.fn()}
         onChange={vi.fn()}
         onClearAll={vi.fn()}
         onApply={vi.fn()}
+        {...defaultFilterProps}
       />,
     );
 
@@ -39,26 +40,17 @@ describe('KnowledgeLibraryFilters', () => {
     render(
       <KnowledgeLibraryFilters
         filters={KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS}
-        uploaderOptions={[
-          { label: 'Program Manager', value: 'Program Manager' },
-        ]}
-        uploadedByLabel="All uploaders"
-        uploadedBySearch=""
-        onUploadedBySearchChange={vi.fn()}
         onChange={vi.fn()}
         onClearAll={onClearAll}
         onApply={onApply}
+        {...defaultFilterProps}
       />,
     );
 
-    expect(screen.getByText('General')).toBeVisible();
     expect(screen.getByText('Date ranges')).toBeVisible();
     expect(screen.getByLabelText('Uploaded by')).toBeInTheDocument();
-    expect(screen.getByText('Assigned')).toBeInTheDocument();
-    expect(screen.getByText('Ingested')).toBeInTheDocument();
-    expect(screen.getAllByRole('tab', { name: 'All' })).toHaveLength(2);
-    expect(screen.getAllByRole('tab', { name: 'Yes' })).toHaveLength(2);
-    expect(screen.getAllByRole('tab', { name: 'No' })).toHaveLength(2);
+    expect(screen.getByLabelText('Assigned')).toBeInTheDocument();
+    expect(screen.getByLabelText('Ingested')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Clear All' }));
     expect(onClearAll).toHaveBeenCalledTimes(1);

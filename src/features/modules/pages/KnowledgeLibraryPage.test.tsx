@@ -21,27 +21,24 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock(
-  '@/features/modules/api/adminKnowledgeApi',
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import('@/features/modules/api/adminKnowledgeApi')
-      >();
+vi.mock('@/features/modules/api/adminKnowledgeApi', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/modules/api/adminKnowledgeApi')
+    >();
 
-    return {
-      ...actual,
-      useUploadKnowledgeDocumentMutation: () => [
-        mocks.uploadKnowledgeDocumentTrigger as (
-          _payload: KnowledgeUploadPayload,
-        ) => { unwrap: () => Promise<unknown> },
-        {
-          isLoading: false,
-        },
-      ],
-    };
-  },
-);
+  return {
+    ...actual,
+    useUploadKnowledgeDocumentMutation: () => [
+      mocks.uploadKnowledgeDocumentTrigger as (
+        _payload: KnowledgeUploadPayload,
+      ) => { unwrap: () => Promise<unknown> },
+      {
+        isLoading: false,
+      },
+    ],
+  };
+});
 
 vi.mock('@/features/modules/hooks/useKnowledgePdfDocument', () => ({
   useKnowledgePdfDocument: () => ({
@@ -143,7 +140,7 @@ describe('KnowledgeLibraryPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('can clear the original PDF thumbnail to leave it blank for backend generation', async () => {
+  it('can clear the original PDF thumbnail to leave it blank', async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -165,9 +162,7 @@ describe('KnowledgeLibraryPage', () => {
       screen.getByRole('button', { name: /remove selected image/i }),
     );
 
-    expect(
-      await screen.findByText(/thumbnail \(blank — backend will generate\)/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/thumbnail \(none\)/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /use pdf preview/i }),
     ).toBeInTheDocument();

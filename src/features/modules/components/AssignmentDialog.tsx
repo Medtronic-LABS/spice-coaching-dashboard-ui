@@ -31,7 +31,7 @@ type AssignmentTab = 'user' | 'geographical';
 
 type UserLevelMode = 'po_sk' | 'po' | 'sk';
 
-/** Shared shape used by module and video assignment helpers. */
+/** Shared shape used by module and source-document assignment helpers. */
 type AssignableRecord = {
   id: string;
   assignment_type: AssignmentType;
@@ -42,7 +42,12 @@ type AssignableRecord = {
 
 export type AssignmentDialogTarget =
   | { kind: 'module'; id: string; title: string }
-  | { kind: 'video'; id: string; title: string };
+  | {
+      kind: 'sourceDocument';
+      id: string;
+      title: string;
+      noun: 'video' | 'document';
+    };
 
 const USER_LEVEL_MODE_OPTIONS: Array<{ label: string; value: UserLevelMode }> =
   [
@@ -67,7 +72,7 @@ interface AssignmentDialogProps {
   open: boolean;
   onClose: () => void;
   target: AssignmentDialogTarget;
-  /** Called after a successful video assignment (modules navigate instead). */
+  /** Called after a successful source-document assignment (modules navigate instead). */
   onAssigned?: () => void;
 }
 
@@ -554,15 +559,24 @@ function getSelectableUserIdsForMode(
     .map((user) => user.id);
 }
 
-function entityNoun(kind: AssignmentDialogTarget['kind']): string {
-  return kind === 'module' ? 'module' : 'video';
+function entityNoun(target: AssignmentDialogTarget): string {
+  switch (target.kind) {
+    case 'module':
+      return 'module';
+    case 'sourceDocument':
+      return target.noun;
+    default: {
+      const exhaustiveCheck: never = target;
+      return exhaustiveCheck;
+    }
+  }
 }
 
 function getUserLevelHint(
   mode: UserLevelMode,
-  kind: AssignmentDialogTarget['kind'],
+  target: AssignmentDialogTarget,
 ): string {
-  const noun = entityNoun(kind);
+  const noun = entityNoun(target);
   switch (mode) {
     case 'po_sk':
       return `Assign this ${noun} to the selected PO and all SKs under them.`;
@@ -598,7 +612,7 @@ export const AssignmentDialog = ({
   onAssigned,
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
-  const noun = entityNoun(target.kind);
+  const noun = entityNoun(target);
   const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
   const [userLevelMode, setUserLevelMode] = useState<UserLevelMode>('po_sk');
 
@@ -619,11 +633,11 @@ export const AssignmentDialog = ({
   const [revokeModuleAssignment, { isLoading: isRevokingModule }] =
     useRevokeAssignmentMutation();
 
-  const [triggerVideoAssignments, { data: existingVideoAssignments }] =
+  const [triggerVideoAssignments, { data: existingSourceAssignments }] =
     useLazyFetchVideoAssignmentsQuery();
-  const [createVideoAssignment, { isLoading: isAssigningVideo }] =
+  const [createVideoAssignment, { isLoading: isAssigningSource }] =
     useCreateVideoAssignmentMutation();
-  const [revokeVideoAssignment, { isLoading: isRevokingVideo }] =
+  const [revokeVideoAssignment, { isLoading: isRevokingSource }] =
     useRevokeVideoAssignmentMutation();
 
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
@@ -636,8 +650,8 @@ export const AssignmentDialog = ({
   );
   const [errorMsg, setErrorMsg] = useState('');
 
-  const isAssigning = isAssigningModule || isAssigningVideo;
-  const isRevoking = isRevokingModule || isRevokingVideo;
+  const isAssigning = isAssigningModule || isAssigningSource;
+  const isRevoking = isRevokingModule || isRevokingSource;
   const isSubmitting = isAssigning || isRevoking;
 
   const allUsers = useMemo(() => adminUsers ?? [], [adminUsers]);
@@ -648,8 +662,8 @@ export const AssignmentDialog = ({
         return (existingModuleAssignments ?? []).filter(
           (assignment) => assignment.module_id === target.id,
         );
-      case 'video':
-        return (existingVideoAssignments ?? []).filter(
+      case 'sourceDocument':
+        return (existingSourceAssignments ?? []).filter(
           (assignment) => assignment.source_document_id === target.id,
         );
       default: {
@@ -657,7 +671,7 @@ export const AssignmentDialog = ({
         return exhaustiveCheck;
       }
     }
-  }, [existingModuleAssignments, existingVideoAssignments, target]);
+  }, [existingModuleAssignments, existingSourceAssignments, target]);
 
   const roleFilteredUsers = useMemo(
     () => getUsersForLevelMode(userLevelMode, allUsers),
@@ -709,7 +723,7 @@ export const AssignmentDialog = ({
       case 'module':
         void triggerAssignments({ module_id: target.id });
         break;
-      case 'video':
+      case 'sourceDocument':
         void triggerVideoAssignments({ source_document_id: target.id });
         break;
       default: {
@@ -972,7 +986,7 @@ export const AssignmentDialog = ({
           },
         });
         return;
-      case 'video':
+      case 'sourceDocument':
         onClose();
         onAssigned?.();
         return;
@@ -988,7 +1002,7 @@ export const AssignmentDialog = ({
       case 'module':
         await revokeModuleAssignment(assignmentId).unwrap();
         return;
-      case 'video':
+      case 'sourceDocument':
         await revokeVideoAssignment(assignmentId).unwrap();
         return;
       default: {
@@ -996,6 +1010,27 @@ export const AssignmentDialog = ({
         return exhaustiveCheck;
       }
     }
+  };
+
+  const createAssignments = async (
+    assignmentType: AssignmentType,
+    payload: { user_ids?: number[]; upazilas?: string[] },
+  ): Promise<number> => {
+    if (target.kind === 'module') {
+      const result = await createModuleAssignment({
+        module_id: target.id,
+        assignment_type: assignmentType,
+        ...payload,
+      }).unwrap();
+      return result.assigned_count;
+    }
+
+    const result = await createVideoAssignment({
+      source_document_id: target.id,
+      assignment_type: assignmentType,
+      ...payload,
+    }).unwrap();
+    return result.assigned_count;
   };
 
   const handleAssign = async () => {
@@ -1030,32 +1065,9 @@ export const AssignmentDialog = ({
         );
 
         if (userIdsToAssign.length > 0) {
-          let assignedCount = 0;
-
-          switch (target.kind) {
-            case 'module': {
-              const result = await createModuleAssignment({
-                module_id: target.id,
-                assignment_type: assignmentType,
-                user_ids: userIdsToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            case 'video': {
-              const result = await createVideoAssignment({
-                source_document_id: target.id,
-                assignment_type: assignmentType,
-                user_ids: userIdsToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            default: {
-              const exhaustiveCheck: never = target;
-              return exhaustiveCheck;
-            }
-          }
+          const assignedCount = await createAssignments(assignmentType, {
+            user_ids: userIdsToAssign,
+          });
 
           if (assignedCount === 0) {
             setErrorMsg(
@@ -1099,32 +1111,9 @@ export const AssignmentDialog = ({
         const removedUsers = buildGeographicalAssignedEntries(upazilasToRevoke);
 
         if (upazilasToAssign.length > 0) {
-          let assignedCount = 0;
-
-          switch (target.kind) {
-            case 'module': {
-              const result = await createModuleAssignment({
-                module_id: target.id,
-                assignment_type: 'geographical',
-                upazilas: upazilasToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            case 'video': {
-              const result = await createVideoAssignment({
-                source_document_id: target.id,
-                assignment_type: 'geographical',
-                upazilas: upazilasToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            default: {
-              const exhaustiveCheck: never = target;
-              return exhaustiveCheck;
-            }
-          }
+          const assignedCount = await createAssignments('geographical', {
+            upazilas: upazilasToAssign,
+          });
 
           if (assignedCount === 0) {
             setErrorMsg(
@@ -1262,7 +1251,7 @@ export const AssignmentDialog = ({
               />
 
               <p className="text-xs leading-relaxed text-spice-text-muted">
-                {getUserLevelHint(userLevelMode, target.kind)}
+                {getUserLevelHint(userLevelMode, target)}
               </p>
             </>
           ) : null}

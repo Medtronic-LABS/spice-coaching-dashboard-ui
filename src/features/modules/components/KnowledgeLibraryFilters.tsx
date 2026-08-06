@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ComboboxOption, SelectOption } from '@/components/ui';
+import type { ComboboxOption } from '@/components/ui';
 import { SettingsFilterRenderer } from '@/components/common/SettingsFilterRenderer';
 import type { SettingsFilterSection } from '@/components/common/settingsFilter.types';
 import { dateRangeValidationMessage } from '@/features/modules/utils/moduleListFilters';
@@ -9,41 +9,34 @@ import {
 } from '@/features/modules/utils/knowledgeLibraryFilters';
 import type { KnowledgeYesNoFilter } from '@/features/modules/types/knowledgeLibrary.types';
 
+const YES_NO_OPTIONS = [
+  { label: 'All', value: '' },
+  { label: 'Yes', value: 'true' },
+  { label: 'No', value: 'false' },
+];
+
 export interface KnowledgeLibraryFiltersProps {
   filters: KnowledgeLibraryDrawerFilters;
-  uploaderOptions: ComboboxOption[];
-  uploadedByLabel: string;
-  uploadedBySearch: string;
-  uploadersLoading?: boolean;
-  onUploadedBySearchChange: (term: string) => void;
   onChange: (filters: KnowledgeLibraryDrawerFilters) => void;
   onClearAll: () => void;
   onApply: () => void;
   applyDisabled?: boolean;
-}
-
-const YES_NO_FILTER_OPTIONS: SelectOption[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Yes', value: 'yes' },
-  { label: 'No', value: 'no' },
-];
-
-function toYesNoFilter(value: string): KnowledgeYesNoFilter {
-  if (value === 'yes' || value === 'no') return value;
-  return 'all';
+  uploaderOptions: ComboboxOption[];
+  uploaderSearch: string;
+  onUploaderSearchChange: (term: string) => void;
+  uploadersLoading?: boolean;
 }
 
 export const KnowledgeLibraryFilters = ({
   filters,
-  uploaderOptions,
-  uploadedByLabel,
-  uploadedBySearch,
-  uploadersLoading = false,
-  onUploadedBySearchChange,
   onChange,
   onClearAll,
   onApply,
   applyDisabled = false,
+  uploaderOptions,
+  uploaderSearch,
+  onUploaderSearchChange,
+  uploadersLoading = false,
 }: KnowledgeLibraryFiltersProps) => {
   const dateRangeInvalid = isKnowledgeDrawerDateRangeInvalid(filters);
 
@@ -51,10 +44,10 @@ export const KnowledgeLibraryFilters = ({
     filters.uploadedAtFrom,
     filters.uploadedAtTo,
   );
-  const updatedValidation = dateRangeValidationMessage(
-    filters.updatedAtFrom,
-    filters.updatedAtTo,
-  );
+
+  const selectedUploaderLabel =
+    uploaderOptions.find((option) => option.value === filters.uploadedBy)
+      ?.label ?? filters.uploadedBy;
 
   const sections = useMemo<SettingsFilterSection[]>(
     () => [
@@ -67,37 +60,37 @@ export const KnowledgeLibraryFilters = ({
             id: 'knowledge-filter-uploaded-by',
             label: 'Uploaded by',
             value: filters.uploadedBy,
-            selectedLabel: uploadedByLabel,
+            selectedLabel: selectedUploaderLabel,
             options: uploaderOptions,
-            searchTerm: uploadedBySearch,
-            onSearchTermChange: onUploadedBySearchChange,
+            searchTerm: uploaderSearch,
+            onSearchTermChange: onUploaderSearchChange,
             onChange: (uploadedBy) => onChange({ ...filters, uploadedBy }),
             isLoading: uploadersLoading,
-            placeholder: 'Type to search uploaders…',
+            placeholder: 'Search uploaders…',
             emptyMessage: 'No uploaders match your search',
           },
           {
-            type: 'segmented',
+            type: 'select',
             id: 'knowledge-filter-assigned',
             label: 'Assigned',
             value: filters.assigned,
-            options: YES_NO_FILTER_OPTIONS,
+            options: YES_NO_OPTIONS,
             onChange: (assigned) =>
               onChange({
                 ...filters,
-                assigned: toYesNoFilter(assigned),
+                assigned: assigned as KnowledgeYesNoFilter,
               }),
           },
           {
-            type: 'segmented',
+            type: 'select',
             id: 'knowledge-filter-ingested',
             label: 'Ingested',
             value: filters.ingested,
-            options: YES_NO_FILTER_OPTIONS,
+            options: YES_NO_OPTIONS,
             onChange: (ingested) =>
               onChange({
                 ...filters,
-                ingested: toYesNoFilter(ingested),
+                ingested: ingested as KnowledgeYesNoFilter,
               }),
           },
         ],
@@ -127,38 +120,17 @@ export const KnowledgeLibraryFilters = ({
             invalid: uploadedValidation !== null,
             errorMessage: uploadedValidation ?? undefined,
           },
-          {
-            type: 'date-range',
-            id: 'knowledge-filter-updated',
-            label: 'Last updated',
-            from: {
-              id: 'knowledge-filter-updated-from',
-              value: filters.updatedAtFrom,
-              ariaLabel: 'Last updated from',
-              onChange: (updatedAtFrom) =>
-                onChange({ ...filters, updatedAtFrom }),
-            },
-            to: {
-              id: 'knowledge-filter-updated-to',
-              value: filters.updatedAtTo,
-              ariaLabel: 'Last updated to',
-              onChange: (updatedAtTo) => onChange({ ...filters, updatedAtTo }),
-            },
-            invalid: updatedValidation !== null,
-            errorMessage: updatedValidation ?? undefined,
-          },
         ],
       },
     ],
     [
       filters,
       onChange,
-      onUploadedBySearchChange,
-      updatedValidation,
-      uploadedByLabel,
-      uploadedBySearch,
+      onUploaderSearchChange,
+      selectedUploaderLabel,
       uploadedValidation,
       uploaderOptions,
+      uploaderSearch,
       uploadersLoading,
     ],
   );

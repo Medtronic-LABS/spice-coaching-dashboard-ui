@@ -15,48 +15,43 @@ import {
   Select,
   Tabs,
   TruncatedText,
-  type ComboboxOption,
 } from '@/components/ui';
-import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
+import { AssignmentDialog } from '@/features/modules/components/AssignmentDialog';
 import {
-  useDeactivateKnowledgeAssetMutation,
-  useFetchKnowledgeAssetsQuery,
   useFetchKnowledgeUploadersQuery,
-  useLazyGetKnowledgeAssetDownloadQuery,
-  usePatchKnowledgeAssetMutation,
-  usePutKnowledgeAssetThumbnailMutation,
+  useRetireKnowledgeDocumentMutation,
 } from '@/features/modules/api/adminKnowledgeApi';
+import {
+  mapSourceDocumentToKnowledgeItem,
+  useFetchSourceDocumentsQuery,
+  useUpdateSourceDocumentMetadataMutation,
+  useUpdateSourceDocumentThumbnailMutation,
+} from '@/features/modules/api/adminSourceDocumentsApi';
+import { useLazyGetAdminFilePresignedUrlQuery } from '@/features/modules/api/adminFilesApi';
+import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   KNOWLEDGE_LIBRARY_FILTER_DEFAULTS,
-  type KnowledgeAsset,
+  type KnowledgeLibraryItem,
+  type KnowledgeLibraryStatusTab,
 } from '@/features/modules/types/knowledgeLibrary.types';
 import {
   hasActiveKnowledgeDrawerFilters,
   isKnowledgeDrawerDateRangeInvalid,
   KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
+  uploadedDateInputToFromIso,
+  uploadedDateInputToToIso,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
-type KnowledgeTableRow = KnowledgeAsset & {
-  actionsAssign: '';
-  actionsEdit: '';
-  actionsDownload: '';
-  actionsDelete: '';
+type KnowledgeTableRow = KnowledgeLibraryItem & {
+  actions: '';
 };
-
-type KnowledgeStatusTab = 'active' | 'deactivated';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
-const UPLOADER_SEARCH_DEBOUNCE_MS = 300;
-
-const ALL_UPLOADERS_OPTION: ComboboxOption = {
-  label: 'All uploaders',
-  value: '',
-};
 
 const RefreshIcon = ({ className }: { className?: string }) => (
   <svg
@@ -74,13 +69,27 @@ const RefreshIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-function computeTotalPages(total: number, pageSize: number): number {
-  if (!pageSize) return 1;
-  return Math.max(1, Math.ceil(total / pageSize));
+function KnowledgeThumbnailCell({
+  storagePath,
+}: {
+  storagePath: string | null;
+}) {
+  const { url } = usePresignedFileUrl(storagePath);
+  if (!storagePath) {
+    return <span className="text-xs text-spice-text-muted">—</span>;
+  }
+  if (!url) {
+    return <span className="text-xs text-spice-text-muted">…</span>;
+  }
+  return (
+    <div className="flex h-14 w-20 items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint">
+      <img src={url} alt="" className="h-full w-full object-cover" />
+    </div>
+  );
 }
 
 export const KnowledgeLibraryTable = () => {
-  const [statusTab, setStatusTab] = useState<KnowledgeStatusTab>(
+  const [statusTab, setStatusTab] = useState<KnowledgeLibraryStatusTab>(
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.status,
   );
   const [q, setQ] = useState(KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.q);
@@ -108,135 +117,122 @@ export const KnowledgeLibraryTable = () => {
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.pageSize,
   );
 
-  // Assign/Edit/Delete modals.
-  const [assignmentOpen, setAssignmentOpen] = useState(false);
-  const [assignmentAsset, setAssignmentAsset] = useState<KnowledgeAsset | null>(
-    null,
-  );
-
   const [editOpen, setEditOpen] = useState(false);
-  const [editAsset, setEditAsset] = useState<KnowledgeAsset | null>(null);
+  const [editAsset, setEditAsset] = useState<KnowledgeLibraryItem | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [editError, setEditError] = useState('');
 
-  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
-  const [deactivateAsset, setDeactivateAsset] = useState<KnowledgeAsset | null>(
+  const [retireConfirmOpen, setRetireConfirmOpen] = useState(false);
+  const [retireAsset, setRetireAsset] = useState<KnowledgeLibraryItem | null>(
     null,
   );
-  const [deactivateError, setDeactivateError] = useState('');
+  const [retireError, setRetireError] = useState('');
+  const [downloadError, setDownloadError] = useState('');
+  const [assignTarget, setAssignTarget] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [uploaderSearch, setUploaderSearch] = useState('');
 
-  const [triggerDownload, { isLoading: isDownloading }] =
-    useLazyGetKnowledgeAssetDownloadQuery();
+  const [triggerPresignedUrl, { isLoading: isDownloading }] =
+    useLazyGetAdminFilePresignedUrlQuery();
 
-  const [patchKnowledgeAsset, { isLoading: isPatchingTitle }] =
-    usePatchKnowledgeAssetMutation();
-  const [putKnowledgeAssetThumbnail, { isLoading: isReplacingThumbnail }] =
-    usePutKnowledgeAssetThumbnailMutation();
-
-  const [deactivateKnowledgeAsset, { isLoading: isDeactivating }] =
-    useDeactivateKnowledgeAssetMutation();
-
-  const [uploadedBySearch, setUploadedBySearch] = useState('');
-  const debouncedUploadedBySearch = useDebouncedValue(
-    uploadedBySearch,
-    UPLOADER_SEARCH_DEBOUNCE_MS,
-  );
-  const uploadedBySearchQ = debouncedUploadedBySearch.trim() || undefined;
-
-  const { data: uploadersData, isFetching: isSearchingUploaders } =
-    useFetchKnowledgeUploadersQuery({
-      q: uploadedBySearchQ,
-    });
-
-  const uploaderOptions = useMemo(() => {
-    const options: ComboboxOption[] = [ALL_UPLOADERS_OPTION];
-    const seen = new Set<string>(['']);
-
-    for (const uploader of uploadersData?.uploaders ?? []) {
-      if (!uploader.value || seen.has(uploader.value)) continue;
-      seen.add(uploader.value);
-      options.push({
-        label: uploader.label || uploader.value,
-        value: uploader.value,
-      });
-    }
-
-    const selected = draftDrawerFilters.uploadedBy.trim();
-    if (selected && !seen.has(selected) && !uploadedBySearchQ) {
-      options.push({ label: selected, value: selected });
-    }
-
-    return options;
-  }, [
-    draftDrawerFilters.uploadedBy,
-    uploadedBySearchQ,
-    uploadersData?.uploaders,
-  ]);
-
-  const uploadedByLabel = useMemo(() => {
-    if (!draftDrawerFilters.uploadedBy) return ALL_UPLOADERS_OPTION.label;
-    const matched = uploaderOptions.find(
-      (option) => option.value === draftDrawerFilters.uploadedBy,
-    );
-    return matched?.label ?? draftDrawerFilters.uploadedBy;
-  }, [draftDrawerFilters.uploadedBy, uploaderOptions]);
+  const [updateMetadata, { isLoading: isPatchingTitle }] =
+    useUpdateSourceDocumentMetadataMutation();
+  const [updateThumbnail, { isLoading: isReplacingThumbnail }] =
+    useUpdateSourceDocumentThumbnailMutation();
+  const [retireKnowledgeDocument, { isLoading: isRetiring }] =
+    useRetireKnowledgeDocumentMutation();
 
   const drawerDateRangeInvalid =
     isKnowledgeDrawerDateRangeInvalid(appliedDrawerFilters);
   const filtersActive = hasActiveKnowledgeDrawerFilters(appliedDrawerFilters);
 
-  const queryArgs = useMemo(
-    () => ({
+  const queryArgs = useMemo(() => {
+    const offset = (page - 1) * pageSize;
+    return {
+      sync_published_visible: true,
+      source_type: 'pdf' as const,
       ...(searchQ ? { q: searchQ } : {}),
-      uploadedBy: appliedDrawerFilters.uploadedBy,
-      assigned: appliedDrawerFilters.assigned,
-      ingested: appliedDrawerFilters.ingested,
-      status: statusTab,
-      uploadedAtFrom: appliedDrawerFilters.uploadedAtFrom,
-      uploadedAtTo: appliedDrawerFilters.uploadedAtTo,
-      updatedAtFrom: appliedDrawerFilters.updatedAtFrom,
-      updatedAtTo: appliedDrawerFilters.updatedAtTo,
-      sortBy,
-      sortOrder,
-      page,
-      pageSize,
-    }),
-    [
-      appliedDrawerFilters,
-      page,
-      pageSize,
-      searchQ,
-      sortBy,
-      sortOrder,
-      statusTab,
-    ],
-  );
+      ...(statusTab === 'retired' ? { status: 'retired' as const } : {}),
+      ...(appliedDrawerFilters.uploadedAtFrom
+        ? {
+            uploaded_from: uploadedDateInputToFromIso(
+              appliedDrawerFilters.uploadedAtFrom,
+            ),
+          }
+        : {}),
+      ...(appliedDrawerFilters.uploadedAtTo
+        ? {
+            uploaded_to: uploadedDateInputToToIso(
+              appliedDrawerFilters.uploadedAtTo,
+            ),
+          }
+        : {}),
+      ...(appliedDrawerFilters.uploadedBy
+        ? { uploaded_by: appliedDrawerFilters.uploadedBy }
+        : {}),
+      ...(appliedDrawerFilters.assigned
+        ? { assigned: appliedDrawerFilters.assigned === 'true' }
+        : {}),
+      ...(appliedDrawerFilters.ingested
+        ? { ingested: appliedDrawerFilters.ingested === 'true' }
+        : {}),
+      sort_by: sortBy,
+      sort_dir: sortOrder,
+      limit: pageSize,
+      offset,
+    };
+  }, [
+    appliedDrawerFilters,
+    page,
+    pageSize,
+    searchQ,
+    sortBy,
+    sortOrder,
+    statusTab,
+  ]);
 
   const {
-    data: knowledgeList,
+    data: catalog,
     isLoading,
     isFetching,
     error,
     refetch,
-  } = useFetchKnowledgeAssetsQuery(queryArgs, {
+  } = useFetchSourceDocumentsQuery(queryArgs, {
     skip: drawerDateRangeInvalid,
   });
 
+  const { data: uploadersData, isFetching: uploadersLoading } =
+    useFetchKnowledgeUploadersQuery(undefined, {
+      skip: !filtersDrawerOpen,
+    });
+  const uploaderOptions = useMemo(() => {
+    const options = (uploadersData?.uploaders ?? []).map((uploader) => ({
+      value: uploader.value,
+      label: uploader.label,
+    }));
+    const term = uploaderSearch.trim().toLowerCase();
+    if (!term) return options;
+    return options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(term) ||
+        option.value.toLowerCase().includes(term),
+    );
+  }, [uploadersData?.uploaders, uploaderSearch]);
+
   const assets = useMemo<KnowledgeTableRow[]>(
     () =>
-      (knowledgeList?.assets ?? []).map((a) => ({
-        ...a,
-        actionsAssign: '',
-        actionsEdit: '',
-        actionsDownload: '',
-        actionsDelete: '',
+      (catalog?.source_documents ?? []).map((doc) => ({
+        ...mapSourceDocumentToKnowledgeItem(doc),
+        actions: '',
       })),
-    [knowledgeList?.assets],
+    [catalog?.source_documents],
   );
 
-  const total = knowledgeList?.total ?? 0;
-  const totalPages = computeTotalPages(total, pageSize);
+  const total = catalog?.total_source_documents ?? 0;
+  const totalPages = Math.max(1, catalog?.total_pages ?? 1);
   const hasPrevPage = page > 1;
   const hasNextPage = page < totalPages;
 
@@ -253,13 +249,11 @@ export const KnowledgeLibraryTable = () => {
 
   const handleOpenFiltersDrawer = () => {
     setDraftDrawerFilters(appliedDrawerFilters);
-    setUploadedBySearch('');
     setFiltersDrawerOpen(true);
   };
 
   const handleCloseFiltersDrawer = () => {
     setFiltersDrawerOpen(false);
-    setUploadedBySearch('');
   };
 
   const handleApplyFilters = () => {
@@ -267,12 +261,10 @@ export const KnowledgeLibraryTable = () => {
     setAppliedDrawerFilters(draftDrawerFilters);
     setPage(1);
     setFiltersDrawerOpen(false);
-    setUploadedBySearch('');
   };
 
   const handleClearDraftFilters = () => {
     setDraftDrawerFilters(KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS);
-    setUploadedBySearch('');
   };
 
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
@@ -283,22 +275,12 @@ export const KnowledgeLibraryTable = () => {
   const columns: Array<ColumnDef<KnowledgeTableRow>> = useMemo(
     () => [
       {
-        key: 'thumbnailUrl',
+        key: 'thumbnailStoragePath',
         header: 'Thumbnail',
         className: 'w-[6rem]',
-        render: (row) =>
-          row.thumbnailUrl ? (
-            // Use a fixed aspect box to keep the table stable.
-            <div className="flex h-14 w-20 items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint">
-              <img
-                src={row.thumbnailUrl}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : (
-            <span className="text-xs text-spice-text-muted">—</span>
-          ),
+        render: (row) => (
+          <KnowledgeThumbnailCell storagePath={row.thumbnailStoragePath} />
+        ),
       },
       {
         key: 'title',
@@ -310,67 +292,55 @@ export const KnowledgeLibraryTable = () => {
             <TruncatedText text={row.title} className="font-semibold">
               {row.title}
             </TruncatedText>
-            <div className="mt-0.5 text-xs text-spice-text-muted">
-              Pages {row.startPage}–{row.endPage}
-            </div>
+            {row.originalFilename ? (
+              <div className="mt-0.5 text-xs text-spice-text-muted">
+                {row.originalFilename}
+              </div>
+            ) : null}
           </div>
         ),
       },
       {
         key: 'fileType',
         header: 'File Type',
-        render: () => 'PDF',
+        render: (row) => row.fileType.toUpperCase(),
       },
       {
         key: 'uploadedAt',
         header: 'Uploaded Date',
         sortable: true,
-        sortKey: 'uploaded_at',
+        sortKey: 'uploaded_date',
         render: (row) =>
           row.uploadedAt ? formatDisplayDateTime(row.uploadedAt) : '—',
       },
       {
         key: 'uploadedBy',
         header: 'Uploaded By',
-        sortable: true,
-        sortKey: 'uploaded_by',
         render: (row) => row.uploadedBy || '—',
       },
       {
         key: 'updatedAt',
         header: 'Last Updated',
-        sortable: true,
-        sortKey: 'updated_at',
         render: (row) =>
           row.updatedAt ? formatDisplayDateTime(row.updatedAt) : '—',
       },
       {
-        key: 'actionsAssign',
+        key: 'actions',
         header: 'Actions',
         render: (row) => {
-          const isDeactivated = row.status === 'deactivated';
+          const isRetired = row.status === 'retired';
           const mutatingBusy =
-            isDeactivating || isPatchingTitle || isReplacingThumbnail;
+            isRetiring || isPatchingTitle || isReplacingThumbnail;
 
           return (
             <div className="flex items-center gap-2">
               <Button
                 className="h-8 px-3 text-xs"
                 variant="secondary"
-                disabled={isDeactivated || mutatingBusy}
-                onClick={() => {
-                  setAssignmentAsset(row);
-                  setAssignmentOpen(true);
-                }}
-              >
-                Assign
-              </Button>
-              <Button
-                className="h-8 px-3 text-xs"
-                variant="secondary"
-                disabled={isDeactivated || mutatingBusy}
+                disabled={isRetired || mutatingBusy}
                 onClick={() => {
                   setEditError('');
+                  setDownloadError('');
                   setEditAsset(row);
                   setEditTitle(row.title);
                   setEditThumbnailFile(null);
@@ -381,22 +351,34 @@ export const KnowledgeLibraryTable = () => {
               </Button>
               <Button
                 className="h-8 px-3 text-xs"
-                disabled={isDownloading}
+                variant="secondary"
+                disabled={isRetired || mutatingBusy}
+                onClick={() => {
+                  setAssignTarget({ id: row.id, title: row.title });
+                }}
+              >
+                Assign
+              </Button>
+              <Button
+                className="h-8 px-3 text-xs"
+                disabled={isDownloading || !row.storedPath}
                 onClick={() => {
                   void (async () => {
                     try {
-                      const res = await triggerDownload(row.id).unwrap();
+                      setDownloadError('');
+                      const res = await triggerPresignedUrl({
+                        object_name: row.storedPath,
+                        disposition: 'attachment',
+                      }).unwrap();
                       const a = document.createElement('a');
-                      a.href = res.download_url;
-                      a.download = res.filename;
+                      a.href = res.presigned_url;
+                      a.download = row.originalFilename || `${row.title}.pdf`;
                       a.rel = 'noreferrer';
                       document.body.appendChild(a);
                       a.click();
                       a.remove();
                     } catch (err) {
-                      // Prefer to show inline errors in the table area; keep the UX light for Phase 3.
-
-                      console.error(err);
+                      setDownloadError(formatRtkQueryError(err));
                     }
                   })();
                 }}
@@ -406,11 +388,11 @@ export const KnowledgeLibraryTable = () => {
               <Button
                 className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
                 variant="secondary"
-                disabled={isDeactivated || isDeactivating}
+                disabled={isRetired || isRetiring}
                 onClick={() => {
-                  setDeactivateError('');
-                  setDeactivateAsset(row);
-                  setDeactivateConfirmOpen(true);
+                  setRetireError('');
+                  setRetireAsset(row);
+                  setRetireConfirmOpen(true);
                 }}
               >
                 Delete
@@ -421,11 +403,11 @@ export const KnowledgeLibraryTable = () => {
       },
     ],
     [
-      isDeactivating,
       isDownloading,
       isPatchingTitle,
       isReplacingThumbnail,
-      triggerDownload,
+      isRetiring,
+      triggerPresignedUrl,
     ],
   );
 
@@ -447,8 +429,8 @@ export const KnowledgeLibraryTable = () => {
   ) : null;
 
   const editModalDisabled =
-    isPatchingTitle || isReplacingThumbnail || isDeactivating;
-  const deactivateModalDisabled = isDeactivating;
+    isPatchingTitle || isReplacingThumbnail || isRetiring;
+  const retireModalDisabled = isRetiring;
 
   return (
     <div className="space-y-4">
@@ -480,11 +462,11 @@ export const KnowledgeLibraryTable = () => {
             <Tabs
               items={[
                 { label: 'Active', value: 'active' },
-                { label: 'Deactivated', value: 'deactivated' },
+                { label: 'Retired', value: 'retired' },
               ]}
               value={statusTab}
               onChange={(v) =>
-                setStatusTab(v === 'deactivated' ? 'deactivated' : 'active')
+                setStatusTab(v === 'retired' ? 'retired' : 'active')
               }
               className="w-fit"
             />
@@ -502,6 +484,11 @@ export const KnowledgeLibraryTable = () => {
         </div>
 
         {retryErrorBanner}
+        {downloadError ? (
+          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+            {downloadError}
+          </div>
+        ) : null}
 
         <SettingsFilterDrawer
           open={filtersDrawerOpen}
@@ -513,14 +500,13 @@ export const KnowledgeLibraryTable = () => {
         >
           <KnowledgeLibraryFilters
             filters={draftDrawerFilters}
-            uploaderOptions={uploaderOptions}
-            uploadedByLabel={uploadedByLabel}
-            uploadedBySearch={uploadedBySearch}
-            uploadersLoading={isSearchingUploaders}
-            onUploadedBySearchChange={setUploadedBySearch}
             onChange={setDraftDrawerFilters}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
+            uploaderOptions={uploaderOptions}
+            uploaderSearch={uploaderSearch}
+            onUploaderSearchChange={setUploaderSearch}
+            uploadersLoading={uploadersLoading}
           />
         </SettingsFilterDrawer>
 
@@ -575,15 +561,20 @@ export const KnowledgeLibraryTable = () => {
         </div>
       </Card>
 
-      {assignmentAsset ? (
-        <ModuleAssignmentDialog
-          open={assignmentOpen}
-          onClose={() => {
-            setAssignmentOpen(false);
-            setAssignmentAsset(null);
+      {assignTarget ? (
+        <AssignmentDialog
+          open
+          onClose={() => setAssignTarget(null)}
+          target={{
+            kind: 'sourceDocument',
+            id: assignTarget.id,
+            title: assignTarget.title,
+            noun: 'document',
           }}
-          moduleId={assignmentAsset.id}
-          moduleTitle={assignmentAsset.title}
+          onAssigned={() => {
+            void refetch();
+            setAssignTarget(null);
+          }}
         />
       ) : null}
 
@@ -680,15 +671,15 @@ export const KnowledgeLibraryTable = () => {
                 setEditError('');
                 void (async () => {
                   try {
-                    await patchKnowledgeAsset({
-                      id: editAsset.id,
-                      title: editTitle.trim(),
+                    await updateMetadata({
+                      sourceDocumentId: editAsset.id,
+                      body: { title: editTitle.trim() },
                     }).unwrap();
 
                     if (editThumbnailFile) {
-                      await putKnowledgeAssetThumbnail({
-                        id: editAsset.id,
-                        thumbnail: editThumbnailFile,
+                      await updateThumbnail({
+                        sourceDocumentId: editAsset.id,
+                        file: editThumbnailFile,
                       }).unwrap();
                     }
 
@@ -710,13 +701,13 @@ export const KnowledgeLibraryTable = () => {
       </Modal>
 
       <Modal
-        open={deactivateConfirmOpen}
-        labelledBy="knowledge-deactivate-title"
+        open={retireConfirmOpen}
+        labelledBy="knowledge-retire-title"
         onClose={() => {
-          if (deactivateModalDisabled) return;
-          setDeactivateConfirmOpen(false);
-          setDeactivateAsset(null);
-          setDeactivateError('');
+          if (retireModalDisabled) return;
+          setRetireConfirmOpen(false);
+          setRetireAsset(null);
+          setRetireError('');
         }}
       >
         <Card
@@ -725,25 +716,24 @@ export const KnowledgeLibraryTable = () => {
         >
           <div className="shrink-0 space-y-4 p-6 pb-4">
             <h2
-              id="knowledge-deactivate-title"
+              id="knowledge-retire-title"
               className="text-xl font-semibold text-spice-text-primary"
             >
-              Deactivate Knowledge Asset
+              Remove Knowledge Document
             </h2>
-            {deactivateError ? (
+            {retireError ? (
               <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                {deactivateError}
+                {retireError}
               </div>
             ) : null}
             <p className="text-sm text-spice-text-muted">
-              This will deactivate the asset (soft-delete) and clear
-              assignments.
-              {deactivateAsset ? (
+              This will retire the document and hide it from devices. Stored
+              files are kept.
+              {retireAsset ? (
                 <>
                   {' '}
-                  Asset:{' '}
-                  <span className="font-semibold">{deactivateAsset.title}</span>
-                  .
+                  Document:{' '}
+                  <span className="font-semibold">{retireAsset.title}</span>.
                 </>
               ) : null}
             </p>
@@ -753,34 +743,34 @@ export const KnowledgeLibraryTable = () => {
             <Button
               variant="ghost"
               className="h-10 text-sm"
-              disabled={deactivateModalDisabled}
+              disabled={retireModalDisabled}
               onClick={() => {
-                setDeactivateConfirmOpen(false);
-                setDeactivateAsset(null);
-                setDeactivateError('');
+                setRetireConfirmOpen(false);
+                setRetireAsset(null);
+                setRetireError('');
               }}
             >
               Cancel
             </Button>
             <Button
               className="h-10 min-w-[10rem] text-sm"
-              disabled={deactivateModalDisabled || !deactivateAsset}
+              disabled={retireModalDisabled || !retireAsset}
               onClick={() => {
-                if (!deactivateAsset) return;
-                setDeactivateError('');
+                if (!retireAsset) return;
+                setRetireError('');
                 void (async () => {
                   try {
-                    await deactivateKnowledgeAsset(deactivateAsset.id).unwrap();
-                    setDeactivateConfirmOpen(false);
-                    setDeactivateAsset(null);
-                    setDeactivateError('');
+                    await retireKnowledgeDocument(retireAsset.id).unwrap();
+                    setRetireConfirmOpen(false);
+                    setRetireAsset(null);
+                    setRetireError('');
                   } catch (err) {
-                    setDeactivateError(formatRtkQueryError(err));
+                    setRetireError(formatRtkQueryError(err));
                   }
                 })();
               }}
             >
-              {isDeactivating ? 'Deactivating…' : 'Confirm Deactivate'}
+              {isRetiring ? 'Removing…' : 'Confirm Remove'}
             </Button>
           </div>
         </Card>

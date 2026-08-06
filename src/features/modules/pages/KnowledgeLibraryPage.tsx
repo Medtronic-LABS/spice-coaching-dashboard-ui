@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -9,14 +9,10 @@ import {
   Tooltip,
   type TabItem,
 } from '@/components/ui';
-import { ProgressBar as CommonProgressBar } from '@/components/common/ProgressBar';
 import { paths } from '@/constants/routes';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import {
-  useGetKnowledgeUploadStatusQuery,
-  usePutKnowledgeAssetThumbnailMutation,
-  useUploadKnowledgeDocumentMutation,
-} from '@/features/modules/api/adminKnowledgeApi';
+import { useUploadKnowledgeDocumentMutation } from '@/features/modules/api/adminKnowledgeApi';
+import { useUploadAdminFileMutation } from '@/features/modules/api/adminFilesApi';
 import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
 import { KnowledgeSplitEditor } from '@/features/modules/components/KnowledgeSplitEditor';
 import { KnowledgeLibraryTable } from '@/features/modules/components/KnowledgeLibraryTable';
@@ -32,14 +28,23 @@ import {
   knowledgeSplitDraftHasFieldErrors,
   type KnowledgeSplitDraftFieldErrors,
 } from '@/features/modules/utils/knowledgeSplitValidation';
+import { fileFromObjectUrl } from '@/features/modules/utils/knowledgeThumbnailFile';
+import { renderPdfPageToObjectUrl } from '@/features/modules/utils/pdfjsClient';
 import {
   createEmptyKnowledgeSplitDraft,
   type KnowledgeSplitDraft,
   type KnowledgeUploadMode,
 } from '@/features/modules/types/knowledgeLibrary.types';
 
-function isKnowledgeUploadComplete(status: string | undefined): boolean {
-  return status === 'completed' || status === 'failed';
+async function resolveThumbnailFile(options: {
+  customFile: File | null | undefined;
+  suppressAuto: boolean;
+  autoUrl: string | null;
+  filename: string;
+}): Promise<File | null> {
+  if (options.customFile) return options.customFile;
+  if (options.suppressAuto || !options.autoUrl) return null;
+  return fileFromObjectUrl(options.autoUrl, options.filename);
 }
 
 export const KnowledgeLibraryPage = () => {
@@ -47,33 +52,19 @@ export const KnowledgeLibraryPage = () => {
 
   const [uploadKnowledgeDocument, { isLoading: isUploadingKnowledge }] =
     useUploadKnowledgeDocumentMutation();
-  const [uploadId, setUploadId] = useState<string | null>(null);
-  const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(0);
-  const uploadIdArg = uploadId ?? '';
-  const { data: uploadStatusDataPolled, error: uploadStatusErrorPolled } =
-    useGetKnowledgeUploadStatusQuery(uploadIdArg, {
-      skip: !uploadId,
-      pollingInterval: statusPollIntervalMs,
-      refetchOnMountOrArgChange: true,
-    });
-
-  const uploadStatusDataResolved = uploadStatusDataPolled ?? null;
-  const uploadStatusErrorResolved = uploadStatusErrorPolled ?? null;
-
-  const [putKnowledgeAssetThumbnail] = usePutKnowledgeAssetThumbnailMutation();
+  const [uploadAdminFile, { isLoading: isUploadingThumbnail }] =
+    useUploadAdminFileMutation();
 
   const [mode, setMode] = useState<KnowledgeUploadMode>('original');
   const [file, setFile] = useState<File | null>(null);
   const [fileSelectionError, setFileSelectionError] = useState('');
 
-  // Original mode draft.
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalThumbnailFile, setOriginalThumbnailFile] =
     useState<File | null>(null);
   const [originalSuppressAutoThumbnail, setOriginalSuppressAutoThumbnail] =
     useState(false);
 
-  // Split mode draft.
   const [splitDrafts, setSplitDrafts] = useState<KnowledgeSplitDraft[]>([
     createEmptyKnowledgeSplitDraft(),
   ]);
@@ -119,98 +110,6 @@ export const KnowledgeLibraryPage = () => {
     KnowledgeSplitDraftFieldErrors[]
   >([]);
 
-  const uploadInFlight = useMemo(() => {
-    if (!uploadId) return false;
-    return !isKnowledgeUploadComplete(uploadStatusDataResolved?.status);
-  }, [uploadId, uploadStatusDataResolved?.status]);
-
-  useEffect(() => {
-    // Poll until completed/failed.
-    if (!uploadId) {
-      setStatusPollIntervalMs(0);
-      return;
-    }
-
-    if (isKnowledgeUploadComplete(uploadStatusDataResolved?.status)) {
-      setStatusPollIntervalMs(0);
-      return;
-    }
-
-    setStatusPollIntervalMs(2000);
-  }, [uploadId, uploadStatusDataResolved?.status]);
-
-  useEffect(() => {
-    if (!uploadStatusErrorResolved) return;
-    setActionError(formatRtkQueryError(uploadStatusErrorResolved));
-  }, [uploadStatusErrorResolved]);
-
-  const uploadProgressValue = useMemo(() => {
-    const v = uploadStatusDataResolved?.progress_percent;
-    if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
-    return Math.max(0, Math.min(100, Math.round(v)));
-  }, [uploadStatusDataResolved?.progress_percent]);
-
-  const uploadProgressLabel = useMemo(() => {
-    if (!uploadId) return 'Upload a PDF to start processing.';
-    if (!uploadStatusDataResolved) return 'Loading processing status…';
-    if (uploadStatusDataResolved.status === 'queued') return 'Queued…';
-    if (uploadStatusDataResolved.status === 'processing')
-      return 'Processing knowledge…';
-    if (uploadStatusDataResolved.status === 'failed')
-      return 'Processing failed.';
-    return 'Processing complete.';
-  }, [uploadId, uploadStatusDataResolved]);
-
-  const [pendingThumbnailUploads, setPendingThumbnailUploads] = useState<
-    Array<{ id: string; thumbnail: File }>
-  >([]);
-  const [
-    thumbnailUploadsCompletedForUploadId,
-    setThumbnailUploadsCompletedForUploadId,
-  ] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!uploadId) return;
-    if (!uploadStatusDataResolved) return;
-    if (uploadStatusDataResolved.status !== 'completed') return;
-
-    if (thumbnailUploadsCompletedForUploadId === uploadId) return;
-    if (pendingThumbnailUploads.length === 0) {
-      setThumbnailUploadsCompletedForUploadId(uploadId);
-      return;
-    }
-
-    let cancelled = false;
-    const run = async () => {
-      try {
-        for (const target of pendingThumbnailUploads) {
-          if (cancelled) return;
-          await putKnowledgeAssetThumbnail(target).unwrap();
-        }
-      } catch (err) {
-        if (!cancelled) setActionError(formatRtkQueryError(err));
-      } finally {
-        if (!cancelled) {
-          setThumbnailUploadsCompletedForUploadId(uploadId);
-          setPendingThumbnailUploads([]);
-        }
-      }
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    pendingThumbnailUploads,
-    putKnowledgeAssetThumbnail,
-    setPendingThumbnailUploads,
-    setThumbnailUploadsCompletedForUploadId,
-    thumbnailUploadsCompletedForUploadId,
-    uploadId,
-    uploadStatusDataResolved,
-  ]);
-
   const clearAllDrafts = useCallback(() => {
     setFile(null);
     setFileSelectionError('');
@@ -228,7 +127,6 @@ export const KnowledgeLibraryPage = () => {
     setFileSelectionError('');
     setSplitDraftErrors([]);
 
-    // Keep the picked file; clear the mode we're leaving (xor drafts).
     if (resolved === 'original') {
       setSplitDrafts([createEmptyKnowledgeSplitDraft()]);
       setSplitDraftErrors([]);
@@ -261,14 +159,14 @@ export const KnowledgeLibraryPage = () => {
     }));
   }, [livePageFieldErrors, splitDraftErrors, splitDrafts]);
 
+  const isBusy = isUploadingKnowledge || isUploadingThumbnail;
+
   const canSubmit = useMemo(() => {
     if (!file) return false;
-    if (uploadInFlight || isUploadingKnowledge) return false;
+    if (isBusy) return false;
     if (mode === 'original') return Boolean(originalTitle.trim());
-    // In split mode, allow clicking "Upload" so we can show inline validation
-    // errors instead of only disabling the button.
     return true;
-  }, [file, isUploadingKnowledge, mode, originalTitle, uploadInFlight]);
+  }, [file, isBusy, mode, originalTitle]);
 
   const submitUpload = useCallback(async () => {
     if (!file) {
@@ -288,14 +186,27 @@ export const KnowledgeLibraryPage = () => {
           return;
         }
 
-        const res = await uploadKnowledgeDocument({
+        const thumbnailFile = await resolveThumbnailFile({
+          customFile: originalThumbnailFile,
+          suppressAuto: originalSuppressAutoThumbnail,
+          autoUrl: originalAutoThumbnailUrl,
+          filename: `${file.name.replace(/\.pdf$/i, '')}-thumb.png`,
+        });
+        let thumbnailStoragePath: string | undefined;
+        if (thumbnailFile) {
+          const uploaded = await uploadAdminFile({
+            file: thumbnailFile,
+          }).unwrap();
+          thumbnailStoragePath = uploaded.storage_path;
+        }
+
+        await uploadKnowledgeDocument({
           file,
-          mode: 'original',
           title,
-          thumbnail: originalThumbnailFile,
+          thumbnailStoragePath,
         }).unwrap();
 
-        setUploadId(res.upload_id);
+        clearAllDrafts();
         return;
       }
 
@@ -318,48 +229,77 @@ export const KnowledgeLibraryPage = () => {
         return;
       }
 
-      const splitsPayload = splitDrafts.map((row) => ({
-        title: row.title.trim(),
-        start_page: row.startPage,
-        end_page: row.endPage,
-      }));
+      const splitsPayload = [];
+      for (const [index, row] of splitDrafts.entries()) {
+        const thumbnailFile = await resolveThumbnailFile({
+          customFile: row.thumbnailFile,
+          suppressAuto: Boolean(row.suppressAutoThumbnail),
+          autoUrl: null,
+          filename: `${file.name.replace(/\.pdf$/i, '')}-split-${index + 1}-thumb.png`,
+        });
+        let thumbnailStoragePath: string | undefined;
+        if (thumbnailFile) {
+          const uploaded = await uploadAdminFile({
+            file: thumbnailFile,
+          }).unwrap();
+          thumbnailStoragePath = uploaded.storage_path;
+        } else if (
+          !row.suppressAutoThumbnail &&
+          pdfDocument &&
+          Number.isFinite(row.startPage)
+        ) {
+          const autoUrl = await renderPdfPageToObjectUrl(
+            pdfDocument,
+            row.startPage,
+            { maxWidth: 180 },
+          );
+          try {
+            const autoFile = await fileFromObjectUrl(
+              autoUrl,
+              `${file.name.replace(/\.pdf$/i, '')}-split-${index + 1}-thumb.png`,
+            );
+            const uploaded = await uploadAdminFile({ file: autoFile }).unwrap();
+            thumbnailStoragePath = uploaded.storage_path;
+          } finally {
+            URL.revokeObjectURL(autoUrl);
+          }
+        }
 
-      const res = await uploadKnowledgeDocument({
+        splitsPayload.push({
+          title: row.title.trim(),
+          start_page: row.startPage,
+          end_page: row.endPage,
+          ...(thumbnailStoragePath
+            ? { thumbnail_storage_path: thumbnailStoragePath }
+            : {}),
+        });
+      }
+
+      await uploadKnowledgeDocument({
         file,
-        mode: 'split',
         splits: splitsPayload,
       }).unwrap();
 
-      setUploadId(res.upload_id);
-
-      const pending: Array<{ id: string; thumbnail: File }> = [];
-      for (let i = 0; i < splitDrafts.length; i += 1) {
-        const splitRow = splitDrafts[i];
-        const assetId = res.asset_ids[i];
-        if (!assetId) continue;
-        if (!splitRow.thumbnailFile) continue;
-        pending.push({ id: assetId, thumbnail: splitRow.thumbnailFile });
-      }
-      setPendingThumbnailUploads(pending);
+      clearAllDrafts();
     } catch (err) {
       setActionError(formatRtkQueryError(err));
     }
   }, [
+    clearAllDrafts,
     file,
     mode,
+    originalAutoThumbnailUrl,
+    originalSuppressAutoThumbnail,
     originalThumbnailFile,
     originalTitle,
     pageCount,
+    pdfDocument,
     splitDrafts,
+    uploadAdminFile,
     uploadKnowledgeDocument,
   ]);
 
-  // Reset thumbnail upload completion state when a new upload starts.
-  useEffect(() => {
-    setThumbnailUploadsCompletedForUploadId(null);
-  }, [uploadId]);
-
-  const disableInputs = uploadInFlight || isUploadingKnowledge;
+  const disableInputs = isBusy;
 
   return (
     <section className="space-y-5">
@@ -389,7 +329,8 @@ export const KnowledgeLibraryPage = () => {
             Upload
           </div>
           <div className="text-sm text-spice-text-muted">
-            Choose upload mode, pick one PDF, and monitor processing progress.
+            Choose upload mode, pick one PDF, and upload. Documents appear in
+            the library immediately.
           </div>
         </div>
 
@@ -400,7 +341,7 @@ export const KnowledgeLibraryPage = () => {
                 <span>PDF file</span>
                 <Tooltip
                   label="About PDF file upload"
-                  content="PDF only. Single file upload."
+                  content="PDF only. Single file upload. Max 100 MB."
                 />
               </div>
             </div>
@@ -490,7 +431,7 @@ export const KnowledgeLibraryPage = () => {
                           : hasCustomOriginalThumbnail
                             ? ' (custom)'
                             : isBlankOriginalThumbnail
-                              ? ' (blank — backend will generate)'
+                              ? ' (none)'
                               : originalAutoThumbnailUrl
                                 ? ' (from PDF)'
                                 : ''}
@@ -510,7 +451,7 @@ export const KnowledgeLibraryPage = () => {
                         disabled={disableInputs}
                         clearable={Boolean(originalThumbnailValue)}
                         accept="image/*"
-                        label="Optional — leave blank for backend"
+                        label="Optional — leave blank for none"
                         labelWhenSelected={
                           hasCustomOriginalThumbnail
                             ? 'Change custom'
@@ -543,7 +484,7 @@ export const KnowledgeLibraryPage = () => {
                         <span>Page splits</span>
                         <Tooltip
                           label="About page splits"
-                          content="Add one or more splits. Thumbnail can use the PDF start page, a custom image, or stay blank for backend generation."
+                          content="Each split becomes its own PDF in the library. Thumbnail can use the PDF start page, a custom image, or stay blank."
                         />
                       </div>
                     </div>
@@ -612,46 +553,11 @@ export const KnowledgeLibraryPage = () => {
         ) : null}
 
         <IngestUploadProgress
-          active={isUploadingKnowledge}
-          label="Uploading PDF…"
+          active={isBusy}
+          label={
+            isUploadingThumbnail ? 'Uploading thumbnail…' : 'Uploading PDF…'
+          }
         />
-
-        {uploadId ? (
-          <div className="space-y-3 rounded-xl border border-spice-border bg-spice-bg-surface/70 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                Processing status
-              </div>
-              <div className="text-xs text-spice-text-muted">
-                Upload ID: <span className="font-mono">{uploadId}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5" role="status" aria-live="polite">
-              <div className="flex items-center justify-between gap-2 text-xs text-spice-text-muted">
-                <span>{uploadProgressLabel}</span>
-                <span className="font-mono">
-                  {Math.round(uploadProgressValue)}%
-                </span>
-              </div>
-              <CommonProgressBar value={uploadProgressValue} />
-            </div>
-
-            {uploadStatusDataResolved?.status === 'failed' ? (
-              <div className="text-xs text-spice-semantic-error">
-                {uploadStatusDataResolved.error ??
-                  'Processing failed. Please retry.'}
-              </div>
-            ) : null}
-
-            {uploadStatusDataResolved?.status === 'completed' ? (
-              <div className="text-xs text-spice-text-muted">
-                Assets are ready. If you selected custom thumbnails, they will
-                be applied now.
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
@@ -661,9 +567,6 @@ export const KnowledgeLibraryPage = () => {
             onClick={() => {
               clearAllDrafts();
               setActionError('');
-              setUploadId(null);
-              setPendingThumbnailUploads([]);
-              setThumbnailUploadsCompletedForUploadId(null);
             }}
           >
             Reset
@@ -673,7 +576,7 @@ export const KnowledgeLibraryPage = () => {
             disabled={!canSubmit}
             onClick={() => void submitUpload()}
           >
-            {uploadInFlight ? 'Uploading…' : 'Upload'}
+            {isBusy ? 'Uploading…' : 'Upload'}
           </Button>
         </div>
       </Card>

@@ -63,7 +63,7 @@ export const KnowledgeSplitEditor = ({
   } else if (hasCustomThumbnail) {
     thumbnailStatus = ' (custom)';
   } else if (isBlankThumbnail) {
-    thumbnailStatus = ' (blank — backend will generate)';
+    thumbnailStatus = ' (none)';
   } else if (autoThumbnailUrl) {
     thumbnailStatus = ' (from PDF)';
   }
@@ -77,7 +77,7 @@ export const KnowledgeSplitEditor = ({
           </div>
           <div className="mt-1 text-xs text-spice-text-muted">
             Provide title and page range. Thumbnail can use the PDF start page,
-            a custom image, or stay blank for backend generation.
+            a custom image, or stay blank.
           </div>
         </div>
         <Button
@@ -197,7 +197,6 @@ export const KnowledgeSplitEditor = ({
                   });
                   return;
                 }
-                // Clear → intentionally blank (backend generates later).
                 onChange({
                   ...value,
                   thumbnailFile: null,
@@ -207,7 +206,7 @@ export const KnowledgeSplitEditor = ({
               disabled={disabled}
               clearable={hasVisibleThumbnail}
               accept="image/*"
-              label="Optional — leave blank for backend"
+              label="Optional — leave blank for none"
               labelWhenSelected={
                 hasCustomThumbnail ? 'Change custom' : 'Replace with custom'
               }
