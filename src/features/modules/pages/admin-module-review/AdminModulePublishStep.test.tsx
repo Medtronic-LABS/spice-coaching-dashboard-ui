@@ -18,8 +18,11 @@ import { AdminModulePublishStep } from './AdminModulePublishStep';
 
 const mockNavigate = vi.fn();
 
-const setClinicallyReviewed = vi.fn(() => ({
-  unwrap: vi.fn().mockResolvedValue({ clinically_reviewed: true }),
+const publishModule = vi.fn(() => ({
+  unwrap: vi.fn().mockResolvedValue({
+    id: 'mod-1',
+    lifecycle_status: 'published',
+  }),
 }));
 
 function createMockModule() {
@@ -75,12 +78,22 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   return {
     ...actual,
     useEditModuleMutation: () => [vi.fn(), { isLoading: false }],
-    useSetClinicallyReviewedMutation: () => [
-      setClinicallyReviewed,
-      { isLoading: false },
-    ],
   };
 });
+
+vi.mock(
+  '@/features/modules/api/moduleCreationPipelineApi',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/modules/api/moduleCreationPipelineApi')
+      >();
+    return {
+      ...actual,
+      usePublishModuleMutation: () => [publishModule, { isLoading: false }],
+    };
+  },
+);
 
 function renderPublishStep() {
   const store = configureStore({
@@ -117,7 +130,7 @@ describe('AdminModulePublishStep', () => {
     roleState.role = 'programManager';
     mockModule = createMockModule();
     mockNavigate.mockClear();
-    setClinicallyReviewed.mockClear();
+    publishModule.mockClear();
   });
 
   it('renders publish summary content for draft modules', () => {
@@ -128,15 +141,14 @@ describe('AdminModulePublishStep', () => {
     expect(screen.getByText('Question?')).toBeInTheDocument();
   });
 
-  it('publishes draft modules via clinically reviewed mutation', async () => {
+  it('publishes draft modules via publish mutation', async () => {
     const user = userEvent.setup();
     renderPublishStep();
 
     await user.click(screen.getByRole('button', { name: /↑ publish module/i }));
 
-    expect(setClinicallyReviewed).toHaveBeenCalledWith({
+    expect(publishModule).toHaveBeenCalledWith({
       moduleId: 'mod-1',
-      body: { clinically_reviewed: true },
     });
   });
 
@@ -145,7 +157,6 @@ describe('AdminModulePublishStep', () => {
     mockModule = {
       ...createMockModule(),
       lifecycle_status: 'published',
-      clinically_reviewed: true,
     };
     renderPublishStep();
 
