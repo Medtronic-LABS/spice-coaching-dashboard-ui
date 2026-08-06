@@ -9,7 +9,7 @@ import {
 import { paths } from '@/constants/routes';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
-import { useSetClinicallyReviewedMutation } from '@/features/modules/api/adminModulesApi';
+import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -40,8 +40,8 @@ export const AdminModulePublishStep = () => {
     save,
     formatError,
   } = useAdminModuleReviewEditor(moduleId);
-  const [setClinicallyReviewed, { isLoading: isPublishing }] =
-    useSetClinicallyReviewedMutation();
+  const [publishModule, { isLoading: isPublishing }] =
+    usePublishModuleMutation();
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [saveError, setSaveError] = useState('');
@@ -104,8 +104,7 @@ export const AdminModulePublishStep = () => {
   const lessonRows = mapAdminCardsToLessonRows(working.cards);
   const quizRows = mapAdminQuizToRows(working.quiz);
   const mediaCount = countMediaTagsFromCards(working.cards);
-  const isAlreadyPublished =
-    working.clinically_reviewed || working.lifecycle_status === 'published';
+  const isAlreadyPublished = working.lifecycle_status === 'published';
   const busy = isPublishing || isSaving;
   const busyLabel = isPublishing ? 'Publishing module…' : 'Saving module…';
   const showSourcePanel = sourceDocOpen && sourceDocuments.length > 0;
@@ -193,9 +192,8 @@ export const AdminModulePublishStep = () => {
                 const moduleIdForPublish = isDirty
                   ? (await save()).id
                   : working.id;
-                await setClinicallyReviewed({
+                await publishModule({
                   moduleId: moduleIdForPublish,
-                  body: { clinically_reviewed: true },
                 }).unwrap();
                 await refetch();
                 setPublishSuccessOpen(true);

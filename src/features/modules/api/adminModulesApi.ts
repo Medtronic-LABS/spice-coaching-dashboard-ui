@@ -391,18 +391,6 @@ export interface EditAdminModuleResponse {
   supersedes_module_id: string;
 }
 
-export interface ClinicallyReviewedRequestBody {
-  clinically_reviewed: true;
-  reviewer_id?: string;
-}
-
-export interface ClinicallyReviewedResponse {
-  id: string;
-  clinically_reviewed: boolean;
-  clinically_reviewed_at: string;
-  clinically_reviewed_by: string;
-}
-
 export interface RetireModuleResponse {
   id: string;
   lifecycle_status: 'retired';
@@ -628,16 +616,6 @@ export const adminModulesApi = baseApi.injectEndpoints({
         body,
       }),
     }),
-    setClinicallyReviewed: builder.mutation<
-      ClinicallyReviewedResponse,
-      { moduleId: string; body: ClinicallyReviewedRequestBody }
-    >({
-      query: ({ moduleId, body }) => ({
-        url: `/admin/modules/${encodeURIComponent(moduleId)}/clinically-reviewed`,
-        method: 'POST',
-        body,
-      }),
-    }),
     deleteModule: builder.mutation<RetireModuleResponse, { moduleId: string }>({
       query: ({ moduleId }) => ({
         url: `/admin/modules/${encodeURIComponent(moduleId)}`,
@@ -683,7 +661,6 @@ export const {
   useCreateModuleMutation,
   useGetModuleDetailQuery,
   useEditModuleMutation,
-  useSetClinicallyReviewedMutation,
   useDeleteModuleMutation,
   useDeactivateModuleMutation,
   useReactivateModuleMutation,
