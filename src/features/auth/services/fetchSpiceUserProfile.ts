@@ -4,7 +4,7 @@ import type { SpiceUserProfileResponse } from '@/features/auth/types/spiceUserPr
 import { parseSpiceUserProfileResponse } from '@/features/auth/utils/parseSpiceUserProfileResponse';
 
 /** Toggle to use hardcoded mock profile payload (true) or real /user/profile API (false). */
-export const USE_HARDCODED_SPICE_PROFILE = true;
+export const USE_HARDCODED_SPICE_PROFILE = false;
 
 export const HARDCODED_SPICE_PROFILE_PAYLOAD = {
   message: 'Got user.',
