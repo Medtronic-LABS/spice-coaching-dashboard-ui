@@ -53,4 +53,5 @@ export const paths = {
   moduleReview: withRoutePrefix('/modules/new/review'),
   modulePublished: withRoutePrefix('/modules/new/published'),
   configs: withRoutePrefix('/configs'),
+  login: withRoutePrefix('/login'),
 } as const;

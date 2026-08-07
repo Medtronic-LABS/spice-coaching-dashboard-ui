@@ -12,7 +12,9 @@ describe('requestRouting', () => {
     ).toBe('admin/ingest');
   });
 
-  it('routes admin module and ingest endpoints to real fetch', () => {
+  it('routes auth session and admin endpoints to real fetch', () => {
+    expect(shouldUseRealFetchForRequest('/auth/session')).toBe(true);
+    expect(shouldUseRealFetchForRequest('auth/session')).toBe(true);
     expect(shouldUseRealFetchForRequest('/admin/modules')).toBe(true);
     expect(
       shouldUseRealFetchForRequest({

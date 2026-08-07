@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isLoginEnabled } from '@/config/authConfig';
 import { TEST_AUTH_USER } from '@/features/auth/constants/testAuthUser';
 import { fetchSpiceUserProfile } from '@/features/auth/services/fetchSpiceUserProfile';
 import {
@@ -23,11 +24,21 @@ export function useAuthBootstrap(): AuthBootstrapStatus {
       seedTestAuthSession();
       return 'ready';
     }
+    // Login page flow owns auth when enabled; do not block on Spice bootstrap.
+    if (isLoginEnabled()) {
+      return 'ready';
+    }
     return 'loading';
   });
 
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return;
+
+    // When dashboard login is enabled, skip Spice cookie redirect / profile bootstrap.
+    if (isLoginEnabled()) {
+      setStatus('ready');
+      return;
+    }
 
     let cancelled = false;
 

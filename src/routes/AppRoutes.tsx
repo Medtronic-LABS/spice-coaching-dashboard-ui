@@ -3,6 +3,11 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { paths, ROUTE_PREFIX } from '@/constants/routes';
 
+const LoginPage = lazy(() =>
+  import('@/features/auth/pages/LoginPage').then((module) => ({
+    default: module.LoginPage,
+  })),
+);
 const ModuleLibraryPage = lazy(() =>
   import('@/features/modules/pages/ModuleLibraryPage').then((module) => ({
     default: module.ModuleLibraryPage,
@@ -98,6 +103,7 @@ export const AppRoutes = () => {
         path={ROUTE_PREFIX}
         element={<Navigate to={paths.moduleLibrary} replace />}
       />
+      <Route path={paths.login} element={<LoginPage />} />
       <Route element={<MainLayout />}>
         <Route
           path={paths.home}
