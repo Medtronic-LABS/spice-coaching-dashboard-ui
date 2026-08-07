@@ -4,13 +4,18 @@ import type {
   FetchBaseQueryError,
 } from '@reduxjs/toolkit/query';
 import {
+  mockBadges,
   mockCourseDraft,
   mockModuleLibrary,
   mockSourceDocuments,
 } from '@/store/apis/mockData';
 import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types';
+import type { AdminBadge } from '@/features/badges/types/badge.types';
 
 const mockModuleDeactivatedAt = new Map<string, string>();
+let mockBadgesState: AdminBadge[] = JSON.parse(
+  JSON.stringify(mockBadges),
+) as AdminBadge[];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,6 +23,37 @@ function sleep(ms: number): Promise<void> {
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+/** Parse true/false query or body values; null when absent/invalid. */
+function asOptionalBoolean(value: unknown): boolean | null {
+  if (value === true || value === 'true') return true;
+  if (value === false || value === 'false') return false;
+  return null;
+}
+
+function normalizeDomainLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function parseBadgeSequence(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'number' || !Number.isInteger(value)) return null;
+  return value >= 1 ? value : null;
+}
+
+function resolveMockBadgeModules(moduleIds: string[]): AdminBadge['modules'] {
+  return moduleIds.map((id) => {
+    const module = mockModuleLibrary.modules.find((item) => item.id === id);
+    const text = module?.title?.trim() ?? '';
+    const title: AdminBadge['modules'][number]['title'] = text
+      ? { bn: text, en: text }
+      : {};
+    return { id, title };
+  });
 }
 
 function getUrl(args: string | FetchArgs): string {
@@ -256,12 +292,334 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     };
   }
 
+  if (url === 'admin/badges' && method === 'POST') {
+    const payload =
+      typeof body === 'object' && body && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : {};
+    const name = asString(payload.name)?.trim() ?? '';
+    const domainRaw = asString(payload.domain)?.trim() ?? '';
+    const domain = normalizeDomainLabel(domainRaw);
+    const image_storage_path =
+      asString(payload.image_storage_path)?.trim() ?? '';
+    const module_ids = Array.isArray(payload.module_ids)
+      ? payload.module_ids.map((id) => String(id))
+      : [];
+    const sequence = parseBadgeSequence(payload.sequence);
+    if (!name || !domain || !image_storage_path) {
+      return {
+        error: {
+          status: domainRaw && !domain ? 400 : 422,
+          data: {
+            message:
+              domainRaw && !domain
+                ? 'Domain must be a non-empty snake_case label'
+                : 'name, domain, and image_storage_path are required',
+            code: domainRaw && !domain ? 'badge_domain_invalid' : undefined,
+          },
+        },
+      };
+    }
+    if (
+      'sequence' in payload &&
+      payload.sequence !== null &&
+      sequence === null
+    ) {
+      return {
+        error: {
+          status: 422,
+          data: {
+            message: 'Sequence must be a positive integer',
+          },
+        },
+      };
+    }
+    if (
+      mockBadgesState.some(
+        (badge) => badge.status === 'active' && badge.name === name,
+      )
+    ) {
+      return {
+        error: {
+          status: 409,
+          data: {
+            message: `An active badge named '${name}' already exists.`,
+            code: 'badge_name_conflict',
+          },
+        },
+      };
+    }
+    if (
+      sequence !== null &&
+      mockBadgesState.some(
+        (badge) => badge.status === 'active' && badge.sequence === sequence,
+      )
+    ) {
+      return {
+        error: {
+          status: 409,
+          data: {
+            message: `Sequence ${sequence} is already used by another active badge.`,
+            code: 'badge_sequence_conflict',
+          },
+        },
+      };
+    }
+    const now = new Date().toISOString();
+    const created: AdminBadge = {
+      id: `badge-${Date.now()}`,
+      name,
+      domain,
+      image_storage_path,
+      module_ids,
+      modules: resolveMockBadgeModules(module_ids),
+      status: 'active',
+      sequence,
+      created_at: now,
+      updated_at: now,
+      created_by: 'mock_admin',
+      updated_by: null,
+    };
+    mockBadgesState = [created, ...mockBadgesState];
+    return { data: created };
+  }
+
+  if (url === 'admin/badges' && method === 'GET') {
+    const paramBag =
+      typeof params === 'object' && params
+        ? (params as Record<string, unknown>)
+        : {};
+    const domain = asString(paramBag.domain);
+    const q = (asString(paramBag.q) ?? '').trim().toLowerCase();
+    const createdByRaw = asString(paramBag.created_by) ?? '';
+    const createdBy = createdByRaw
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const moduleTitleRaw = asString(paramBag.module_title) ?? '';
+    const moduleTitles = moduleTitleRaw
+      .split(',')
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+    const createdFrom = asString(paramBag.created_from);
+    const createdTo = asString(paramBag.created_to);
+    const sortBy = asString(paramBag.sort_by) ?? 'created_at';
+    const sortDir = asString(paramBag.sort_dir) === 'asc' ? 1 : -1;
+    const limit = Number(paramBag.limit ?? 50);
+    const offset = Number(paramBag.offset ?? 0);
+
+    const moduleTitleById = new Map(
+      mockModuleLibrary.modules.map((m) => [m.id, m.title.toLowerCase()]),
+    );
+
+    let filtered = mockBadgesState.filter((badge) => badge.status === 'active');
+    if (domain) {
+      filtered = filtered.filter((badge) => badge.domain === domain);
+    }
+    if (q) {
+      filtered = filtered.filter((badge) =>
+        badge.name.toLowerCase().includes(q),
+      );
+    }
+    if (createdBy.length) {
+      filtered = filtered.filter(
+        (badge) =>
+          badge.created_by != null && createdBy.includes(badge.created_by),
+      );
+    }
+    if (createdFrom) {
+      filtered = filtered.filter((badge) => badge.created_at >= createdFrom);
+    }
+    if (createdTo) {
+      filtered = filtered.filter((badge) => badge.created_at <= createdTo);
+    }
+    if (moduleTitles.length) {
+      filtered = filtered.filter((badge) =>
+        badge.module_ids.some((id) => {
+          const title = moduleTitleById.get(id) ?? '';
+          return moduleTitles.some((needle) => title.includes(needle));
+        }),
+      );
+    }
+
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === 'sequence') {
+        const aSeq = a.sequence;
+        const bSeq = b.sequence;
+        if (aSeq == null && bSeq == null) return 0;
+        if (aSeq == null) return 1;
+        if (bSeq == null) return -1;
+        return (aSeq - bSeq) * sortDir;
+      }
+      return a.created_at.localeCompare(b.created_at) * sortDir;
+    });
+
+    const total = filtered.length;
+    const page = filtered.slice(offset, offset + limit);
+    return {
+      data: {
+        badges: page,
+        total,
+        total_pages: limit > 0 ? Math.ceil(total / limit) : 0,
+        limit,
+        offset,
+      },
+    };
+  }
+
+  const badgeMatch = url.match(/^admin\/badges\/([^/]+)$/);
+  if (badgeMatch) {
+    const badgeId = decodeURIComponent(badgeMatch[1]);
+    const existing = mockBadgesState.find(
+      (badge) => badge.id === badgeId && badge.status === 'active',
+    );
+
+    if (method === 'GET') {
+      if (!existing) {
+        return {
+          error: { status: 404, data: { message: 'Badge not found' } },
+        };
+      }
+      return { data: existing };
+    }
+
+    if (method === 'PUT') {
+      if (!existing) {
+        return {
+          error: { status: 404, data: { message: 'Badge not found' } },
+        };
+      }
+      const payload =
+        typeof body === 'object' && body && !Array.isArray(body)
+          ? (body as Record<string, unknown>)
+          : {};
+      const name = asString(payload.name)?.trim() ?? existing.name;
+      const domainRaw = asString(payload.domain)?.trim() ?? existing.domain;
+      const domain = normalizeDomainLabel(domainRaw);
+      if (!domain) {
+        return {
+          error: {
+            status: 400,
+            data: {
+              message: 'Domain must be a non-empty snake_case label',
+              code: 'badge_domain_invalid',
+            },
+          },
+        };
+      }
+      const image_storage_path =
+        asString(payload.image_storage_path)?.trim() ??
+        existing.image_storage_path;
+      const module_ids = Array.isArray(payload.module_ids)
+        ? payload.module_ids.map((id) => String(id))
+        : existing.module_ids;
+      const sequence =
+        'sequence' in payload
+          ? parseBadgeSequence(payload.sequence)
+          : existing.sequence;
+      if (
+        'sequence' in payload &&
+        payload.sequence !== null &&
+        sequence === null
+      ) {
+        return {
+          error: {
+            status: 422,
+            data: {
+              message: 'Sequence must be a positive integer',
+            },
+          },
+        };
+      }
+      if (
+        mockBadgesState.some(
+          (badge) =>
+            badge.id !== badgeId &&
+            badge.status === 'active' &&
+            badge.name === name,
+        )
+      ) {
+        return {
+          error: {
+            status: 409,
+            data: {
+              message: `An active badge named '${name}' already exists.`,
+              code: 'badge_name_conflict',
+            },
+          },
+        };
+      }
+      if (
+        sequence !== null &&
+        mockBadgesState.some(
+          (badge) =>
+            badge.id !== badgeId &&
+            badge.status === 'active' &&
+            badge.sequence === sequence,
+        )
+      ) {
+        return {
+          error: {
+            status: 409,
+            data: {
+              message: `Sequence ${sequence} is already used by another active badge.`,
+              code: 'badge_sequence_conflict',
+            },
+          },
+        };
+      }
+      const updated: AdminBadge = {
+        ...existing,
+        name,
+        domain,
+        image_storage_path,
+        module_ids,
+        modules: resolveMockBadgeModules(module_ids),
+        sequence,
+        updated_at: new Date().toISOString(),
+        updated_by: 'mock_admin',
+      };
+      mockBadgesState = mockBadgesState.map((badge) =>
+        badge.id === badgeId ? updated : badge,
+      );
+      return { data: updated };
+    }
+
+    if (method === 'DELETE') {
+      if (!existing) {
+        return {
+          error: { status: 404, data: { message: 'Badge not found' } },
+        };
+      }
+      mockBadgesState = mockBadgesState.map((badge) =>
+        badge.id === badgeId
+          ? {
+              ...badge,
+              status: 'deleted',
+              updated_at: new Date().toISOString(),
+              updated_by: 'mock_admin',
+            }
+          : badge,
+      );
+      return { data: undefined };
+    }
+  }
+
   if (url === 'admin/modules/domains') {
     const status = asString(
       typeof params === 'object' && params && 'status' in params
         ? (params as { status?: unknown }).status
         : undefined,
     );
+    const q = (
+      asString(
+        typeof params === 'object' && params && 'q' in params
+          ? (params as { q?: unknown }).q
+          : undefined,
+      ) ?? ''
+    )
+      .trim()
+      .toLowerCase();
     const domains = [
       ...new Set(
         mockModuleLibrary.modules
@@ -269,7 +627,14 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           .map((m) => m.category)
           .filter(Boolean),
       ),
-    ].sort((a, b) => a.localeCompare(b));
+    ]
+      .filter(
+        (domain) =>
+          !q ||
+          domain.toLowerCase().includes(q) ||
+          domain.replace(/\s+/g, '_').toLowerCase().includes(q),
+      )
+      .sort((a, b) => a.localeCompare(b));
     return { data: domains };
   }
 
@@ -304,6 +669,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       typeof params === 'object' && params
         ? (params as Record<string, unknown>)
         : {};
+    const chatbotFaqsOnlyFilter = asOptionalBoolean(paramBag.chatbot_faqs_only);
     const createdFrom = asString(paramBag.created_from);
     const createdTo = asString(paramBag.created_to);
     const publishedFrom = asString(paramBag.published_from);
@@ -328,6 +694,11 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
 
     const items = mockModuleLibrary.modules
       .filter((m) => (status ? m.status === status : true))
+      .filter((m) =>
+        chatbotFaqsOnlyFilter === null
+          ? true
+          : Boolean(m.chatbot_faqs_only) === chatbotFaqsOnlyFilter,
+      )
       .map((m, idx) => ({
         id: m.id,
         module_family_id: `family_${m.id}`,
@@ -361,6 +732,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             : null,
         last_reactivated_at: null,
         quality_flags: { flags: [] },
+        chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
       }))
       .filter((item) => (domain ? item.domain === domain : true))
       .filter((item) => {
@@ -507,8 +879,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           valA = a.status || '';
           valB = b.status || '';
         } else {
-          const rawA = (a as Record<string, unknown>)[docSortBy];
-          const rawB = (b as Record<string, unknown>)[docSortBy];
+          const rawA = (a as unknown as Record<string, unknown>)[docSortBy];
+          const rawB = (b as unknown as Record<string, unknown>)[docSortBy];
           valA =
             typeof rawA === 'string' || typeof rawA === 'number' ? rawA : '';
           valB =

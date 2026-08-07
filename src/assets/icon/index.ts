@@ -1,4 +1,5 @@
 export { ArrowRightIcon, type ArrowRightIconProps } from './ArrowRightIcon';
+export { AwardIcon, type AwardIconProps } from './AwardIcon';
 export { BookIcon, type BookIconProps } from './BookIcon';
 export { ChevronIcon, type ChevronIconProps } from './ChevronIcon';
 export { ClipboardIcon, type ClipboardIconProps } from './ClipboardIcon';

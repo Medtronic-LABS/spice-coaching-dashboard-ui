@@ -95,6 +95,11 @@ const ConfigsPage = lazy(() =>
     default: module.ConfigsPage,
   })),
 );
+const BadgeManagementPage = lazy(() =>
+  import('@/features/badges/pages/BadgeManagementPage').then((module) => ({
+    default: module.BadgeManagementPage,
+  })),
+);
 
 export const AppRoutes = () => {
   return (
@@ -110,6 +115,7 @@ export const AppRoutes = () => {
           element={<Navigate to={paths.moduleLibrary} replace />}
         />
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+        <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />
         <Route path={paths.ingestDocument} element={<IngestDocumentPage />} />
         <Route path={paths.videoUpload} element={<VideoUploadPage />} />
         <Route path={paths.ingestHistory} element={<IngestHistoryPage />} />

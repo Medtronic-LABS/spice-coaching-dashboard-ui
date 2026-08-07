@@ -49,6 +49,8 @@ export interface AdminModulesListItem {
   thumbnail_presigned_expires_seconds?: number | null;
   /** Populated when the modules list API includes document linkage. */
   source_document_ids?: string[];
+  /** Chatbot FAQ-only modules are not assignable to milestones/badges. */
+  chatbot_faqs_only?: boolean;
   merge_source_module_id?: string | null;
   merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
   merge_primary_module_id?: string | null;
@@ -224,6 +226,7 @@ function normalizeModuleSummary(
         ? item.thumbnail_presigned_expires_seconds
         : null,
     source_document_ids: normalizeSourceDocumentIds(item.source_document_ids),
+    chatbot_faqs_only: Boolean(item.chatbot_faqs_only),
     merge_source_module_id:
       typeof item.merge_source_module_id === 'string'
         ? item.merge_source_module_id
@@ -424,6 +427,8 @@ export interface FetchModulesQueryArgs {
   offset: number;
   status?: AdminModuleLifecycleStatus | null;
   domain?: string | null;
+  /** Exact match on module.chatbot_faqs_only; pass false to exclude FAQ-only modules. */
+  chatbot_faqs_only?: boolean | null;
   created_from?: string | null;
   created_to?: string | null;
   published_from?: string | null;
@@ -519,6 +524,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
         offset,
         status,
         domain,
+        chatbot_faqs_only,
         created_from,
         created_to,
         published_from,
@@ -540,6 +546,9 @@ export const adminModulesApi = baseApi.injectEndpoints({
           latest_version_only: true,
           ...(status ? { status } : {}),
           ...(domain ? { domain } : {}),
+          ...(typeof chatbot_faqs_only === 'boolean'
+            ? { chatbot_faqs_only }
+            : {}),
           ...(created_from ? { created_from } : {}),
           ...(created_to ? { created_to } : {}),
           ...(published_from ? { published_from } : {}),
@@ -559,14 +568,15 @@ export const adminModulesApi = baseApi.injectEndpoints({
     }),
     fetchModuleDomainOptions: builder.query<
       string[],
-      { status?: AdminModuleLifecycleStatus | null }
+      { status?: AdminModuleLifecycleStatus | null; q?: string | null }
     >({
-      query: ({ status }) => ({
+      query: ({ status, q }) => ({
         url: '/admin/modules/domains',
         method: 'GET',
         params: {
           latest_version_only: true,
           ...(status ? { status } : {}),
+          ...(q?.trim() ? { q: q.trim() } : {}),
         },
       }),
       transformResponse: (response: unknown) => {
