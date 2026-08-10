@@ -1,8 +1,15 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { KnowledgeLibraryTable } from '@/features/modules/components/KnowledgeLibraryTable';
 import { renderWithProviders } from '@/test-utils/render';
+
+async function openKnowledgeFilters(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    screen.getByRole('button', { name: /open knowledge filters/i }),
+  );
+  return screen.getByRole('dialog', { name: 'Filters' });
+}
 
 describe('KnowledgeLibraryTable', () => {
   it('debounces the knowledge search query before filtering results', async () => {
@@ -132,6 +139,77 @@ describe('KnowledgeLibraryTable', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Confirm Remove' }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides Edit, Assign, and Delete on retired rows', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<KnowledgeLibraryTable />);
+
+    expect(
+      await screen.findByText('HTN Referral Guidelines'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Retired' }));
+
+    expect(
+      await screen.findByText('Retired Protocol Notes'),
+    ).toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    expect(
+      within(table).getAllByRole('button', { name: 'Download' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(table).queryByRole('button', { name: 'Edit' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(table).queryByRole('button', { name: 'Assign' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(table).queryByRole('button', { name: 'Delete' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears applied filters immediately on Clear All', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<KnowledgeLibraryTable />);
+
+    expect(
+      await screen.findByText('HTN Referral Guidelines'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Visit Workflow — Overview')).toBeInTheDocument();
+
+    const dialog = await openKnowledgeFilters(user);
+    await user.selectOptions(within(dialog).getByLabelText('Assigned'), 'true');
+    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('HTN Referral Guidelines')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Visit Workflow — Overview'),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole('button', {
+        name: /open knowledge filters \(filters applied\)/i,
+      }),
+    ).toBeInTheDocument();
+
+    const reopened = await openKnowledgeFilters(user);
+    expect(within(reopened).getByLabelText('Assigned')).toHaveValue('true');
+    await user.click(
+      within(reopened).getByRole('button', { name: 'Clear All' }),
+    );
+
+    expect(within(reopened).getByLabelText('Assigned')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByText('HTN Referral Guidelines')).toBeInTheDocument();
+      expect(screen.getByText('Visit Workflow — Overview')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('button', { name: /^open knowledge filters$/i }),
     ).toBeInTheDocument();
   });
 });

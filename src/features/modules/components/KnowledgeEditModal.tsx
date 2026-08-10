@@ -1,4 +1,5 @@
 import { Button, Card, ImagePicker, Modal } from '@/components/ui';
+import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
 
 export interface KnowledgeEditModalProps {
@@ -28,6 +29,12 @@ export function KnowledgeEditModal({
   onClose,
   onSave,
 }: KnowledgeEditModalProps) {
+  const { url: existingThumbnailUrl } = usePresignedFileUrl(
+    open ? asset?.thumbnailStoragePath : null,
+  );
+  const thumbnailValue: File | string | null =
+    thumbnailFile ?? existingThumbnailUrl;
+
   return (
     <Modal
       open={open}
@@ -39,22 +46,15 @@ export function KnowledgeEditModal({
     >
       <Card
         variant="elevated"
-        className="w-full max-w-2xl border-spice-border p-0 shadow-lg"
+        className="w-full max-w-lg border-spice-border p-0 shadow-lg"
       >
-        <div className="shrink-0 space-y-4 p-6 pb-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2
-                id="knowledge-edit-title"
-                className="text-xl font-semibold text-spice-text-primary"
-              >
-                Edit Knowledge Asset
-              </h2>
-              <p className="mt-1 text-xs text-spice-text-muted">
-                {asset ? `ID: ${asset.id}` : null}
-              </p>
-            </div>
-          </div>
+        <div className="space-y-4 p-5 pb-4">
+          <h2
+            id="knowledge-edit-title"
+            className="text-lg font-semibold text-spice-text-primary"
+          >
+            Edit Knowledge Asset
+          </h2>
 
           {error ? (
             <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
@@ -62,11 +62,15 @@ export function KnowledgeEditModal({
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="knowledge-edit-title-input"
+              className="text-xs font-semibold tracking-wide text-spice-text-medium"
+            >
               Title
-            </div>
+            </label>
             <input
+              id="knowledge-edit-title-input"
               type="text"
               value={title}
               disabled={disabled}
@@ -75,33 +79,34 @@ export function KnowledgeEditModal({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-              Custom thumbnail (optional)
+              Thumbnail
             </div>
             <ImagePicker
               variant="compact"
-              value={thumbnailFile}
+              value={thumbnailValue}
               onChange={onThumbnailChange}
               disabled={disabled}
               accept="image/*"
               label="Choose thumbnail"
               labelWhenSelected="Change thumbnail"
+              previewAlt="Knowledge thumbnail"
             />
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-spice-border bg-spice-bg-surface/95 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-spice-border px-5 py-3">
           <Button
             variant="ghost"
-            className="h-10 text-sm"
+            className="h-9 px-3 text-sm"
             disabled={disabled}
             onClick={onClose}
           >
             Cancel
           </Button>
           <Button
-            className="h-10 min-w-[10rem] text-sm"
+            className="h-9 px-3 text-sm"
             disabled={disabled || !title.trim() || !asset}
             onClick={onSave}
           >

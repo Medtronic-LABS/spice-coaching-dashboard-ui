@@ -1,8 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeEditModal } from '@/features/modules/components/KnowledgeEditModal';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
+
+const usePresignedFileUrlMock = vi.fn();
+
+vi.mock('@/features/modules/hooks/usePresignedFileUrl', () => ({
+  usePresignedFileUrl: (objectName: string | null | undefined) =>
+    usePresignedFileUrlMock(objectName),
+}));
 
 const sampleAsset: KnowledgeLibraryItem = {
   id: 'knowledge-asset-1',
@@ -21,7 +28,22 @@ const sampleAsset: KnowledgeLibraryItem = {
 };
 
 describe('KnowledgeEditModal', () => {
-  it('renders title, asset id, and save label when open', () => {
+  beforeEach(() => {
+    usePresignedFileUrlMock.mockReset();
+    usePresignedFileUrlMock.mockImplementation(
+      (objectName: string | null | undefined) => ({
+        url: objectName
+          ? `https://cdn.example.test/${encodeURIComponent(objectName)}`
+          : null,
+        isLoading: false,
+        isError: false,
+        objectName: objectName ?? null,
+        error: undefined,
+      }),
+    );
+  });
+
+  it('renders title and save label when open', () => {
     render(
       <KnowledgeEditModal
         open
@@ -41,8 +63,37 @@ describe('KnowledgeEditModal', () => {
     expect(
       screen.getByRole('heading', { name: 'Edit Knowledge Asset' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('ID: knowledge-asset-1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  it('shows the existing thumbnail when the asset has a storage path', () => {
+    render(
+      <KnowledgeEditModal
+        open
+        asset={{
+          ...sampleAsset,
+          thumbnailStoragePath: 'thumbnails/htn.png',
+        }}
+        title="HTN Referral Guidelines"
+        thumbnailFile={null}
+        error=""
+        disabled={false}
+        isSaving={false}
+        onTitleChange={vi.fn()}
+        onThumbnailChange={vi.fn()}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(usePresignedFileUrlMock).toHaveBeenCalledWith('thumbnails/htn.png');
+    expect(screen.getByAltText('Knowledge thumbnail')).toHaveAttribute(
+      'src',
+      'https://cdn.example.test/thumbnails%2Fhtn.png',
+    );
+    expect(
+      screen.getByText('Change thumbnail', { selector: 'label' }),
+    ).toBeInTheDocument();
   });
 
   it('disables save when title is blank and shows Saving… while busy', () => {

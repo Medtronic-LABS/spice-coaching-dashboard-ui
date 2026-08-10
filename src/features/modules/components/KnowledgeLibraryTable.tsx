@@ -112,14 +112,14 @@ export const KnowledgeLibraryTable = () => {
   );
   const [retireError, setRetireError] = useState('');
   const [downloadError, setDownloadError] = useState('');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState<{
     id: string;
     title: string;
   } | null>(null);
   const [uploaderSearch, setUploaderSearch] = useState('');
 
-  const [triggerPresignedUrl, { isLoading: isDownloading }] =
-    useLazyGetAdminFilePresignedUrlQuery();
+  const [triggerPresignedUrl] = useLazyGetAdminFilePresignedUrlQuery();
 
   const [updateMetadata, { isLoading: isPatchingTitle }] =
     useUpdateSourceDocumentMetadataMutation();
@@ -279,7 +279,10 @@ export const KnowledgeLibraryTable = () => {
   };
 
   const handleClearDraftFilters = () => {
-    setDraftDrawerFilters(KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS);
+    const cleared = { ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS };
+    setDraftDrawerFilters(cleared);
+    setAppliedDrawerFilters(cleared);
+    setPage(0);
   };
 
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
@@ -404,38 +407,43 @@ export const KnowledgeLibraryTable = () => {
 
           return (
             <div className="flex items-center gap-2">
+              {!isRetired ? (
+                <>
+                  <Button
+                    className="h-8 px-3 text-xs"
+                    variant="secondary"
+                    disabled={mutatingBusy}
+                    onClick={() => {
+                      setEditError('');
+                      setDownloadError('');
+                      setEditAsset(row);
+                      setEditTitle(row.title);
+                      setEditThumbnailFile(null);
+                      setEditOpen(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    className="h-8 px-3 text-xs"
+                    variant="secondary"
+                    disabled={mutatingBusy}
+                    onClick={() => {
+                      setAssignTarget({ id: row.id, title: row.title });
+                    }}
+                  >
+                    Assign
+                  </Button>
+                </>
+              ) : null}
               <Button
                 className="h-8 px-3 text-xs"
-                variant="secondary"
-                disabled={isRetired || mutatingBusy}
-                onClick={() => {
-                  setEditError('');
-                  setDownloadError('');
-                  setEditAsset(row);
-                  setEditTitle(row.title);
-                  setEditThumbnailFile(null);
-                  setEditOpen(true);
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                className="h-8 px-3 text-xs"
-                variant="secondary"
-                disabled={isRetired || mutatingBusy}
-                onClick={() => {
-                  setAssignTarget({ id: row.id, title: row.title });
-                }}
-              >
-                Assign
-              </Button>
-              <Button
-                className="h-8 px-3 text-xs"
-                disabled={isDownloading || !row.storedPath}
+                disabled={downloadingId === row.id || !row.storedPath}
                 onClick={() => {
                   void (async () => {
                     try {
                       setDownloadError('');
+                      setDownloadingId(row.id);
                       const res = await triggerPresignedUrl({
                         object_name: row.storedPath,
                         disposition: 'attachment',
@@ -449,31 +457,35 @@ export const KnowledgeLibraryTable = () => {
                       a.remove();
                     } catch (err) {
                       setDownloadError(formatRtkQueryError(err));
+                    } finally {
+                      setDownloadingId(null);
                     }
                   })();
                 }}
               >
-                {isDownloading ? 'Working…' : 'Download'}
+                {downloadingId === row.id ? 'Working…' : 'Download'}
               </Button>
-              <Button
-                className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-                variant="secondary"
-                disabled={isRetired || isRetiring}
-                onClick={() => {
-                  setRetireError('');
-                  setRetireAsset(row);
-                  setRetireConfirmOpen(true);
-                }}
-              >
-                Delete
-              </Button>
+              {!isRetired ? (
+                <Button
+                  className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                  variant="secondary"
+                  disabled={isRetiring}
+                  onClick={() => {
+                    setRetireError('');
+                    setRetireAsset(row);
+                    setRetireConfirmOpen(true);
+                  }}
+                >
+                  Delete
+                </Button>
+              ) : null}
             </div>
           );
         },
       },
     ],
     [
-      isDownloading,
+      downloadingId,
       isPatchingTitle,
       isReplacingThumbnail,
       isRetiring,
