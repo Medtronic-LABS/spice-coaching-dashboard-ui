@@ -46,7 +46,8 @@ export function createEmptyKnowledgeSplitDraft(): KnowledgeSplitDraft {
 
 export type KnowledgeYesNoFilter = '' | 'true' | 'false';
 
-export interface KnowledgeLibraryFilters {
+/** List/filter state for the knowledge library (not the filters drawer component). */
+export interface KnowledgeLibraryFilterState {
   q: string;
   status: KnowledgeLibraryStatusTab;
   uploadedAtFrom: string;
@@ -56,11 +57,12 @@ export interface KnowledgeLibraryFilters {
   ingested: KnowledgeYesNoFilter;
   sortBy: 'uploaded_date' | 'title';
   sortOrder: 'asc' | 'desc';
+  /** 0-based page index (matches Module Library). */
   page: number;
   pageSize: number;
 }
 
-export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilters = {
+export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilterState = {
   q: '',
   status: 'active',
   uploadedAtFrom: '',
@@ -70,6 +72,6 @@ export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilters = {
   ingested: '',
   sortBy: 'uploaded_date',
   sortOrder: 'desc',
-  page: 1,
-  pageSize: 20,
+  page: 0,
+  pageSize: 10,
 };

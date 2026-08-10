@@ -74,8 +74,64 @@ describe('KnowledgeLibraryTable', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Assign this document to the selected PO and all SKs under them.',
+        'Assign this document to selected POs. Their SKs are included automatically.',
       ),
+    ).toBeInTheDocument();
+  });
+
+  it('uses Module Library-style 0-based pagination controls', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<KnowledgeLibraryTable />);
+
+    expect(
+      await screen.findByText('HTN Referral Guidelines'),
+    ).toBeInTheDocument();
+
+    const rowsSelect = screen.getByLabelText('Rows per page');
+    expect(rowsSelect).toHaveValue('10');
+    expect(
+      Array.from((rowsSelect as HTMLSelectElement).options).map((o) => o.value),
+    ).toEqual(['5', '10', '15', '25', '50']);
+
+    expect(screen.getByLabelText('Page number')).toHaveValue(1);
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(screen.getByText(/Showing/)).toHaveTextContent(/Showing/);
+
+    await user.selectOptions(rowsSelect, '5');
+    expect(screen.getByLabelText('Rows per page')).toHaveValue('5');
+    expect(screen.getByLabelText('Page number')).toHaveValue(1);
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+  });
+
+  it('opens the edit and retire modals from row actions', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<KnowledgeLibraryTable />);
+
+    expect(
+      await screen.findByText('HTN Referral Guidelines'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    expect(
+      await screen.findByRole('heading', { name: 'Edit Knowledge Asset' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: 'Edit Knowledge Asset' }),
+      ).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    expect(
+      await screen.findByRole('heading', { name: 'Remove Knowledge Document' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Confirm Remove' }),
     ).toBeInTheDocument();
   });
 });

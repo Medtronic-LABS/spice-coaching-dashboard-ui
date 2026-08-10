@@ -1,12 +1,13 @@
+import type { FetchSourceDocumentsParams } from '@/features/modules/api/adminSourceDocumentsApi';
 import { dateRangeValidationMessage } from '@/features/modules/utils/moduleListFilters';
 import {
   KNOWLEDGE_LIBRARY_FILTER_DEFAULTS,
-  type KnowledgeLibraryFilters,
+  type KnowledgeLibraryFilterState,
 } from '@/features/modules/types/knowledgeLibrary.types';
 
 /** Drawer-only filter fields (search/sort/status stay outside). */
 export type KnowledgeLibraryDrawerFilters = Pick<
-  KnowledgeLibraryFilters,
+  KnowledgeLibraryFilterState,
   'uploadedAtFrom' | 'uploadedAtTo' | 'uploadedBy' | 'assigned' | 'ingested'
 >;
 
@@ -48,4 +49,19 @@ export function uploadedDateInputToToIso(dateInput: string): string {
   const date = new Date(`${dateInput.trim()}T00:00:00.000Z`);
   date.setUTCHours(23, 59, 59, 999);
   return date.toISOString();
+}
+
+/**
+ * Maps Knowledge Library UI status tab + ingested drawer filter to
+ * `GET /admin/source-documents` `status` query values.
+ * The backend has no `ingested` query param.
+ */
+export function resolveKnowledgeCatalogStatusFilter(args: {
+  statusTab: KnowledgeLibraryFilterState['status'];
+  ingested: KnowledgeLibraryFilterState['ingested'];
+}): FetchSourceDocumentsParams['status'] {
+  if (args.statusTab === 'retired') return 'retired';
+  if (args.ingested === 'true') return 'ingested';
+  if (args.ingested === 'false') return ['uploaded', 'ingesting', 'failed'];
+  return undefined;
 }

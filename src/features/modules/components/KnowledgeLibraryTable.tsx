@@ -5,11 +5,9 @@ import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
 } from '@/components/common/SettingsFilterDrawer';
-import { Modal } from '@/components/ui';
 import {
   Button,
   Card,
-  ImagePicker,
   Loader,
   SearchInput,
   Select,
@@ -17,6 +15,9 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
+import { KnowledgeEditModal } from '@/features/modules/components/KnowledgeEditModal';
+import { KnowledgeRetireModal } from '@/features/modules/components/KnowledgeRetireModal';
+import { KnowledgeThumbnailCell } from '@/features/modules/components/KnowledgeThumbnailCell';
 import { AssignmentDialog } from '@/features/modules/components/AssignmentDialog';
 import {
   useFetchKnowledgeUploadersQuery,
@@ -29,7 +30,6 @@ import {
   useUpdateSourceDocumentThumbnailMutation,
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { useLazyGetAdminFilePresignedUrlQuery } from '@/features/modules/api/adminFilesApi';
-import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   KNOWLEDGE_LIBRARY_FILTER_DEFAULTS,
@@ -40,6 +40,7 @@ import {
   hasActiveKnowledgeDrawerFilters,
   isKnowledgeDrawerDateRangeInvalid,
   KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
+  resolveKnowledgeCatalogStatusFilter,
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
   type KnowledgeLibraryDrawerFilters,
@@ -50,7 +51,7 @@ type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
+const PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
 
 const RefreshIcon = ({ className }: { className?: string }) => (
@@ -68,25 +69,6 @@ const RefreshIcon = ({ className }: { className?: string }) => (
     <path d="M21 3v6h-6" />
   </svg>
 );
-
-function KnowledgeThumbnailCell({
-  storagePath,
-}: {
-  storagePath: string | null;
-}) {
-  const { url } = usePresignedFileUrl(storagePath);
-  if (!storagePath) {
-    return <span className="text-xs text-spice-text-muted">—</span>;
-  }
-  if (!url) {
-    return <span className="text-xs text-spice-text-muted">…</span>;
-  }
-  return (
-    <div className="flex h-14 w-20 items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint">
-      <img src={url} alt="" className="h-full w-full object-cover" />
-    </div>
-  );
-}
 
 export const KnowledgeLibraryTable = () => {
   const [statusTab, setStatusTab] = useState<KnowledgeLibraryStatusTab>(
@@ -116,6 +98,7 @@ export const KnowledgeLibraryTable = () => {
   const [pageSize, setPageSize] = useState(
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.pageSize,
   );
+  const [pageInput, setPageInput] = useState('1');
 
   const [editOpen, setEditOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<KnowledgeLibraryItem | null>(null);
@@ -150,12 +133,16 @@ export const KnowledgeLibraryTable = () => {
   const filtersActive = hasActiveKnowledgeDrawerFilters(appliedDrawerFilters);
 
   const queryArgs = useMemo(() => {
-    const offset = (page - 1) * pageSize;
+    const offset = page * pageSize;
+    const statusParam = resolveKnowledgeCatalogStatusFilter({
+      statusTab,
+      ingested: appliedDrawerFilters.ingested,
+    });
     return {
       sync_published_visible: true,
       source_type: 'pdf' as const,
       ...(searchQ ? { q: searchQ } : {}),
-      ...(statusTab === 'retired' ? { status: 'retired' as const } : {}),
+      ...(statusParam ? { status: statusParam } : {}),
       ...(appliedDrawerFilters.uploadedAtFrom
         ? {
             uploaded_from: uploadedDateInputToFromIso(
@@ -175,9 +162,6 @@ export const KnowledgeLibraryTable = () => {
         : {}),
       ...(appliedDrawerFilters.assigned
         ? { assigned: appliedDrawerFilters.assigned === 'true' }
-        : {}),
-      ...(appliedDrawerFilters.ingested
-        ? { ingested: appliedDrawerFilters.ingested === 'true' }
         : {}),
       sort_by: sortBy,
       sort_dir: sortOrder,
@@ -232,20 +216,51 @@ export const KnowledgeLibraryTable = () => {
   );
 
   const total = catalog?.total_source_documents ?? 0;
-  const totalPages = Math.max(1, catalog?.total_pages ?? 1);
-  const hasPrevPage = page > 1;
-  const hasNextPage = page < totalPages;
+  const totalPages = catalog?.total_pages ?? 0;
+  const hasPrevPage = page > 0;
+  const hasNextPage = totalPages > 0 && page + 1 < totalPages;
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
+    setPageInput(String(page + 1));
+  }, [page]);
+
+  useEffect(() => {
+    if (totalPages > 0 && page >= totalPages) {
+      setPage(totalPages - 1);
+    }
   }, [page, totalPages]);
 
   useEffect(() => {
-    setPage(1);
-  }, [statusTab, searchQ, appliedDrawerFilters, sortBy, sortOrder, pageSize]);
+    setPage(0);
+  }, [statusTab, searchQ, appliedDrawerFilters, sortBy, sortOrder]);
 
-  const rangeStart = assets.length ? (page - 1) * pageSize + 1 : 0;
-  const rangeEnd = assets.length ? rangeStart + assets.length - 1 : 0;
+  const rangeStart = assets.length ? page * pageSize + 1 : 0;
+  const rangeEnd = assets.length ? page * pageSize + assets.length : 0;
+
+  const commitPageInput = () => {
+    const parsed = Number.parseInt(pageInput, 10);
+    const isValid =
+      Number.isFinite(parsed) &&
+      parsed >= 1 &&
+      (totalPages <= 0 || parsed <= totalPages);
+    if (!isValid) {
+      setPageInput(String(page + 1));
+      return;
+    }
+    setPage(parsed - 1);
+  };
+
+  const handlePageInputChange = (raw: string) => {
+    if (raw === '') {
+      setPageInput('');
+      return;
+    }
+    if (!/^\d+$/.test(raw)) return;
+    const parsed = Number.parseInt(raw, 10);
+    if (parsed < 1) return;
+    if (totalPages > 0 && parsed > totalPages) return;
+    setPageInput(raw);
+  };
 
   const handleOpenFiltersDrawer = () => {
     setDraftDrawerFilters(appliedDrawerFilters);
@@ -259,7 +274,7 @@ export const KnowledgeLibraryTable = () => {
   const handleApplyFilters = () => {
     if (isKnowledgeDrawerDateRangeInvalid(draftDrawerFilters)) return;
     setAppliedDrawerFilters(draftDrawerFilters);
-    setPage(1);
+    setPage(0);
     setFiltersDrawerOpen(false);
   };
 
@@ -270,6 +285,61 @@ export const KnowledgeLibraryTable = () => {
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
     setSortBy(nextSortBy as typeof sortBy);
     setSortOrder(nextSortDir);
+  };
+
+  const closeEditModal = () => {
+    setEditOpen(false);
+    setEditAsset(null);
+    setEditTitle('');
+    setEditThumbnailFile(null);
+    setEditError('');
+  };
+
+  const closeRetireModal = () => {
+    setRetireConfirmOpen(false);
+    setRetireAsset(null);
+    setRetireError('');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editAsset) return;
+    if (!editTitle.trim()) {
+      setEditError('Title is required.');
+      return;
+    }
+    setEditError('');
+    void (async () => {
+      try {
+        await updateMetadata({
+          sourceDocumentId: editAsset.id,
+          body: { title: editTitle.trim() },
+        }).unwrap();
+
+        if (editThumbnailFile) {
+          await updateThumbnail({
+            sourceDocumentId: editAsset.id,
+            file: editThumbnailFile,
+          }).unwrap();
+        }
+
+        closeEditModal();
+      } catch (err) {
+        setEditError(formatRtkQueryError(err));
+      }
+    })();
+  };
+
+  const handleConfirmRetire = () => {
+    if (!retireAsset) return;
+    setRetireError('');
+    void (async () => {
+      try {
+        await retireKnowledgeDocument(retireAsset.id).unwrap();
+        closeRetireModal();
+      } catch (err) {
+        setRetireError(formatRtkQueryError(err));
+      }
+    })();
   };
 
   const columns: Array<ColumnDef<KnowledgeTableRow>> = useMemo(
@@ -447,7 +517,7 @@ export const KnowledgeLibraryTable = () => {
             </div>
             <div className="text-xs text-spice-text-muted">
               {total
-                ? `Showing ${rangeStart}–${rangeEnd} of ${total} assets`
+                ? `${total} knowledge asset${total === 1 ? '' : 's'}`
                 : 'No knowledge assets match your filters.'}
             </div>
           </div>
@@ -474,6 +544,11 @@ export const KnowledgeLibraryTable = () => {
               active={filtersActive}
               expanded={filtersDrawerOpen}
               onClick={handleOpenFiltersDrawer}
+              ariaLabel={
+                filtersActive
+                  ? 'Open knowledge filters (filters applied)'
+                  : 'Open knowledge filters'
+              }
               tooltip={
                 filtersActive
                   ? 'Results reflect the filters currently applied.'
@@ -515,48 +590,109 @@ export const KnowledgeLibraryTable = () => {
           columns={columns}
           keyExtractor={(row) => row.id}
           containerClassName="min-h-[12rem]"
-          caption={undefined}
           emptyMessage="No results"
           sortBy={sortBy}
           sortDir={sortOrder}
           onSort={handleSort}
         />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-spice-text-muted">
-              Page {page} / {totalPages}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                className="h-9 px-3 text-xs"
-                disabled={!hasPrevPage}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Prev
-              </Button>
-              <Button
-                variant="secondary"
-                className="h-9 px-3 text-xs"
-                disabled={!hasNextPage}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </Button>
-            </div>
+        <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
+            <label className="inline-flex items-center gap-2">
+              <span className="whitespace-nowrap font-medium text-spice-text-medium">
+                Rows
+              </span>
+              <Select
+                aria-label="Rows per page"
+                className="h-8 w-[4.5rem] px-2 text-xs"
+                value={String(pageSize)}
+                options={PAGE_SIZE_OPTIONS.map((size) => ({
+                  label: String(size),
+                  value: String(size),
+                }))}
+                onChange={(value) => {
+                  const next = Number.parseInt(value, 10);
+                  if (!Number.isFinite(next) || next <= 0) return;
+                  setPageSize(next);
+                  setPage(0);
+                }}
+              />
+            </label>
+
+            <label className="inline-flex items-center gap-2">
+              <span className="whitespace-nowrap font-medium text-spice-text-medium">
+                Page
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages > 0 ? totalPages : 1}
+                step={1}
+                inputMode="numeric"
+                aria-label="Page number"
+                className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
+                value={pageInput}
+                onChange={(e) => handlePageInputChange(e.target.value)}
+                onBlur={commitPageInput}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+              />
+              <span className="whitespace-nowrap">
+                of{' '}
+                <span className="font-semibold text-spice-text-medium">
+                  {totalPages}
+                </span>
+              </span>
+            </label>
+
+            {assets.length ? (
+              <span className="whitespace-nowrap">
+                Showing{' '}
+                <span className="font-semibold text-spice-text-medium">
+                  {rangeStart}
+                </span>
+                –
+                <span className="font-semibold text-spice-text-medium">
+                  {rangeEnd}
+                </span>
+                {total > 0 ? (
+                  <>
+                    {' '}
+                    of{' '}
+                    <span className="font-semibold text-spice-text-medium">
+                      {total}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+            ) : (
+              <span>No results on this page</span>
+            )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-spice-text-muted">Page size</div>
-            <Select
-              options={PAGE_SIZE_OPTIONS.map((s) => ({
-                label: String(s),
-                value: String(s),
-              }))}
-              value={String(pageSize)}
-              onChange={(v) => setPageSize(Number(v))}
-            />
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="h-8 px-3 text-xs"
+              disabled={!hasPrevPage}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-8 px-3 text-xs"
+              disabled={!hasNextPage}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
           </div>
         </div>
       </Card>
@@ -578,203 +714,29 @@ export const KnowledgeLibraryTable = () => {
         />
       ) : null}
 
-      <Modal
+      <KnowledgeEditModal
         open={editOpen}
-        labelledBy="knowledge-edit-title"
-        onClose={() => {
-          if (editModalDisabled) return;
-          setEditOpen(false);
-          setEditAsset(null);
-          setEditTitle('');
-          setEditThumbnailFile(null);
-          setEditError('');
-        }}
-      >
-        <Card
-          variant="elevated"
-          className="w-full max-w-2xl border-spice-border p-0 shadow-lg"
-        >
-          <div className="shrink-0 space-y-4 p-6 pb-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2
-                  id="knowledge-edit-title"
-                  className="text-xl font-semibold text-spice-text-primary"
-                >
-                  Edit Knowledge Asset
-                </h2>
-                <p className="mt-1 text-xs text-spice-text-muted">
-                  {editAsset ? `ID: ${editAsset.id}` : null}
-                </p>
-              </div>
-            </div>
+        asset={editAsset}
+        title={editTitle}
+        thumbnailFile={editThumbnailFile}
+        error={editError}
+        disabled={editModalDisabled}
+        isSaving={isPatchingTitle || isReplacingThumbnail}
+        onTitleChange={setEditTitle}
+        onThumbnailChange={setEditThumbnailFile}
+        onClose={closeEditModal}
+        onSave={handleSaveEdit}
+      />
 
-            {editError ? (
-              <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                {editError}
-              </div>
-            ) : null}
-
-            <div className="space-y-2">
-              <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                Title
-              </div>
-              <input
-                type="text"
-                value={editTitle}
-                disabled={editModalDisabled}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                Custom thumbnail (optional)
-              </div>
-              <ImagePicker
-                variant="compact"
-                value={editThumbnailFile}
-                onChange={setEditThumbnailFile}
-                disabled={editModalDisabled}
-                accept="image/*"
-                label="Choose thumbnail"
-                labelWhenSelected="Change thumbnail"
-              />
-            </div>
-          </div>
-
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-spice-border bg-spice-bg-surface/95 px-6 py-4 sm:flex-row sm:justify-end sm:items-center">
-            <Button
-              variant="ghost"
-              className="h-10 text-sm"
-              disabled={editModalDisabled}
-              onClick={() => {
-                setEditOpen(false);
-                setEditAsset(null);
-                setEditTitle('');
-                setEditThumbnailFile(null);
-                setEditError('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="h-10 min-w-[10rem] text-sm"
-              disabled={editModalDisabled || !editTitle.trim() || !editAsset}
-              onClick={() => {
-                if (!editAsset) return;
-                if (!editTitle.trim()) {
-                  setEditError('Title is required.');
-                  return;
-                }
-                setEditError('');
-                void (async () => {
-                  try {
-                    await updateMetadata({
-                      sourceDocumentId: editAsset.id,
-                      body: { title: editTitle.trim() },
-                    }).unwrap();
-
-                    if (editThumbnailFile) {
-                      await updateThumbnail({
-                        sourceDocumentId: editAsset.id,
-                        file: editThumbnailFile,
-                      }).unwrap();
-                    }
-
-                    setEditOpen(false);
-                    setEditAsset(null);
-                    setEditTitle('');
-                    setEditThumbnailFile(null);
-                    setEditError('');
-                  } catch (err) {
-                    setEditError(formatRtkQueryError(err));
-                  }
-                })();
-              }}
-            >
-              {isPatchingTitle || isReplacingThumbnail ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </Card>
-      </Modal>
-
-      <Modal
+      <KnowledgeRetireModal
         open={retireConfirmOpen}
-        labelledBy="knowledge-retire-title"
-        onClose={() => {
-          if (retireModalDisabled) return;
-          setRetireConfirmOpen(false);
-          setRetireAsset(null);
-          setRetireError('');
-        }}
-      >
-        <Card
-          variant="elevated"
-          className="w-full max-w-xl border-spice-border p-0 shadow-lg"
-        >
-          <div className="shrink-0 space-y-4 p-6 pb-4">
-            <h2
-              id="knowledge-retire-title"
-              className="text-xl font-semibold text-spice-text-primary"
-            >
-              Remove Knowledge Document
-            </h2>
-            {retireError ? (
-              <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                {retireError}
-              </div>
-            ) : null}
-            <p className="text-sm text-spice-text-muted">
-              This will retire the document and hide it from devices. Stored
-              files are kept.
-              {retireAsset ? (
-                <>
-                  {' '}
-                  Document:{' '}
-                  <span className="font-semibold">{retireAsset.title}</span>.
-                </>
-              ) : null}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-spice-border bg-spice-bg-surface/95 px-6 py-4 sm:flex-row sm:justify-end sm:items-center">
-            <Button
-              variant="ghost"
-              className="h-10 text-sm"
-              disabled={retireModalDisabled}
-              onClick={() => {
-                setRetireConfirmOpen(false);
-                setRetireAsset(null);
-                setRetireError('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="h-10 min-w-[10rem] text-sm"
-              disabled={retireModalDisabled || !retireAsset}
-              onClick={() => {
-                if (!retireAsset) return;
-                setRetireError('');
-                void (async () => {
-                  try {
-                    await retireKnowledgeDocument(retireAsset.id).unwrap();
-                    setRetireConfirmOpen(false);
-                    setRetireAsset(null);
-                    setRetireError('');
-                  } catch (err) {
-                    setRetireError(formatRtkQueryError(err));
-                  }
-                })();
-              }}
-            >
-              {isRetiring ? 'Removing…' : 'Confirm Remove'}
-            </Button>
-          </div>
-        </Card>
-      </Modal>
+        asset={retireAsset}
+        error={retireError}
+        disabled={retireModalDisabled}
+        isRetiring={isRetiring}
+        onClose={closeRetireModal}
+        onConfirm={handleConfirmRetire}
+      />
     </div>
   );
 };

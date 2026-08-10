@@ -15,6 +15,12 @@ export type SourceDocumentSourceType =
   | 'audio'
   | 'video';
 
+/** Hierarchy actor on source-document list/detail rows. */
+export interface SourceDocumentActorRef {
+  id: number;
+  name: string;
+}
+
 export interface SourceDocumentSummary {
   id: string;
   title: string;
@@ -30,7 +36,8 @@ export interface SourceDocumentSummary {
   uploaded_date: string;
   ingested_at: string;
   updated_at: string;
-  uploaded_by: string | null;
+  uploaded_by: SourceDocumentActorRef | null;
+  updated_by: SourceDocumentActorRef | null;
   assigned: boolean;
   sync_published_visible?: boolean;
 }
@@ -55,9 +62,9 @@ export interface FetchSourceDocumentsParams {
   q?: string;
   uploaded_from?: string;
   uploaded_to?: string;
-  uploaded_by?: string;
+  /** Hierarchy user id(s); backend accepts repeated or comma-separated ints. */
+  uploaded_by?: string | number | Array<string | number>;
   assigned?: boolean;
-  ingested?: boolean;
   limit?: number;
   offset?: number;
   sort_by?: string;
@@ -76,6 +83,24 @@ export interface UpdateSourceDocumentThumbnailRequest {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function normalizeSourceDocumentActorRef(
+  value: unknown,
+): SourceDocumentActorRef | null {
+  if (!isPlainObject(value)) return null;
+  const id = value.id;
+  const name = value.name;
+  if (
+    typeof id !== 'number' ||
+    !Number.isFinite(id) ||
+    typeof name !== 'string'
+  ) {
+    return null;
+  }
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  return { id, name: trimmed };
 }
 
 function normalizeSourceDocumentSummary(
@@ -119,7 +144,8 @@ function normalizeSourceDocumentSummary(
           : typeof item.ingested_at === 'string'
             ? item.ingested_at
             : '',
-    uploaded_by: typeof item.uploaded_by === 'string' ? item.uploaded_by : null,
+    uploaded_by: normalizeSourceDocumentActorRef(item.uploaded_by),
+    updated_by: normalizeSourceDocumentActorRef(item.updated_by),
     assigned: item.assigned === true,
     sync_published_visible:
       typeof item.sync_published_visible === 'boolean'
@@ -146,7 +172,7 @@ export function mapSourceDocumentToKnowledgeItem(
     thumbnailStoragePath: doc.thumbnail_storage_path,
     uploadedAt: doc.uploaded_date || doc.ingested_at,
     updatedAt: doc.updated_at || doc.uploaded_date || doc.ingested_at,
-    uploadedBy: doc.uploaded_by,
+    uploadedBy: doc.uploaded_by?.name ?? null,
     assigned: doc.assigned,
     ingested: doc.status === 'ingested',
     status: doc.status,

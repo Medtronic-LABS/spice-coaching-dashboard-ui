@@ -9,10 +9,18 @@ import { SPICE_COUNTRY_ID } from '@/features/modules/constants/spiceRegionConsta
 import { parseSpiceRegionListResponse } from '@/features/modules/utils/parseSpiceRegionListResponse';
 import { parseSpiceUserListResponse } from '@/features/modules/utils/parseSpiceUserListResponse';
 import { extractSpiceEntityList } from '@/features/modules/utils/parseSpiceSuccessResponse';
-import type { LocalizedString } from '@/types/localized';
-import { parseLocalizedStringField } from '@/features/modules/utils/localizedWire';
+import {
+  buildDistrictNameById,
+  getHierarchyPageSize,
+  mapHierarchyUserToAdminUser,
+  mapHierarchyUsersToAdminUsers,
+  parseDistrictListResponse,
+  parseHierarchyUserListResponse,
+  parseUpazilaListResponse,
+} from '@/features/modules/utils/mapHierarchyUsersToAdminUsers';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
-export type AssignmentType = 'individual' | 'po_sk' | 'geographical' | 'group';
+export type AssignmentSummaryType = 'po_sk' | 'sk' | 'geographical';
 
 export type AdminUserRole = 'AM' | 'PO' | 'SK';
 
@@ -21,36 +29,33 @@ export interface AssignmentUser {
   name: string;
   role: AdminUserRole;
   district: string;
+  district_id: number;
   upazila: string | null;
+  upazilas: string[];
   parent_id: number | null;
-}
-
-export interface ModuleAssignment {
-  id: string;
-  module_id: string;
-  module_title: LocalizedString | null;
-  assignment_type: AssignmentType;
-  tenant_id: number | null;
-  user_id: number | null;
-  user?: AssignmentUser | null;
-  upazila?: string | null;
-  assigned_by: number;
-  assigned_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface FetchAssignmentsParams {
-  module_id?: string;
-  assignment_type?: AssignmentType;
 }
 
 export interface CreateAssignmentRequest {
   module_id: string;
-  assignment_type: AssignmentType;
   user_ids?: number[];
-  tenant_ids?: number[];
   upazilas?: string[];
+}
+
+export interface ReplaceAssignmentUsersRequest {
+  moduleId: string;
+  user_ids?: number[];
+  upazilas?: string[];
+}
+
+export interface AssignmentUpdateResponse {
+  added_count: number;
+  removed_count: number;
+  assignment_ids: string[];
+}
+
+export interface CreateAssignmentResponse {
+  assigned_count: number;
+  assignment_ids: string[];
 }
 
 export interface AdminUser {
@@ -58,52 +63,25 @@ export interface AdminUser {
   name: string;
   role: AdminUserRole;
   district: string;
+  district_id: number;
   upazila: string | null;
+  upazilas: string[];
   parent_id: number | null;
 }
 
-function parseAdminUsersResponse(response: unknown): AdminUser[] {
-  if (!Array.isArray(response)) return [];
+export interface AdminUpazila {
+  id: number;
+  name: string;
+  district_id: number;
+}
 
-  return response.flatMap((item) => {
-    if (!item || typeof item !== 'object') return [];
-    const record = item as Record<string, unknown>;
-    const id = record.id;
-    const name = record.name;
-    const role = record.role;
-    const district = record.district;
-    const upazila = record.upazila;
-    const parentId = record.parent_id;
-
-    if (
-      typeof id !== 'number' ||
-      typeof name !== 'string' ||
-      typeof district !== 'string'
-    ) {
-      return [];
-    }
-
-    const parsedUpazila =
-      upazila === null || upazila === undefined
-        ? null
-        : typeof upazila === 'string'
-          ? upazila
-          : null;
-
-    if (role !== 'AM' && role !== 'PO' && role !== 'SK') {
-      return [];
-    }
-
-    return [
-      {
-        id,
-        name,
-        role,
-        district,
-        upazila: parsedUpazila,
-        parent_id: typeof parentId === 'number' ? parentId : null,
-      },
-    ];
+export function parseAssignedUsersResponse(response: unknown): AdminUser[] {
+  if (!response || typeof response !== 'object') return [];
+  const record = response as Record<string, unknown>;
+  const users = Array.isArray(record.users) ? record.users : [];
+  return users.flatMap((user) => {
+    const mapped = mapHierarchyUserToAdminUser(user, new Map());
+    return mapped ? [mapped] : [];
   });
 }
 
@@ -128,16 +106,13 @@ export function getUniqueUpazilas(
   return Array.from(
     new Set(
       users
-        .filter((user) => user.upazila)
         .filter((user) => !districtFilter || user.district === districtFilter)
-        .map((user) => user.upazila as string),
+        .flatMap((user) => {
+          if (user.upazilas?.length) return user.upazilas;
+          return user.upazila ? [user.upazila] : [];
+        }),
     ),
   ).sort((a, b) => a.localeCompare(b));
-}
-
-export interface CreateAssignmentResponse {
-  assigned_count: number;
-  assignment_ids: string[];
 }
 
 export interface SpiceDistrict {
@@ -231,63 +206,12 @@ function mapHealthFacility(
 
 export const adminAssignmentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    fetchAssignments: builder.query<
-      ModuleAssignment[],
-      FetchAssignmentsParams | void
-    >({
-      query: (params) => ({
-        url: '/admin/assignments',
+    fetchModuleAssignedUsers: builder.query<AdminUser[], string>({
+      query: (moduleId) => ({
+        url: `/admin/assignments/${encodeURIComponent(moduleId)}/users`,
         method: 'GET',
-        params: params ?? undefined,
       }),
-      transformResponse: (response: unknown) => {
-        if (!Array.isArray(response)) return [];
-        return response.flatMap((item) => {
-          if (!item || typeof item !== 'object') return [];
-          const record = item as Record<string, unknown>;
-          const id = record.id;
-          const module_id = record.module_id;
-          if (typeof id !== 'string' || typeof module_id !== 'string') {
-            return [];
-          }
-          const moduleTitleRaw = parseLocalizedStringField(
-            record,
-            'module_title',
-            'module_title_bn',
-            'module_title_en',
-          );
-          return [
-            {
-              id,
-              module_id,
-              module_title: Object.keys(moduleTitleRaw).length
-                ? moduleTitleRaw
-                : null,
-              assignment_type: record.assignment_type as AssignmentType,
-              tenant_id:
-                typeof record.tenant_id === 'number' ? record.tenant_id : null,
-              user_id:
-                typeof record.user_id === 'number' ? record.user_id : null,
-              user:
-                record.user && typeof record.user === 'object'
-                  ? (record.user as AssignmentUser)
-                  : null,
-              upazila:
-                typeof record.upazila === 'string' ? record.upazila : null,
-              assigned_by:
-                typeof record.assigned_by === 'number' ? record.assigned_by : 0,
-              assigned_at:
-                typeof record.assigned_at === 'string'
-                  ? record.assigned_at
-                  : '',
-              created_at:
-                typeof record.created_at === 'string' ? record.created_at : '',
-              updated_at:
-                typeof record.updated_at === 'string' ? record.updated_at : '',
-            } satisfies ModuleAssignment,
-          ];
-        });
-      },
+      transformResponse: parseAssignedUsersResponse,
     }),
     createAssignment: builder.mutation<
       CreateAssignmentResponse,
@@ -299,18 +223,101 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
         body,
       }),
     }),
-    revokeAssignment: builder.mutation<{ status: string }, string>({
-      query: (id) => ({
-        url: `/admin/assignments/${encodeURIComponent(id)}`,
-        method: 'DELETE',
+    replaceModuleAssignedUsers: builder.mutation<
+      AssignmentUpdateResponse,
+      ReplaceAssignmentUsersRequest
+    >({
+      query: ({ moduleId, user_ids, upazilas }) => ({
+        url: `/admin/assignments/${encodeURIComponent(moduleId)}/users`,
+        method: 'PUT',
+        body: { user_ids, upazilas },
       }),
     }),
     fetchAdminUsers: builder.query<AdminUser[], void>({
-      query: () => ({
-        url: '/admin/users',
-        method: 'GET',
-      }),
-      transformResponse: parseAdminUsersResponse,
+      async queryFn(_arg, _api, _extraOptions, baseQuery) {
+        const pageSize = getHierarchyPageSize();
+        const allDistricts: Array<{ id: number; name: string }> = [];
+        let districtOffset = 0;
+        let districtTotal = Number.POSITIVE_INFINITY;
+
+        while (districtOffset < districtTotal) {
+          const districtResult = await baseQuery({
+            url: '/admin/districts',
+            method: 'GET',
+            params: { limit: pageSize, offset: districtOffset },
+          });
+          if (districtResult.error) {
+            return { error: districtResult.error as FetchBaseQueryError };
+          }
+          const page = parseDistrictListResponse(districtResult.data);
+          allDistricts.push(...page.districts);
+          districtTotal = page.total;
+          if (page.districts.length === 0) break;
+          districtOffset += page.districts.length;
+        }
+
+        const districtNameById = buildDistrictNameById(allDistricts);
+        const allUsers: unknown[] = [];
+        let userOffset = 0;
+        let userTotal = Number.POSITIVE_INFINITY;
+
+        while (userOffset < userTotal) {
+          const usersResult = await baseQuery({
+            url: '/admin/hierarchy/users',
+            method: 'GET',
+            params: { limit: pageSize, offset: userOffset },
+          });
+          if (usersResult.error) {
+            return { error: usersResult.error as FetchBaseQueryError };
+          }
+          const page = parseHierarchyUserListResponse(usersResult.data);
+          allUsers.push(...page.users);
+          userTotal = page.total;
+          if (page.users.length === 0) break;
+          userOffset += page.users.length;
+        }
+
+        return {
+          data: mapHierarchyUsersToAdminUsers(allUsers, districtNameById),
+        };
+      },
+    }),
+    fetchAdminUpazilas: builder.query<
+      AdminUpazila[],
+      { districtId?: number } | void
+    >({
+      async queryFn(arg, _api, _extraOptions, baseQuery) {
+        const pageSize = getHierarchyPageSize();
+        const districtId =
+          arg && 'districtId' in arg ? arg.districtId : undefined;
+        const allUpazilas: AdminUpazila[] = [];
+        let offset = 0;
+        let total = Number.POSITIVE_INFINITY;
+
+        while (offset < total) {
+          const result = await baseQuery({
+            url: '/admin/upazilas',
+            method: 'GET',
+            params: {
+              limit: pageSize,
+              offset,
+              ...(typeof districtId === 'number'
+                ? { district_id: districtId }
+                : {}),
+            },
+          });
+          if (result.error) {
+            return { error: result.error as FetchBaseQueryError };
+          }
+          const page = parseUpazilaListResponse(result.data);
+          allUpazilas.push(...page.upazilas);
+          total = page.total;
+          if (page.upazilas.length === 0) break;
+          offset += page.upazilas.length;
+        }
+
+        return { data: allUpazilas };
+      },
     }),
     /** admin-service POST /district-list */
     fetchDistricts: builder.query<SpiceDistrict[], void>({
@@ -395,12 +402,14 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useFetchAssignmentsQuery,
-  useLazyFetchAssignmentsQuery,
+  useFetchModuleAssignedUsersQuery,
+  useLazyFetchModuleAssignedUsersQuery,
   useCreateAssignmentMutation,
-  useRevokeAssignmentMutation,
+  useReplaceModuleAssignedUsersMutation,
   useFetchAdminUsersQuery,
   useLazyFetchAdminUsersQuery,
+  useFetchAdminUpazilasQuery,
+  useLazyFetchAdminUpazilasQuery,
   useFetchDistrictsQuery,
   useFetchChiefdomsQuery,
   useFetchVillagesQuery,

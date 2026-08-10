@@ -11,13 +11,13 @@ import {
 import { parseConfigDurationDays } from '@/features/admin-configs/utils/configDuration';
 import {
   useFetchAdminUsersQuery,
-  useFetchAssignmentsQuery,
-  type AssignmentType,
+  useFetchModuleAssignedUsersQuery,
+  type AssignmentSummaryType,
 } from '@/features/modules/api/adminAssignmentApi';
 import { AssignedUsersSummary } from '@/features/modules/components/AssignedUsersSummary';
 import type { AssignedUserEntry } from '@/features/modules/utils/assignmentDisplay';
 import {
-  buildAssignedUserEntries,
+  buildEntriesFromAssignedUsers,
   countAssignedUsers,
 } from '@/features/modules/utils/assignmentDisplay';
 import {
@@ -32,7 +32,7 @@ type ModuleAssignedState = {
   assignedCount?: number;
   assignedUsers?: AssignedUserEntry[];
   removedUsers?: AssignedUserEntry[];
-  assignmentType?: AssignmentType;
+  assignmentType?: AssignmentSummaryType;
 };
 
 export const ModuleAssignedPage = () => {
@@ -113,10 +113,10 @@ export const ModuleAssignedPage = () => {
   }, [assignmentDurationDays, isReattemptWindowLoading, t]);
 
   const {
-    data: existingAssignments,
+    data: moduleAssignedUsers,
     isLoading: isLoadingAssignments,
     isFetching: isFetchingAssignments,
-  } = useFetchAssignmentsQuery(moduleId ? { module_id: moduleId } : undefined, {
+  } = useFetchModuleAssignedUsersQuery(moduleId ?? '', {
     skip: !moduleId || !showAllAssigned,
   });
 
@@ -133,84 +133,13 @@ export const ModuleAssignedPage = () => {
       return state.assignedUsers ?? [];
     }
 
-    const assignments = existingAssignments ?? [];
-    const users = adminUsers ?? [];
-
-    // "Show all" must ignore the current assignmentType and display everything
-    // currently assigned to this module.
-    const poIds = assignments.flatMap((assignment) =>
-      assignment.assignment_type === 'po_sk' && assignment.user_id !== null
-        ? [assignment.user_id]
-        : [],
+    return buildEntriesFromAssignedUsers(
+      moduleAssignedUsers ?? [],
+      adminUsers ?? [],
     );
-    const poSkEntries = buildAssignedUserEntries(
-      'po_sk',
-      Array.from(new Set(poIds)),
-      users,
-    );
-
-    const individualUserIds = assignments.flatMap((assignment) =>
-      assignment.assignment_type === 'individual' && assignment.user_id !== null
-        ? [assignment.user_id]
-        : [],
-    );
-    const individualEntries: AssignedUserEntry[] = Array.from(
-      new Set(individualUserIds),
-    ).flatMap((userId) => {
-      const user = users.find((candidate) => candidate.id === userId);
-      if (!user) return [];
-      if (user.role !== 'PO' && user.role !== 'SK') return [];
-      return [
-        {
-          kind: 'individual',
-          userId,
-          role: user.role,
-          name: user.name,
-        } satisfies AssignedUserEntry,
-      ];
-    });
-
-    const upazilaNames = assignments.flatMap((assignment) =>
-      assignment.assignment_type === 'geographical' && assignment.upazila
-        ? [assignment.upazila]
-        : [],
-    );
-    const uniqueUpazilaNames = Array.from(new Set(upazilaNames));
-    const upazilaEntries: AssignedUserEntry[] = uniqueUpazilaNames.map(
-      (upazilaName) => {
-        const skUsers = users
-          .filter((user) => user.role === 'SK' && user.upazila === upazilaName)
-          .map((user) => ({ userId: user.id, name: user.name }));
-
-        return {
-          kind: 'upazila',
-          upazilaName,
-          skUsers,
-        } satisfies AssignedUserEntry;
-      },
-    );
-
-    const groupEntries: AssignedUserEntry[] = assignments.flatMap(
-      (assignment) =>
-        assignment.assignment_type === 'group' && assignment.tenant_id !== null
-          ? [
-              {
-                kind: 'geographical',
-                name: `Organization #${assignment.tenant_id}`,
-              } satisfies AssignedUserEntry,
-            ]
-          : [],
-    );
-
-    return [
-      ...poSkEntries,
-      ...individualEntries,
-      ...upazilaEntries,
-      ...groupEntries,
-    ];
   }, [
     adminUsers,
-    existingAssignments,
+    moduleAssignedUsers,
     moduleId,
     showAllAssigned,
     state.assignedUsers,

@@ -7,50 +7,6 @@ export interface KnowledgeSplitValidationOptions {
   requireTitle?: boolean;
 }
 
-/**
- * Client-side validation for split drafts.
- * Returns a human-readable error message, or `null` when drafts are valid.
- */
-export function knowledgeSplitDraftInvalidReason(
-  splits: KnowledgeSplitDraft[],
-  options: KnowledgeSplitValidationOptions = {},
-): string | null {
-  const { pageCount = null, requireTitle = true } = options;
-
-  if (splits.length === 0) return 'Please add at least one split.';
-
-  for (let i = 0; i < splits.length; i += 1) {
-    const row = splits[i];
-
-    if (requireTitle && !row.title.trim()) {
-      return `Split ${i + 1}: title is required.`;
-    }
-
-    if (!Number.isFinite(row.startPage) || row.startPage < 1) {
-      return `Split ${i + 1}: start page must be >= 1.`;
-    }
-
-    if (!Number.isFinite(row.endPage) || row.endPage < 1) {
-      return `Split ${i + 1}: end page must be >= 1.`;
-    }
-
-    if (row.startPage > row.endPage) {
-      return `Split ${i + 1}: start page must be <= end page.`;
-    }
-
-    if (typeof pageCount === 'number' && pageCount >= 1) {
-      if (row.startPage > pageCount) {
-        return `Split ${i + 1}: start page must be ≤ ${pageCount}.`;
-      }
-      if (row.endPage > pageCount) {
-        return `Split ${i + 1}: end page must be ≤ ${pageCount}.`;
-      }
-    }
-  }
-
-  return null;
-}
-
 export type KnowledgeSplitDraftFieldErrors = {
   title?: string;
   startPage?: string;

@@ -3,7 +3,6 @@ import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibr
 import {
   knowledgeSplitDraftFieldErrors,
   knowledgeSplitDraftHasFieldErrors,
-  knowledgeSplitDraftInvalidReason,
 } from './knowledgeSplitValidation';
 
 function splitDraft(
@@ -18,63 +17,6 @@ function splitDraft(
     ...partial,
   };
 }
-
-describe('knowledgeSplitDraftInvalidReason', () => {
-  it('empty splits => error', () => {
-    expect(knowledgeSplitDraftInvalidReason([])).toBe(
-      'Please add at least one split.',
-    );
-  });
-
-  it('missing title => error', () => {
-    const splits = [splitDraft({ title: '' })];
-    expect(knowledgeSplitDraftInvalidReason(splits)).toBe(
-      'Split 1: title is required.',
-    );
-  });
-
-  it('startPage < 1 => error', () => {
-    const splits = [splitDraft({ startPage: 0 })];
-    expect(knowledgeSplitDraftInvalidReason(splits)).toBe(
-      'Split 1: start page must be >= 1.',
-    );
-  });
-
-  it('endPage < 1 => error', () => {
-    const splits = [splitDraft({ endPage: 0 })];
-    expect(knowledgeSplitDraftInvalidReason(splits)).toBe(
-      'Split 1: end page must be >= 1.',
-    );
-  });
-
-  it('startPage > endPage => error', () => {
-    const splits = [splitDraft({ startPage: 2, endPage: 1 })];
-    expect(knowledgeSplitDraftInvalidReason(splits)).toBe(
-      'Split 1: start page must be <= end page.',
-    );
-  });
-
-  it('endPage > pageCount => error', () => {
-    const splits = [splitDraft({ startPage: 1, endPage: 10 })];
-    expect(knowledgeSplitDraftInvalidReason(splits, { pageCount: 5 })).toBe(
-      'Split 1: end page must be ≤ 5.',
-    );
-  });
-
-  it('startPage > pageCount => error', () => {
-    const splits = [splitDraft({ startPage: 8, endPage: 9 })];
-    expect(knowledgeSplitDraftInvalidReason(splits, { pageCount: 5 })).toBe(
-      'Split 1: start page must be ≤ 5.',
-    );
-  });
-
-  it('valid splits => returns null', () => {
-    const splits = [splitDraft({ title: 'Split 1', startPage: 1, endPage: 1 })];
-    expect(
-      knowledgeSplitDraftInvalidReason(splits, { pageCount: 5 }),
-    ).toBeNull();
-  });
-});
 
 describe('knowledgeSplitDraftFieldErrors', () => {
   it('live mode skips title but flags end page over pageCount', () => {
@@ -96,6 +38,44 @@ describe('knowledgeSplitDraftFieldErrors', () => {
     expect(errors[0]?.title).toBe('Title is required.');
     expect(errors[0]?.endPage).toBe('End page must be ≤ 5.');
   });
+
+  it('flags start page below 1', () => {
+    const errors = knowledgeSplitDraftFieldErrors([
+      splitDraft({ startPage: 0, endPage: 1 }),
+    ]);
+    expect(errors[0]?.startPage).toBe('Start page must be >= 1.');
+  });
+
+  it('flags end page below 1', () => {
+    const errors = knowledgeSplitDraftFieldErrors([
+      splitDraft({ startPage: 1, endPage: 0 }),
+    ]);
+    expect(errors[0]?.endPage).toBe('End page must be >= 1.');
+  });
+
+  it('flags start page greater than end page', () => {
+    const errors = knowledgeSplitDraftFieldErrors([
+      splitDraft({ startPage: 3, endPage: 1 }),
+    ]);
+    expect(errors[0]?.endPage).toBe('End page must be >= start page.');
+  });
+
+  it('flags start page above pageCount', () => {
+    const errors = knowledgeSplitDraftFieldErrors(
+      [splitDraft({ startPage: 8, endPage: 9 })],
+      { pageCount: 5 },
+    );
+    expect(errors[0]?.startPage).toBe('Start page must be ≤ 5.');
+    expect(errors[0]?.endPage).toBe('End page must be ≤ 5.');
+  });
+
+  it('returns empty field errors for valid drafts', () => {
+    const errors = knowledgeSplitDraftFieldErrors(
+      [splitDraft({ title: 'Split 1', startPage: 1, endPage: 1 })],
+      { pageCount: 5 },
+    );
+    expect(errors[0]).toEqual({});
+  });
 });
 
 describe('knowledgeSplitDraftHasFieldErrors', () => {
@@ -111,6 +91,14 @@ describe('knowledgeSplitDraftHasFieldErrors', () => {
         [splitDraft({ title: '', endPage: 9 })],
         { pageCount: 5, requireTitle: false },
       ),
+    ).toBe(true);
+  });
+
+  it('returns true when title is required and missing', () => {
+    expect(
+      knowledgeSplitDraftHasFieldErrors([splitDraft({ title: '' })], {
+        requireTitle: true,
+      }),
     ).toBe(true);
   });
 });

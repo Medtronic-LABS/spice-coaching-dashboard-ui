@@ -109,6 +109,7 @@ describe('ModuleAssignedPage', () => {
       assignedCount: 3,
     });
 
+    expect(screen.getByText(/assigned to — upazila/i)).toBeInTheDocument();
     expect(screen.getByText('Hatibandha')).toBeInTheDocument();
     expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
 

@@ -140,7 +140,7 @@ interface KnowledgeAsset {
 | `GET` | `/admin/knowledge/assets/{id}/download` | Original PDF download URL or stream |
 | Assign | Extend existing `/admin/assignments` | Accept knowledge asset id (or `resource_type`) |
 
-Exact paths/names are **BE-owned**; FE centralizes them in `adminKnowledgeApi.ts`.
+Exact paths/names are **BE-owned**; FE centralizes knowledge upload/retire/uploaders in `adminKnowledgeApi.ts` and the catalog in `adminSourceDocumentsApi.ts` (`GET /admin/source-documents`). Document assignment uses `/admin/document-assignments` (shared with videos).
 
 ---
 

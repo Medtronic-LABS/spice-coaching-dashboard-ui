@@ -3,6 +3,7 @@ import {
   hasActiveKnowledgeDrawerFilters,
   isKnowledgeDrawerDateRangeInvalid,
   KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
+  resolveKnowledgeCatalogStatusFilter,
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
@@ -28,7 +29,7 @@ describe('knowledgeLibraryFilters', () => {
     expect(
       hasActiveKnowledgeDrawerFilters({
         ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
-        uploadedBy: 'alice',
+        uploadedBy: '101',
       }),
     ).toBe(true);
     expect(
@@ -80,5 +81,38 @@ describe('knowledgeLibraryFilters', () => {
     expect(uploadedDateInputToToIso('2026-01-01')).toBe(
       '2026-01-01T23:59:59.999Z',
     );
+  });
+
+  it('resolveKnowledgeCatalogStatusFilter maps tab and ingested to status', () => {
+    expect(
+      resolveKnowledgeCatalogStatusFilter({
+        statusTab: 'retired',
+        ingested: '',
+      }),
+    ).toBe('retired');
+    expect(
+      resolveKnowledgeCatalogStatusFilter({
+        statusTab: 'active',
+        ingested: 'true',
+      }),
+    ).toBe('ingested');
+    expect(
+      resolveKnowledgeCatalogStatusFilter({
+        statusTab: 'active',
+        ingested: 'false',
+      }),
+    ).toEqual(['uploaded', 'ingesting', 'failed']);
+    expect(
+      resolveKnowledgeCatalogStatusFilter({
+        statusTab: 'active',
+        ingested: '',
+      }),
+    ).toBeUndefined();
+    expect(
+      resolveKnowledgeCatalogStatusFilter({
+        statusTab: 'retired',
+        ingested: 'true',
+      }),
+    ).toBe('retired');
   });
 });

@@ -67,6 +67,29 @@ function normalizeUploadedSource(
   };
 }
 
+/** Normalize `GET /admin/knowledge/uploaders` wire rows for the combobox. */
+export function normalizeKnowledgeUploadersResponse(
+  response: unknown,
+): KnowledgeUploadersResponse {
+  if (!isPlainObject(response) || !Array.isArray(response.uploaders)) {
+    return { uploaders: [] };
+  }
+  return {
+    uploaders: response.uploaders.flatMap((item) => {
+      if (!isPlainObject(item)) return [];
+      if (
+        typeof item.id === 'number' &&
+        Number.isFinite(item.id) &&
+        typeof item.name === 'string' &&
+        item.name.trim()
+      ) {
+        return [{ value: String(item.id), label: item.name.trim() }];
+      }
+      return [];
+    }),
+  };
+}
+
 export const adminKnowledgeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     uploadKnowledgeDocument: builder.mutation<
@@ -124,24 +147,8 @@ export const adminKnowledgeApi = baseApi.injectEndpoints({
         method: 'GET',
         params: params ?? undefined,
       }),
-      transformResponse: (response: unknown): KnowledgeUploadersResponse => {
-        if (!isPlainObject(response) || !Array.isArray(response.uploaders)) {
-          return { uploaders: [] };
-        }
-        return {
-          uploaders: response.uploaders.flatMap((item) => {
-            if (!isPlainObject(item) || typeof item.value !== 'string') {
-              return [];
-            }
-            return [
-              {
-                value: item.value,
-                label: typeof item.label === 'string' ? item.label : item.value,
-              },
-            ];
-          }),
-        };
-      },
+      transformResponse: (response: unknown): KnowledgeUploadersResponse =>
+        normalizeKnowledgeUploadersResponse(response),
     }),
   }),
   overrideExisting: false,
