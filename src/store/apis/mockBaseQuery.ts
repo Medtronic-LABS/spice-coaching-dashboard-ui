@@ -1756,10 +1756,33 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   if (url === 'admin/hierarchy/users' && method === 'GET') {
     const query =
       typeof params === 'object' && params
-        ? (params as { limit?: unknown; offset?: unknown })
+        ? (params as {
+            limit?: unknown;
+            offset?: unknown;
+            district_id?: unknown;
+            role?: unknown;
+            parent_id?: unknown;
+            upazila_id?: unknown;
+          })
         : {};
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
+    const districtIdFilter =
+      query.district_id === undefined || query.district_id === null
+        ? null
+        : Number(query.district_id);
+    const parentIdFilter =
+      query.parent_id === undefined || query.parent_id === null
+        ? null
+        : Number(query.parent_id);
+    const upazilaIdFilter =
+      query.upazila_id === undefined || query.upazila_id === null
+        ? null
+        : Number(query.upazila_id);
+    const roleFilter =
+      typeof query.role === 'string' && query.role.trim()
+        ? query.role.trim()
+        : null;
     const users = [
       {
         id: 1723477249,
@@ -1813,7 +1836,33 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         created_by: 'system',
         updated_by: 'system',
       },
-    ];
+    ].filter((user) => {
+      if (
+        districtIdFilter !== null &&
+        Number.isFinite(districtIdFilter) &&
+        user.district_id !== districtIdFilter
+      ) {
+        return false;
+      }
+      if (roleFilter && user.role !== roleFilter) {
+        return false;
+      }
+      if (
+        parentIdFilter !== null &&
+        Number.isFinite(parentIdFilter) &&
+        user.parent_id !== parentIdFilter
+      ) {
+        return false;
+      }
+      if (
+        upazilaIdFilter !== null &&
+        Number.isFinite(upazilaIdFilter) &&
+        !user.upazilas.some((upazila) => upazila.id === upazilaIdFilter)
+      ) {
+        return false;
+      }
+      return true;
+    });
     return {
       data: {
         users: users.slice(offset, offset + limit),

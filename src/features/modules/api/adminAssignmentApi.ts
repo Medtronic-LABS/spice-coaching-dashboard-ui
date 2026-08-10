@@ -75,6 +75,39 @@ export interface AdminUpazila {
   district_id: number;
 }
 
+export interface AdminDistrict {
+  id: number;
+  name: string;
+}
+
+export interface HierarchyUsersPageParams {
+  limit?: number;
+  offset?: number;
+  districtId?: number;
+  upazilaId?: number;
+  /** Platform hierarchy role wire values. */
+  role?: 'AREA_MANAGER' | 'PO' | 'SHASTIYA_KORMI';
+  parentId?: number;
+}
+
+export interface PaginatedAdminUsers {
+  users: AdminUser[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PaginatedAdminUpazilas {
+  upazilas: AdminUpazila[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export const ASSIGNMENT_LIST_PAGE_SIZE = 20;
+/** Page size for assignment user list fetches (API max is 200). */
+export const ASSIGNMENT_USERS_PAGE_SIZE = 200;
+
 export function parseAssignedUsersResponse(response: unknown): AdminUser[] {
   if (!response || typeof response !== 'object') return [];
   const record = response as Record<string, unknown>;
@@ -83,36 +116,6 @@ export function parseAssignedUsersResponse(response: unknown): AdminUser[] {
     const mapped = mapHierarchyUserToAdminUser(user, new Map());
     return mapped ? [mapped] : [];
   });
-}
-
-export function getProgramOrganizers(users: AdminUser[]): AdminUser[] {
-  return users.filter((user) => user.role === 'PO');
-}
-
-export function getSkUsers(users: AdminUser[]): AdminUser[] {
-  return users.filter((user) => user.role === 'SK');
-}
-
-export function getUniqueDistricts(users: AdminUser[]): string[] {
-  return Array.from(new Set(users.map((user) => user.district))).sort((a, b) =>
-    a.localeCompare(b),
-  );
-}
-
-export function getUniqueUpazilas(
-  users: AdminUser[],
-  districtFilter?: string,
-): string[] {
-  return Array.from(
-    new Set(
-      users
-        .filter((user) => !districtFilter || user.district === districtFilter)
-        .flatMap((user) => {
-          if (user.upazilas?.length) return user.upazilas;
-          return user.upazila ? [user.upazila] : [];
-        }),
-    ),
-  ).sort((a, b) => a.localeCompare(b));
 }
 
 export interface SpiceDistrict {
@@ -233,6 +236,84 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
         body: { user_ids, upazilas },
       }),
     }),
+    /** Loads every district page — catalogs are typically small. */
+    fetchAdminDistricts: builder.query<AdminDistrict[], void>({
+      async queryFn(_arg, _api, _extraOptions, baseQuery) {
+        const pageSize = getHierarchyPageSize();
+        const allDistricts: AdminDistrict[] = [];
+        let offset = 0;
+        let total = Number.POSITIVE_INFINITY;
+
+        while (offset < total) {
+          const result = await baseQuery({
+            url: '/admin/districts',
+            method: 'GET',
+            params: { limit: pageSize, offset },
+          });
+          if (result.error) {
+            return { error: result.error as FetchBaseQueryError };
+          }
+          const page = parseDistrictListResponse(result.data);
+          allDistricts.push(...page.districts);
+          total = page.total;
+          if (page.districts.length === 0) break;
+          offset += page.districts.length;
+        }
+
+        return { data: allDistricts };
+      },
+    }),
+    fetchHierarchyUsersPage: builder.query<
+      PaginatedAdminUsers,
+      HierarchyUsersPageParams
+    >({
+      async queryFn(arg, _api, _extraOptions, baseQuery) {
+        const limit = arg.limit ?? ASSIGNMENT_USERS_PAGE_SIZE;
+        const offset = arg.offset ?? 0;
+
+        const districtsResult = await baseQuery({
+          url: '/admin/districts',
+          method: 'GET',
+          params: { limit: getHierarchyPageSize(), offset: 0 },
+        });
+        if (districtsResult.error) {
+          return { error: districtsResult.error as FetchBaseQueryError };
+        }
+        const districtPage = parseDistrictListResponse(districtsResult.data);
+        const districtNameById = buildDistrictNameById(districtPage.districts);
+
+        const usersResult = await baseQuery({
+          url: '/admin/hierarchy/users',
+          method: 'GET',
+          params: {
+            limit,
+            offset,
+            ...(typeof arg.districtId === 'number'
+              ? { district_id: arg.districtId }
+              : {}),
+            ...(typeof arg.upazilaId === 'number'
+              ? { upazila_id: arg.upazilaId }
+              : {}),
+            ...(arg.role ? { role: arg.role } : {}),
+            ...(typeof arg.parentId === 'number'
+              ? { parent_id: arg.parentId }
+              : {}),
+          },
+        });
+        if (usersResult.error) {
+          return { error: usersResult.error as FetchBaseQueryError };
+        }
+        const page = parseHierarchyUserListResponse(usersResult.data);
+        return {
+          data: {
+            users: mapHierarchyUsersToAdminUsers(page.users, districtNameById),
+            total: page.total,
+            limit,
+            offset,
+          },
+        };
+      },
+    }),
     fetchAdminUsers: builder.query<AdminUser[], void>({
       async queryFn(_arg, _api, _extraOptions, baseQuery) {
         const pageSize = getHierarchyPageSize();
@@ -279,6 +360,46 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
 
         return {
           data: mapHierarchyUsersToAdminUsers(allUsers, districtNameById),
+        };
+      },
+    }),
+    fetchAdminUpazilasPage: builder.query<
+      PaginatedAdminUpazilas,
+      { districtId?: number; limit?: number; offset?: number } | void
+    >({
+      async queryFn(arg, _api, _extraOptions, baseQuery) {
+        const limit =
+          arg && 'limit' in arg && typeof arg.limit === 'number'
+            ? arg.limit
+            : ASSIGNMENT_LIST_PAGE_SIZE;
+        const offset =
+          arg && 'offset' in arg && typeof arg.offset === 'number'
+            ? arg.offset
+            : 0;
+        const districtId =
+          arg && 'districtId' in arg ? arg.districtId : undefined;
+        const result = await baseQuery({
+          url: '/admin/upazilas',
+          method: 'GET',
+          params: {
+            limit,
+            offset,
+            ...(typeof districtId === 'number'
+              ? { district_id: districtId }
+              : {}),
+          },
+        });
+        if (result.error) {
+          return { error: result.error as FetchBaseQueryError };
+        }
+        const page = parseUpazilaListResponse(result.data);
+        return {
+          data: {
+            upazilas: page.upazilas,
+            total: page.total,
+            limit,
+            offset,
+          },
         };
       },
     }),
@@ -406,10 +527,16 @@ export const {
   useLazyFetchModuleAssignedUsersQuery,
   useCreateAssignmentMutation,
   useReplaceModuleAssignedUsersMutation,
+  useFetchAdminDistrictsQuery,
+  useLazyFetchAdminDistrictsQuery,
+  useFetchHierarchyUsersPageQuery,
+  useLazyFetchHierarchyUsersPageQuery,
   useFetchAdminUsersQuery,
   useLazyFetchAdminUsersQuery,
   useFetchAdminUpazilasQuery,
   useLazyFetchAdminUpazilasQuery,
+  useFetchAdminUpazilasPageQuery,
+  useLazyFetchAdminUpazilasPageQuery,
   useFetchDistrictsQuery,
   useFetchChiefdomsQuery,
   useFetchVillagesQuery,

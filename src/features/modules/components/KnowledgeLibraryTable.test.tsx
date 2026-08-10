@@ -81,7 +81,7 @@ describe('KnowledgeLibraryTable', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Assign this document to selected POs. Their SKs are included automatically.',
+        'Assign this document to selected POs. Their SKs are included automatically. Select loaded applies only to users currently shown.',
       ),
     ).toBeInTheDocument();
   });
