@@ -32,7 +32,8 @@ type ModuleAssignedState = {
   assignedCount?: number;
   assignedUsers?: AssignedUserEntry[];
   removedUsers?: AssignedUserEntry[];
-  assignmentType?: AssignmentSummaryType;
+  /** Includes legacy summary labels used by older navigation state. */
+  assignmentType?: AssignmentSummaryType | 'individual' | 'group';
 };
 
 export const ModuleAssignedPage = () => {
@@ -162,6 +163,10 @@ export const ModuleAssignedPage = () => {
         return t('moduleLibrary.assigned.summary.assignedToIndividual');
       case 'po_sk':
         return t('moduleLibrary.assigned.summary.assignedToPoSk');
+      case 'po':
+        return t('moduleLibrary.assigned.summary.assignedToPo');
+      case 'sk':
+        return t('moduleLibrary.assigned.summary.assignedToIndividual');
       case 'geographical':
         return t('moduleLibrary.assigned.summary.assignedToUpazila');
       case 'group':

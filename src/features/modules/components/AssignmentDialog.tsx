@@ -1,24 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Banner,
   Button,
   Card,
+  Combobox,
+  InfiniteScrollContainer,
   Loader,
   Modal,
+  SearchInput,
   Select,
   Tabs,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
+  ASSIGNMENT_LIST_PAGE_SIZE,
+  ASSIGNMENT_USERS_PAGE_SIZE,
+  type AdminDistrict,
+  type AdminUpazila,
   type AdminUser,
   type AssignmentSummaryType,
-  getProgramOrganizers,
-  getSkUsers,
-  getUniqueDistricts,
-  getUniqueUpazilas,
-  useLazyFetchAdminUpazilasQuery,
-  useLazyFetchAdminUsersQuery,
+  useLazyFetchAdminDistrictsPageQuery,
+  useLazyFetchAdminUpazilasPageQuery,
+  useLazyFetchHierarchyUsersPageQuery,
   useLazyFetchModuleAssignedUsersQuery,
   useReplaceModuleAssignedUsersMutation,
 } from '@/features/modules/api/adminAssignmentApi';
@@ -32,10 +36,22 @@ import {
   countAssignedUsers,
   type AssignedUserEntry,
 } from '@/features/modules/utils/assignmentDisplay';
-import { userMatchesUpazila } from '@/features/modules/utils/mapHierarchyUsersToAdminUsers';
+import {
+  ALL_DISTRICTS_OPTION,
+  ALL_UPAZILAS_OPTION,
+  ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  baselineUpazilaNames,
+  buildNamedEntityComboboxOptions,
+  filterUserIdsForMode,
+  getUserLevelEmptyMessage,
+  getUserLevelHint,
+  hierarchyRoleForMode,
+  resolveNamedEntitySelection,
+  type AssignmentUserLevelMode,
+} from '@/features/modules/utils/assignmentDialogHelpers';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 type AssignmentTab = 'user' | 'geographical';
-type UserLevelMode = 'po_sk' | 'sk';
 
 export type AssignmentDialogTarget =
   | { kind: 'module'; id: string; title: string }
@@ -46,11 +62,14 @@ export type AssignmentDialogTarget =
       noun: 'video' | 'document';
     };
 
-const USER_LEVEL_MODE_OPTIONS: Array<{ label: string; value: UserLevelMode }> =
-  [
-    { label: 'PO and SK', value: 'po_sk' },
-    { label: 'SK', value: 'sk' },
-  ];
+const USER_LEVEL_MODE_OPTIONS: Array<{
+  label: string;
+  value: AssignmentUserLevelMode;
+}> = [
+  { label: 'PO and SK', value: 'po_sk' },
+  { label: 'PO only', value: 'po' },
+  { label: 'SK', value: 'sk' },
+];
 
 const ASSIGNMENT_TABS: Array<{ label: string; value: AssignmentTab }> = [
   { label: 'Role Based', value: 'user' },
@@ -90,49 +109,6 @@ function entityNoun(target: AssignmentDialogTarget): string {
   return target.noun;
 }
 
-function getUserLevelHint(mode: UserLevelMode, noun: string): string {
-  if (mode === 'po_sk') {
-    return `Assign this ${noun} to selected POs. Their SKs are included automatically.`;
-  }
-  return `Assign this ${noun} to selected SK users.`;
-}
-
-function getUserLevelEmptyMessage(mode: UserLevelMode): string {
-  return mode === 'po_sk'
-    ? 'No program organizers found.'
-    : 'No SK users found.';
-}
-
-function filterUsersByLocation(
-  users: AdminUser[],
-  district: string,
-  upazila: string,
-): AdminUser[] {
-  return users.filter((user) => {
-    if (district && user.district !== district) return false;
-    if (upazila && !userMatchesUpazila(user, upazila)) return false;
-    return true;
-  });
-}
-
-function usersInUpazila(users: AdminUser[], upazilaName: string): AdminUser[] {
-  return users.filter(
-    (user) =>
-      (user.role === 'PO' || user.role === 'SK') &&
-      userMatchesUpazila(user, upazilaName),
-  );
-}
-
-function isUpazilaFullyCovered(
-  desiredIds: Set<number>,
-  users: AdminUser[],
-  upazilaName: string,
-): boolean {
-  const members = usersInUpazila(users, upazilaName);
-  if (members.length === 0) return false;
-  return members.every((user) => desiredIds.has(user.id));
-}
-
 function FetchRetryButton({ label, onRetry, disabled }: FetchRetryButtonProps) {
   return (
     <button
@@ -169,6 +145,9 @@ interface UserSelectionListProps {
   isLoading: boolean;
   isError: boolean;
   isFetching: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
   onRetry: () => void;
   onSelectAll: () => void;
   onToggleUser: (userId: number) => void;
@@ -183,6 +162,9 @@ function UserSelectionList({
   isLoading,
   isError,
   isFetching,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
   onRetry,
   onSelectAll,
   onToggleUser,
@@ -212,12 +194,19 @@ function UserSelectionList({
             className="text-spice-brand-primary hover:underline"
           >
             {selectableUsers.every((user) => selectedUserIds.includes(user.id))
-              ? 'Deselect all'
-              : 'Select all'}
+              ? 'Deselect loaded'
+              : 'Select loaded'}
           </button>
         ) : null}
       </div>
-      <div className="max-h-[20vh] divide-y divide-spice-border overflow-y-auto">
+      <InfiniteScrollContainer
+        className="max-h-[20vh]"
+        hasMore={!isLoading && !isError && hasMore}
+        onLoadMore={onLoadMore}
+        loadedCount={users.length}
+        isLoadingMore={isLoadingMore}
+        disabled={isLoading || isError}
+      >
         {isLoading ? (
           <div className="p-4 text-center text-sm text-spice-text-muted">
             Loading users…
@@ -231,54 +220,56 @@ function UserSelectionList({
             {emptyMessage}
           </div>
         ) : (
-          users.map((user) => {
-            const status = userAssignmentStatus.get(user.id);
-            const isChecked = selectedUserIds.includes(user.id);
-            const isDisabled = Boolean(status?.isDisabledInCurrentMode);
-            const locationLabel = user.upazila
-              ? `${user.district} · ${user.upazila}`
-              : user.district;
+          <div className="divide-y divide-spice-border">
+            {users.map((user) => {
+              const status = userAssignmentStatus.get(user.id);
+              const isChecked = selectedUserIds.includes(user.id);
+              const isDisabled = Boolean(status?.isDisabledInCurrentMode);
+              const locationLabel = user.upazila
+                ? `${user.district} · ${user.upazila}`
+                : user.district;
 
-            return (
-              <label
-                key={user.id}
-                className={`flex items-center justify-between gap-3 px-3 py-2.5 ${
-                  isDisabled
-                    ? 'cursor-not-allowed bg-spice-bg-tint/20 opacity-70'
-                    : 'cursor-pointer hover:bg-spice-bg-tint/30'
-                }`}
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-spice-text-primary">
-                    {user.name}
-                  </div>
-                  <div className="truncate text-xs text-spice-text-muted">
-                    {locationLabel}
-                  </div>
-                  {status ? (
-                    <div
-                      className={
-                        status.isInherited || status.matchesCurrentMode
-                          ? 'text-xs font-semibold text-spice-brand-primary'
-                          : 'text-xs text-spice-text-muted'
-                      }
-                    >
-                      {status.displayLabel}
+              return (
+                <label
+                  key={user.id}
+                  className={`flex items-center justify-between gap-3 px-3 py-2.5 ${
+                    isDisabled
+                      ? 'cursor-not-allowed bg-spice-bg-tint/20 opacity-70'
+                      : 'cursor-pointer hover:bg-spice-bg-tint/30'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-spice-text-primary">
+                      {user.name}
                     </div>
-                  ) : null}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  disabled={isDisabled}
-                  onChange={() => onToggleUser(user.id)}
-                  className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
-                />
-              </label>
-            );
-          })
+                    <div className="truncate text-xs text-spice-text-muted">
+                      {locationLabel}
+                    </div>
+                    {status ? (
+                      <div
+                        className={
+                          status.isInherited || status.matchesCurrentMode
+                            ? 'text-xs font-semibold text-spice-brand-primary'
+                            : 'text-xs text-spice-text-muted'
+                        }
+                      >
+                        {status.displayLabel}
+                      </div>
+                    ) : null}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={isDisabled}
+                    onChange={() => onToggleUser(user.id)}
+                    className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
+                  />
+                </label>
+              );
+            })}
+          </div>
         )}
-      </div>
+      </InfiniteScrollContainer>
     </div>
   );
 }
@@ -292,32 +283,84 @@ export const AssignmentDialog = ({
   const navigate = useNavigate();
   const noun = entityNoun(target);
   const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
-  const [userLevelMode, setUserLevelMode] = useState<UserLevelMode>('po_sk');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedUpazila, setSelectedUpazila] = useState('');
+  const [userLevelMode, setUserLevelMode] =
+    useState<AssignmentUserLevelMode>('po_sk');
+  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
+    null,
+  );
+  const [selectedDistrictName, setSelectedDistrictName] = useState('');
+  const [districtSearchQuery, setDistrictSearchQuery] = useState('');
+  const debouncedDistrictSearchQuery = useDebouncedValue(
+    districtSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [loadedDistricts, setLoadedDistricts] = useState<AdminDistrict[]>([]);
+  const [districtsTotal, setDistrictsTotal] = useState(0);
+  const [districtsOffset, setDistrictsOffset] = useState(0);
+
+  const [selectedUpazilaId, setSelectedUpazilaId] = useState<number | null>(
+    null,
+  );
+  const [selectedUpazilaName, setSelectedUpazilaName] = useState('');
+  const [filterUpazilaSearchQuery, setFilterUpazilaSearchQuery] = useState('');
+  const debouncedFilterUpazilaSearchQuery = useDebouncedValue(
+    filterUpazilaSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [filterLoadedUpazilas, setFilterLoadedUpazilas] = useState<
+    AdminUpazila[]
+  >([]);
+  const [filterUpazilasTotal, setFilterUpazilasTotal] = useState(0);
+  const [filterUpazilasOffset, setFilterUpazilasOffset] = useState(0);
+
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const debouncedUserSearchQuery = useDebouncedValue(
+    userSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
   const [desiredUserIds, setDesiredUserIds] = useState<number[]>([]);
   const [baselineUserIds, setBaselineUserIds] = useState<number[]>([]);
+  const [desiredUpazilas, setDesiredUpazilas] = useState<string[]>([]);
+  const [baselineUpazilas, setBaselineUpazilas] = useState<string[]>([]);
+  const [loadedUsers, setLoadedUsers] = useState<AdminUser[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersOffset, setUsersOffset] = useState(0);
+  const [loadedUpazilas, setLoadedUpazilas] = useState<AdminUpazila[]>([]);
+  const [upazilasTotal, setUpazilasTotal] = useState(0);
+  const [upazilasOffset, setUpazilasOffset] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
   const [
-    triggerAdminUsers,
+    triggerDistrictsPage,
     {
-      data: adminUsers,
-      isLoading: loadingUsers,
-      isError: usersError,
-      isFetching: fetchingUsers,
+      isLoading: loadingDistricts,
+      isError: districtsError,
+      isFetching: fetchingDistricts,
     },
-  ] = useLazyFetchAdminUsersQuery();
+  ] = useLazyFetchAdminDistrictsPageQuery();
 
   const [
-    triggerAdminUpazilas,
+    triggerUsersPage,
+    { isLoading: loadingUsers, isError: usersError, isFetching: fetchingUsers },
+  ] = useLazyFetchHierarchyUsersPageQuery();
+
+  const [
+    triggerFilterUpazilasPage,
     {
-      data: adminUpazilas,
+      isLoading: loadingFilterUpazilas,
+      isError: filterUpazilasError,
+      isFetching: fetchingFilterUpazilas,
+    },
+  ] = useLazyFetchAdminUpazilasPageQuery();
+
+  const [
+    triggerUpazilasPage,
+    {
       isLoading: loadingUpazilas,
       isError: upazilasError,
       isFetching: fetchingUpazilas,
     },
-  ] = useLazyFetchAdminUpazilasQuery();
+  ] = useLazyFetchAdminUpazilasPageQuery();
 
   const [triggerModuleAssignedUsers, { data: moduleAssignedUsers }] =
     useLazyFetchModuleAssignedUsersQuery();
@@ -330,15 +373,18 @@ export const AssignmentDialog = ({
     useReplaceDocumentAssignedUsersMutation();
 
   const isSubmitting = isSavingModule || isSavingDocument;
-  const allUsers = useMemo(() => adminUsers ?? [], [adminUsers]);
-  const catalogUpazilas = useMemo(() => adminUpazilas ?? [], [adminUpazilas]);
-  const loadingGeoLists = loadingUsers || loadingUpazilas;
-  const geoListsError = usersError || upazilasError;
-  const fetchingGeoLists = fetchingUsers || fetchingUpazilas;
   const desiredSet = useMemo(() => new Set(desiredUserIds), [desiredUserIds]);
   const baselineSet = useMemo(
     () => new Set(baselineUserIds),
     [baselineUserIds],
+  );
+  const desiredUpazilaSet = useMemo(
+    () => new Set(desiredUpazilas),
+    [desiredUpazilas],
+  );
+  const baselineUpazilaSet = useMemo(
+    () => new Set(baselineUpazilas),
+    [baselineUpazilas],
   );
 
   const assignedUsersForTarget = useMemo(() => {
@@ -346,133 +392,239 @@ export const AssignmentDialog = ({
     return documentAssignedUsers ?? [];
   }, [documentAssignedUsers, moduleAssignedUsers, target.kind]);
 
+  const knownUsersById = useMemo(() => {
+    const map = new Map<number, AdminUser>();
+    for (const user of assignedUsersForTarget) map.set(user.id, user);
+    for (const user of loadedUsers) map.set(user.id, user);
+    return map;
+  }, [assignedUsersForTarget, loadedUsers]);
+
+  const districtComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_DISTRICTS_OPTION,
+        loadedDistricts,
+        selectedDistrictId,
+        selectedDistrictName,
+      ),
+    [loadedDistricts, selectedDistrictId, selectedDistrictName],
+  );
+
+  const filterUpazilaComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_UPAZILAS_OPTION,
+        filterLoadedUpazilas,
+        selectedUpazilaId,
+        selectedUpazilaName,
+      ),
+    [filterLoadedUpazilas, selectedUpazilaId, selectedUpazilaName],
+  );
+
+  const usersHasMore = loadedUsers.length < usersTotal;
+  const districtsHasMore = loadedDistricts.length < districtsTotal;
+  const filterUpazilasHasMore =
+    filterLoadedUpazilas.length < filterUpazilasTotal;
+  const upazilasHasMore = loadedUpazilas.length < upazilasTotal;
+
+  const loadDistrictsPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const nameQuery = debouncedDistrictSearchQuery.trim();
+      const result = await triggerDistrictsPage({
+        limit: ASSIGNMENT_LIST_PAGE_SIZE,
+        offset,
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setDistrictsTotal(page.total);
+      setDistrictsOffset(page.offset + page.districts.length);
+      setLoadedDistricts((prev) =>
+        append ? [...prev, ...page.districts] : page.districts,
+      );
+    },
+    [debouncedDistrictSearchQuery, triggerDistrictsPage],
+  );
+
+  const loadFilterUpazilasPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const nameQuery = debouncedFilterUpazilaSearchQuery.trim();
+      const result = await triggerFilterUpazilasPage({
+        limit: ASSIGNMENT_LIST_PAGE_SIZE,
+        offset,
+        ...(selectedDistrictId !== null
+          ? { districtId: selectedDistrictId }
+          : {}),
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setFilterUpazilasTotal(page.total);
+      setFilterUpazilasOffset(page.offset + page.upazilas.length);
+      setFilterLoadedUpazilas((prev) =>
+        append ? [...prev, ...page.upazilas] : page.upazilas,
+      );
+    },
+    [
+      debouncedFilterUpazilaSearchQuery,
+      selectedDistrictId,
+      triggerFilterUpazilasPage,
+    ],
+  );
+
+  const loadUsersPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const nameQuery = debouncedUserSearchQuery.trim();
+      const result = await triggerUsersPage({
+        limit: ASSIGNMENT_USERS_PAGE_SIZE,
+        offset,
+        role: hierarchyRoleForMode(userLevelMode),
+        ...(selectedDistrictId !== null
+          ? { districtId: selectedDistrictId }
+          : {}),
+        ...(selectedUpazilaId !== null ? { upazilaId: selectedUpazilaId } : {}),
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setUsersTotal(page.total);
+      setUsersOffset(page.offset + page.users.length);
+      setLoadedUsers((prev) =>
+        append ? [...prev, ...page.users] : page.users,
+      );
+    },
+    [
+      debouncedUserSearchQuery,
+      selectedDistrictId,
+      selectedUpazilaId,
+      triggerUsersPage,
+      userLevelMode,
+    ],
+  );
+
+  const loadUpazilasPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const result = await triggerUpazilasPage({
+        limit: ASSIGNMENT_LIST_PAGE_SIZE,
+        offset,
+        ...(selectedDistrictId !== null
+          ? { districtId: selectedDistrictId }
+          : {}),
+      });
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setUpazilasTotal(page.total);
+      setUpazilasOffset(page.offset + page.upazilas.length);
+      setLoadedUpazilas((prev) =>
+        append ? [...prev, ...page.upazilas] : page.upazilas,
+      );
+    },
+    [selectedDistrictId, triggerUpazilasPage],
+  );
+
+  const resetFilterUpazilaState = () => {
+    setSelectedUpazilaId(null);
+    setSelectedUpazilaName('');
+    setFilterUpazilaSearchQuery('');
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasTotal(0);
+    setFilterUpazilasOffset(0);
+  };
+
   useEffect(() => {
     if (!open) return;
     setActiveTab('user');
     setUserLevelMode('po_sk');
-    setSelectedDistrict('');
-    setSelectedUpazila('');
+    setSelectedDistrictId(null);
+    setSelectedDistrictName('');
+    setDistrictSearchQuery('');
+    setLoadedDistricts([]);
+    setDistrictsTotal(0);
+    setDistrictsOffset(0);
+    resetFilterUpazilaState();
+    setUserSearchQuery('');
     setErrorMsg('');
-    void triggerAdminUsers();
-    void triggerAdminUpazilas();
+    setLoadedUsers([]);
+    setUsersTotal(0);
+    setUsersOffset(0);
+    setLoadedUpazilas([]);
+    setUpazilasTotal(0);
+    setUpazilasOffset(0);
     if (target.kind === 'module') {
       void triggerModuleAssignedUsers(target.id);
     } else {
       void triggerDocumentAssignedUsers(target.id);
     }
-  }, [
-    open,
-    target,
-    triggerAdminUpazilas,
-    triggerAdminUsers,
-    triggerDocumentAssignedUsers,
-    triggerModuleAssignedUsers,
-  ]);
+  }, [open, target, triggerDocumentAssignedUsers, triggerModuleAssignedUsers]);
 
   useEffect(() => {
     if (!open) return;
     const ids = assignedUsersForTarget.map((user) => user.id);
+    const upazilas = baselineUpazilaNames(assignedUsersForTarget);
     setBaselineUserIds(ids);
     setDesiredUserIds(ids);
+    setBaselineUpazilas(upazilas);
+    setDesiredUpazilas(upazilas);
   }, [assignedUsersForTarget, open]);
 
-  const roleFilteredUsers = useMemo(() => {
-    return userLevelMode === 'po_sk'
-      ? getProgramOrganizers(allUsers)
-      : getSkUsers(allUsers);
-  }, [allUsers, userLevelMode]);
+  useEffect(() => {
+    if (!open) return;
+    setLoadedDistricts([]);
+    setDistrictsTotal(0);
+    setDistrictsOffset(0);
+    void loadDistrictsPage(0, false);
+  }, [loadDistrictsPage, open]);
 
-  const districtOptions = useMemo(() => {
-    const source = activeTab === 'geographical' ? allUsers : roleFilteredUsers;
-    return [
-      { label: 'All districts', value: '' },
-      ...getUniqueDistricts(source).map((district) => ({
-        label: district,
-        value: district,
-      })),
-    ];
-  }, [activeTab, allUsers, roleFilteredUsers]);
+  useEffect(() => {
+    if (!open || activeTab !== 'user') return;
+    setLoadedUsers([]);
+    setUsersTotal(0);
+    setUsersOffset(0);
+    void loadUsersPage(0, false);
+  }, [activeTab, loadUsersPage, open]);
 
-  const upazilaFilterOptions = useMemo(() => {
-    return [
-      { label: 'All upazilas', value: '' },
-      ...getUniqueUpazilas(roleFilteredUsers, selectedDistrict).map(
-        (upazila) => ({
-          label: upazila,
-          value: upazila,
-        }),
-      ),
-    ];
-  }, [roleFilteredUsers, selectedDistrict]);
+  useEffect(() => {
+    if (!open || activeTab !== 'user') return;
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasTotal(0);
+    setFilterUpazilasOffset(0);
+    void loadFilterUpazilasPage(0, false);
+  }, [activeTab, loadFilterUpazilasPage, open]);
 
-  const displayedUserLevelUsers = useMemo(
-    () =>
-      filterUsersByLocation(
-        roleFilteredUsers,
-        selectedDistrict,
-        selectedUpazila,
-      ),
-    [roleFilteredUsers, selectedDistrict, selectedUpazila],
-  );
-
-  const displayedUpazilas = useMemo(() => {
-    const selectedDistrictId =
-      selectedDistrict === ''
-        ? null
-        : (allUsers.find((user) => user.district === selectedDistrict)
-            ?.district_id ?? null);
-    const fromCatalog = catalogUpazilas
-      .filter(
-        (upazila) =>
-          selectedDistrictId === null ||
-          upazila.district_id === selectedDistrictId,
-      )
-      .map((upazila) => upazila.name);
-    if (fromCatalog.length > 0) {
-      return Array.from(new Set(fromCatalog)).sort((a, b) =>
-        a.localeCompare(b),
-      );
-    }
-    return getUniqueUpazilas(allUsers, selectedDistrict);
-  }, [allUsers, catalogUpazilas, selectedDistrict]);
-
-  const selectedUpazilaNames = useMemo(
-    () =>
-      displayedUpazilas.filter((name) =>
-        isUpazilaFullyCovered(desiredSet, allUsers, name),
-      ),
-    [allUsers, desiredSet, displayedUpazilas],
-  );
-
-  const alreadyAssignedUpazilas = useMemo(
-    () =>
-      displayedUpazilas.filter((name) =>
-        isUpazilaFullyCovered(baselineSet, allUsers, name),
-      ),
-    [allUsers, baselineSet, displayedUpazilas],
-  );
+  useEffect(() => {
+    if (!open || activeTab !== 'geographical') return;
+    setLoadedUpazilas([]);
+    setUpazilasTotal(0);
+    setUpazilasOffset(0);
+    void loadUpazilasPage(0, false);
+  }, [activeTab, loadUpazilasPage, open, selectedDistrictId]);
 
   const userAssignmentStatus = useMemo(() => {
     const map = new Map<number, UserAssignmentStatus>();
-    const selectedPoIds = allUsers
-      .filter((user) => user.role === 'PO' && desiredSet.has(user.id))
-      .map((user) => user.id);
+    const selectedPoIds = Array.from(desiredSet).filter((id) => {
+      const user = knownUsersById.get(id);
+      return user?.role === 'PO';
+    });
 
-    for (const user of allUsers) {
-      if (user.role === 'SK' && user.parent_id !== null) {
-        if (selectedPoIds.includes(user.parent_id)) {
-          const parent = allUsers.find(
-            (candidate) => candidate.id === user.parent_id,
-          );
-          map.set(user.id, {
-            label: 'Inherited',
-            displayLabel: `Included via PO${parent ? ` — ${parent.name}` : ''}`,
-            matchesCurrentMode: userLevelMode === 'po_sk',
-            isInherited: true,
-            isDisabledInCurrentMode: true,
-          });
-          continue;
-        }
+    for (const user of loadedUsers) {
+      if (
+        user.role === 'SK' &&
+        user.parent_id !== null &&
+        selectedPoIds.includes(user.parent_id)
+      ) {
+        const parent = knownUsersById.get(user.parent_id);
+        map.set(user.id, {
+          label: 'Inherited',
+          displayLabel: `Included via PO${parent ? ` — ${parent.name}` : ''}`,
+          matchesCurrentMode: userLevelMode === 'po_sk',
+          isInherited: true,
+          isDisabledInCurrentMode: true,
+        });
+        continue;
       }
 
       if (baselineSet.has(user.id)) {
@@ -485,32 +637,76 @@ export const AssignmentDialog = ({
       }
     }
     return map;
-  }, [allUsers, baselineSet, desiredSet, userLevelMode]);
+  }, [baselineSet, desiredSet, knownUsersById, loadedUsers, userLevelMode]);
 
-  const selectedUserIdsForMode = useMemo(() => {
-    if (userLevelMode === 'po_sk') {
-      return desiredUserIds.filter((id) =>
-        allUsers.some((user) => user.id === id && user.role === 'PO'),
-      );
-    }
-    return desiredUserIds.filter((id) => {
-      const user = allUsers.find((candidate) => candidate.id === id);
-      if (!user || user.role !== 'SK') return false;
-      if (user.parent_id !== null && desiredSet.has(user.parent_id)) {
-        return false;
-      }
-      return true;
-    });
-  }, [allUsers, desiredSet, desiredUserIds, userLevelMode]);
+  const selectedUserIdsForMode = useMemo(
+    () =>
+      filterUserIdsForMode(
+        desiredUserIds,
+        knownUsersById,
+        desiredSet,
+        userLevelMode,
+      ),
+    [desiredSet, desiredUserIds, knownUsersById, userLevelMode],
+  );
+
+  const baselineUserIdsForMode = useMemo(
+    () =>
+      filterUserIdsForMode(
+        baselineUserIds,
+        knownUsersById,
+        baselineSet,
+        userLevelMode,
+      ),
+    [baselineSet, baselineUserIds, knownUsersById, userLevelMode],
+  );
 
   const retryUsers = () => {
-    void triggerAdminUsers();
-    void triggerAdminUpazilas();
+    setLoadedUsers([]);
+    setUsersOffset(0);
+    void loadUsersPage(0, false);
+  };
+
+  const retryDistricts = () => {
+    setLoadedDistricts([]);
+    setDistrictsOffset(0);
+    void loadDistrictsPage(0, false);
+  };
+
+  const retryFilterUpazilas = () => {
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasOffset(0);
+    void loadFilterUpazilasPage(0, false);
+  };
+
+  const retryDistrictsAndUpazilas = () => {
+    retryDistricts();
+    setLoadedUpazilas([]);
+    setUpazilasOffset(0);
+    void loadUpazilasPage(0, false);
   };
 
   const handleDistrictChange = (value: string) => {
-    setSelectedDistrict(value);
-    setSelectedUpazila('');
+    const next = resolveNamedEntitySelection(
+      value,
+      loadedDistricts,
+      selectedDistrictId,
+      selectedDistrictName,
+    );
+    setSelectedDistrictId(next.id);
+    setSelectedDistrictName(next.name);
+    resetFilterUpazilaState();
+  };
+
+  const handleFilterUpazilaChange = (value: string) => {
+    const next = resolveNamedEntitySelection(
+      value,
+      filterLoadedUpazilas,
+      selectedUpazilaId,
+      selectedUpazilaName,
+    );
+    setSelectedUpazilaId(next.id);
+    setSelectedUpazilaName(next.name);
   };
 
   const addUsersToDesired = (ids: number[]) => {
@@ -522,88 +718,68 @@ export const AssignmentDialog = ({
     setDesiredUserIds((prev) => prev.filter((id) => !remove.has(id)));
   };
 
+  const childIdsForPo = (poId: number): number[] => {
+    const fromKnown = Array.from(knownUsersById.values())
+      .filter((user) => user.parent_id === poId)
+      .map((user) => user.id);
+    return fromKnown;
+  };
+
   const handleToggleUser = (userId: number) => {
     const status = userAssignmentStatus.get(userId);
     if (status?.isDisabledInCurrentMode) return;
 
-    const user = allUsers.find((candidate) => candidate.id === userId);
+    const user = knownUsersById.get(userId);
     if (!user) return;
 
     if (desiredSet.has(userId)) {
-      if (user.role === 'PO') {
-        const childSkIds = allUsers
-          .filter((candidate) => candidate.parent_id === userId)
-          .map((candidate) => candidate.id);
-        removeUsersFromDesired([userId, ...childSkIds]);
+      if (user.role === 'PO' && userLevelMode === 'po_sk') {
+        removeUsersFromDesired([userId, ...childIdsForPo(userId)]);
       } else {
         removeUsersFromDesired([userId]);
       }
       return;
     }
 
-    if (user.role === 'PO') {
-      const childSkIds = allUsers
-        .filter((candidate) => candidate.parent_id === userId)
-        .map((candidate) => candidate.id);
-      addUsersToDesired([userId, ...childSkIds]);
-    } else {
-      addUsersToDesired([userId]);
-    }
+    // PO→SK expansion happens on the server when expand_po_assignees is true.
+    addUsersToDesired([userId]);
   };
 
   const handleSelectAllUsers = () => {
-    const selectable = displayedUserLevelUsers.filter(
+    const selectable = loadedUsers.filter(
       (user) => !userAssignmentStatus.get(user.id)?.isDisabledInCurrentMode,
     );
     const allSelected = selectable.every((user) => desiredSet.has(user.id));
     if (allSelected) {
-      const idsToRemove = selectable.flatMap((user) => {
-        if (user.role === 'PO') {
-          const childSkIds = allUsers
-            .filter((candidate) => candidate.parent_id === user.id)
-            .map((candidate) => candidate.id);
-          return [user.id, ...childSkIds];
-        }
-        return [user.id];
-      });
+      const idsToRemove = selectable.flatMap((user) =>
+        user.role === 'PO' && userLevelMode === 'po_sk'
+          ? [user.id, ...childIdsForPo(user.id)]
+          : [user.id],
+      );
       removeUsersFromDesired(idsToRemove);
       return;
     }
-    const idsToAdd = selectable.flatMap((user) => {
-      if (user.role === 'PO') {
-        const childSkIds = allUsers
-          .filter((candidate) => candidate.parent_id === user.id)
-          .map((candidate) => candidate.id);
-        return [user.id, ...childSkIds];
-      }
-      return [user.id];
-    });
-    addUsersToDesired(idsToAdd);
+    addUsersToDesired(selectable.map((user) => user.id));
   };
 
   const handleUpazilaCheckboxChange = (upazilaName: string) => {
-    const members = usersInUpazila(allUsers, upazilaName).map(
-      (user) => user.id,
+    setDesiredUpazilas((prev) =>
+      prev.includes(upazilaName)
+        ? prev.filter((name) => name !== upazilaName)
+        : [...prev, upazilaName],
     );
-    if (isUpazilaFullyCovered(desiredSet, allUsers, upazilaName)) {
-      removeUsersFromDesired(members);
-      return;
-    }
-    addUsersToDesired(members);
   };
 
   const handleSelectAllUpazilas = () => {
-    const allSelected = displayedUpazilas.every((name) =>
-      isUpazilaFullyCovered(desiredSet, allUsers, name),
-    );
-    const memberIds = displayedUpazilas.flatMap((name) =>
-      usersInUpazila(allUsers, name).map((user) => user.id),
-    );
+    const names = loadedUpazilas.map((upazila) => upazila.name);
+    const allSelected = names.every((name) => desiredUpazilaSet.has(name));
     if (allSelected) {
-      removeUsersFromDesired(memberIds);
+      setDesiredUpazilas((prev) =>
+        prev.filter((name) => !names.includes(name)),
+      );
       return;
     }
-    addUsersToDesired(memberIds);
+    setDesiredUpazilas((prev) => Array.from(new Set([...prev, ...names])));
   };
 
   const finishSuccess = (
@@ -632,67 +808,79 @@ export const AssignmentDialog = ({
 
   const handleAssign = async () => {
     setErrorMsg('');
-    const nextIds = [...desiredUserIds];
-    const addedIds = nextIds.filter((id) => !baselineSet.has(id));
-    const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
-
-    if (addedIds.length === 0 && removedIds.length === 0) {
-      setErrorMsg('Please select at least one user or change assignments.');
-      return;
-    }
 
     try {
+      if (activeTab === 'geographical') {
+        const addedUpazilas = desiredUpazilas.filter(
+          (name) => !baselineUpazilaSet.has(name),
+        );
+        const removedUpazilas = baselineUpazilas.filter(
+          (name) => !desiredUpazilaSet.has(name),
+        );
+        if (addedUpazilas.length === 0 && removedUpazilas.length === 0) {
+          setErrorMsg(
+            'Please select at least one upazila or change assignments.',
+          );
+          return;
+        }
+
+        const payload = { upazilas: desiredUpazilas };
+        if (target.kind === 'module') {
+          await replaceModuleUsers({
+            moduleId: target.id,
+            ...payload,
+          }).unwrap();
+        } else {
+          await replaceDocumentUsers({
+            sourceDocumentId: target.id,
+            ...payload,
+          }).unwrap();
+        }
+
+        finishSuccess(
+          'geographical',
+          buildGeographicalAssignedEntries(addedUpazilas),
+          buildGeographicalAssignedEntries(removedUpazilas),
+        );
+        return;
+      }
+
+      const nextIds = [...selectedUserIdsForMode];
+      const baselineForMode = new Set(baselineUserIdsForMode);
+      const addedIds = nextIds.filter((id) => !baselineForMode.has(id));
+      const removedIds = baselineUserIdsForMode.filter(
+        (id) => !desiredSet.has(id),
+      );
+
+      if (addedIds.length === 0 && removedIds.length === 0) {
+        setErrorMsg('Please select at least one user or change assignments.');
+        return;
+      }
+
+      const expandPoAssignees = userLevelMode === 'po_sk';
+      const payload = {
+        user_ids: nextIds,
+        expand_po_assignees: expandPoAssignees,
+      };
+
       if (target.kind === 'module') {
         await replaceModuleUsers({
           moduleId: target.id,
-          user_ids: nextIds,
+          ...payload,
         }).unwrap();
       } else {
         await replaceDocumentUsers({
           sourceDocumentId: target.id,
-          user_ids: nextIds,
+          ...payload,
         }).unwrap();
       }
 
-      let summaryType: AssignmentSummaryType = 'sk';
-      let assignedEntries: AssignedUserEntry[] = [];
-      let removedEntries: AssignedUserEntry[] = [];
-
-      if (activeTab === 'geographical') {
-        summaryType = 'geographical';
-        const addedUpazilas = displayedUpazilas.filter(
-          (name) =>
-            isUpazilaFullyCovered(desiredSet, allUsers, name) &&
-            !isUpazilaFullyCovered(baselineSet, allUsers, name),
-        );
-        const removedUpazilas = displayedUpazilas.filter(
-          (name) =>
-            !isUpazilaFullyCovered(desiredSet, allUsers, name) &&
-            isUpazilaFullyCovered(baselineSet, allUsers, name),
-        );
-        assignedEntries = buildGeographicalAssignedEntries(addedUpazilas);
-        removedEntries = buildGeographicalAssignedEntries(removedUpazilas);
-      } else if (userLevelMode === 'po_sk') {
-        summaryType = 'po_sk';
-        const addedPos = addedIds.filter((id) =>
-          allUsers.some((user) => user.id === id && user.role === 'PO'),
-        );
-        const removedPos = removedIds.filter((id) =>
-          allUsers.some((user) => user.id === id && user.role === 'PO'),
-        );
-        assignedEntries = buildAssignedUserEntries('po_sk', addedPos, allUsers);
-        removedEntries = buildAssignedUserEntries(
-          'po_sk',
-          removedPos,
-          allUsers,
-        );
-      } else {
-        summaryType = 'sk';
-        assignedEntries = buildAssignedUserEntries('sk', addedIds, allUsers);
-        removedEntries = buildAssignedUserEntries('sk', removedIds, allUsers);
-      }
-
-      finishSuccess(summaryType, assignedEntries, removedEntries);
+      const knownList = Array.from(knownUsersById.values());
+      finishSuccess(
+        userLevelMode,
+        buildAssignedUserEntries(userLevelMode, addedIds, knownList),
+        buildAssignedUserEntries(userLevelMode, removedIds, knownList),
+      );
     } catch (err: unknown) {
       console.error(err);
       const detail =
@@ -706,6 +894,47 @@ export const AssignmentDialog = ({
   };
 
   if (!open) return null;
+
+  const catalogsLoading =
+    (loadingDistricts && loadedDistricts.length === 0) ||
+    (loadingFilterUpazilas && filterLoadedUpazilas.length === 0);
+  const geoLoading = loadingUpazilas && loadedUpazilas.length === 0;
+  const geoError = districtsError || upazilasError;
+
+  const renderDistrictCombobox = (id: string) => (
+    <Combobox
+      id={id}
+      aria-label="District"
+      value={selectedDistrictId === null ? '' : String(selectedDistrictId)}
+      selectedLabel={
+        selectedDistrictId === null
+          ? ALL_DISTRICTS_OPTION.label
+          : selectedDistrictName || ALL_DISTRICTS_OPTION.label
+      }
+      options={districtComboboxOptions}
+      searchTerm={districtSearchQuery}
+      onSearchTermChange={setDistrictSearchQuery}
+      onChange={handleDistrictChange}
+      isLoading={loadingDistricts && loadedDistricts.length === 0}
+      hint={
+        districtsTotal > 0
+          ? `Showing ${loadedDistricts.length} of ${districtsTotal}`
+          : undefined
+      }
+      placeholder="Type to search districts…"
+      emptyMessage={
+        districtsError ? 'Failed to load districts.' : 'No districts found.'
+      }
+      hasMore={districtsHasMore}
+      onLoadMore={() => {
+        void loadDistrictsPage(districtsOffset, true);
+      }}
+      isLoadingMore={fetchingDistricts && loadedDistricts.length > 0}
+      loadMoreError={districtsError && loadedDistricts.length > 0}
+      onLoadMoreRetry={retryDistricts}
+      className="w-full"
+    />
+  );
 
   return (
     <Modal open={open} labelledBy="assignment-dialog-title" onClose={onClose}>
@@ -756,51 +985,119 @@ export const AssignmentDialog = ({
                   options={USER_LEVEL_MODE_OPTIONS}
                   value={userLevelMode}
                   onChange={(value) => {
-                    setUserLevelMode(value as UserLevelMode);
-                    setSelectedDistrict('');
-                    setSelectedUpazila('');
+                    setUserLevelMode(value as AssignmentUserLevelMode);
                     setErrorMsg('');
                   }}
                   className="min-w-0 flex-1 whitespace-nowrap"
-                  disabled={loadingUsers}
+                  disabled={catalogsLoading}
                 />
               </label>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className="block space-y-2">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    District
-                  </span>
-                  <Select
-                    options={districtOptions}
-                    value={selectedDistrict}
-                    onChange={handleDistrictChange}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-spice-text-primary">
+                      District
+                    </span>
+                    {districtsError ? (
+                      <FetchRetryButton
+                        label="Retry loading districts"
+                        onRetry={retryDistricts}
+                        disabled={fetchingDistricts}
+                      />
+                    ) : null}
+                  </div>
+                  {renderDistrictCombobox(
+                    'assignment-district-filter-combobox',
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-spice-text-primary">
+                      Upazila
+                    </span>
+                    {filterUpazilasError ? (
+                      <FetchRetryButton
+                        label="Retry loading upazilas"
+                        onRetry={retryFilterUpazilas}
+                        disabled={fetchingFilterUpazilas}
+                      />
+                    ) : null}
+                  </div>
+                  <Combobox
+                    id="assignment-upazila-filter-combobox"
+                    aria-label="Upazila"
+                    value={
+                      selectedUpazilaId === null
+                        ? ''
+                        : String(selectedUpazilaId)
+                    }
+                    selectedLabel={
+                      selectedUpazilaId === null
+                        ? ALL_UPAZILAS_OPTION.label
+                        : selectedUpazilaName || ALL_UPAZILAS_OPTION.label
+                    }
+                    options={filterUpazilaComboboxOptions}
+                    searchTerm={filterUpazilaSearchQuery}
+                    onSearchTermChange={setFilterUpazilaSearchQuery}
+                    onChange={handleFilterUpazilaChange}
+                    isLoading={
+                      loadingFilterUpazilas && filterLoadedUpazilas.length === 0
+                    }
+                    hint={
+                      filterUpazilasTotal > 0
+                        ? `Showing ${filterLoadedUpazilas.length} of ${filterUpazilasTotal}`
+                        : undefined
+                    }
+                    placeholder="Type to search upazilas…"
+                    emptyMessage={
+                      filterUpazilasError
+                        ? 'Failed to load upazilas.'
+                        : 'No upazilas found.'
+                    }
+                    hasMore={filterUpazilasHasMore}
+                    onLoadMore={() => {
+                      void loadFilterUpazilasPage(filterUpazilasOffset, true);
+                    }}
+                    isLoadingMore={
+                      fetchingFilterUpazilas && filterLoadedUpazilas.length > 0
+                    }
+                    loadMoreError={
+                      filterUpazilasError && filterLoadedUpazilas.length > 0
+                    }
+                    onLoadMoreRetry={retryFilterUpazilas}
                     className="w-full"
-                    disabled={loadingUsers}
                   />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Upazila
-                  </span>
-                  <Select
-                    options={upazilaFilterOptions}
-                    value={selectedUpazila}
-                    onChange={setSelectedUpazila}
-                    className="w-full"
-                    disabled={loadingUsers}
-                  />
-                </label>
+                </div>
               </div>
+
+              <label className="block space-y-2">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Search users
+                </span>
+                <SearchInput
+                  value={userSearchQuery}
+                  onChange={setUserSearchQuery}
+                  placeholder="Search by name"
+                  aria-label="Search users by name"
+                  disabled={catalogsLoading}
+                  className="sm:min-w-0"
+                />
+              </label>
 
               <UserSelectionList
                 title="User"
-                users={displayedUserLevelUsers}
+                users={loadedUsers}
                 selectedUserIds={selectedUserIdsForMode}
                 userAssignmentStatus={userAssignmentStatus}
-                isLoading={loadingUsers}
+                isLoading={loadingUsers && loadedUsers.length === 0}
                 isError={usersError}
                 isFetching={fetchingUsers}
+                hasMore={usersHasMore}
+                isLoadingMore={fetchingUsers && loadedUsers.length > 0}
+                onLoadMore={() => {
+                  void loadUsersPage(usersOffset, true);
+                }}
                 onRetry={retryUsers}
                 onSelectAll={handleSelectAllUsers}
                 onToggleUser={handleToggleUser}
@@ -815,98 +1112,113 @@ export const AssignmentDialog = ({
 
           {activeTab === 'geographical' ? (
             <>
-              <label className="block space-y-2">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  District
-                </span>
-                <Select
-                  options={districtOptions}
-                  value={selectedDistrict}
-                  onChange={handleDistrictChange}
-                  className="w-full"
-                  disabled={loadingGeoLists}
-                />
-              </label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-spice-text-primary">
+                    District
+                  </span>
+                  {districtsError ? (
+                    <FetchRetryButton
+                      label="Retry loading districts"
+                      onRetry={retryDistricts}
+                      disabled={fetchingDistricts}
+                    />
+                  ) : null}
+                </div>
+                {renderDistrictCombobox('assignment-geo-district-combobox')}
+              </div>
 
               <div className="overflow-hidden rounded-lg border border-spice-border">
                 <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
                   <div className="flex items-center gap-1.5">
                     <span>Upazila</span>
-                    {geoListsError ? (
+                    {geoError ? (
                       <FetchRetryButton
                         label="Retry loading upazilas"
-                        onRetry={retryUsers}
-                        disabled={fetchingGeoLists}
+                        onRetry={retryDistrictsAndUpazilas}
+                        disabled={fetchingUpazilas || fetchingDistricts}
                       />
                     ) : null}
                   </div>
-                  {displayedUpazilas.length > 0 ? (
+                  {loadedUpazilas.length > 0 ? (
                     <button
                       type="button"
                       onClick={handleSelectAllUpazilas}
                       className="text-spice-brand-primary hover:underline"
                     >
-                      {displayedUpazilas.every((name) =>
-                        selectedUpazilaNames.includes(name),
+                      {loadedUpazilas.every((upazila) =>
+                        desiredUpazilaSet.has(upazila.name),
                       )
-                        ? 'Deselect all'
-                        : 'Select all'}
+                        ? 'Deselect loaded'
+                        : 'Select loaded'}
                     </button>
                   ) : null}
                 </div>
 
-                <div className="max-h-[20vh] divide-y divide-spice-border overflow-y-auto">
-                  {loadingGeoLists ? (
+                <InfiniteScrollContainer
+                  className="max-h-[20vh]"
+                  hasMore={!geoLoading && !geoError && upazilasHasMore}
+                  onLoadMore={() => {
+                    void loadUpazilasPage(upazilasOffset, true);
+                  }}
+                  loadedCount={loadedUpazilas.length}
+                  isLoadingMore={fetchingUpazilas && loadedUpazilas.length > 0}
+                  disabled={geoLoading || Boolean(geoError)}
+                >
+                  {geoLoading ? (
                     <div className="p-4 text-center text-sm text-spice-text-muted">
                       Loading upazilas…
                     </div>
-                  ) : geoListsError ? (
+                  ) : geoError ? (
                     <div className="p-4 text-center text-sm text-spice-text-muted">
                       Failed to load upazilas.
                     </div>
-                  ) : displayedUpazilas.length === 0 ? (
+                  ) : loadedUpazilas.length === 0 ? (
                     <div className="p-4 text-center text-sm text-spice-text-muted">
                       No upazilas found.
                     </div>
                   ) : (
-                    displayedUpazilas.map((upazilaName) => {
-                      const isChecked =
-                        selectedUpazilaNames.includes(upazilaName);
-                      const isAlreadyAssigned =
-                        alreadyAssignedUpazilas.includes(upazilaName);
+                    <div className="divide-y divide-spice-border">
+                      {loadedUpazilas.map((upazila) => {
+                        const isChecked = desiredUpazilaSet.has(upazila.name);
+                        const isAlreadyAssigned = baselineUpazilaSet.has(
+                          upazila.name,
+                        );
 
-                      return (
-                        <label
-                          key={upazilaName}
-                          className="flex cursor-pointer items-center justify-between px-3 py-2.5 hover:bg-spice-bg-tint/30"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-spice-text-primary">
-                              {upazilaName}
-                            </span>
-                            {isAlreadyAssigned ? (
-                              <span className="text-xs text-spice-text-muted">
-                                Already assigned
+                        return (
+                          <label
+                            key={upazila.id}
+                            className="flex cursor-pointer items-center justify-between px-3 py-2.5 hover:bg-spice-bg-tint/30"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-spice-text-primary">
+                                {upazila.name}
                               </span>
-                            ) : null}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() =>
-                              handleUpazilaCheckboxChange(upazilaName)
-                            }
-                            className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
-                          />
-                        </label>
-                      );
-                    })
+                              {isAlreadyAssigned ? (
+                                <span className="text-xs text-spice-text-muted">
+                                  Already assigned
+                                </span>
+                              ) : null}
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() =>
+                                handleUpazilaCheckboxChange(upazila.name)
+                              }
+                              className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
                   )}
-                </div>
+                </InfiniteScrollContainer>
               </div>
 
               <p className="text-xs leading-relaxed text-spice-text-muted">
-                Assign this {noun} to all users in the selected upazila(s).
+                Assign this {noun} to all users in the selected upazila(s). Save
+                sends upazila names; the server expands them to assignees.
               </p>
             </>
           ) : null}

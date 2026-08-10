@@ -15,6 +15,8 @@ export type {
   ImagePickerProps,
   ImagePickerVariant,
 } from '@/components/ui/ImagePicker';
+export { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+export type { InfiniteScrollContainerProps } from '@/components/ui/InfiniteScrollContainer';
 export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
 export { ListItem } from '@/components/ui/ListItem';
@@ -39,3 +41,4 @@ export { SuccessModal } from '@/components/ui/SuccessModal';
 export type { SuccessModalProps } from '@/components/ui/SuccessModal';
 export type { TabItem } from '@/components/ui/Tabs';
 export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';
+export { useWindowedList } from '@/components/ui/useWindowedList';

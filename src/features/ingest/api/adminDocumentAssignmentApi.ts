@@ -1,21 +1,26 @@
 import { baseApi } from '@/store/apis/base';
-import type {
-  AdminUser,
-  AssignmentUpdateResponse,
-  CreateAssignmentResponse,
+import {
+  buildAssignmentUsersMutationBody,
+  parseAssignedUsersResponse,
+  type AdminUser,
+  type AssignmentUpdateResponse,
+  type CreateAssignmentResponse,
 } from '@/features/modules/api/adminAssignmentApi';
-import { parseAssignedUsersResponse } from '@/features/modules/api/adminAssignmentApi';
 
 export interface CreateDocumentAssignmentRequest {
   source_document_id: string;
   user_ids?: number[];
   upazilas?: string[];
+  /** When true, PO ids also assign their direct SK children. Default false (PO only). */
+  expand_po_assignees?: boolean;
 }
 
 export interface ReplaceDocumentAssignedUsersRequest {
   sourceDocumentId: string;
   user_ids?: number[];
   upazilas?: string[];
+  /** When true, PO ids also assign their direct SK children. Default false (PO only). */
+  expand_po_assignees?: boolean;
 }
 
 export const adminDocumentAssignmentApi = baseApi.injectEndpoints({
@@ -42,10 +47,19 @@ export const adminDocumentAssignmentApi = baseApi.injectEndpoints({
       AssignmentUpdateResponse,
       ReplaceDocumentAssignedUsersRequest
     >({
-      query: ({ sourceDocumentId, user_ids, upazilas }) => ({
+      query: ({
+        sourceDocumentId,
+        user_ids,
+        upazilas,
+        expand_po_assignees,
+      }) => ({
         url: `/admin/document-assignments/${encodeURIComponent(sourceDocumentId)}/users`,
         method: 'PUT',
-        body: { user_ids, upazilas },
+        body: buildAssignmentUsersMutationBody({
+          user_ids,
+          upazilas,
+          expand_po_assignees,
+        }),
       }),
       invalidatesTags: ['SourceDocuments'],
     }),
