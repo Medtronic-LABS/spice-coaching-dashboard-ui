@@ -42,7 +42,7 @@ const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
     clearAuthSession();
     if (typeof window !== 'undefined') {
       if (isLoginEnabled()) {
-        if (!window.location.pathname.endsWith('/login')) {
+        if (window.location.pathname !== paths.login) {
           window.location.assign(paths.login);
         }
       } else {

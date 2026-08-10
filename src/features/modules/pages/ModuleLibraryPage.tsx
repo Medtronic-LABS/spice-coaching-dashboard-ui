@@ -1223,6 +1223,7 @@ export const ModuleLibraryPage = () => {
             active={filtersActive}
             expanded={filtersDrawerOpen}
             onClick={handleOpenFiltersDrawer}
+            ariaLabel="Open filters"
             tooltip={
               filtersActive
                 ? 'Results reflect the filters currently applied.'

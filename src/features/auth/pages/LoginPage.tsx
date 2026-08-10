@@ -1,20 +1,16 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { isLoginEnabled } from '@/config/authConfig';
 import { paths } from '@/constants/routes';
-import { useLoginMutation } from '@/features/auth/api/authApi';
-import { setAuthSession } from '@/features/auth/services/authSession';
-import { hasCoachingSuiteAccess } from '@/features/auth/utils/hasCoachingSuiteAccess';
-import { hashPasswordWithHmac } from '@/features/auth/utils/passwordHash';
-import { mapLoginResponseToAuthUser } from '@/features/auth/utils/mapLoginResponseToAuthUser';
+import { useLoginSubmit } from '@/features/auth/hooks/useLoginSubmit';
 import appLogo from '@/features/auth/assets/app-logo-name.png';
 import showPassIcon from '@/features/auth/assets/showPass.svg';
 import hidePassIcon from '@/features/auth/assets/hidePass.svg';
 
 export const LoginPage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { submitLogin, isLoading } = useLoginSubmit();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,8 +21,6 @@ export const LoginPage = () => {
     password?: string;
   }>({});
 
-  const [loginApi, { isLoading }] = useLoginMutation();
-
   if (!isLoginEnabled()) {
     return <Navigate to={paths.home} replace />;
   }
@@ -34,105 +28,24 @@ export const LoginPage = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage(null);
+    setFieldErrors({});
 
-    const trimmedUsername = username.trim();
-    const nextErrors: { username?: string; password?: string } = {};
-    if (!trimmedUsername) {
-      nextErrors.username = t(
-        'auth.signIn.errorEmailRequired',
-        'Please enter email',
-      );
-    }
-    if (!password) {
-      nextErrors.password = t(
-        'auth.signIn.errorPasswordRequired',
-        'Please enter password',
-      );
-    }
-    setFieldErrors(nextErrors);
-    if (nextErrors.username || nextErrors.password) {
-      setErrorMessage(
-        t(
-          'auth.signIn.errorRequiredFields',
-          'Please enter both username and password.',
-        ),
-      );
-      return;
-    }
-
-    try {
-      // Same HMAC-SHA512 hex hashing as spice-2.0-admin-web login saga
-      const hashedPassword = hashPasswordWithHmac(password);
-
-      const response = await loginApi({
-        username: trimmedUsername,
-        password: hashedPassword,
-      }).unwrap();
-
-      // Body often has authorization/cookie null; coaching-platform puts it on headers.
-      const authCookie =
-        (typeof response.authorization === 'string'
-          ? response.authorization
-          : undefined) ??
-        (typeof response.token === 'string' ? response.token : undefined) ??
-        (typeof response.cookie === 'string' ? response.cookie : undefined) ??
-        (typeof response.authHeader === 'string'
-          ? response.authHeader
-          : undefined);
-
-      if (!authCookie) {
-        setErrorMessage(
-          t(
-            'auth.signIn.errorMissingAuthCookie',
-            'Sign-in succeeded but no auth cookie was returned. Please try again.',
-          ),
-        );
+    const result = await submitLogin(username, password);
+    switch (result.status) {
+      case 'validation':
+        setFieldErrors(result.fieldErrors);
+        setErrorMessage(result.message);
         return;
-      }
-
-      const authUser = mapLoginResponseToAuthUser(response, {
-        authCookie,
-        usernameFallback: trimmedUsername,
-      });
-
-      if (!authUser) {
-        setErrorMessage(
-          t(
-            'auth.signIn.errorMissingIdentity',
-            'Sign-in succeeded but user identity was incomplete. Please try again.',
-          ),
-        );
+      case 'error':
+        setErrorMessage(result.message);
         return;
-      }
-
-      if (!hasCoachingSuiteAccess(response.suiteAccess)) {
-        navigate(paths.unauthorized, { replace: true });
+      case 'unauthorized':
+      case 'success':
         return;
+      default: {
+        const exhaustiveCheck: never = result;
+        return exhaustiveCheck;
       }
-
-      setAuthSession(authUser);
-      navigate(paths.home, { replace: true });
-    } catch (err: unknown) {
-      const record =
-        err && typeof err === 'object' ? (err as Record<string, unknown>) : {};
-      const data =
-        record.data && typeof record.data === 'object'
-          ? (record.data as Record<string, unknown>)
-          : {};
-      const detail =
-        typeof data.detail === 'string'
-          ? data.detail
-          : typeof data.message === 'string'
-            ? data.message
-            : null;
-
-      setErrorMessage(
-        detail ||
-          t(
-            'auth.signIn.errorMessage',
-            'Invalid credentials or login failed. Please try again.',
-          ),
-      );
     }
   };
 

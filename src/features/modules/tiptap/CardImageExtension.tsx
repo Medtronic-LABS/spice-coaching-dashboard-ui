@@ -38,6 +38,10 @@ function cornerHandleClass(corner: ResizeCorner): string {
       return `${base} bottom-0 left-0 cursor-sw-resize`;
     case 'se':
       return `${base} bottom-0 right-0 cursor-se-resize`;
+    default: {
+      const exhaustiveCheck: never = corner;
+      return exhaustiveCheck;
+    }
   }
 }
 
@@ -53,6 +57,10 @@ function nextWidthForCorner(
     case 'sw':
     case 'nw':
       return startWidth - deltaX;
+    default: {
+      const exhaustiveCheck: never = corner;
+      return exhaustiveCheck;
+    }
   }
 }
 

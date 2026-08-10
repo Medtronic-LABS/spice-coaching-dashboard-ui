@@ -38,7 +38,7 @@ describe('ChartBase', () => {
     expect(screen.getByText('Child')).toBeInTheDocument();
     expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     expect(
-      screen.getByRole('list', { name: 'Chart legend' }),
+      screen.getByRole('list', { name: 'chart legend' }),
     ).toBeInTheDocument();
   });
 

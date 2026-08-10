@@ -49,7 +49,10 @@ export function ChartBase<TData>({
       onMouseMove={onHover}
       legend={
         showLegend && legendItems && legendItems.length > 0 ? (
-          <ResponsiveLegend items={legendItems} />
+          <ResponsiveLegend
+            items={legendItems}
+            ariaLabel={`${ariaLabel} legend`}
+          />
         ) : null
       }
     >

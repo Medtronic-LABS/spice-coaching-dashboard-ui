@@ -166,8 +166,10 @@ function renderBlock(
       return <PreviewVideoBlock key={key} attrs={block.attrs} />;
     case 'audio':
       return <PreviewAudioBlock key={key} attrs={block.attrs} />;
-    default:
-      return null;
+    default: {
+      const exhaustiveCheck: never = block;
+      return exhaustiveCheck;
+    }
   }
 }
 

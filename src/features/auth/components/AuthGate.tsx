@@ -11,7 +11,7 @@ interface AuthGateProps {
 }
 
 function isPublicAuthPath(pathname: string): boolean {
-  return pathname.endsWith('/login') || pathname.endsWith('/unauthorized');
+  return pathname === paths.login || pathname === paths.unauthorized;
 }
 
 export const AuthGate = ({ children }: AuthGateProps) => {
@@ -21,7 +21,7 @@ export const AuthGate = ({ children }: AuthGateProps) => {
   if (isLoginEnabled()) {
     const session = getAuthSession();
     const isPublicPath = isPublicAuthPath(location.pathname);
-    const isLoginPage = location.pathname.endsWith('/login');
+    const isLoginPage = location.pathname === paths.login;
 
     if (!session && !isPublicPath) {
       return <Navigate to={paths.login} replace state={{ from: location }} />;
