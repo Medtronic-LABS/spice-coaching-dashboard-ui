@@ -4,10 +4,24 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test-utils/render';
 import { Header } from './Header';
 
+const logoutMock = vi.fn();
+
+vi.mock('@/config/authConfig', () => ({
+  isLoginEnabled: () => true,
+}));
+
 vi.mock('@/features/auth/services/authSession', () => ({
-  getAuthSession: () => ({ role: 'SUPER_USER' }),
+  getAuthSession: () => ({
+    tenantId: '2',
+    userId: '1',
+    email: 'superuser@test.com',
+    firstName: 'Subhodeep',
+    lastName: 'User',
+    role: 'SUPER_USER',
+  }),
   getAuthDisplayName: () => 'Subhodeep User',
   getAuthInitials: () => 'SU',
+  logout: () => logoutMock(),
 }));
 
 const defaultHeaderProps = {
@@ -22,16 +36,12 @@ describe('Header', () => {
     expect(screen.getByText('AI Coaching')).toBeInTheDocument();
   });
 
-  it('renders the disabled profile control with user initials and hover name', () => {
+  it('renders user initials and a logout control when login is enabled', async () => {
+    const user = userEvent.setup();
     renderWithProviders(<Header {...defaultHeaderProps} />);
-    const profileButton = screen.getByRole('button', {
-      name: (accessibleName) =>
-        /subhodeep user user menu/i.test(accessibleName) ||
-        accessibleName.includes('সুভোদীপ'),
-    });
-    expect(profileButton).toBeDisabled();
-    expect(profileButton).toHaveAttribute('title', 'Subhodeep User');
     expect(screen.getByText('SU')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /log out/i }));
+    expect(logoutMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not render a language selector', () => {

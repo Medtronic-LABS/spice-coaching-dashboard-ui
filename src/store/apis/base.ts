@@ -7,6 +7,7 @@ import {
   clearAuthSession,
   getAuthSession,
 } from '@/features/auth/services/authSession';
+import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
 import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
 import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
 
@@ -36,13 +37,16 @@ const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
     result = await mockBaseQuery(args, api, extraOptions);
   }
 
-  // Intercept HTTP 401 (Unauthorized): clear auth state and redirect to login page
+  // Intercept HTTP 401 (Unauthorized): clear auth and send the user to re-auth.
   if (result.error && result.error.status === 401) {
     clearAuthSession();
-    if (isLoginEnabled() && typeof window !== 'undefined') {
-      const loginUrl = paths.login;
-      if (!window.location.pathname.endsWith('/login')) {
-        window.location.assign(loginUrl);
+    if (typeof window !== 'undefined') {
+      if (isLoginEnabled()) {
+        if (window.location.pathname !== paths.login) {
+          window.location.assign(paths.login);
+        }
+      } else {
+        redirectToSpiceWeb();
       }
     }
   }
@@ -58,6 +62,6 @@ export const baseApi = createApi({
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
   baseQuery: hybridBaseQuery,
-  tagTypes: ['Config', 'ModuleDomains', 'SourceDocuments'],
+  tagTypes: ['Config', 'ModuleDomains', 'SourceDocuments', 'Badges'],
   endpoints: () => ({}),
 });

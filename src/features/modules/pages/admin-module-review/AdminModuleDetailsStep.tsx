@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
-import { Button, Card, ImagePicker, Loader } from '@/components/ui';
+import { Banner, Button, Card, ImagePicker, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -66,11 +66,7 @@ export const AdminModuleDetailsStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
+      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
 
       <Card variant="elevated" className="space-y-4 p-4">
         <div>

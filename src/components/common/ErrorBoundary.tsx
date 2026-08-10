@@ -80,6 +80,11 @@ const ErrorBoundaryFallback = ({
   );
 };
 
+/**
+ * React error boundaries must be class components until React exposes a
+ * first-class hook alternative. This file is the sole intentional exception
+ * to the project's functional-components rule.
+ */
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState

@@ -121,6 +121,10 @@ export const Tooltip = ({
         case 'left':
         case 'right':
           return space[side] >= tooltipWidth;
+        default: {
+          const exhaustiveCheck: never = side;
+          return exhaustiveCheck;
+        }
       }
     };
 
@@ -148,10 +152,13 @@ export const Tooltip = ({
         left = rect.right + TOOLTIP_GAP_PX;
         break;
       case 'bottom':
-      default:
         top = rect.bottom + TOOLTIP_GAP_PX;
         left = rect.left;
         break;
+      default: {
+        const exhaustiveCheck: never = chosen;
+        return exhaustiveCheck;
+      }
     }
 
     left = clamp(

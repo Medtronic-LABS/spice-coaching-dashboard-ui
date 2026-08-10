@@ -16,7 +16,7 @@ function renderAssignedPage(state?: Record<string, unknown>) {
     </Routes>,
     {
       route: paths.moduleAssigned,
-      initialState: { locationState: state },
+      routerState: state,
     },
   );
 }

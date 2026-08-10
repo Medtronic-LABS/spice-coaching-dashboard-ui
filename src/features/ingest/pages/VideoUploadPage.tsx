@@ -6,12 +6,13 @@ import {
   SettingsFilterTriggerButton,
 } from '@/components/common/SettingsFilterDrawer';
 import { Table, type ColumnDef } from '@/components/common/Table';
+import { TablePagination } from '@/components/common/TablePagination';
 import {
+  Banner,
   Button,
   Card,
   Loader,
   SearchInput,
-  Select,
   StatusBadge,
   Tooltip,
   TruncatedText,
@@ -107,10 +108,8 @@ type VideoRow = {
   sourceDocumentId?: string;
 };
 
-const PAGE_SIZE_OPTIONS = [5, 10, 25, 50].map((value) => ({
-  label: String(value),
-  value: String(value),
-}));
+const VIDEO_PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const;
+const DEFAULT_VIDEO_PAGE_SIZE = 10;
 
 const VIDEO_SEARCH_DEBOUNCE_MS = 300;
 
@@ -225,7 +224,8 @@ export const VideoUploadPage = () => {
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(DEFAULT_VIDEO_PAGE_SIZE);
+  const [pageInput, setPageInput] = useState('1');
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<VideoUploadFiltersState>(
     EMPTY_VIDEO_UPLOAD_FILTERS,
@@ -511,10 +511,38 @@ export const VideoUploadPage = () => {
 
   const totalServerVideos = sourceDocumentList?.total_source_documents ?? 0;
   const totalPages = Math.max(1, sourceDocumentList?.total_pages ?? 1);
+  const hasPrevPage = page > 0;
+  const hasNextPage = page + 1 < totalPages;
+  const rangeStart = serverRows.length ? page * pageSize + 1 : 0;
+  const rangeEnd = serverRows.length ? page * pageSize + serverRows.length : 0;
+
+  useEffect(() => {
+    setPageInput(String(page + 1));
+  }, [page]);
 
   useEffect(() => {
     if (page >= totalPages) setPage(totalPages - 1);
   }, [page, totalPages]);
+
+  const commitPageInput = () => {
+    const parsed = Number.parseInt(pageInput, 10);
+    const isValid =
+      Number.isFinite(parsed) && parsed >= 1 && parsed <= totalPages;
+    if (!isValid) {
+      setPageInput(String(page + 1));
+      return;
+    }
+    setPage(parsed - 1);
+  };
+
+  const handlePageInputChange = (raw: string) => {
+    if (raw === '') {
+      setPageInput('');
+      return;
+    }
+    if (!/^\d+$/.test(raw)) return;
+    setPageInput(raw);
+  };
 
   const uploadPendingThumbnails = useCallback(
     async (
@@ -976,16 +1004,8 @@ export const VideoUploadPage = () => {
         </Button>
       </div>
 
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
-      {actionSuccess ? (
-        <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
-          {actionSuccess}
-        </div>
-      ) : null}
+      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
+      {actionSuccess ? <Banner tone="success">{actionSuccess}</Banner> : null}
 
       <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
         <div className="text-sm font-semibold text-spice-text-primary">
@@ -1194,11 +1214,7 @@ export const VideoUploadPage = () => {
             </span>
           </label>
 
-          {fileError ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {fileError}
-            </div>
-          ) : null}
+          {fileError ? <Banner tone="critical">{fileError}</Banner> : null}
         </div>
 
         <p className="text-xs text-spice-text-muted">
@@ -1249,9 +1265,7 @@ export const VideoUploadPage = () => {
         </div>
 
         {isVideoListError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            Unable to load uploaded videos.
-          </div>
+          <Banner tone="critical">Unable to load uploaded videos.</Banner>
         ) : null}
         <SettingsFilterDrawer
           open={filtersDrawerOpen}
@@ -1285,44 +1299,28 @@ export const VideoUploadPage = () => {
           onSort={handleSort}
         />
 
-        <div className="flex flex-col gap-3 border-t border-spice-border pt-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-spice-text-muted">
-            Showing {serverRows.length ? page * pageSize + 1 : 0}–
-            {page * pageSize + serverRows.length} of {totalServerVideos}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-spice-text-muted">Rows</span>
-            <Select
-              aria-label="Videos per page"
-              className="h-8 w-20"
-              options={PAGE_SIZE_OPTIONS}
-              value={String(pageSize)}
-              onChange={(value) => {
-                setPageSize(Number(value));
-                setPage(0);
-              }}
-            />
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={page === 0}
-              onClick={() => setPage((current) => current - 1)}
-            >
-              Previous
-            </Button>
-            <span className="text-xs text-spice-text-muted">
-              {page + 1} / {totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={page + 1 >= totalPages}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={VIDEO_PAGE_SIZE_OPTIONS}
+          totalItems={totalServerVideos}
+          totalPages={totalPages}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          pageInput={pageInput}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPageSizeChange={(next) => {
+            setPageSize(next);
+            setPage(0);
+          }}
+          onPageInputChange={handlePageInputChange}
+          onCommitPageInput={commitPageInput}
+          onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
+          onNextPage={() => setPage((current) => current + 1)}
+          rowsPerPageAriaLabel="Videos per page"
+          className="border-t border-spice-border px-0 pt-3"
+        />
       </Card>
 
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">

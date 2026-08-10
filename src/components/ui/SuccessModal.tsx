@@ -69,7 +69,7 @@ export const SuccessModal = ({
           </h2>
           <p className="text-sm text-spice-text-muted">{description}</p>
           <p className="text-xs text-spice-text-medium">
-            Redirecting to module library in {secondsLeft}s…
+            Redirecting in {secondsLeft}s…
           </p>
         </div>
         <Button className="w-full" onClick={handleRedirect}>

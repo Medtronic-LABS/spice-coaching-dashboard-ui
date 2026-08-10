@@ -12,6 +12,7 @@ export interface ModuleTaxonomyFieldProps {
   value: string;
   options: string[];
   placeholder?: string;
+  customOptionLabel?: string;
   disabled?: boolean;
   required?: boolean;
   emptyOptionLabel?: string;
@@ -28,6 +29,7 @@ export const ModuleTaxonomyField = ({
   value,
   options,
   placeholder,
+  customOptionLabel,
   disabled = false,
   required = false,
   emptyOptionLabel,
@@ -110,7 +112,9 @@ export const ModuleTaxonomyField = ({
               {formatModuleDomainLabel(option)}
             </option>
           ))}
-          <option value={OTHER_VALUE}>Enter new…</option>
+          <option value={OTHER_VALUE}>
+            {customOptionLabel ?? 'Enter new…'}
+          </option>
         </select>
       </label>
       {useCustom ? (

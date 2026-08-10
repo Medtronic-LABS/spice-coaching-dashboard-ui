@@ -8,6 +8,11 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   })),
 );
+const UnAuthorizedPage = lazy(() =>
+  import('@/features/auth/pages/UnAuthorizedPage').then((module) => ({
+    default: module.UnAuthorizedPage,
+  })),
+);
 const ModuleLibraryPage = lazy(() =>
   import('@/features/modules/pages/ModuleLibraryPage').then((module) => ({
     default: module.ModuleLibraryPage,
@@ -100,6 +105,11 @@ const ConfigsPage = lazy(() =>
     default: module.ConfigsPage,
   })),
 );
+const BadgeManagementPage = lazy(() =>
+  import('@/features/badges/pages/BadgeManagementPage').then((module) => ({
+    default: module.BadgeManagementPage,
+  })),
+);
 
 export const AppRoutes = () => {
   return (
@@ -109,14 +119,19 @@ export const AppRoutes = () => {
         element={<Navigate to={paths.moduleLibrary} replace />}
       />
       <Route path={paths.login} element={<LoginPage />} />
+      <Route path={paths.unauthorized} element={<UnAuthorizedPage />} />
       <Route element={<MainLayout />}>
         <Route
           path={paths.home}
           element={<Navigate to={paths.moduleLibrary} replace />}
         />
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+        <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />
         <Route path={paths.ingestDocument} element={<IngestDocumentPage />} />
-        <Route path={paths.uploadKnowledge} element={<KnowledgeLibraryPage />} />
+        <Route
+          path={paths.uploadKnowledge}
+          element={<KnowledgeLibraryPage />}
+        />
         <Route path={paths.videoUpload} element={<VideoUploadPage />} />
         <Route path={paths.ingestHistory} element={<IngestHistoryPage />} />
         <Route

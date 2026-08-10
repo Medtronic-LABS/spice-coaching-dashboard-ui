@@ -70,4 +70,18 @@ describe('ModuleTaxonomyField', () => {
     expect(screen.getByLabelText(/domain/i)).toBeRequired();
     expect(screen.getByText('*')).toBeInTheDocument();
   });
+
+  it('supports overriding the custom option label', () => {
+    render(
+      <ModuleTaxonomyField
+        label="Domain"
+        value=""
+        options={['rmnch']}
+        customOptionLabel="Other"
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('option', { name: 'Other' })).toBeInTheDocument();
+  });
 });

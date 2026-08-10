@@ -5,8 +5,6 @@ function readEnv(name: keyof ImportMetaEnv): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-const DEFAULT_HMAC_SECRET_KEY = 'spice_uat';
-
 /** Check whether login page flow is enabled (configurable via VITE_ENABLE_LOGIN). */
 export function isLoginEnabled(): boolean {
   const envVal = readEnv('VITE_ENABLE_LOGIN');
@@ -17,13 +15,18 @@ export function isLoginEnabled(): boolean {
 }
 
 /**
- * Secret key for HMAC-SHA512 password hashing prior to login transmission.
- * Prefers `VITE_PASSWORD_HASH_KEY` (SPICE: `REACT_APP_PASSWORD_HASH_KEY`).
+ * Client-side HMAC-SHA512 key used before login POST
+ * (SPICE `REACT_APP_PASSWORD_HASH_KEY` parity).
+ * Prefers `VITE_PASSWORD_HASH_KEY`, then `VITE_HMAC_SECRET_KEY`.
+ * Not a server secret — still must be set explicitly (no in-repo default).
  */
 export function getHmacSecretKey(): string {
-  return (
-    readEnv('VITE_PASSWORD_HASH_KEY') ??
-    readEnv('VITE_HMAC_SECRET_KEY') ??
-    DEFAULT_HMAC_SECRET_KEY
-  );
+  const key =
+    readEnv('VITE_PASSWORD_HASH_KEY') ?? readEnv('VITE_HMAC_SECRET_KEY');
+  if (!key) {
+    throw new Error(
+      'Missing VITE_PASSWORD_HASH_KEY (or VITE_HMAC_SECRET_KEY) for login password hashing.',
+    );
+  }
+  return key;
 }

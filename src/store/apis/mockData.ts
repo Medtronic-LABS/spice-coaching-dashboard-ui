@@ -1,6 +1,7 @@
 import type { SourceDocumentSummary } from '@/features/modules/api/adminSourceDocumentsApi';
 import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types';
 import type { ModuleLibraryResponse } from '@/features/modules/types/moduleLibrary.types';
+import type { AdminBadge } from '@/features/badges/types/badge.types';
 
 export const mockModuleLibrary: ModuleLibraryResponse = {
   modules: [
@@ -53,6 +54,17 @@ export const mockModuleLibrary: ModuleLibraryResponse = {
       durationLabel: '~12 min',
       status: 'published',
       createdAt: '1 Apr 2026',
+    },
+    {
+      id: 'chatbot-faq-htn',
+      title: 'Hypertension Chatbot FAQs',
+      category: 'Hypertension',
+      lessons: 1,
+      questions: 0,
+      durationLabel: '~5 min',
+      status: 'published',
+      createdAt: '30 Mar 2026',
+      chatbot_faqs_only: true,
     },
     {
       id: 'danger-signs',
@@ -265,5 +277,85 @@ export const mockSourceDocuments: SourceDocumentSummary[] = [
     uploaded_by: 'alice',
     assigned: false,
     sync_published_visible: true,
+  },
+];
+
+export const mockBadges: AdminBadge[] = [
+  {
+    id: 'badge-safe-motherhood',
+    name: 'Safe Motherhood Champion',
+    domain: 'hypertension',
+    image_storage_path: 'microcoaching-uploads/badges/safe-motherhood.png',
+    module_ids: ['htn-referral', 'fbs-rbs'],
+    modules: [
+      {
+        id: 'htn-referral',
+        title: { bn: 'HTN Referral Thresholds', en: 'HTN Referral Thresholds' },
+      },
+      {
+        id: 'fbs-rbs',
+        title: {
+          bn: 'FBS vs RBS — Timing Rules',
+          en: 'FBS vs RBS — Timing Rules',
+        },
+      },
+    ],
+    status: 'active',
+    sequence: 1,
+    created_at: '2026-04-01T10:00:00.000Z',
+    updated_at: '2026-04-10T12:00:00.000Z',
+    created_by: 'alice',
+    updated_by: 'alice',
+  },
+  {
+    id: 'badge-spice-navigator',
+    name: 'SPICE Navigator',
+    domain: 'spice_app',
+    image_storage_path: 'microcoaching-uploads/badges/spice-navigator.png',
+    module_ids: ['spice-visit', 'med-adherence'],
+    modules: [
+      {
+        id: 'spice-visit',
+        title: {
+          bn: 'SPICE App — Visit Submission',
+          en: 'SPICE App — Visit Submission',
+        },
+      },
+      {
+        id: 'med-adherence',
+        title: {
+          bn: 'Medication Adherence Counseling',
+          en: 'Medication Adherence Counseling',
+        },
+      },
+    ],
+    status: 'active',
+    sequence: 2,
+    created_at: '2026-04-05T09:30:00.000Z',
+    updated_at: '2026-04-12T08:00:00.000Z',
+    created_by: 'bob',
+    updated_by: 'bob',
+  },
+  {
+    id: 'badge-referral-pro',
+    name: 'Referral Pro',
+    domain: 'referral',
+    image_storage_path: 'microcoaching-uploads/badges/referral-pro.png',
+    module_ids: ['community-clinic'],
+    modules: [
+      {
+        id: 'community-clinic',
+        title: {
+          bn: 'Community Clinic Referral Protocol',
+          en: 'Community Clinic Referral Protocol',
+        },
+      },
+    ],
+    status: 'active',
+    sequence: 3,
+    created_at: '2026-04-08T14:15:00.000Z',
+    updated_at: '2026-04-08T14:15:00.000Z',
+    created_by: 'alice',
+    updated_by: null,
   },
 ];

@@ -2,17 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Banner,
   Button,
   Card,
   Loader,
   Modal,
   SearchInput,
-  Select,
   Tabs,
   Tooltip,
   TruncatedText,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
+import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -824,9 +825,7 @@ export const ModuleLibraryPage = () => {
               </div>
 
               {createError ? (
-                <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                  {createError}
-                </div>
+                <Banner tone="critical">{createError}</Banner>
               ) : null}
             </div>
 
@@ -1115,9 +1114,7 @@ export const ModuleLibraryPage = () => {
               </div>
 
               {deactivateError ? (
-                <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                  {deactivateError}
-                </div>
+                <Banner tone="critical">{deactivateError}</Banner>
               ) : null}
             </div>
 
@@ -1226,6 +1223,7 @@ export const ModuleLibraryPage = () => {
             active={filtersActive}
             expanded={filtersDrawerOpen}
             onClick={handleOpenFiltersDrawer}
+            ariaLabel="Open filters"
             tooltip={
               filtersActive
                 ? 'Results reflect the filters currently applied.'
@@ -1297,106 +1295,26 @@ export const ModuleLibraryPage = () => {
           />
         )}
 
-        <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Rows
-              </span>
-              <Select
-                aria-label="Rows per page"
-                className="h-8 w-[4.5rem] px-2 text-xs"
-                value={String(pageSize)}
-                options={MODULE_PAGE_SIZE_OPTIONS.map((size) => ({
-                  label: String(size),
-                  value: String(size),
-                }))}
-                onChange={(value) => {
-                  const next = Number.parseInt(value, 10);
-                  if (!Number.isFinite(next) || next <= 0) return;
-                  setPageSize(next);
-                  setPage(0);
-                }}
-              />
-            </label>
-
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Page
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages > 0 ? totalPages : 1}
-                step={1}
-                inputMode="numeric"
-                aria-label="Page number"
-                className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
-                value={pageInput}
-                onChange={(e) => handlePageInputChange(e.target.value)}
-                onBlur={commitPageInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.currentTarget.blur();
-                    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
-                      e.preventDefault();
-                      return;
-                    }
-                  }
-                }}
-              />
-              <span className="whitespace-nowrap">
-                of{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {totalPages}
-                </span>
-              </span>
-            </label>
-
-            {filtered.length ? (
-              <span className="whitespace-nowrap">
-                Showing{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeStart}
-                </span>
-                –
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeEnd}
-                </span>
-                {totalModules > 0 ? (
-                  <>
-                    {' '}
-                    of{' '}
-                    <span className="font-semibold text-spice-text-medium">
-                      {totalModules}
-                    </span>
-                  </>
-                ) : null}
-              </span>
-            ) : (
-              <span>No results on this page</span>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasPrevPage}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasNextPage}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={MODULE_PAGE_SIZE_OPTIONS}
+          totalItems={totalModules}
+          totalPages={totalPages}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          pageInput={pageInput}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPageSizeChange={(next) => {
+            setPageSize(next);
+            setPage(0);
+          }}
+          onPageInputChange={handlePageInputChange}
+          onCommitPageInput={commitPageInput}
+          onPrevPage={() => setPage((p) => Math.max(0, p - 1))}
+          onNextPage={() => setPage((p) => p + 1)}
+        />
       </Card>
       {assignmentOpen && assignmentModule ? (
         <ModuleAssignmentDialog

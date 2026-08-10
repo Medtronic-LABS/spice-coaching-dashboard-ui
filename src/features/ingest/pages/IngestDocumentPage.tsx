@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteIcon } from '@/assets/icon';
-import { Button, Card } from '@/components/ui';
+import { Banner, Button, Card } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
 import { paths } from '@/constants/routes';
 import type {
@@ -420,11 +420,7 @@ export const IngestDocumentPage = () => {
         </div>
       ) : null}
 
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
+      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
 
       {reusedUploadNotice?.length ? (
         <div
@@ -601,9 +597,7 @@ export const IngestDocumentPage = () => {
             ) : null}
 
             {fileSelectionError ? (
-              <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                {fileSelectionError}
-              </div>
+              <Banner tone="critical">{fileSelectionError}</Banner>
             ) : null}
           </div>
 

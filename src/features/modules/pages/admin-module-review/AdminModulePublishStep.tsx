@@ -1,12 +1,8 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  Button,
-  Card,
-  Loader,
-  ModulePublishedSuccessModal,
-} from '@/components/ui';
+import { Banner, Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
 import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
@@ -119,11 +115,7 @@ export const AdminModulePublishStep = () => {
           onRedirect={goToModuleLibrary}
         />
       ) : null}
-      {saveError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {saveError}
-        </div>
-      ) : null}
+      {saveError ? <Banner tone="critical">{saveError}</Banner> : null}
       <div
         className={
           showSourcePanel

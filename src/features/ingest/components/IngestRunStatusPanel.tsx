@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Loader } from '@/components/ui';
+import { Banner, Button, Card, Loader } from '@/components/ui';
 import {
   useGetIngestBatchStatusQuery,
   type AdminV3IngestBatchNode,
@@ -225,9 +225,7 @@ export const IngestRunStatusPanel = ({
 
       {error ? (
         <div className="space-y-2">
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {formatRtkQueryError(error)}
-          </div>
+          <Banner tone="critical">{formatRtkQueryError(error)}</Banner>
           <Button
             variant="secondary"
             className="h-8 text-xs"

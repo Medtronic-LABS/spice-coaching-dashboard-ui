@@ -18,6 +18,8 @@ export interface ModuleLibraryItem {
   activatedAt?: string;
   deactivatedAt?: string;
   draftProgress?: string;
+  /** When true, module is Chatbot FAQ-only (not assignable to milestones). */
+  chatbot_faqs_only?: boolean;
 }
 
 export interface ModuleLibraryResponse {

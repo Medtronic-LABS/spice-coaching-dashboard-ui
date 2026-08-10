@@ -1,10 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { CloseIcon, MenuIcon } from '@/assets/icon';
 import uhisLogo from '@/assets/img/uhis-logo.png';
+import { Button } from '@/components/ui/Button';
+import { isLoginEnabled } from '@/config/authConfig';
 import {
   getAuthDisplayName,
   getAuthInitials,
   getAuthSession,
+  logout,
 } from '@/features/auth/services/authSession';
 
 interface HeaderProps {
@@ -21,6 +24,7 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
   const userInitials = authSession
     ? getAuthInitials(authSession)
     : t('layout.header.userInitials');
+  const canLogout = Boolean(authSession) && isLoginEnabled();
 
   return (
     <header className="border-b border-spice-border bg-spice-bg-surface px-4 py-3 sm:px-6 sm:py-4">
@@ -56,17 +60,26 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            className="flex h-9 w-9 cursor-default items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border"
-            aria-label={t('layout.header.userMenuAriaLabel', {
-              name: displayName,
-            })}
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border"
+            aria-hidden="true"
             title={displayName}
-            disabled
           >
             {userInitials}
-          </button>
+          </div>
+          {canLogout ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-9 px-3 text-xs"
+              onClick={() => logout()}
+              aria-label={t('layout.header.logoutAriaLabel', {
+                defaultValue: 'Log out',
+              })}
+            >
+              {t('layout.header.logout', { defaultValue: 'Log out' })}
+            </Button>
+          ) : null}
         </div>
       </div>
     </header>

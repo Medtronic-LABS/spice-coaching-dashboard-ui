@@ -6,7 +6,7 @@ import {
   DeleteIcon,
   SaveDraftIcon,
 } from '@/assets/icon';
-import { Button, Card, Loader } from '@/components/ui';
+import { Banner, Button, Card, EmptyState, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import {
@@ -160,11 +160,7 @@ export const AdminModuleQuizStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
+      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
 
       <Card variant="elevated" className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -470,29 +466,22 @@ export const AdminModuleQuizStep = () => {
               ) : null}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-spice-bg-tint px-6 py-12 text-center ring-1 ring-spice-border">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-spice-bg-surface text-xl font-semibold text-spice-text-muted ring-1 ring-spice-border">
-                ?
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-spice-text-primary">
-                  No quiz questions yet
-                </div>
-                <p className="mt-1 text-xs text-spice-text-muted">
-                  Add your first question to build this quiz.
-                </p>
-              </div>
-              {!isReadonly ? (
-                <Button
-                  className="inline-flex h-9 items-center gap-1.5 text-xs"
-                  disabled={busy}
-                  onClick={handleAddQuestion}
-                >
-                  <span aria-hidden="true">+</span>
-                  Add question
-                </Button>
-              ) : null}
-            </div>
+            <EmptyState
+              title="No quiz questions yet"
+              description="Add your first question to build this quiz."
+              action={
+                !isReadonly ? (
+                  <Button
+                    className="inline-flex h-9 items-center gap-1.5 text-xs"
+                    disabled={busy}
+                    onClick={handleAddQuestion}
+                  >
+                    <span aria-hidden="true">+</span>
+                    Add question
+                  </Button>
+                ) : undefined
+              }
+            />
           )}
         </div>
 

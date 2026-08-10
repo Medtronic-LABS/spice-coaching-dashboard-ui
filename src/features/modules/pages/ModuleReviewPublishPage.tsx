@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Loader, ModulePublishedSuccessModal } from '@/components/ui';
+import { EmptyState, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
@@ -59,14 +60,10 @@ export const ModuleReviewPublishPage = () => {
 
   if (working?.generationStatus !== 'generated') {
     return (
-      <Card variant="elevated" className="space-y-3">
-        <div className="text-lg font-semibold text-spice-text-primary">
-          Draft is not ready for publish
-        </div>
-        <p className="text-sm text-spice-text-medium">
-          Generate and save module content and quiz first.
-        </p>
-        <div>
+      <EmptyState
+        title="Draft is not ready for publish"
+        description="Generate and save module content and quiz first."
+        action={
           <button
             type="button"
             className="text-sm font-semibold text-spice-brand-primary"
@@ -74,8 +71,8 @@ export const ModuleReviewPublishPage = () => {
           >
             Go to Module Details
           </button>
-        </div>
-      </Card>
+        }
+      />
     );
   }
 

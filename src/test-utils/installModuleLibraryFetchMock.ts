@@ -10,6 +10,16 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
+function asOptionalBooleanParam(
+  params: URLSearchParams,
+  key: string,
+): boolean | null {
+  const raw = params.get(key);
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  return null;
+}
+
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -77,6 +87,7 @@ export function installModuleLibraryFetchMock(): void {
         path === 'admin/modules/domains'
       ) {
         const status = asString(params.get('status'));
+        const q = (asString(params.get('q')) ?? '').trim().toLowerCase();
         const domains = [
           ...new Set(
             testModuleLibrary.modules
@@ -84,7 +95,14 @@ export function installModuleLibraryFetchMock(): void {
               .map((m) => m.category)
               .filter(Boolean),
           ),
-        ].sort((a, b) => a.localeCompare(b));
+        ]
+          .filter(
+            (domain) =>
+              !q ||
+              domain.toLowerCase().includes(q) ||
+              domain.replace(/\s+/g, '_').toLowerCase().includes(q),
+          )
+          .sort((a, b) => a.localeCompare(b));
         return jsonResponse(domains);
       }
 
@@ -102,11 +120,20 @@ export function installModuleLibraryFetchMock(): void {
         const offset = Number(params.get('offset') ?? 0);
         const status = asString(params.get('status'));
         const domain = asString(params.get('domain'));
+        const chatbotFaqsOnlyFilter = asOptionalBooleanParam(
+          params,
+          'chatbot_faqs_only',
+        );
         const dateFrom = asString(params.get('date_from'));
         const dateTo = asString(params.get('date_to'));
 
         const items = testModuleLibrary.modules
           .filter((m) => (status ? m.status === status : true))
+          .filter((m) =>
+            chatbotFaqsOnlyFilter === null
+              ? true
+              : Boolean(m.chatbot_faqs_only) === chatbotFaqsOnlyFilter,
+          )
           .map((m, idx) => ({
             id: m.id,
             module_family_id: `family_${m.id}`,
@@ -140,6 +167,7 @@ export function installModuleLibraryFetchMock(): void {
                 : null,
             last_reactivated_at: null,
             quality_flags: { flags: [] },
+            chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
           }))
           .filter((item) => (domain ? item.domain === domain : true))
           .filter((item) => {

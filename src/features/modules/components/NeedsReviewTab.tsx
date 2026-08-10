@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useState } from 'react';
-import { Button, Card } from '@/components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { Table, type ColumnDef } from '@/components/common/Table';
+import { Button, Card, ErrorState } from '@/components/ui';
 import {
   useGetModuleDetailQuery,
   type AdminModuleDetailResponse,
@@ -23,6 +24,20 @@ interface NeedsReviewTabProps {
   initialExpandedId?: string | null;
   emptyMessage?: string;
 }
+
+type NeedsReviewTableRow = {
+  id: string;
+  expand: string;
+  title: string;
+  content: string;
+  status: string;
+  createdAt: string;
+  createdBy: string;
+  actions: string;
+  raw: AdminModulesListItem;
+  existingModule: AdminModulesListItem | AdminModuleDetailResponse | null;
+  existingModuleId: string | null | undefined;
+};
 
 export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
   <div className="space-y-3.5 p-3.5 text-xs max-w-sm">
@@ -104,6 +119,28 @@ function getPublishedBy(
     return metadata.published_by.trim();
   }
   return getCreatedBy(item);
+}
+
+function resolveExistingModule(primary: AdminModulesListItem): {
+  existingModule: AdminModulesListItem | AdminModuleDetailResponse | null;
+  existingModuleId: string | null | undefined;
+} {
+  const existingModule =
+    primary.merge_source_module &&
+    typeof primary.merge_source_module === 'object'
+      ? (primary.merge_source_module as
+          | AdminModulesListItem
+          | AdminModuleDetailResponse)
+      : null;
+
+  const existingModuleId =
+    primary.merge_source_module_id ||
+    (typeof primary.merge_source_module === 'string'
+      ? primary.merge_source_module
+      : null) ||
+    existingModule?.id;
+
+  return { existingModule, existingModuleId };
 }
 
 function EyeIcon() {
@@ -341,71 +378,6 @@ export const NeedsReviewTab = ({
     }
   }, [initialExpandedId]);
 
-  const renderSortHeader = (label: string, sortKey: string) => {
-    if (!onSort) return label;
-    const isActive = sortBy === sortKey;
-    const isAsc = isActive && sortDir === 'asc';
-    const isDesc = isActive && sortDir === 'desc';
-    const handleHeaderClick = () => {
-      const nextDir = isActive && sortDir === 'asc' ? 'desc' : 'asc';
-      onSort(sortKey, nextDir);
-    };
-    return (
-      <button
-        type="button"
-        className="inline-flex items-center gap-1 text-left uppercase font-bold tracking-wider text-spice-text-muted hover:text-spice-text-primary focus:outline-none"
-        onClick={handleHeaderClick}
-      >
-        <span>{label}</span>
-        <span className="inline-flex shrink-0 ml-1">
-          {isAsc ? (
-            <svg
-              className="h-3.5 w-3.5 text-spice-brand-primary stroke-[2.5]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 19.5v-15m0 0l-6.75 6.75M12 4.5l6.75 6.75"
-              />
-            </svg>
-          ) : isDesc ? (
-            <svg
-              className="h-3.5 w-3.5 text-spice-brand-primary stroke-[2.5]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4.5v15m0 0l6.75-6.75M12 19.5l-6.75-6.75"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="h-3.5 w-3.5 text-spice-text-muted/40 group-hover:text-spice-brand-primary transition-colors stroke-[2]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
-              />
-            </svg>
-          )}
-        </span>
-      </button>
-    );
-  };
-
   const handleViewClick = (moduleId: string) => {
     setPreviewModuleId(moduleId);
     onView?.(moduleId);
@@ -445,15 +417,175 @@ export const NeedsReviewTab = ({
     }
   };
 
+  const rows = useMemo<NeedsReviewTableRow[]>(() => {
+    return (modules ?? []).map((primary) => {
+      const { existingModule, existingModuleId } =
+        resolveExistingModule(primary);
+      const createdBy = getCreatedBy(primary);
+
+      return {
+        id: primary.id,
+        expand: '',
+        title: formatModuleTitle(primary),
+        content: '',
+        status: 'review_pending',
+        createdAt: primary.created_at
+          ? formatDisplayDateTime(primary.created_at)
+          : '—',
+        createdBy,
+        actions: '',
+        raw: primary,
+        existingModule,
+        existingModuleId,
+      };
+    });
+  }, [modules]);
+
+  const columns: Array<ColumnDef<NeedsReviewTableRow>> = [
+    {
+      key: 'expand',
+      header: '',
+      headerClassName: 'w-12 px-3 py-2 text-center sm:px-3',
+      className: 'px-3 py-3.5 text-center sm:px-3 sm:py-3.5',
+      render: (row) => {
+        const isExpanded = expandedIds.has(row.id);
+        return (
+          <button
+            type="button"
+            id={`needs-review-row-${row.id}`}
+            onClick={() => toggleExpand(row.id)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-spice-bg-tint text-spice-text-medium transition-colors focus:outline-none"
+            aria-label={
+              isExpanded ? 'Collapse comparison' : 'Expand comparison'
+            }
+            aria-expanded={isExpanded}
+          >
+            <ChevronIcon expanded={isExpanded} />
+          </button>
+        );
+      },
+    },
+    {
+      key: 'title',
+      header: 'Module',
+      sortable: true,
+      sortKey: 'title',
+      headerClassName: 'px-4 py-2 sm:px-4',
+      className:
+        'px-4 py-3.5 font-medium text-spice-text-primary sm:px-4 sm:py-3.5',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => toggleExpand(row.id)}
+          className="text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
+        >
+          {row.title}
+        </button>
+      ),
+    },
+    {
+      key: 'content',
+      header: 'Content',
+      headerClassName: 'px-4 py-2 sm:px-4',
+      className:
+        'px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: (row) => {
+        const primary = row.raw;
+        return (
+          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+            <span>
+              {primary.card_count === 1
+                ? '1 lesson'
+                : `${primary.card_count} lessons`}
+            </span>
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
+            {primary.quiz_count > 0 ? (
+              <span className="text-center">
+                {primary.quiz_count === 1
+                  ? '1 question'
+                  : `${primary.quiz_count} questions`}
+              </span>
+            ) : (
+              <span className="inline-flex w-full items-center justify-center">
+                <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                  No quiz
+                </span>
+              </span>
+            )}
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
+            <span>
+              ~{formatEstimatedMinutesDisplay(primary.estimated_minutes)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      headerClassName: 'px-4 py-2 sm:px-4',
+      className: 'px-4 py-3.5 whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: () => <ModuleStatusBadge status="review_pending" />,
+    },
+    {
+      key: 'createdAt',
+      header: 'Created At',
+      sortable: true,
+      sortKey: 'created_at',
+      headerClassName: 'px-4 py-2 sm:px-4',
+      className:
+        'px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: (row) => (
+        <>
+          <div className="font-medium text-spice-text-primary">
+            {row.createdAt}
+          </div>
+          {row.createdBy !== '—' ? (
+            <div className="text-[11px] text-spice-text-muted mt-0.5">
+              By {row.createdBy}
+            </div>
+          ) : null}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      headerClassName: 'px-4 py-2 text-left sm:px-4',
+      className: 'px-4 py-3.5 text-left whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: (row) => {
+        const isSubmittingThis = submittingId === row.id;
+        return (
+          <div className="flex items-center justify-start gap-2">
+            <Button
+              variant="secondary"
+              className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+              disabled={isSubmittingThis}
+              onClick={() => void handleSkipClick(row.id)}
+            >
+              {isSubmittingThis && actionType === 'skip' ? 'Skipping…' : 'Skip'}
+            </Button>
+            <Button
+              className="h-8 px-3.5 text-xs font-semibold bg-spice-brand-primary hover:bg-spice-brand-primary/90 text-white shadow-xs"
+              disabled={isSubmittingThis}
+              onClick={() => void handleMergeClick(row.id)}
+            >
+              {isSubmittingThis && actionType === 'merge'
+                ? 'Merging…'
+                : 'Merge'}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
   if (error) {
-    return (
-      <Card
-        variant="bordered"
-        className="p-6 text-center text-xs text-spice-semantic-error rounded-xl border border-spice-semantic-errorBg bg-spice-semantic-errorBg/20"
-      >
-        Failed to load review pending modules.
-      </Card>
-    );
+    return <ErrorState title="Failed to load review pending modules." />;
   }
 
   if (isLoading) {
@@ -462,337 +594,112 @@ export const NeedsReviewTab = ({
         variant="bordered"
         className="p-12 text-center text-sm text-spice-text-muted rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
       >
-        <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-spice-brand-accent border-t-transparent mb-2" />
-        <div>Loading review modules…</div>
+        Loading review modules…
       </Card>
-    );
-  }
-
-  if (!modules.length) {
-    return (
-      <div className="w-full overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-spice-text-medium border-collapse">
-            <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium border-b border-spice-border">
-              <tr>
-                <th scope="col" className="w-12 px-3 py-2 text-center" />
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  {renderSortHeader('Module', 'title')}
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  Content
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  {renderSortHeader('Created At', 'created_at')}
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider text-left"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-spice-border/70 bg-spice-bg-surface">
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-3 py-8 text-center text-spice-text-muted sm:px-6"
-                >
-                  {emptyMessage ?? 'No modules requiring review.'}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     );
   }
 
   return (
     <>
-      <div className="w-full overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-spice-text-medium border-collapse">
-            <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium border-b border-spice-border">
-              <tr>
-                <th scope="col" className="w-12 px-3 py-2 text-center" />
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  {renderSortHeader('Module', 'title')}
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  Content
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider"
-                >
-                  {renderSortHeader('Created At', 'created_at')}
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 font-medium tracking-wider text-left"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-spice-border/70 bg-spice-bg-surface">
-              {modules.map((primary) => {
-                const existingModule = (
-                  primary.merge_source_module &&
-                  typeof primary.merge_source_module === 'object'
-                    ? primary.merge_source_module
-                    : null
-                ) as AdminModulesListItem | AdminModuleDetailResponse | null;
+      <Table
+        data={rows}
+        columns={columns}
+        keyExtractor={(row) => row.id}
+        emptyMessage={emptyMessage ?? 'No modules requiring review.'}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={onSort}
+        containerClassName="rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
+        getRowClassName={(row) =>
+          expandedIds.has(row.id)
+            ? 'bg-spice-bg-tint/30 duration-150 hover:bg-spice-bg-tint/30'
+            : 'hover:bg-spice-bg-tint/20 duration-150'
+        }
+        renderExpandedRow={(row) => {
+          if (!expandedIds.has(row.id)) return null;
+          const primary = row.raw;
 
-                const existingModuleId =
-                  primary.merge_source_module_id ||
-                  (typeof primary.merge_source_module === 'string'
-                    ? primary.merge_source_module
-                    : null) ||
-                  existingModule?.id;
-
-                const isSubmittingThis = submittingId === primary.id;
-                const isExpanded = expandedIds.has(primary.id);
-
-                return (
-                  <Fragment key={primary.id ?? Math.random().toString()}>
-                    <tr
-                      id={`needs-review-row-${primary.id}`}
-                      className={`transition-colors duration-150 ${isExpanded ? 'bg-spice-bg-tint/30' : 'hover:bg-spice-bg-tint/20'}`}
-                    >
-                      <td className="px-3 py-3.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(primary.id)}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-spice-bg-tint text-spice-text-medium transition-colors focus:outline-none"
-                          aria-label={
-                            isExpanded
-                              ? 'Collapse comparison'
-                              : 'Expand comparison'
-                          }
-                          aria-expanded={isExpanded}
-                        >
-                          <ChevronIcon expanded={isExpanded} />
-                        </button>
-                      </td>
-                      <td className="px-4 py-3.5 font-medium text-spice-text-primary">
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(primary.id)}
-                          className="text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
-                        >
-                          {formatModuleTitle(primary)}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap">
-                        <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
-                          <span>
-                            {primary.card_count === 1
-                              ? '1 lesson'
-                              : `${primary.card_count} lessons`}
-                          </span>
-                          <span
-                            className="text-spice-text-muted"
-                            aria-hidden="true"
-                          >
-                            |
-                          </span>
-                          {primary.quiz_count > 0 ? (
-                            <span className="text-center">
-                              {primary.quiz_count === 1
-                                ? '1 question'
-                                : `${primary.quiz_count} questions`}
-                            </span>
-                          ) : (
-                            <span className="inline-flex w-full items-center justify-center">
-                              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
-                                No quiz
-                              </span>
-                            </span>
-                          )}
-                          <span
-                            className="text-spice-text-muted"
-                            aria-hidden="true"
-                          >
-                            |
-                          </span>
-                          <span>
-                            ~
-                            {formatEstimatedMinutesDisplay(
-                              primary.estimated_minutes,
-                            )}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <ModuleStatusBadge status="review_pending" />
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap">
-                        <div className="font-medium text-spice-text-primary">
-                          {primary.created_at
-                            ? formatDisplayDateTime(primary.created_at)
-                            : '—'}
-                        </div>
-                        {getCreatedBy(primary) !== '—' ? (
-                          <div className="text-[11px] text-spice-text-muted mt-0.5">
-                            By {getCreatedBy(primary)}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3.5 text-left whitespace-nowrap">
-                        <div className="flex items-center justify-start gap-2">
-                          <Button
-                            variant="secondary"
-                            className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                            disabled={isSubmittingThis}
-                            onClick={() => void handleSkipClick(primary.id)}
-                          >
-                            {isSubmittingThis && actionType === 'skip'
-                              ? 'Skipping…'
-                              : 'Skip'}
-                          </Button>
-                          <Button
-                            className="h-8 px-3.5 text-xs font-semibold bg-spice-brand-primary hover:bg-spice-brand-primary/90 text-white shadow-xs"
-                            disabled={isSubmittingThis}
-                            onClick={() => void handleMergeClick(primary.id)}
-                          >
-                            {isSubmittingThis && actionType === 'merge'
-                              ? 'Merging…'
-                              : 'Merge'}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {isExpanded ? (
-                      <tr className="bg-spice-bg-tint/20">
-                        <td
-                          colSpan={6}
-                          className="p-4 sm:p-5 border-y border-spice-border/50"
-                        >
-                          <div className="grid gap-4 md:grid-cols-2">
-                            {/* Left Side: New Module */}
-                            <ModuleCardPanel
-                              headerLabel="New Module"
-                              badgeVariant="warning"
-                            >
-                              <div className="flex items-start justify-between gap-3 pb-3 border-b border-spice-border/30 mb-1">
-                                <div className="min-w-0 flex-1 py-1">
-                                  <h4 className="text-sm font-semibold leading-snug text-spice-text-primary">
-                                    {formatModuleTitle(primary)}
-                                  </h4>
-                                  {primary.category ? (
-                                    <span className="mt-1.5 inline-block rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] text-spice-text-muted font-medium">
-                                      {primary.category}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <Button
-                                  variant="secondary"
-                                  className="h-8 shrink-0 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                                  onClick={() => handleViewClick(primary.id)}
-                                >
-                                  <EyeIcon />
-                                  View
-                                </Button>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-3 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-3 text-xs">
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Status
-                                  </span>
-                                  <div className="mt-1">
-                                    <ModuleStatusBadge status="review_pending" />
-                                  </div>
-                                </div>
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Lessons / Quizzes
-                                  </span>
-                                  <span className="mt-1 block font-medium text-spice-text-primary">
-                                    {primary.card_count} lessons •{' '}
-                                    {primary.quiz_count} quizzes
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Duration
-                                  </span>
-                                  <span className="mt-1 block font-medium text-spice-text-primary">
-                                    {primary.estimated_minutes} min
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Created On
-                                  </span>
-                                  <span className="mt-1 block font-medium text-spice-text-primary">
-                                    {primary.created_at
-                                      ? formatDisplayDateTime(
-                                          primary.created_at,
-                                        )
-                                      : '—'}
-                                  </span>
-                                </div>
-                                <div className="col-span-2 border-t border-spice-border/40 pt-2">
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Created By
-                                  </span>
-                                  <span className="mt-0.5 block font-medium text-spice-text-medium">
-                                    {getCreatedBy(primary)}
-                                  </span>
-                                </div>
-                              </div>
-                            </ModuleCardPanel>
-
-                            {/* Right Side: Existing Module (Lazy Loaded) */}
-                            <ExistingModulePanel
-                              existingModule={existingModule}
-                              existingModuleId={existingModuleId}
-                              onView={handleViewClick}
-                              isOpen={isExpanded}
-                            />
-                          </div>
-                        </td>
-                      </tr>
+          return (
+            <div className="grid gap-4 md:grid-cols-2">
+              <ModuleCardPanel headerLabel="New Module" badgeVariant="warning">
+                <div className="flex items-start justify-between gap-3 pb-3 border-b border-spice-border/30 mb-1">
+                  <div className="min-w-0 flex-1 py-1">
+                    <h4 className="text-sm font-semibold leading-snug text-spice-text-primary">
+                      {formatModuleTitle(primary)}
+                    </h4>
+                    {primary.category ? (
+                      <span className="mt-1.5 inline-block rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] text-spice-text-muted font-medium">
+                        {primary.category}
+                      </span>
                     ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="h-8 shrink-0 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+                    onClick={() => handleViewClick(primary.id)}
+                  >
+                    <EyeIcon />
+                    View
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-3 text-xs">
+                  <div>
+                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+                      Status
+                    </span>
+                    <div className="mt-1">
+                      <ModuleStatusBadge status="review_pending" />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+                      Lessons / Quizzes
+                    </span>
+                    <span className="mt-1 block font-medium text-spice-text-primary">
+                      {primary.card_count} lessons • {primary.quiz_count}{' '}
+                      quizzes
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+                      Duration
+                    </span>
+                    <span className="mt-1 block font-medium text-spice-text-primary">
+                      {primary.estimated_minutes} min
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+                      Created On
+                    </span>
+                    <span className="mt-1 block font-medium text-spice-text-primary">
+                      {primary.created_at
+                        ? formatDisplayDateTime(primary.created_at)
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="col-span-2 border-t border-spice-border/40 pt-2">
+                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+                      Created By
+                    </span>
+                    <span className="mt-0.5 block font-medium text-spice-text-medium">
+                      {getCreatedBy(primary)}
+                    </span>
+                  </div>
+                </div>
+              </ModuleCardPanel>
+
+              <ExistingModulePanel
+                existingModule={row.existingModule}
+                existingModuleId={row.existingModuleId}
+                onView={handleViewClick}
+                isOpen
+              />
+            </div>
+          );
+        }}
+      />
 
       <IngestMatchedModulePreviewModal
         open={Boolean(previewModuleId)}

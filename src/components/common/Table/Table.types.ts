@@ -25,4 +25,7 @@ export type TableProps<T extends object> = Omit<
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
+  /** Optional second row under each data row (e.g. expand/compare panels). */
+  renderExpandedRow?: (row: T) => React.ReactNode | null | undefined;
+  getRowClassName?: (row: T) => string | undefined;
 };

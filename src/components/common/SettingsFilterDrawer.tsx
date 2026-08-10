@@ -7,7 +7,8 @@ interface SettingsFilterTriggerButtonProps {
   active: boolean;
   expanded: boolean;
   onClick: () => void;
-  ariaLabel?: string;
+  /** Accessible name for the filter trigger control (required). */
+  ariaLabel: string;
   tooltip?: string;
 }
 
@@ -15,7 +16,7 @@ export const SettingsFilterTriggerButton = ({
   active,
   expanded,
   onClick,
-  ariaLabel = 'Open filters',
+  ariaLabel,
   tooltip,
 }: SettingsFilterTriggerButtonProps) => {
   const tooltipId = useId();

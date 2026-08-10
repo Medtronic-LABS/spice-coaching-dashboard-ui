@@ -223,9 +223,28 @@ export const ModuleAssignedPage = () => {
       ? countAssignedUsers(derivedAssignedUsers)
       : (state.assignedCount ?? countAssignedUsers(derivedAssignedUsers));
 
-  const assignedUsersLabel = showAllAssigned
-    ? t('moduleLibrary.assigned.summary.assignedUsers')
-    : t('moduleLibrary.assigned.summary.newlyAssignedUser');
+  const assignedUsersLabel = (() => {
+    if (showAllAssigned) {
+      return t('moduleLibrary.assigned.summary.assignedUsers');
+    }
+
+    switch (state.assignmentType) {
+      case 'individual':
+        return t('moduleLibrary.assigned.summary.assignedToIndividual');
+      case 'po_sk':
+        return t('moduleLibrary.assigned.summary.assignedToPoSk');
+      case 'geographical':
+        return t('moduleLibrary.assigned.summary.assignedToUpazila');
+      case 'group':
+        return t('moduleLibrary.assigned.summary.assignedToOrganization');
+      case undefined:
+        return t('moduleLibrary.assigned.summary.newlyAssignedUser');
+      default: {
+        const exhaustiveCheck: never = state.assignmentType;
+        return exhaustiveCheck;
+      }
+    }
+  })();
 
   return (
     <div className="flex h-[85vh] items-center justify-center px-4 py-6">

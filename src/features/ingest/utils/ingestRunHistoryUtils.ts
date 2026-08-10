@@ -52,8 +52,12 @@ export function ingestRunStatusBadgeClassName(
       return 'bg-spice-semantic-warningBg text-spice-semantic-warning';
     case 'failed':
       return 'bg-spice-semantic-errorBg text-spice-semantic-error';
-    default:
+    case 'neutral':
       return 'bg-spice-bg-tint text-spice-text-muted';
+    default: {
+      const exhaustiveCheck: never = tone;
+      return exhaustiveCheck;
+    }
   }
 }
 

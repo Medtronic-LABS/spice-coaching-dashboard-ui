@@ -31,6 +31,7 @@ export const paths = {
   home: withRoutePrefix('/'),
   moduleLibrary: withRoutePrefix('/module-library'),
   moduleAssigned: withRoutePrefix('/module-library/assigned'),
+  badgeManagement: withRoutePrefix('/badge-management'),
   ingestDocument: withRoutePrefix('/module-library/ingest'),
   ingestHistory: withRoutePrefix('/module-library/ingest-history'),
   videoUpload: withRoutePrefix('/module-library/ingest-video'),
@@ -55,4 +56,5 @@ export const paths = {
   modulePublished: withRoutePrefix('/modules/new/published'),
   configs: withRoutePrefix('/configs'),
   login: withRoutePrefix('/login'),
+  unauthorized: withRoutePrefix('/unauthorized'),
 } as const;
