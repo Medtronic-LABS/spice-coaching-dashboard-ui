@@ -45,7 +45,6 @@ import {
   findSequenceNeighbor,
   getMutationErrorMessage,
   hasActiveBadgeFilters,
-  isAssignablePublishedModule,
   isDateRangeInvalid,
   nextGlobalBadgeSequence,
   objectNameFromStoragePath,
@@ -54,6 +53,7 @@ import {
   useFetchModuleDomainOptionsQuery,
   useFetchModulesQuery,
 } from '@/features/modules/api/adminModulesApi';
+import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';

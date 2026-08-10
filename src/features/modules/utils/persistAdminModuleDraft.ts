@@ -53,6 +53,7 @@ export async function persistAdminModuleDraft(options: {
       description: working.description,
       module_json: { cards, quiz } as unknown as AdminModuleModuleJson,
       thumbnail_storage_path: working.thumbnail_storage_path,
+      chatbot_faqs_only: Boolean(working.chatbot_faqs_only),
     },
   });
 

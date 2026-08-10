@@ -39,13 +39,6 @@ export function hasActiveBadgeFilters(
   );
 }
 
-/** Chatbot FAQ-only modules are not assignable to milestones / badge filters. */
-export function isAssignablePublishedModule(module: {
-  chatbot_faqs_only?: boolean;
-}): boolean {
-  return !module.chatbot_faqs_only;
-}
-
 export function endOfDayUtcFromDateInput(dateInput: string): string {
   const date = new Date(`${dateInput.trim()}T00:00:00.000Z`);
   date.setUTCHours(23, 59, 59, 999);

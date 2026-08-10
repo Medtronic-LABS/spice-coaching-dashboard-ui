@@ -108,6 +108,8 @@ export interface AdminModuleDetailResponse {
   merge_primary_module_id?: string | null;
   merge_secondary_module_id?: string | null;
   is_merge_secondary?: boolean;
+  /** Chatbot FAQ-only modules are not assignable to CHWs. */
+  chatbot_faqs_only?: boolean;
 }
 
 export interface EditAdminModuleRequestBody {
@@ -119,6 +121,8 @@ export interface EditAdminModuleRequestBody {
   editor_id?: string;
   quiz?: AdminModuleQuizItem[];
   thumbnail_storage_path?: string | null;
+  /** When set, updates chatbot FAQ-only flag on the new module version. */
+  chatbot_faqs_only?: boolean;
 }
 
 export type AdminModuleRefresherType = 'refresher' | string;
@@ -384,6 +388,7 @@ function normalizeModuleDetail(
         ? response.merge_secondary_module_id
         : null,
     is_merge_secondary: Boolean(response.is_merge_secondary),
+    chatbot_faqs_only: Boolean(response.chatbot_faqs_only),
   };
 }
 

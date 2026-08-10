@@ -336,6 +336,9 @@ describe('VideoUploadPage', () => {
 
     await stageAndApiUpload(user, video);
 
+    expect(
+      screen.getByText('Video uploaded successfully.'),
+    ).toBeInTheDocument();
     expect(mocks.uploadFiles).toHaveBeenCalledWith(
       expect.objectContaining({
         files: [video],
@@ -425,10 +428,62 @@ describe('VideoUploadPage', () => {
     expect(screen.getByText('Uploaded')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Assign' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    expect(screen.getByText('Not ingested')).toBeInTheDocument();
+    const notIngested = screen.getByText('Not ingested');
+    expect(notIngested).toBeInTheDocument();
+    expect(notIngested.className).toContain('bg-spice-bg-tint');
     expect(
       screen.queryByRole('button', { name: 'View modules' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows plural success message when multiple videos upload', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const videos = [
+      new File(['video-a'], 'first-video.mp4', { type: 'video/mp4' }),
+      new File(['video-b'], 'second-video.mp4', { type: 'video/mp4' }),
+    ];
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      videos,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('first-video.mp4', { exact: false }).length,
+      ).toBeGreaterThan(0),
+    );
+
+    mocks.uploadFiles.mockImplementation(async () => {
+      const response: AdminV3IngestUploadResponse = {
+        status: 'uploaded',
+        sources: [
+          {
+            source_document_id: 'uploaded-source-1',
+            title: 'first-video',
+            source_type: 'video',
+            stored_path: 'path-1',
+            status: 'uploaded',
+          },
+          {
+            source_document_id: 'uploaded-source-2',
+            title: 'second-video',
+            source_type: 'video',
+            stored_path: 'path-2',
+            status: 'uploaded',
+          },
+        ],
+      };
+      mocks.onUploadedRef.current?.(response, { isReupload: false });
+      return response;
+    });
+
+    await user.click(screen.getByRole('button', { name: /upload 2 videos/i }));
+    await waitFor(() =>
+      expect(
+        screen.getByText('Videos uploaded successfully.'),
+      ).toBeInTheDocument(),
+    );
   });
 
   it('shows View modules for succeeded status alias', () => {

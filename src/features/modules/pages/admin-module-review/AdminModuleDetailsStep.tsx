@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
 import { Banner, Button, Card, ImagePicker, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
@@ -244,6 +245,18 @@ export const AdminModuleDetailsStep = () => {
             />
           </label>
         </div>
+
+        <ChatbotFaqsOnlyField
+          checked={Boolean(working.chatbot_faqs_only)}
+          disabled={busy || isReadonly}
+          onChange={(checked) =>
+            dispatch(
+              updateDetails({
+                chatbot_faqs_only: checked,
+              }),
+            )
+          }
+        />
 
         <div className="flex justify-end gap-2">
           {!isReadonly ? (

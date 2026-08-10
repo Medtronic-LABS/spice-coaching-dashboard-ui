@@ -1,6 +1,5 @@
 import {
   hasActiveBadgeFilters,
-  isAssignablePublishedModule,
   isDateRangeInvalid,
   nextGlobalBadgeSequence,
   objectNameFromStoragePath,
@@ -20,16 +19,6 @@ describe('badgeForm utils', () => {
     ).toBe('badges/safe-motherhood.png');
     expect(objectNameFromStoragePath('uploads/a.png')).toBe('uploads/a.png');
     expect(objectNameFromStoragePath('badges/a.png')).toBe('badges/a.png');
-  });
-
-  it('treats chatbot FAQ-only modules as not assignable', () => {
-    expect(isAssignablePublishedModule({ chatbot_faqs_only: true })).toBe(
-      false,
-    );
-    expect(isAssignablePublishedModule({ chatbot_faqs_only: false })).toBe(
-      true,
-    );
-    expect(isAssignablePublishedModule({})).toBe(true);
   });
 
   it('computes next global sequence without an upper cap', () => {

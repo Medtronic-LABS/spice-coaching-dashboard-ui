@@ -153,6 +153,7 @@ export const AdminModulePublishStep = () => {
           onEditDetails={() => navigate(modulePath('/details'))}
           onEditLessons={() => navigate(modulePath('/lessons'))}
           onEditQuiz={() => navigate(modulePath('/quiz'))}
+          assignDisabled={Boolean(working.chatbot_faqs_only)}
           onAssign={() => {
             const state: ModuleLibraryLocationState = {
               tab: 'published',

@@ -52,6 +52,7 @@ export function baseAdminModuleDetail(
     module_json: { cards: [], quiz: [] },
     cards: [],
     quiz: [],
+    chatbot_faqs_only: false,
     ...overrides,
   };
 }

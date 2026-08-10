@@ -59,6 +59,7 @@ describe('persistAdminModuleDraft', () => {
       body: expect.objectContaining({
         expected_version: 1,
         title: { bn: 'Title BN', en: 'Title EN' },
+        chatbot_faqs_only: false,
         module_json: expect.objectContaining({
           cards: expect.arrayContaining([
             expect.objectContaining({ title: { bn: 'Card' } }),
@@ -70,6 +71,36 @@ describe('persistAdminModuleDraft', () => {
     expect(refetchModule).toHaveBeenCalledWith('mod-1');
     expect(onSaved).toHaveBeenCalledWith(refetched);
     expect(saved).toEqual(refetched);
+  });
+
+  it('persists chatbot_faqs_only when enabled on the working draft', async () => {
+    const editModule = vi.fn(() => ({
+      unwrap: vi.fn().mockResolvedValue({
+        id: 'mod-1',
+        module_family_id: 'family-1',
+        version: 2,
+        supersedes_module_id: 'mod-1',
+      }),
+    }));
+    const navigate = vi.fn();
+    const refetchModule = vi.fn().mockResolvedValue(undefined);
+    const onSaved = vi.fn();
+
+    await persistAdminModuleDraft({
+      working: { ...working, chatbot_faqs_only: true },
+      editModule,
+      navigate,
+      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      refetchModule,
+      onSaved,
+    });
+
+    expect(editModule).toHaveBeenCalledWith({
+      moduleId: 'mod-1',
+      body: expect.objectContaining({
+        chatbot_faqs_only: true,
+      }),
+    });
   });
 
   it('syncs the new module id before refetch when save supersedes the draft', async () => {
