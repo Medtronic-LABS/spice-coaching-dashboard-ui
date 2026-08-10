@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Loader } from '@/components/ui';
+import { Banner, Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
 import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
@@ -96,11 +96,7 @@ export const ModuleLessonsPage = () => {
         </Card>
 
         <Card variant="elevated" className="space-y-4">
-          {actionError ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {actionError}
-            </div>
-          ) : null}
+          {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
           <div className="text-4xl font-semibold text-spice-text-primary">
             Lesson Content
           </div>

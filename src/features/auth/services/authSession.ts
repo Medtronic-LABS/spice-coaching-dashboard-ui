@@ -1,3 +1,6 @@
+import { isLoginEnabled } from '@/config/authConfig';
+import { paths } from '@/constants/routes';
+import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
 import type { AuthUser } from '@/features/auth/types/auth.types';
 
 const AUTH_SESSION_STORAGE_KEY = 'authUser';
@@ -47,7 +50,14 @@ export function clearAuthSession(): void {
 
 export function logout(): void {
   clearAuthSession();
-  window.location.assign(window.location.pathname);
+  if (typeof window === 'undefined') return;
+
+  if (isLoginEnabled()) {
+    window.location.assign(paths.login);
+    return;
+  }
+
+  redirectToSpiceWeb();
 }
 
 export function getAuthDisplayName(user: AuthUser): string {

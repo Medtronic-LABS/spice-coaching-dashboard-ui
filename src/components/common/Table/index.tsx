@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { cn } from '@/utils';
 import type { TableProps } from './Table.types';
 
@@ -14,6 +15,8 @@ export function Table<T extends object>({
   sortBy,
   sortDir,
   onSort,
+  renderExpandedRow,
+  getRowClassName,
   ...tableProps
 }: TableProps<T>) {
   return (
@@ -125,24 +128,47 @@ export function Table<T extends object>({
         </thead>
         <tbody className="divide-y divide-spice-border bg-spice-bg-surface">
           {data.length > 0 ? (
-            data.map((row) => (
-              <tr
-                key={keyExtractor(row)}
-                className="transition-colors hover:bg-spice-semantic-warningBg"
-              >
-                {columns.map((col) => (
-                  <td
-                    key={String(col.key)}
+            data.map((row) => {
+              const rowKey = keyExtractor(row);
+              const expandedContent = renderExpandedRow?.(row);
+
+              return (
+                <Fragment key={rowKey}>
+                  <tr
                     className={cn(
-                      'px-3 py-1.5 whitespace-nowrap sm:px-6 sm:py-2',
-                      col.className,
+                      'transition-colors',
+                      getRowClassName
+                        ? getRowClassName(row)
+                        : 'hover:bg-spice-semantic-warningBg',
                     )}
                   >
-                    {col.render ? col.render(row) : String(row[col.key] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            ))
+                    {columns.map((col) => (
+                      <td
+                        key={String(col.key)}
+                        className={cn(
+                          'px-3 py-1.5 whitespace-nowrap sm:px-6 sm:py-2',
+                          col.className,
+                        )}
+                      >
+                        {col.render
+                          ? col.render(row)
+                          : String(row[col.key] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                  {expandedContent ? (
+                    <tr className="bg-spice-bg-tint/20">
+                      <td
+                        colSpan={columns.length}
+                        className="p-4 sm:p-5 border-y border-spice-border/50"
+                      >
+                        {expandedContent}
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })
           ) : (
             <tr>
               <td

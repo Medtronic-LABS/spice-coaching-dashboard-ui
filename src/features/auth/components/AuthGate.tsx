@@ -10,15 +10,20 @@ interface AuthGateProps {
   children: ReactNode;
 }
 
+function isPublicAuthPath(pathname: string): boolean {
+  return pathname.endsWith('/login') || pathname.endsWith('/unauthorized');
+}
+
 export const AuthGate = ({ children }: AuthGateProps) => {
   const status = useAuthBootstrap();
   const location = useLocation();
 
   if (isLoginEnabled()) {
     const session = getAuthSession();
+    const isPublicPath = isPublicAuthPath(location.pathname);
     const isLoginPage = location.pathname.endsWith('/login');
 
-    if (!session && !isLoginPage) {
+    if (!session && !isPublicPath) {
       return <Navigate to={paths.login} replace state={{ from: location }} />;
     }
 
@@ -26,8 +31,8 @@ export const AuthGate = ({ children }: AuthGateProps) => {
       return <Navigate to={paths.home} replace />;
     }
 
-    // Login page owns the unauthenticated state; skip Spice bootstrap wait.
-    if (isLoginPage) {
+    // Login / unauthorized pages own unauthenticated auth UX.
+    if (isPublicPath) {
       return children;
     }
   }

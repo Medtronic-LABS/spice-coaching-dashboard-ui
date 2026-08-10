@@ -1,5 +1,6 @@
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Badge, Button, Card, Modal, Tooltip } from '@/components/ui';
+import { Badge, Banner, Button, Card, Modal, Tooltip } from '@/components/ui';
+import type { BannerProps } from '@/components/ui/Banner';
 import type {
   AdminV3IngestMergeDecision,
   IngestMergeDecisionChoice,
@@ -32,6 +33,23 @@ export interface IngestMergeReviewModalProps {
 }
 
 type DecisionRow = AdminV3IngestMergeDecision & { _key: string };
+
+function mergeNotificationBannerTone(
+  tone: NonNullable<IngestMergeReviewModalProps['notification']>['tone'],
+): NonNullable<BannerProps['tone']> {
+  switch (tone) {
+    case 'success':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'error':
+      return 'critical';
+    default: {
+      const _exhaustive: never = tone;
+      return _exhaustive;
+    }
+  }
+}
 
 export const IngestMergeReviewModal = ({
   open,
@@ -186,18 +204,9 @@ export const IngestMergeReviewModal = ({
         </div>
 
         {notification ? (
-          <div
-            className={
-              notification.tone === 'success'
-                ? 'rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success'
-                : notification.tone === 'warning'
-                  ? 'rounded-lg bg-spice-semantic-warningBg px-3 py-2 text-xs text-spice-semantic-warning'
-                  : 'rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error'
-            }
-            role="status"
-          >
+          <Banner tone={mergeNotificationBannerTone(notification.tone)}>
             {notification.message}
-          </div>
+          </Banner>
         ) : null}
 
         <Table

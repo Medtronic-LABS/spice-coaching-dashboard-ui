@@ -30,10 +30,5 @@ export { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
 export type { UnsavedChangesDialogProps } from '@/components/ui/UnsavedChangesDialog';
 export { SuccessModal } from '@/components/ui/SuccessModal';
 export type { SuccessModalProps } from '@/components/ui/SuccessModal';
-export { ModulePublishedSuccessModal } from '@/components/ui/ModulePublishedSuccessModal';
-export type {
-  ModulePublishedSuccessModalProps,
-  ModulePublishedSuccessSummary,
-} from '@/components/ui/ModulePublishedSuccessModal';
 export type { TabItem } from '@/components/ui/Tabs';
 export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';

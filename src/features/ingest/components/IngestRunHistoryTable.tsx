@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Button, Card, Loader, Select, TruncatedText } from '@/components/ui';
+import { TablePagination } from '@/components/common/TablePagination';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Loader,
+  TruncatedText,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useFetchIngestionRunsQuery } from '@/features/ingest/api/adminIngestionRunsApi';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -291,20 +298,21 @@ export const IngestRunHistoryTable = () => {
       </div>
 
       {error ? (
-        <div className="space-y-2">
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {formatRtkQueryError(error)}
-          </div>
-          <Button
-            variant="secondary"
-            className="h-8 text-xs"
-            onClick={() => {
-              refetch();
-            }}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          title="Unable to load run history"
+          description={formatRtkQueryError(error)}
+          action={
+            <Button
+              variant="secondary"
+              className="h-8 text-xs"
+              onClick={() => {
+                refetch();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        />
       ) : null}
 
       <Loader open={isLoading} label="Loading run history…" />
@@ -324,97 +332,29 @@ export const IngestRunHistoryTable = () => {
         onSort={handleSort}
       />
 
-      <div className="flex flex-col gap-3 border-t border-spice-border pt-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
-          <label className="inline-flex items-center gap-2">
-            <span className="whitespace-nowrap font-medium text-spice-text-medium">
-              Rows
-            </span>
-            <Select
-              aria-label="Run history rows per page"
-              className="h-8 w-[4.5rem] px-2 text-xs"
-              value={String(pageSize)}
-              options={RUN_HISTORY_PAGE_SIZE_OPTIONS.map((size) => ({
-                label: String(size),
-                value: String(size),
-              }))}
-              onChange={(value) => {
-                const next = Number.parseInt(value, 10);
-                if (!Number.isFinite(next) || next <= 0) return;
-                setPageSize(next);
-                setPage(0);
-              }}
-            />
-          </label>
-
-          <label className="inline-flex items-center gap-2">
-            <span className="whitespace-nowrap font-medium text-spice-text-medium">
-              Page
-            </span>
-            <input
-              type="number"
-              min={1}
-              max={totalPages > 0 ? totalPages : undefined}
-              step={1}
-              inputMode="numeric"
-              aria-label="Run history page number"
-              className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
-              value={pageInput}
-              onChange={(e) => handlePageInputChange(e.target.value)}
-              onBlur={commitPageInput}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.currentTarget.blur();
-                }
-              }}
-            />
-            <span className="whitespace-nowrap">
-              of{' '}
-              <span className="font-semibold text-spice-text-medium">
-                {Math.max(totalPages, 1)}
-              </span>
-            </span>
-          </label>
-
-          {rows.length ? (
-            <span className="whitespace-nowrap">
-              Showing{' '}
-              <span className="font-semibold text-spice-text-medium">
-                {rangeStart}
-              </span>
-              –
-              <span className="font-semibold text-spice-text-medium">
-                {rangeEnd}
-              </span>{' '}
-              of{' '}
-              <span className="font-semibold text-spice-text-medium">
-                {totalRuns}
-              </span>
-            </span>
-          ) : (
-            <span>No results on this page</span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            className="h-8 px-3 text-xs"
-            disabled={!hasPrevPage}
-            onClick={() => setPage((current) => Math.max(0, current - 1))}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            className="h-8 px-3 text-xs"
-            disabled={!hasNextPage}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        pageSize={pageSize}
+        pageSizeOptions={RUN_HISTORY_PAGE_SIZE_OPTIONS}
+        totalItems={totalRuns}
+        totalPages={totalPages}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        pageInput={pageInput}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPageSizeChange={(next) => {
+          setPageSize(next);
+          setPage(0);
+        }}
+        onPageInputChange={handlePageInputChange}
+        onCommitPageInput={commitPageInput}
+        onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
+        onNextPage={() => setPage((current) => current + 1)}
+        rowsPerPageAriaLabel="Run history rows per page"
+        pageNumberAriaLabel="Run history page number"
+        className="border-t border-spice-border px-0 pt-3"
+      />
     </Card>
   );
 };

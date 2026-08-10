@@ -9,10 +9,10 @@ import {
   Loader,
   Modal,
   SearchInput,
-  Select,
   Tooltip,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
+import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -63,11 +63,18 @@ const FIELD_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
 const BADGE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
 const DEFAULT_BADGE_PAGE_SIZE = 10;
-/** Used only when filters open / create needs global max sequence across pages. */
+/** Used when filters open — need domain/creator options across a broad slice. */
 const BADGE_CATALOG_QUERY: AdminBadgeListQuery = {
   sort_by: 'sequence',
   sort_dir: 'asc',
   limit: 200,
+  offset: 0,
+};
+/** Highest existing sequence for create — must sort DESC so max is on first page. */
+const BADGE_MAX_SEQUENCE_QUERY: AdminBadgeListQuery = {
+  sort_by: 'sequence',
+  sort_dir: 'desc',
+  limit: 1,
   offset: 0,
 };
 const SEARCH_DEBOUNCE_MS = 300;
@@ -110,6 +117,20 @@ function formFromBadge(badge: AdminBadge): BadgeFormState {
     imagePreviewUrl: '',
     imageChanged: false,
   };
+}
+
+function moduleCacheFromBadge(
+  badge: AdminBadge,
+): Record<string, PublishedModuleOption> {
+  const cache: Record<string, PublishedModuleOption> = {};
+  for (const module of badge.modules) {
+    cache[module.id] = {
+      id: module.id,
+      title: resolveDisplayText(module.title) || module.id,
+      domain: formatModuleDomainLabel(badge.domain),
+    };
+  }
+  return cache;
 }
 
 export const BadgeManagementPage = () => {
@@ -413,6 +434,7 @@ export const BadgeManagementPage = () => {
 
   const resetForm = useCallback(() => {
     setForm(emptyForm());
+    setSelectedModuleCache({});
     setModuleSearchQuery('');
     setDomainSearchTerm('');
     setViewingBadgeId(null);
@@ -422,6 +444,7 @@ export const BadgeManagementPage = () => {
 
   const startEdit = useCallback((badge: AdminBadge) => {
     setForm(formFromBadge(badge));
+    setSelectedModuleCache(moduleCacheFromBadge(badge));
     setModuleSearchQuery('');
     setDomainSearchTerm('');
     setViewingBadgeId(null);
@@ -437,6 +460,7 @@ export const BadgeManagementPage = () => {
 
   const startView = useCallback((badge: AdminBadge) => {
     setForm(formFromBadge(badge));
+    setSelectedModuleCache(moduleCacheFromBadge(badge));
     setModuleSearchQuery('');
     setDomainSearchTerm('');
     setEditingBadgeId(null);
@@ -501,17 +525,15 @@ export const BadgeManagementPage = () => {
       : null;
 
     if (!editingBadgeId) {
-      let sequenceSource = badges;
-      if (totalBadges > badges.length) {
-        try {
-          const catalog = await fetchBadgeCatalog(BADGE_CATALOG_QUERY).unwrap();
-          sequenceSource = catalog.badges;
-        } catch (error) {
-          setFormError(getMutationErrorMessage(error));
-          return;
-        }
+      try {
+        const catalog = await fetchBadgeCatalog(
+          BADGE_MAX_SEQUENCE_QUERY,
+        ).unwrap();
+        sequence = nextGlobalBadgeSequence(catalog.badges);
+      } catch (error) {
+        setFormError(getMutationErrorMessage(error));
+        return;
       }
-      sequence = nextGlobalBadgeSequence(sequenceSource);
     }
 
     const body: AdminBadgeWriteBody = {
@@ -980,14 +1002,7 @@ export const BadgeManagementPage = () => {
           </div>
         </div>
 
-        {formError ? (
-          <p
-            className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-sm text-spice-semantic-error"
-            role="alert"
-          >
-            {formError}
-          </p>
-        ) : null}
+        {formError ? <Banner tone="critical">{formError}</Banner> : null}
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-spice-border pt-4">
           {isViewMode ? (
@@ -1043,101 +1058,26 @@ export const BadgeManagementPage = () => {
           emptyMessage="No milestones match the current filters."
           containerClassName="min-h-[12rem]"
         />
-        <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Rows
-              </span>
-              <Select
-                aria-label="Rows per page"
-                className="h-8 w-[4.5rem] px-2 text-xs"
-                value={String(pageSize)}
-                options={BADGE_PAGE_SIZE_OPTIONS.map((size) => ({
-                  label: String(size),
-                  value: String(size),
-                }))}
-                onChange={(value) => {
-                  const next = Number.parseInt(value, 10);
-                  if (!Number.isFinite(next) || next <= 0) return;
-                  setPageSize(next);
-                  setPage(0);
-                }}
-              />
-            </label>
-
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Page
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages > 0 ? totalPages : 1}
-                step={1}
-                inputMode="numeric"
-                aria-label="Page number"
-                className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
-                value={pageInput}
-                onChange={(e) => handlePageInputChange(e.target.value)}
-                onBlur={commitPageInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.currentTarget.blur();
-                  }
-                }}
-              />
-              <span className="whitespace-nowrap">
-                of{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {Math.max(totalPages, 1)}
-                </span>
-              </span>
-            </label>
-
-            {badges.length ? (
-              <span className="whitespace-nowrap">
-                Showing{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeStart}
-                </span>
-                –
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeEnd}
-                </span>
-                {totalBadges > 0 ? (
-                  <>
-                    {' '}
-                    of{' '}
-                    <span className="font-semibold text-spice-text-medium">
-                      {totalBadges}
-                    </span>
-                  </>
-                ) : null}
-              </span>
-            ) : (
-              <span>No results on this page</span>
-            )}
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasPrevPage}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasNextPage}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={BADGE_PAGE_SIZE_OPTIONS}
+          totalItems={totalBadges}
+          totalPages={totalPages}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          pageInput={pageInput}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPageSizeChange={(next) => {
+            setPageSize(next);
+            setPage(0);
+          }}
+          onPageInputChange={handlePageInputChange}
+          onCommitPageInput={commitPageInput}
+          onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
+          onNextPage={() => setPage((current) => current + 1)}
+        />
       </Card>
 
       <SettingsFilterDrawer

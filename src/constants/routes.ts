@@ -55,4 +55,5 @@ export const paths = {
   modulePublished: withRoutePrefix('/modules/new/published'),
   configs: withRoutePrefix('/configs'),
   login: withRoutePrefix('/login'),
+  unauthorized: withRoutePrefix('/unauthorized'),
 } as const;

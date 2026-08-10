@@ -1,4 +1,4 @@
-import { Card, KeyValue, Loader, Modal } from '@/components/ui';
+import { Banner, Card, KeyValue, Loader, Modal } from '@/components/ui';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -81,15 +81,13 @@ export const IngestMatchedModulePreviewModal = ({
 
         <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           {!moduleId ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+            <Banner tone="critical">
               No module id was provided for this merge decision.
-            </div>
+            </Banner>
           ) : null}
 
           {error ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {formatRtkQueryError(error)}
-            </div>
+            <Banner tone="critical">{formatRtkQueryError(error)}</Banner>
           ) : null}
 
           {module ? (

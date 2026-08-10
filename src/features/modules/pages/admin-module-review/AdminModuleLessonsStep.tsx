@@ -1,5 +1,5 @@
 import { ArrowRightIcon, DeleteIcon, SaveDraftIcon } from '@/assets/icon';
-import { Button, Card, Loader } from '@/components/ui';
+import { Banner, Button, Card, EmptyState, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
 import {
@@ -168,11 +168,7 @@ export const AdminModuleLessonsStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
+      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
 
       <div
         className={`grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] ${
@@ -255,7 +251,7 @@ export const AdminModuleLessonsStep = () => {
                 }}
               />
             ) : (
-              <div className="text-xs text-spice-text-muted">No cards.</div>
+              <EmptyState title="No cards" />
             )}
           </div>
         </Card>
@@ -400,9 +396,7 @@ export const AdminModuleLessonsStep = () => {
               </div>
             </>
           ) : (
-            <div className="text-sm text-spice-text-muted">
-              No cards to edit.
-            </div>
+            <EmptyState title="No cards to edit" />
           )}
 
           <div className="flex justify-end gap-2">

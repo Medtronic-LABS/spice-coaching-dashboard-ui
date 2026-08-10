@@ -1,6 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Loader, Modal, Select, Tabs } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  Loader,
+  Modal,
+  Select,
+  Tabs,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
   type AdminUser,
@@ -1183,11 +1191,7 @@ export const AssignmentDialog = ({
           </Button>
         </div>
 
-        {errorMsg ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {errorMsg}
-          </div>
-        ) : null}
+        {errorMsg ? <Banner tone="critical">{errorMsg}</Banner> : null}
 
         <Tabs
           items={ASSIGNMENT_TABS}

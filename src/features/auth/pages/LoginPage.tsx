@@ -3,11 +3,11 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { isLoginEnabled } from '@/config/authConfig';
 import { paths } from '@/constants/routes';
-import { DEFAULT_AUTH_USER } from '@/features/auth/constants/defaultAuthUser';
 import { useLoginMutation } from '@/features/auth/api/authApi';
 import { setAuthSession } from '@/features/auth/services/authSession';
-import type { AuthUser } from '@/features/auth/types/auth.types';
+import { hasCoachingSuiteAccess } from '@/features/auth/utils/hasCoachingSuiteAccess';
 import { hashPasswordWithHmac } from '@/features/auth/utils/passwordHash';
+import { mapLoginResponseToAuthUser } from '@/features/auth/utils/mapLoginResponseToAuthUser';
 import appLogo from '@/features/auth/assets/app-logo-name.png';
 import showPassIcon from '@/features/auth/assets/showPass.svg';
 import hidePassIcon from '@/features/auth/assets/hidePass.svg';
@@ -69,9 +69,13 @@ export const LoginPage = () => {
         password: hashedPassword,
       }).unwrap();
 
+      // Body often has authorization/cookie null; coaching-platform puts it on headers.
       const authCookie =
-        response.authorization ??
-        response.token ??
+        (typeof response.authorization === 'string'
+          ? response.authorization
+          : undefined) ??
+        (typeof response.token === 'string' ? response.token : undefined) ??
+        (typeof response.cookie === 'string' ? response.cookie : undefined) ??
         (typeof response.authHeader === 'string'
           ? response.authHeader
           : undefined);
@@ -86,25 +90,25 @@ export const LoginPage = () => {
         return;
       }
 
-      const authUser: AuthUser = {
-        tenantId: String(
-          response.tenantId ??
-            response.user?.tenantId ??
-            DEFAULT_AUTH_USER.tenantId,
-        ),
-        userId: String(
-          response.userId ??
-            response.id ??
-            response.user?.userId ??
-            DEFAULT_AUTH_USER.userId,
-        ),
-        email: response.email ?? response.user?.email ?? trimmedUsername,
-        firstName: response.firstName ?? response.user?.firstName ?? 'User',
-        lastName: response.lastName ?? response.user?.lastName ?? '',
-        role: response.role ?? response.user?.role ?? DEFAULT_AUTH_USER.role,
-        authorization: authCookie,
-        token: authCookie,
-      };
+      const authUser = mapLoginResponseToAuthUser(response, {
+        authCookie,
+        usernameFallback: trimmedUsername,
+      });
+
+      if (!authUser) {
+        setErrorMessage(
+          t(
+            'auth.signIn.errorMissingIdentity',
+            'Sign-in succeeded but user identity was incomplete. Please try again.',
+          ),
+        );
+        return;
+      }
+
+      if (!hasCoachingSuiteAccess(response.suiteAccess)) {
+        navigate(paths.unauthorized, { replace: true });
+        return;
+      }
 
       setAuthSession(authUser);
       navigate(paths.home, { replace: true });

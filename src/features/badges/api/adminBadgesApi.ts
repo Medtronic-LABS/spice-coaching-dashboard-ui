@@ -313,6 +313,11 @@ export const adminBadgesApi = baseApi.injectEndpoints({
           toBadgeWriteBody(arg.neighbor, arg.badgeSequence),
         );
         if ('error' in neighborUpdated && neighborUpdated.error) {
+          // Compensate: restore the cleared badge sequence.
+          await putBadge(
+            arg.badge.id,
+            toBadgeWriteBody(arg.badge, arg.badgeSequence),
+          );
           return { error: neighborUpdated.error };
         }
 
@@ -321,6 +326,15 @@ export const adminBadgesApi = baseApi.injectEndpoints({
           toBadgeWriteBody(arg.badge, arg.neighborSequence),
         );
         if ('error' in badgeUpdated && badgeUpdated.error) {
+          // Compensate: restore both badges to their original sequences.
+          await putBadge(
+            arg.neighbor.id,
+            toBadgeWriteBody(arg.neighbor, arg.neighborSequence),
+          );
+          await putBadge(
+            arg.badge.id,
+            toBadgeWriteBody(arg.badge, arg.badgeSequence),
+          );
           return { error: badgeUpdated.error };
         }
 

@@ -28,10 +28,10 @@ describe('authConfig', () => {
     vi.unstubAllEnvs();
   });
 
-  it('falls back to default secret key spice_uat when env variable is not set', () => {
+  it('throws when neither password hash key env is set', () => {
     vi.stubEnv('VITE_HMAC_SECRET_KEY', '');
     vi.stubEnv('VITE_PASSWORD_HASH_KEY', '');
-    expect(getHmacSecretKey()).toBe('spice_uat');
+    expect(() => getHmacSecretKey()).toThrow(/VITE_PASSWORD_HASH_KEY/);
     vi.unstubAllEnvs();
   });
 });

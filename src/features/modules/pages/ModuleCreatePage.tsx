@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card, Loader } from '@/components/ui';
+import { Banner, Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetIngestStatusByDocumentQuery } from '@/features/ingest/api/adminIngestApi';
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
@@ -231,17 +231,11 @@ export const ModuleCreatePage = () => {
           </div>
         </div>
 
-        {uploadError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {uploadError}
-          </div>
-        ) : null}
+        {uploadError ? <Banner tone="critical">{uploadError}</Banner> : null}
 
         {statusError ? (
           <div className="space-y-2">
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {formatRtkQueryError(statusError)}
-            </div>
+            <Banner tone="critical">{formatRtkQueryError(statusError)}</Banner>
             <Button
               variant="secondary"
               className="h-8 text-xs"
@@ -317,9 +311,9 @@ export const ModuleCreatePage = () => {
           ) : null}
 
           {ingestionSucceeded ? (
-            <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
+            <Banner tone="success">
               Ingestion succeeded. Redirecting to Module Library…
-            </div>
+            </Banner>
           ) : null}
         </Card>
       ) : null}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Button, Card, Loader, Modal } from '@/components/ui';
+import { Banner, Button, Card, Loader, Modal } from '@/components/ui';
 import {
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
@@ -139,16 +139,8 @@ export const VideoMetadataEditDialog = ({
           Edit video details
         </h2>
 
-        {actionError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {actionError}
-          </div>
-        ) : null}
-        {fieldError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {fieldError}
-          </div>
-        ) : null}
+        {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
+        {fieldError ? <Banner tone="critical">{fieldError}</Banner> : null}
 
         <label className="block space-y-1.5">
           <span className="text-xs font-semibold text-spice-text-primary">
