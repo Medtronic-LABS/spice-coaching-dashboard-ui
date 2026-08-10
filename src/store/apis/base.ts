@@ -62,6 +62,6 @@ export const baseApi = createApi({
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
   baseQuery: hybridBaseQuery,
-  tagTypes: ['Config', 'ModuleDomains', 'Badges'],
+  tagTypes: ['Config', 'ModuleDomains', 'SourceDocuments', 'Badges'],
   endpoints: () => ({}),
 });

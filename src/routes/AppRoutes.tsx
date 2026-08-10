@@ -38,6 +38,11 @@ const VideoUploadPage = lazy(() =>
     default: module.VideoUploadPage,
   })),
 );
+const KnowledgeLibraryPage = lazy(() =>
+  import('@/features/modules/pages/KnowledgeLibraryPage').then((module) => ({
+    default: module.KnowledgeLibraryPage,
+  })),
+);
 const AdminModuleReviewLayout = lazy(() =>
   import('@/features/modules/layout/AdminModuleReviewLayout').then(
     (module) => ({
@@ -123,6 +128,10 @@ export const AppRoutes = () => {
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
         <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />
         <Route path={paths.ingestDocument} element={<IngestDocumentPage />} />
+        <Route
+          path={paths.uploadKnowledge}
+          element={<KnowledgeLibraryPage />}
+        />
         <Route path={paths.videoUpload} element={<VideoUploadPage />} />
         <Route path={paths.ingestHistory} element={<IngestHistoryPage />} />
         <Route

@@ -7,7 +7,14 @@ export type { ComboboxOption, ComboboxProps } from '@/components/ui/Combobox';
 export { Divider } from '@/components/ui/Divider';
 export { EmptyState } from '@/components/ui/EmptyState';
 export { ErrorState } from '@/components/ui/ErrorState';
+export { FileDropzone } from '@/components/ui/FileDropzone';
+export type { FileDropzoneProps } from '@/components/ui/FileDropzone';
 export { FilterBar } from '@/components/ui/FilterBar';
+export { ImagePicker } from '@/components/ui/ImagePicker';
+export type {
+  ImagePickerProps,
+  ImagePickerVariant,
+} from '@/components/ui/ImagePicker';
 export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
 export { ListItem } from '@/components/ui/ListItem';

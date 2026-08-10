@@ -2,7 +2,11 @@ import { configureStore } from '@reduxjs/toolkit';
 import { describe, expect, it } from 'vitest';
 import { baseApi } from '@/store/apis/base';
 import { mockSourceDocuments } from '@/store/apis/mockData';
-import { adminSourceDocumentsApi } from './adminSourceDocumentsApi';
+import {
+  adminSourceDocumentsApi,
+  mapSourceDocumentToKnowledgeItem,
+  normalizeSourceDocumentActorRef,
+} from './adminSourceDocumentsApi';
 
 function makeStore() {
   return configureStore({
@@ -25,8 +29,11 @@ describe('adminSourceDocumentsApi', () => {
       )
       .unwrap();
 
-    expect(result.source_documents).toHaveLength(mockSourceDocuments.length);
-    expect(result.total_source_documents).toBe(mockSourceDocuments.length);
+    const ingestedDocs = mockSourceDocuments.filter(
+      (doc) => doc.status === 'ingested',
+    );
+    expect(result.source_documents).toHaveLength(ingestedDocs.length);
+    expect(result.total_source_documents).toBe(ingestedDocs.length);
     expect(result.total_pages).toBe(1);
     expect(result.limit).toBe(200);
     expect(result.offset).toBe(0);
@@ -37,11 +44,18 @@ describe('adminSourceDocumentsApi', () => {
       status: 'ingested',
       content_domain: 'Hypertension',
       authority_label: 'MoH Bangladesh',
+      stored_path: 'medtronics-storage/source-documents/doc-htn-protocol.pdf',
       original_filename: 'htn_referral_protocol.pdf',
       description: null,
       thumbnail_storage_path: null,
       thumbnail_presigned_url: null,
+      uploaded_date: '2026-04-08T09:00:00Z',
       ingested_at: '2026-04-08T09:00:00Z',
+      updated_at: '2026-04-08T09:00:00Z',
+      uploaded_by: { id: 1, name: 'ingest-bot' },
+      updated_by: null,
+      assigned: false,
+      sync_published_visible: false,
     });
   });
 
@@ -114,5 +128,78 @@ describe('adminSourceDocumentsApi', () => {
         ['ingested', 'uploaded'].includes(doc.status),
       ),
     ).toBe(true);
+  });
+
+  it('filters knowledge catalog rows by assigned and uploaded_by', async () => {
+    const store = makeStore();
+
+    const assigned = await store
+      .dispatch(
+        adminSourceDocumentsApi.endpoints.fetchSourceDocuments.initiate({
+          sync_published_visible: true,
+          assigned: true,
+        }),
+      )
+      .unwrap();
+
+    expect(assigned.source_documents.map((doc) => doc.id)).toEqual([
+      'knowledge-asset-1',
+    ]);
+    expect(assigned.source_documents[0]?.assigned).toBe(true);
+
+    const byUploader = await store
+      .dispatch(
+        adminSourceDocumentsApi.endpoints.fetchSourceDocuments.initiate({
+          sync_published_visible: true,
+          uploaded_by: '101',
+        }),
+      )
+      .unwrap();
+
+    expect(byUploader.source_documents.map((doc) => doc.id)).toEqual([
+      'knowledge-asset-1',
+    ]);
+    expect(byUploader.source_documents[0]?.uploaded_by).toEqual({
+      id: 101,
+      name: 'alice',
+    });
+  });
+});
+
+describe('normalizeSourceDocumentActorRef', () => {
+  it('accepts actor objects and rejects invalid values', () => {
+    expect(normalizeSourceDocumentActorRef({ id: 1, name: ' alice ' })).toEqual(
+      { id: 1, name: 'alice' },
+    );
+    expect(normalizeSourceDocumentActorRef('alice')).toBeNull();
+    expect(normalizeSourceDocumentActorRef({ id: 1, name: '' })).toBeNull();
+    expect(normalizeSourceDocumentActorRef(null)).toBeNull();
+  });
+});
+
+describe('mapSourceDocumentToKnowledgeItem', () => {
+  it('exposes uploaded_by.name as the display uploadedBy field', () => {
+    const item = mapSourceDocumentToKnowledgeItem({
+      id: 'knowledge-asset-1',
+      title: 'HTN Referral Guidelines',
+      source_type: 'pdf',
+      status: 'uploaded',
+      content_domain: 'clinical',
+      authority_label: '',
+      stored_path: 'path.pdf',
+      original_filename: 'htn.pdf',
+      description: null,
+      thumbnail_storage_path: null,
+      uploaded_date: '2026-07-10T09:00:00Z',
+      ingested_at: '2026-07-10T09:00:00Z',
+      updated_at: '2026-07-11T08:15:00Z',
+      uploaded_by: { id: 101, name: 'alice' },
+      updated_by: { id: 101, name: 'alice' },
+      assigned: true,
+      sync_published_visible: true,
+    });
+    expect(item.uploadedBy).toBe('alice');
+    expect(item.assigned).toBe(true);
+    expect(item.ingested).toBe(false);
   });
 });

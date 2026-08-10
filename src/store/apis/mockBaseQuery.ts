@@ -106,10 +106,10 @@ interface MockAssignment {
   updated_at: string;
 }
 
-interface MockVideoAssignment {
+interface MockDocumentAssignment {
   id: string;
   source_document_id: string;
-  video_title: string | null;
+  document_title: string | null;
   assignment_type: 'individual' | 'po_sk' | 'geographical' | 'group';
   tenant_id: number | null;
   user_id: number | null;
@@ -233,7 +233,28 @@ let mockAssignmentsState: MockAssignment[] = [
   },
 ];
 
-const mockVideoAssignmentsState: MockVideoAssignment[] = [];
+let mockDocumentAssignmentsState: MockDocumentAssignment[] = [
+  {
+    id: 'assign-knowledge-1',
+    source_document_id: 'knowledge-asset-1',
+    document_title: 'HTN Referral Guidelines',
+    assignment_type: 'individual',
+    tenant_id: null,
+    user_id: 101,
+    user: {
+      id: 101,
+      name: 'Mst. Hosneyara Begum',
+      role: 'SK',
+      district: 'Lalmonirhat',
+      upazila: 'Lalmonirhat Sadar',
+      parent_id: 1708515793,
+    },
+    assigned_by: 99,
+    assigned_at: '2026-07-10T09:10:00Z',
+    created_at: '2026-07-10T09:10:00Z',
+    updated_at: '2026-07-10T09:10:00Z',
+  },
+];
 
 const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   // Simulate real network latency.
@@ -821,13 +842,17 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             status?: unknown;
             source_type?: unknown;
             q?: unknown;
+            sync_published_visible?: unknown;
+            uploaded_from?: unknown;
+            uploaded_to?: unknown;
+            uploaded_by?: unknown;
+            assigned?: unknown;
             limit?: unknown;
             offset?: unknown;
             sort_by?: unknown;
             sort_dir?: unknown;
           })
         : {};
-    // Backend defaults to "ingested" when the status param is omitted.
     const rawStatuses = Array.isArray(query.status)
       ? query.status
       : [query.status];
@@ -835,7 +860,6 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       .flatMap((value) => (asString(value) ?? '').split(','))
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
-    const effectiveStatuses = statuses.length ? statuses : ['ingested'];
     const rawSourceTypes = Array.isArray(query.source_type)
       ? query.source_type
       : [query.source_type];
@@ -844,18 +868,64 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
     const filenameQuery = (asString(query.q) ?? '').trim().toLowerCase();
+    const syncPublishedVisible =
+      query.sync_published_visible === true ||
+      query.sync_published_visible === 'true'
+        ? true
+        : query.sync_published_visible === false ||
+            query.sync_published_visible === 'false'
+          ? false
+          : undefined;
+    const uploadedFrom = asString(query.uploaded_from);
+    const uploadedTo = asString(query.uploaded_to);
+    const rawUploadedBy = Array.isArray(query.uploaded_by)
+      ? query.uploaded_by
+      : [query.uploaded_by];
+    const uploadedByIds = new Set(
+      rawUploadedBy
+        .flatMap((value) => (asString(value) ?? '').split(','))
+        .map((value) => value.trim())
+        .filter(Boolean),
+    );
+    const assignedFilter =
+      query.assigned === true || query.assigned === 'true'
+        ? true
+        : query.assigned === false || query.assigned === 'false'
+          ? false
+          : undefined;
+    const assignedIds = new Set(
+      mockDocumentAssignmentsState.map(
+        (assignment) => assignment.source_document_id,
+      ),
+    );
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
     const docSortBy = asString(query.sort_by);
     const docSortDir = asString(query.sort_dir) === 'desc' ? -1 : 1;
 
     const items = mockSourceDocuments
-      .filter((doc) => effectiveStatuses.includes(doc.status.toLowerCase()))
+      .filter((doc) =>
+        statuses.length
+          ? statuses.includes(doc.status.toLowerCase())
+          : doc.status.toLowerCase() !== 'retired',
+      )
       .filter((doc) =>
         sourceTypes.length
           ? sourceTypes.includes(doc.source_type.toLowerCase())
           : true,
       )
+      .filter((doc) =>
+        syncPublishedVisible === undefined
+          ? true
+          : Boolean(doc.sync_published_visible) === syncPublishedVisible,
+      )
+      .filter((doc) => {
+        if (!uploadedFrom && !uploadedTo) return true;
+        const uploadedAt = doc.uploaded_date || doc.ingested_at;
+        if (uploadedFrom && uploadedAt < uploadedFrom) return false;
+        if (uploadedTo && uploadedAt > uploadedTo) return false;
+        return true;
+      })
       .filter((doc) =>
         filenameQuery
           ? (doc.original_filename ?? '')
@@ -863,7 +933,22 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
               .includes(filenameQuery) ||
             doc.title.toLowerCase().includes(filenameQuery)
           : true,
-      );
+      )
+      .filter((doc) =>
+        uploadedByIds.size === 0
+          ? true
+          : doc.uploaded_by != null &&
+            uploadedByIds.has(String(doc.uploaded_by.id)),
+      )
+      .filter((doc) =>
+        assignedFilter === undefined
+          ? true
+          : assignedIds.has(doc.id) === assignedFilter,
+      )
+      .map((doc) => ({
+        ...doc,
+        assigned: assignedIds.has(doc.id),
+      }));
 
     if (docSortBy) {
       items.sort((a, b) => {
@@ -872,12 +957,31 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         if (docSortBy === 'title' || docSortBy === 'name') {
           valA = a.title || a.original_filename || '';
           valB = b.title || b.original_filename || '';
-        } else if (docSortBy === 'ingested_at' || docSortBy === 'created_at') {
-          valA = a.ingested_at || '';
-          valB = b.ingested_at || '';
+        } else if (
+          docSortBy === 'ingested_at' ||
+          docSortBy === 'created_at' ||
+          docSortBy === 'uploaded_date'
+        ) {
+          valA =
+            docSortBy === 'uploaded_date'
+              ? a.uploaded_date || a.ingested_at || ''
+              : a.ingested_at || '';
+          valB =
+            docSortBy === 'uploaded_date'
+              ? b.uploaded_date || b.ingested_at || ''
+              : b.ingested_at || '';
         } else if (docSortBy === 'status') {
           valA = a.status || '';
           valB = b.status || '';
+        } else if (docSortBy === 'source_type') {
+          valA = a.source_type || '';
+          valB = b.source_type || '';
+        } else if (docSortBy === 'content_domain') {
+          valA = a.content_domain || '';
+          valB = b.content_domain || '';
+        } else if (docSortBy === 'original_filename') {
+          valA = a.original_filename || '';
+          valB = b.original_filename || '';
         } else {
           const rawA = (a as unknown as Record<string, unknown>)[docSortBy];
           const rawB = (b as unknown as Record<string, unknown>)[docSortBy];
@@ -956,140 +1060,228 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     return { data: { ...doc } };
   }
 
-  if (url === 'admin/video-assignments') {
-    if (method === 'GET') {
-      const sourceDocumentId =
-        typeof params === 'object' && params && 'source_document_id' in params
-          ? asString(
-              (params as { source_document_id?: unknown }).source_document_id,
-            )
-          : undefined;
-      const assignmentType = asString(
-        typeof params === 'object' && params && 'assignment_type' in params
-          ? (params as { assignment_type?: unknown }).assignment_type
-          : undefined,
+  const mockHierarchyUsersForAssign = [
+    {
+      id: 1723477249,
+      name: 'Area Manager',
+      role: 'AREA_MANAGER',
+      parent_id: null,
+      district_id: 10,
+      district: 'Lalmonirhat',
+      upazilas: [],
+    },
+    {
+      id: 1708515793,
+      name: 'Md Abdus Salam',
+      role: 'PO',
+      parent_id: 1723477249,
+      district_id: 10,
+      district: 'Lalmonirhat',
+      upazilas: [{ id: 1, name: 'Lalmonirhat Sadar' }],
+    },
+    {
+      id: 1708515794,
+      name: 'Mst. Rabeya Khatun',
+      role: 'PO',
+      parent_id: 1723477249,
+      district_id: 10,
+      district: 'Lalmonirhat',
+      upazilas: [{ id: 2, name: 'Hatibandha' }],
+    },
+    {
+      id: 1313053891,
+      name: 'Mst. Hosneyara Begum',
+      role: 'SHASTIYA_KORMI',
+      parent_id: 1708515793,
+      district_id: 10,
+      district: 'Lalmonirhat',
+      upazilas: [{ id: 1, name: 'Lalmonirhat Sadar' }],
+    },
+  ];
+
+  const expandAssigneeIds = (userIds: number[]): number[] => {
+    const expanded = new Set(userIds);
+    for (const userId of userIds) {
+      const user = mockHierarchyUsersForAssign.find(
+        (item) => item.id === userId,
       );
-      let results = mockVideoAssignmentsState;
-      if (sourceDocumentId) {
-        results = results.filter(
-          (assignment) => assignment.source_document_id === sourceDocumentId,
-        );
+      if (user?.role === 'PO') {
+        for (const child of mockHierarchyUsersForAssign) {
+          if (child.parent_id === userId) expanded.add(child.id);
+        }
       }
-      if (
-        assignmentType === 'individual' ||
-        assignmentType === 'po_sk' ||
-        assignmentType === 'geographical' ||
-        assignmentType === 'group'
-      ) {
-        results = results.filter(
-          (assignment) => assignment.assignment_type === assignmentType,
-        );
-      }
-      return { data: results };
     }
-    if (method === 'POST') {
-      const payload = body as {
-        source_document_id: string;
-        assignment_type: 'individual' | 'po_sk' | 'geographical' | 'group';
-        user_ids?: number[];
-        tenant_ids?: number[];
-        upazilas?: string[];
-      };
-      const sourceDoc = mockSourceDocuments.find(
-        (doc) => doc.id === payload.source_document_id,
-      );
-      if (!sourceDoc || sourceDoc.source_type !== 'video') {
-        return {
-          error: {
-            status: 404,
-            data: { detail: 'Video source document not found' },
-          },
-        };
-      }
-      const newIds: string[] = [];
-      const now = new Date().toISOString();
-      const title = sourceDoc.title;
-      if (payload.assignment_type === 'geographical' && payload.upazilas) {
-        for (const upazila of payload.upazilas) {
-          const existing = mockVideoAssignmentsState.find(
-            (assignment) =>
-              assignment.source_document_id === payload.source_document_id &&
-              assignment.assignment_type === 'geographical' &&
-              assignment.upazila === upazila,
-          );
-          if (existing) {
-            newIds.push(existing.id);
-            continue;
-          }
-          const id = `video-assign-${mockVideoAssignmentsState.length + 1}`;
-          mockVideoAssignmentsState.push({
-            id,
-            source_document_id: payload.source_document_id,
-            video_title: title,
-            assignment_type: 'geographical',
-            tenant_id: null,
-            user_id: null,
-            user: null,
-            upazila,
-            assigned_by: 1,
-            assigned_at: now,
-            created_at: now,
-            updated_at: now,
-          });
-          newIds.push(id);
-        }
-      } else if (payload.user_ids?.length) {
-        for (const userId of payload.user_ids) {
-          const existing = mockVideoAssignmentsState.find(
-            (assignment) =>
-              assignment.source_document_id === payload.source_document_id &&
-              assignment.user_id === userId,
-          );
-          if (existing) {
-            existing.assignment_type = payload.assignment_type;
-            existing.updated_at = now;
-            newIds.push(existing.id);
-            continue;
-          }
-          const id = `video-assign-${mockVideoAssignmentsState.length + 1}`;
-          mockVideoAssignmentsState.push({
-            id,
-            source_document_id: payload.source_document_id,
-            video_title: title,
-            assignment_type: payload.assignment_type,
-            tenant_id: null,
-            user_id: userId,
-            user: null,
-            upazila: null,
-            assigned_by: 1,
-            assigned_at: now,
-            created_at: now,
-            updated_at: now,
-          });
-          newIds.push(id);
-        }
-      }
+    return Array.from(expanded);
+  };
+
+  const usersForIds = (userIds: number[]) =>
+    mockHierarchyUsersForAssign.filter((user) => userIds.includes(user.id));
+
+  if (url === 'admin/document-assignments' && method === 'POST') {
+    const payload = body as {
+      source_document_id: string;
+      user_ids?: number[];
+      upazilas?: string[];
+    };
+    const sourceDoc = mockSourceDocuments.find(
+      (doc) => doc.id === payload.source_document_id,
+    );
+    if (!sourceDoc) {
       return {
-        data: {
-          assigned_count: newIds.length,
-          assignment_ids: newIds,
+        error: {
+          status: 404,
+          data: { detail: 'Source document not found' },
         },
       };
     }
+    const now = new Date().toISOString();
+    const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+    // Replace assignees for this document.
+    mockDocumentAssignmentsState = mockDocumentAssignmentsState.filter(
+      (assignment) =>
+        assignment.source_document_id !== payload.source_document_id,
+    );
+    const newIds: string[] = [];
+    for (const userId of nextIds) {
+      const user = mockHierarchyUsersForAssign.find(
+        (item) => item.id === userId,
+      );
+      const id = `doc-assign-${mockDocumentAssignmentsState.length + 1}`;
+      newIds.push(id);
+      mockDocumentAssignmentsState.push({
+        id,
+        source_document_id: payload.source_document_id,
+        document_title: sourceDoc.title,
+        assignment_type: 'individual',
+        tenant_id: null,
+        user_id: userId,
+        user: user
+          ? {
+              id: user.id,
+              name: user.name,
+              role:
+                user.role === 'SHASTIYA_KORMI'
+                  ? 'SK'
+                  : user.role === 'AREA_MANAGER'
+                    ? 'AM'
+                    : 'PO',
+              district: user.district,
+              upazila: user.upazilas[0]?.name ?? null,
+              parent_id: user.parent_id,
+            }
+          : null,
+        upazila: null,
+        assigned_by: 1,
+        assigned_at: now,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+    return {
+      data: {
+        assigned_count: newIds.length,
+        assignment_ids: newIds,
+      },
+    };
   }
 
-  if (url.startsWith('admin/video-assignments/') && method === 'DELETE') {
-    const assignId = decodeURIComponent(
-      url.slice('admin/video-assignments/'.length),
+  if (url.startsWith('admin/document-assignments/') && url.endsWith('/users')) {
+    const sourceDocumentId = decodeURIComponent(
+      url.slice('admin/document-assignments/'.length, -'/users'.length),
     );
-    const index = mockVideoAssignmentsState.findIndex(
-      (assignment) => assignment.id === assignId,
+    const sourceDoc = mockSourceDocuments.find(
+      (doc) => doc.id === sourceDocumentId,
     );
-    if (index < 0) {
-      return { error: { status: 404, data: { detail: 'Not found' } } };
+    if (!sourceDoc) {
+      return {
+        error: { status: 404, data: { detail: 'Source document not found' } },
+      };
     }
-    mockVideoAssignmentsState.splice(index, 1);
-    return { data: { id: assignId, status: 'revoked' } };
+    if (method === 'GET') {
+      const userIds = Array.from(
+        new Set(
+          mockDocumentAssignmentsState
+            .filter(
+              (assignment) =>
+                assignment.source_document_id === sourceDocumentId &&
+                assignment.user_id !== null,
+            )
+            .map((assignment) => assignment.user_id as number),
+        ),
+      );
+      return {
+        data: {
+          source_document_id: sourceDocumentId,
+          users: usersForIds(userIds),
+        },
+      };
+    }
+    if (method === 'PUT') {
+      const payload = (body ?? {}) as {
+        user_ids?: number[];
+        upazilas?: string[];
+      };
+      const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+      const previousIds = new Set(
+        mockDocumentAssignmentsState
+          .filter(
+            (assignment) =>
+              assignment.source_document_id === sourceDocumentId &&
+              assignment.user_id !== null,
+          )
+          .map((assignment) => assignment.user_id as number),
+      );
+      mockDocumentAssignmentsState = mockDocumentAssignmentsState.filter(
+        (assignment) => assignment.source_document_id !== sourceDocumentId,
+      );
+      const now = new Date().toISOString();
+      const assignmentIds: string[] = [];
+      for (const userId of nextIds) {
+        const user = mockHierarchyUsersForAssign.find(
+          (item) => item.id === userId,
+        );
+        const id = `doc-assign-${mockDocumentAssignmentsState.length + 1}`;
+        assignmentIds.push(id);
+        mockDocumentAssignmentsState.push({
+          id,
+          source_document_id: sourceDocumentId,
+          document_title: sourceDoc.title,
+          assignment_type: 'individual',
+          tenant_id: null,
+          user_id: userId,
+          user: user
+            ? {
+                id: user.id,
+                name: user.name,
+                role:
+                  user.role === 'SHASTIYA_KORMI'
+                    ? 'SK'
+                    : user.role === 'AREA_MANAGER'
+                      ? 'AM'
+                      : 'PO',
+                district: user.district,
+                upazila: user.upazilas[0]?.name ?? null,
+                parent_id: user.parent_id,
+              }
+            : null,
+          upazila: null,
+          assigned_by: 1,
+          assigned_at: now,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      const nextSet = new Set(nextIds);
+      return {
+        data: {
+          added_count: nextIds.filter((id) => !previousIds.has(id)).length,
+          removed_count: Array.from(previousIds).filter(
+            (id) => !nextSet.has(id),
+          ).length,
+          assignment_ids: assignmentIds,
+        },
+      };
+    }
   }
 
   if (
@@ -1532,209 +1724,262 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     return { data: updated };
   }
 
-  if (url === 'admin/users' && method === 'GET') {
+  if (url === 'admin/districts' && method === 'GET') {
+    const query =
+      typeof params === 'object' && params
+        ? (params as { limit?: unknown; offset?: unknown })
+        : {};
+    const limit = 'limit' in query ? Number(query.limit) : 50;
+    const offset = 'offset' in query ? Number(query.offset) : 0;
+    const districts = [
+      {
+        id: 10,
+        name: 'Lalmonirhat',
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+    ];
     return {
-      data: [
-        {
-          id: 1708515793,
-          name: 'Md Abdus Salam',
-          role: 'PO',
-          district: 'Lalmonirhat',
-          upazila: 'Lalmonirhat Sadar',
-          parent_id: 1723477249,
-        },
-        {
-          id: 1708515794,
-          name: 'Mst. Rabeya Khatun',
-          role: 'PO',
-          district: 'Lalmonirhat',
-          upazila: 'Hatibandha',
-          parent_id: 1723477249,
-        },
-        {
-          id: 1313053891,
-          name: 'Mst. Hosneyara Begum',
-          role: 'SK',
-          district: 'Lalmonirhat',
-          upazila: 'Lalmonirhat Sadar',
-          parent_id: 1708515793,
-        },
-      ],
+      data: {
+        districts: districts.slice(offset, offset + limit),
+        total: districts.length,
+        total_pages: limit > 0 ? Math.ceil(districts.length / limit) : 0,
+        limit,
+        offset,
+      },
     };
   }
 
-  if (url === 'admin/assignments') {
-    if (method === 'GET') {
-      const moduleId =
-        typeof params === 'object' && params && 'module_id' in params
-          ? asString((params as { module_id?: unknown }).module_id)
-          : undefined;
-      const assignmentType = asString(
-        typeof params === 'object' && params && 'assignment_type' in params
-          ? (params as { assignment_type?: unknown }).assignment_type
-          : undefined,
-      );
-
-      let results = mockAssignmentsState;
-      if (moduleId) {
-        results = results.filter(
-          (assignment) => assignment.module_id === moduleId,
-        );
-      }
-      if (
-        assignmentType === 'individual' ||
-        assignmentType === 'po_sk' ||
-        assignmentType === 'geographical' ||
-        assignmentType === 'group'
-      ) {
-        results = results.filter(
-          (assignment) => assignment.assignment_type === assignmentType,
-        );
-      }
-
-      return { data: results };
-    }
-    if (method === 'POST') {
-      const payload = body as {
-        module_id: string;
-        assignment_type: 'individual' | 'po_sk' | 'geographical' | 'group';
-        user_ids?: number[];
-        tenant_ids?: number[];
-        upazilas?: string[];
-      };
-      const newIds: string[] = [];
-      const now = new Date().toISOString();
-      const moduleItem = mockModuleLibrary.modules.find(
-        (m) => m.id === payload.module_id,
-      );
-      const title = moduleItem ? moduleItem.title : 'Unknown Module';
-      const mockUsers = [
-        {
-          id: 1708515793,
-          name: 'Md Abdus Salam',
-          role: 'PO' as const,
-          district: 'Lalmonirhat',
-          upazila: 'Lalmonirhat Sadar',
-          parent_id: 1723477249,
-        },
-        {
-          id: 1708515794,
-          name: 'Mst. Rabeya Khatun',
-          role: 'PO' as const,
-          district: 'Lalmonirhat',
-          upazila: 'Hatibandha',
-          parent_id: 1723477249,
-        },
-        {
-          id: 1313053891,
-          name: 'Mst. Hosneyara Begum',
-          role: 'SK' as const,
-          district: 'Lalmonirhat',
-          upazila: 'Lalmonirhat Sadar',
-          parent_id: 1708515793,
-        },
-      ];
-
-      if (
-        (payload.assignment_type === 'individual' ||
-          payload.assignment_type === 'po_sk') &&
-        payload.user_ids
-      ) {
-        for (const uid of payload.user_ids) {
-          const exists = mockAssignmentsState.some(
-            (a) =>
-              a.module_id === payload.module_id &&
-              a.assignment_type === payload.assignment_type &&
-              a.user_id === uid,
-          );
-          if (!exists) {
-            const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
-            newIds.push(id);
-            mockAssignmentsState.push({
-              id,
-              module_id: payload.module_id,
-              module_title: { bn: title, en: title },
-              assignment_type: payload.assignment_type,
-              tenant_id: null,
-              user_id: uid,
-              user: mockUsers.find((user) => user.id === uid) ?? null,
-              assigned_by: 99,
-              assigned_at: now,
-              created_at: now,
-              updated_at: now,
-            });
-          }
-        }
-      } else if (
-        payload.assignment_type === 'geographical' &&
-        payload.upazilas
-      ) {
-        for (const upazila of payload.upazilas) {
-          const exists = mockAssignmentsState.some(
-            (a) =>
-              a.module_id === payload.module_id &&
-              a.assignment_type === 'geographical' &&
-              a.upazila === upazila,
-          );
-          if (!exists) {
-            const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
-            newIds.push(id);
-            mockAssignmentsState.push({
-              id,
-              module_id: payload.module_id,
-              module_title: { bn: title, en: title },
-              assignment_type: 'geographical',
-              tenant_id: null,
-              user_id: null,
-              upazila,
-              assigned_by: 99,
-              assigned_at: now,
-              created_at: now,
-              updated_at: now,
-            });
-          }
-        }
-      } else if (payload.assignment_type === 'group' && payload.tenant_ids) {
-        for (const tid of payload.tenant_ids) {
-          const exists = mockAssignmentsState.some(
-            (a) =>
-              a.module_id === payload.module_id &&
-              a.assignment_type === 'group' &&
-              a.tenant_id === tid,
-          );
-          if (!exists) {
-            const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
-            newIds.push(id);
-            mockAssignmentsState.push({
-              id,
-              module_id: payload.module_id,
-              module_title: { bn: title, en: title },
-              assignment_type: 'group',
-              tenant_id: tid,
-              user_id: null,
-              assigned_by: 99,
-              assigned_at: now,
-              created_at: now,
-              updated_at: now,
-            });
-          }
-        }
-      }
-      return {
-        data: {
-          assigned_count: newIds.length,
-          assignment_ids: newIds,
-        },
-      };
-    }
+  if (url === 'admin/hierarchy/users' && method === 'GET') {
+    const query =
+      typeof params === 'object' && params
+        ? (params as { limit?: unknown; offset?: unknown })
+        : {};
+    const limit = 'limit' in query ? Number(query.limit) : 50;
+    const offset = 'offset' in query ? Number(query.offset) : 0;
+    const users = [
+      {
+        id: 1723477249,
+        name: 'Area Manager',
+        role: 'AREA_MANAGER',
+        parent_id: null,
+        district_id: 10,
+        upazilas: [],
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+      {
+        id: 1708515793,
+        name: 'Md Abdus Salam',
+        role: 'PO',
+        parent_id: 1723477249,
+        district_id: 10,
+        upazilas: [{ id: 1, name: 'Lalmonirhat Sadar', district_id: 10 }],
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+      {
+        id: 1708515794,
+        name: 'Mst. Rabeya Khatun',
+        role: 'PO',
+        parent_id: 1723477249,
+        district_id: 10,
+        upazilas: [{ id: 2, name: 'Hatibandha', district_id: 10 }],
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+      {
+        id: 1313053891,
+        name: 'Mst. Hosneyara Begum',
+        role: 'SHASTIYA_KORMI',
+        parent_id: 1708515793,
+        district_id: 10,
+        upazilas: [{ id: 1, name: 'Lalmonirhat Sadar', district_id: 10 }],
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+    ];
+    return {
+      data: {
+        users: users.slice(offset, offset + limit),
+        total: users.length,
+        total_pages: limit > 0 ? Math.ceil(users.length / limit) : 0,
+        limit,
+        offset,
+      },
+    };
   }
 
-  if (url.startsWith('admin/assignments/') && method === 'DELETE') {
-    const assignId = decodeURIComponent(url.slice('admin/assignments/'.length));
-    mockAssignmentsState = mockAssignmentsState.filter(
-      (a) => a.id !== assignId,
+  if (url === 'admin/assignments' && method === 'POST') {
+    const payload = body as {
+      module_id: string;
+      user_ids?: number[];
+      upazilas?: string[];
+    };
+    const now = new Date().toISOString();
+    const moduleItem = mockModuleLibrary.modules.find(
+      (m) => m.id === payload.module_id,
     );
-    return { data: { status: 'revoked' } };
+    const title = moduleItem
+      ? moduleItem.title
+      : { bn: 'Unknown', en: 'Unknown' };
+    const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+    mockAssignmentsState = mockAssignmentsState.filter(
+      (assignment) => assignment.module_id !== payload.module_id,
+    );
+    const newIds: string[] = [];
+    for (const userId of nextIds) {
+      const user = mockHierarchyUsersForAssign.find(
+        (item) => item.id === userId,
+      );
+      const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
+      newIds.push(id);
+      mockAssignmentsState.push({
+        id,
+        module_id: payload.module_id,
+        module_title: title,
+        assignment_type: 'individual',
+        tenant_id: null,
+        user_id: userId,
+        user: user
+          ? {
+              id: user.id,
+              name: user.name,
+              role:
+                user.role === 'SHASTIYA_KORMI'
+                  ? 'SK'
+                  : user.role === 'AREA_MANAGER'
+                    ? 'AM'
+                    : 'PO',
+              district: user.district,
+              upazila: user.upazilas[0]?.name ?? null,
+              parent_id: user.parent_id,
+            }
+          : null,
+        upazila: null,
+        assigned_by: 1,
+        assigned_at: now,
+        created_at: now,
+        updated_at: now,
+      });
+    }
+    return {
+      data: {
+        assigned_count: newIds.length,
+        assignment_ids: newIds,
+      },
+    };
+  }
+
+  if (url.startsWith('admin/assignments/') && url.endsWith('/users')) {
+    const moduleId = decodeURIComponent(
+      url.slice('admin/assignments/'.length, -'/users'.length),
+    );
+    if (method === 'GET') {
+      const userIds = Array.from(
+        new Set(
+          mockAssignmentsState
+            .filter(
+              (assignment) =>
+                assignment.module_id === moduleId &&
+                assignment.user_id !== null,
+            )
+            .map((assignment) => assignment.user_id as number),
+        ),
+      );
+      return {
+        data: {
+          module_id: moduleId,
+          users: usersForIds(userIds),
+        },
+      };
+    }
+    if (method === 'PUT') {
+      const payload = (body ?? {}) as {
+        user_ids?: number[];
+        upazilas?: string[];
+      };
+      const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+      const previousIds = new Set(
+        mockAssignmentsState
+          .filter(
+            (assignment) =>
+              assignment.module_id === moduleId && assignment.user_id !== null,
+          )
+          .map((assignment) => assignment.user_id as number),
+      );
+      const now = new Date().toISOString();
+      const moduleItem = mockModuleLibrary.modules.find(
+        (m) => m.id === moduleId,
+      );
+      const title = moduleItem
+        ? moduleItem.title
+        : { bn: 'Unknown', en: 'Unknown' };
+      mockAssignmentsState = mockAssignmentsState.filter(
+        (assignment) => assignment.module_id !== moduleId,
+      );
+      const assignmentIds: string[] = [];
+      for (const userId of nextIds) {
+        const user = mockHierarchyUsersForAssign.find(
+          (item) => item.id === userId,
+        );
+        const id = `mock-assign-${Math.random().toString(36).substring(7)}`;
+        assignmentIds.push(id);
+        mockAssignmentsState.push({
+          id,
+          module_id: moduleId,
+          module_title: title,
+          assignment_type: 'individual',
+          tenant_id: null,
+          user_id: userId,
+          user: user
+            ? {
+                id: user.id,
+                name: user.name,
+                role:
+                  user.role === 'SHASTIYA_KORMI'
+                    ? 'SK'
+                    : user.role === 'AREA_MANAGER'
+                      ? 'AM'
+                      : 'PO',
+                district: user.district,
+                upazila: user.upazilas[0]?.name ?? null,
+                parent_id: user.parent_id,
+              }
+            : null,
+          upazila: null,
+          assigned_by: 1,
+          assigned_at: now,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      const nextSet = new Set(nextIds);
+      return {
+        data: {
+          added_count: nextIds.filter((id) => !previousIds.has(id)).length,
+          removed_count: Array.from(previousIds).filter(
+            (id) => !nextSet.has(id),
+          ).length,
+          assignment_ids: assignmentIds,
+        },
+      };
+    }
   }
 
   if (url.includes('district-list')) {
@@ -1799,6 +2044,198 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         totalCount: 3,
       },
     };
+  }
+
+  // Knowledge library — matches coaching-platform ingestion-merge contract.
+  if (url === 'admin/knowledge/upload' && method === 'POST') {
+    const form = body instanceof FormData ? body : null;
+    const file = form?.get('file');
+    const title =
+      asString(form?.get('title')) ??
+      (file instanceof File
+        ? file.name.replace(/\.pdf$/i, '')
+        : 'Untitled Knowledge');
+    const thumbnailStoragePath = asString(form?.get('thumbnail_storage_path'));
+    let splits: Array<{
+      title: string;
+      start_page: number;
+      end_page: number;
+      thumbnail_storage_path?: string | null;
+    }> = [];
+    const splitsRaw = form?.get('splits');
+    if (typeof splitsRaw === 'string' && splitsRaw.trim()) {
+      try {
+        const parsed = JSON.parse(splitsRaw) as unknown;
+        if (Array.isArray(parsed)) {
+          splits = parsed
+            .filter(
+              (
+                row,
+              ): row is {
+                title: string;
+                start_page: number;
+                end_page: number;
+                thumbnail_storage_path?: string | null;
+              } =>
+                Boolean(
+                  row &&
+                  typeof row === 'object' &&
+                  typeof (row as { title?: unknown }).title === 'string' &&
+                  typeof (row as { start_page?: unknown }).start_page ===
+                    'number' &&
+                  typeof (row as { end_page?: unknown }).end_page === 'number',
+                ),
+            )
+            .map((row) => ({
+              title: row.title,
+              start_page: row.start_page,
+              end_page: row.end_page,
+              thumbnail_storage_path: row.thumbnail_storage_path ?? null,
+            }));
+        }
+      } catch {
+        splits = [];
+      }
+    }
+
+    const now = new Date().toISOString();
+    const filename =
+      file instanceof File ? file.name : 'knowledge-document.pdf';
+    const defs = splits.length
+      ? splits
+      : [
+          {
+            title,
+            start_page: null as number | null,
+            end_page: null as number | null,
+            thumbnail_storage_path: thumbnailStoragePath ?? null,
+          },
+        ];
+
+    const sources = defs.map((def, index) => {
+      const id = `knowledge-upload-${Date.now()}-${index + 1}`;
+      const originalFilename = splits.length
+        ? `${filename.replace(/\.pdf$/i, '')}_p${def.start_page}-${def.end_page}.pdf`
+        : filename;
+      const storedPath = `medtronics-storage/source-documents/knowledge/${id}.pdf`;
+      mockSourceDocuments.unshift({
+        id,
+        title: def.title,
+        source_type: 'pdf',
+        status: 'uploaded',
+        content_domain: 'clinical',
+        authority_label: '',
+        stored_path: storedPath,
+        original_filename: originalFilename,
+        description: null,
+        thumbnail_storage_path: def.thumbnail_storage_path ?? null,
+        uploaded_date: now,
+        ingested_at: now,
+        updated_at: now,
+        uploaded_by: { id: 99, name: 'admin' },
+        updated_by: { id: 99, name: 'admin' },
+        assigned: false,
+        sync_published_visible: true,
+      });
+      return {
+        source_document_id: id,
+        title: def.title,
+        stored_path: storedPath,
+        thumbnail_storage_path: def.thumbnail_storage_path ?? null,
+        start_page: def.start_page,
+        end_page: def.end_page,
+      };
+    });
+
+    return { data: { sources } };
+  }
+
+  if (url === 'admin/knowledge/uploaders' && method === 'GET') {
+    const query =
+      params && typeof params === 'object' ? (params as { q?: unknown }) : {};
+    const term = (asString(query.q) ?? '').trim().toLowerCase();
+    const byId = new Map<number, string>();
+    for (const doc of mockSourceDocuments) {
+      if (!doc.sync_published_visible || !doc.uploaded_by) continue;
+      byId.set(doc.uploaded_by.id, doc.uploaded_by.name);
+    }
+    const actors = Array.from(byId.entries())
+      .map(([id, name]) => ({ id, name }))
+      .filter((actor) =>
+        term
+          ? actor.name.toLowerCase().includes(term) ||
+            String(actor.id).includes(term)
+          : true,
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { data: { uploaders: actors } };
+  }
+
+  if (url === 'admin/upazilas' && method === 'GET') {
+    const query =
+      typeof params === 'object' && params
+        ? (params as {
+            district_id?: unknown;
+            limit?: unknown;
+            offset?: unknown;
+          })
+        : {};
+    const limit = 'limit' in query ? Number(query.limit) : 50;
+    const offset = 'offset' in query ? Number(query.offset) : 0;
+    const districtIdFilter =
+      query.district_id === undefined || query.district_id === null
+        ? null
+        : Number(query.district_id);
+    const upazilas = [
+      {
+        id: 1,
+        name: 'Lalmonirhat Sadar',
+        district_id: 10,
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+      {
+        id: 2,
+        name: 'Hatibandha',
+        district_id: 10,
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+    ].filter((row) =>
+      districtIdFilter === null || !Number.isFinite(districtIdFilter)
+        ? true
+        : row.district_id === districtIdFilter,
+    );
+    return {
+      data: {
+        upazilas: upazilas.slice(offset, offset + limit),
+        total: upazilas.length,
+        total_pages: limit > 0 ? Math.ceil(upazilas.length / limit) : 0,
+        limit,
+        offset,
+      },
+    };
+  }
+
+  if (url.startsWith('admin/knowledge/') && method === 'DELETE') {
+    const id = decodeURIComponent(url.slice('admin/knowledge/'.length));
+    const doc = mockSourceDocuments.find((row) => row.id === id);
+    if (!doc) {
+      return {
+        error: { status: 404, data: { code: 'source_not_found' } },
+      };
+    }
+    if (doc.sync_published_visible === false) {
+      return { error: { status: 403, data: { code: 'forbidden' } } };
+    }
+    doc.status = 'retired';
+    return { data: undefined };
   }
 
   return {

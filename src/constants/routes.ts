@@ -35,6 +35,7 @@ export const paths = {
   ingestDocument: withRoutePrefix('/module-library/ingest'),
   ingestHistory: withRoutePrefix('/module-library/ingest-history'),
   videoUpload: withRoutePrefix('/module-library/ingest-video'),
+  uploadKnowledge: withRoutePrefix('/module-library/upload-knowledge'),
   adminModuleReview: withRoutePrefix('/module-library/review/:moduleId'),
   adminModuleReviewDetails: withRoutePrefix(
     '/module-library/review/:moduleId/details',
