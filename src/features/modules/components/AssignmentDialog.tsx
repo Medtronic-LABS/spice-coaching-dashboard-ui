@@ -4,9 +4,11 @@ import {
   Banner,
   Button,
   Card,
+  Combobox,
   InfiniteScrollContainer,
   Loader,
   Modal,
+  SearchInput,
   Select,
   Tabs,
 } from '@/components/ui';
@@ -14,12 +16,12 @@ import { paths } from '@/constants/routes';
 import {
   ASSIGNMENT_LIST_PAGE_SIZE,
   ASSIGNMENT_USERS_PAGE_SIZE,
+  type AdminDistrict,
+  type AdminUpazila,
   type AdminUser,
   type AssignmentSummaryType,
-  type HierarchyUsersPageParams,
-  useLazyFetchAdminDistrictsQuery,
+  useLazyFetchAdminDistrictsPageQuery,
   useLazyFetchAdminUpazilasPageQuery,
-  useLazyFetchAdminUpazilasQuery,
   useLazyFetchHierarchyUsersPageQuery,
   useLazyFetchModuleAssignedUsersQuery,
   useReplaceModuleAssignedUsersMutation,
@@ -34,9 +36,22 @@ import {
   countAssignedUsers,
   type AssignedUserEntry,
 } from '@/features/modules/utils/assignmentDisplay';
+import {
+  ALL_DISTRICTS_OPTION,
+  ALL_UPAZILAS_OPTION,
+  ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  baselineUpazilaNames,
+  buildNamedEntityComboboxOptions,
+  filterUserIdsForMode,
+  getUserLevelEmptyMessage,
+  getUserLevelHint,
+  hierarchyRoleForMode,
+  resolveNamedEntitySelection,
+  type AssignmentUserLevelMode,
+} from '@/features/modules/utils/assignmentDialogHelpers';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 type AssignmentTab = 'user' | 'geographical';
-type UserLevelMode = 'po_sk' | 'sk';
 
 export type AssignmentDialogTarget =
   | { kind: 'module'; id: string; title: string }
@@ -47,11 +62,14 @@ export type AssignmentDialogTarget =
       noun: 'video' | 'document';
     };
 
-const USER_LEVEL_MODE_OPTIONS: Array<{ label: string; value: UserLevelMode }> =
-  [
-    { label: 'PO and SK', value: 'po_sk' },
-    { label: 'SK', value: 'sk' },
-  ];
+const USER_LEVEL_MODE_OPTIONS: Array<{
+  label: string;
+  value: AssignmentUserLevelMode;
+}> = [
+  { label: 'PO and SK', value: 'po_sk' },
+  { label: 'PO only', value: 'po' },
+  { label: 'SK', value: 'sk' },
+];
 
 const ASSIGNMENT_TABS: Array<{ label: string; value: AssignmentTab }> = [
   { label: 'Role Based', value: 'user' },
@@ -89,38 +107,6 @@ interface UserAssignmentStatus {
 function entityNoun(target: AssignmentDialogTarget): string {
   if (target.kind === 'module') return 'module';
   return target.noun;
-}
-
-function getUserLevelHint(mode: UserLevelMode, noun: string): string {
-  const selectLoadedNote =
-    'Select loaded applies only to users currently shown.';
-  if (mode === 'po_sk') {
-    return `Assign this ${noun} to selected POs. Their SKs are included automatically. ${selectLoadedNote}`;
-  }
-  return `Assign this ${noun} to selected SK users. ${selectLoadedNote}`;
-}
-
-function getUserLevelEmptyMessage(mode: UserLevelMode): string {
-  return mode === 'po_sk'
-    ? 'No program organizers found.'
-    : 'No SK users found.';
-}
-
-function hierarchyRoleForMode(
-  mode: UserLevelMode,
-): HierarchyUsersPageParams['role'] {
-  return mode === 'po_sk' ? 'PO' : 'SHASTIYA_KORMI';
-}
-
-function baselineUpazilaNames(users: AdminUser[]): string[] {
-  return Array.from(
-    new Set(
-      users.flatMap((user) => {
-        if (user.upazilas?.length) return user.upazilas;
-        return user.upazila ? [user.upazila] : [];
-      }),
-    ),
-  ).sort((a, b) => a.localeCompare(b));
 }
 
 function FetchRetryButton({ label, onRetry, disabled }: FetchRetryButtonProps) {
@@ -297,12 +283,40 @@ export const AssignmentDialog = ({
   const navigate = useNavigate();
   const noun = entityNoun(target);
   const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
-  const [userLevelMode, setUserLevelMode] = useState<UserLevelMode>('po_sk');
+  const [userLevelMode, setUserLevelMode] =
+    useState<AssignmentUserLevelMode>('po_sk');
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
     null,
   );
+  const [selectedDistrictName, setSelectedDistrictName] = useState('');
+  const [districtSearchQuery, setDistrictSearchQuery] = useState('');
+  const debouncedDistrictSearchQuery = useDebouncedValue(
+    districtSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [loadedDistricts, setLoadedDistricts] = useState<AdminDistrict[]>([]);
+  const [districtsTotal, setDistrictsTotal] = useState(0);
+  const [districtsOffset, setDistrictsOffset] = useState(0);
+
   const [selectedUpazilaId, setSelectedUpazilaId] = useState<number | null>(
     null,
+  );
+  const [selectedUpazilaName, setSelectedUpazilaName] = useState('');
+  const [filterUpazilaSearchQuery, setFilterUpazilaSearchQuery] = useState('');
+  const debouncedFilterUpazilaSearchQuery = useDebouncedValue(
+    filterUpazilaSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [filterLoadedUpazilas, setFilterLoadedUpazilas] = useState<
+    AdminUpazila[]
+  >([]);
+  const [filterUpazilasTotal, setFilterUpazilasTotal] = useState(0);
+  const [filterUpazilasOffset, setFilterUpazilasOffset] = useState(0);
+
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const debouncedUserSearchQuery = useDebouncedValue(
+    userSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
   );
   const [desiredUserIds, setDesiredUserIds] = useState<number[]>([]);
   const [baselineUserIds, setBaselineUserIds] = useState<number[]>([]);
@@ -311,30 +325,33 @@ export const AssignmentDialog = ({
   const [loadedUsers, setLoadedUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersOffset, setUsersOffset] = useState(0);
-  const [loadedUpazilas, setLoadedUpazilas] = useState<
-    Array<{ id: number; name: string }>
-  >([]);
+  const [loadedUpazilas, setLoadedUpazilas] = useState<AdminUpazila[]>([]);
   const [upazilasTotal, setUpazilasTotal] = useState(0);
   const [upazilasOffset, setUpazilasOffset] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
   const [
-    triggerDistricts,
+    triggerDistrictsPage,
     {
-      data: districts = [],
       isLoading: loadingDistricts,
       isError: districtsError,
       isFetching: fetchingDistricts,
     },
-  ] = useLazyFetchAdminDistrictsQuery();
+  ] = useLazyFetchAdminDistrictsPageQuery();
 
   const [
     triggerUsersPage,
     { isLoading: loadingUsers, isError: usersError, isFetching: fetchingUsers },
   ] = useLazyFetchHierarchyUsersPageQuery();
 
-  const [triggerUpazilasForFilter, { data: filterUpazilas = [] }] =
-    useLazyFetchAdminUpazilasQuery();
+  const [
+    triggerFilterUpazilasPage,
+    {
+      isLoading: loadingFilterUpazilas,
+      isError: filterUpazilasError,
+      isFetching: fetchingFilterUpazilas,
+    },
+  ] = useLazyFetchAdminUpazilasPageQuery();
 
   const [
     triggerUpazilasPage,
@@ -382,33 +399,84 @@ export const AssignmentDialog = ({
     return map;
   }, [assignedUsersForTarget, loadedUsers]);
 
-  const districtOptions = useMemo(
-    () => [
-      { label: 'All districts', value: '' },
-      ...districts.map((district) => ({
-        label: district.name,
-        value: String(district.id),
-      })),
-    ],
-    [districts],
+  const districtComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_DISTRICTS_OPTION,
+        loadedDistricts,
+        selectedDistrictId,
+        selectedDistrictName,
+      ),
+    [loadedDistricts, selectedDistrictId, selectedDistrictName],
   );
 
-  const upazilaFilterOptions = useMemo(
-    () => [
-      { label: 'All upazilas', value: '' },
-      ...filterUpazilas.map((upazila) => ({
-        label: upazila.name,
-        value: String(upazila.id),
-      })),
-    ],
-    [filterUpazilas],
+  const filterUpazilaComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_UPAZILAS_OPTION,
+        filterLoadedUpazilas,
+        selectedUpazilaId,
+        selectedUpazilaName,
+      ),
+    [filterLoadedUpazilas, selectedUpazilaId, selectedUpazilaName],
   );
 
   const usersHasMore = loadedUsers.length < usersTotal;
+  const districtsHasMore = loadedDistricts.length < districtsTotal;
+  const filterUpazilasHasMore =
+    filterLoadedUpazilas.length < filterUpazilasTotal;
   const upazilasHasMore = loadedUpazilas.length < upazilasTotal;
+
+  const loadDistrictsPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const nameQuery = debouncedDistrictSearchQuery.trim();
+      const result = await triggerDistrictsPage({
+        limit: ASSIGNMENT_LIST_PAGE_SIZE,
+        offset,
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setDistrictsTotal(page.total);
+      setDistrictsOffset(page.offset + page.districts.length);
+      setLoadedDistricts((prev) =>
+        append ? [...prev, ...page.districts] : page.districts,
+      );
+    },
+    [debouncedDistrictSearchQuery, triggerDistrictsPage],
+  );
+
+  const loadFilterUpazilasPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const nameQuery = debouncedFilterUpazilaSearchQuery.trim();
+      const result = await triggerFilterUpazilasPage({
+        limit: ASSIGNMENT_LIST_PAGE_SIZE,
+        offset,
+        ...(selectedDistrictId !== null
+          ? { districtId: selectedDistrictId }
+          : {}),
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setFilterUpazilasTotal(page.total);
+      setFilterUpazilasOffset(page.offset + page.upazilas.length);
+      setFilterLoadedUpazilas((prev) =>
+        append ? [...prev, ...page.upazilas] : page.upazilas,
+      );
+    },
+    [
+      debouncedFilterUpazilaSearchQuery,
+      selectedDistrictId,
+      triggerFilterUpazilasPage,
+    ],
+  );
 
   const loadUsersPage = useCallback(
     async (offset: number, append: boolean) => {
+      const nameQuery = debouncedUserSearchQuery.trim();
       const result = await triggerUsersPage({
         limit: ASSIGNMENT_USERS_PAGE_SIZE,
         offset,
@@ -417,6 +485,7 @@ export const AssignmentDialog = ({
           ? { districtId: selectedDistrictId }
           : {}),
         ...(selectedUpazilaId !== null ? { upazilaId: selectedUpazilaId } : {}),
+        ...(nameQuery ? { q: nameQuery } : {}),
       });
       if ('error' in result && result.error) return;
       const page = result.data;
@@ -427,7 +496,13 @@ export const AssignmentDialog = ({
         append ? [...prev, ...page.users] : page.users,
       );
     },
-    [selectedDistrictId, selectedUpazilaId, triggerUsersPage, userLevelMode],
+    [
+      debouncedUserSearchQuery,
+      selectedDistrictId,
+      selectedUpazilaId,
+      triggerUsersPage,
+      userLevelMode,
+    ],
   );
 
   const loadUpazilasPage = useCallback(
@@ -451,12 +526,27 @@ export const AssignmentDialog = ({
     [selectedDistrictId, triggerUpazilasPage],
   );
 
+  const resetFilterUpazilaState = () => {
+    setSelectedUpazilaId(null);
+    setSelectedUpazilaName('');
+    setFilterUpazilaSearchQuery('');
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasTotal(0);
+    setFilterUpazilasOffset(0);
+  };
+
   useEffect(() => {
     if (!open) return;
     setActiveTab('user');
     setUserLevelMode('po_sk');
     setSelectedDistrictId(null);
-    setSelectedUpazilaId(null);
+    setSelectedDistrictName('');
+    setDistrictSearchQuery('');
+    setLoadedDistricts([]);
+    setDistrictsTotal(0);
+    setDistrictsOffset(0);
+    resetFilterUpazilaState();
+    setUserSearchQuery('');
     setErrorMsg('');
     setLoadedUsers([]);
     setUsersTotal(0);
@@ -464,19 +554,12 @@ export const AssignmentDialog = ({
     setLoadedUpazilas([]);
     setUpazilasTotal(0);
     setUpazilasOffset(0);
-    void triggerDistricts();
     if (target.kind === 'module') {
       void triggerModuleAssignedUsers(target.id);
     } else {
       void triggerDocumentAssignedUsers(target.id);
     }
-  }, [
-    open,
-    target,
-    triggerDistricts,
-    triggerDocumentAssignedUsers,
-    triggerModuleAssignedUsers,
-  ]);
+  }, [open, target, triggerDocumentAssignedUsers, triggerModuleAssignedUsers]);
 
   useEffect(() => {
     if (!open) return;
@@ -489,6 +572,14 @@ export const AssignmentDialog = ({
   }, [assignedUsersForTarget, open]);
 
   useEffect(() => {
+    if (!open) return;
+    setLoadedDistricts([]);
+    setDistrictsTotal(0);
+    setDistrictsOffset(0);
+    void loadDistrictsPage(0, false);
+  }, [loadDistrictsPage, open]);
+
+  useEffect(() => {
     if (!open || activeTab !== 'user') return;
     setLoadedUsers([]);
     setUsersTotal(0);
@@ -497,13 +588,12 @@ export const AssignmentDialog = ({
   }, [activeTab, loadUsersPage, open]);
 
   useEffect(() => {
-    if (!open) return;
-    void triggerUpazilasForFilter(
-      selectedDistrictId !== null
-        ? { districtId: selectedDistrictId }
-        : undefined,
-    );
-  }, [open, selectedDistrictId, triggerUpazilasForFilter]);
+    if (!open || activeTab !== 'user') return;
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasTotal(0);
+    setFilterUpazilasOffset(0);
+    void loadFilterUpazilasPage(0, false);
+  }, [activeTab, loadFilterUpazilasPage, open]);
 
   useEffect(() => {
     if (!open || activeTab !== 'geographical') return;
@@ -549,21 +639,27 @@ export const AssignmentDialog = ({
     return map;
   }, [baselineSet, desiredSet, knownUsersById, loadedUsers, userLevelMode]);
 
-  const selectedUserIdsForMode = useMemo(() => {
-    if (userLevelMode === 'po_sk') {
-      return desiredUserIds.filter(
-        (id) => knownUsersById.get(id)?.role === 'PO',
-      );
-    }
-    return desiredUserIds.filter((id) => {
-      const user = knownUsersById.get(id);
-      if (!user || user.role !== 'SK') return false;
-      if (user.parent_id !== null && desiredSet.has(user.parent_id)) {
-        return false;
-      }
-      return true;
-    });
-  }, [desiredSet, desiredUserIds, knownUsersById, userLevelMode]);
+  const selectedUserIdsForMode = useMemo(
+    () =>
+      filterUserIdsForMode(
+        desiredUserIds,
+        knownUsersById,
+        desiredSet,
+        userLevelMode,
+      ),
+    [desiredSet, desiredUserIds, knownUsersById, userLevelMode],
+  );
+
+  const baselineUserIdsForMode = useMemo(
+    () =>
+      filterUserIdsForMode(
+        baselineUserIds,
+        knownUsersById,
+        baselineSet,
+        userLevelMode,
+      ),
+    [baselineSet, baselineUserIds, knownUsersById, userLevelMode],
+  );
 
   const retryUsers = () => {
     setLoadedUsers([]);
@@ -571,16 +667,46 @@ export const AssignmentDialog = ({
     void loadUsersPage(0, false);
   };
 
+  const retryDistricts = () => {
+    setLoadedDistricts([]);
+    setDistrictsOffset(0);
+    void loadDistrictsPage(0, false);
+  };
+
+  const retryFilterUpazilas = () => {
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasOffset(0);
+    void loadFilterUpazilasPage(0, false);
+  };
+
   const retryDistrictsAndUpazilas = () => {
-    void triggerDistricts();
+    retryDistricts();
     setLoadedUpazilas([]);
     setUpazilasOffset(0);
     void loadUpazilasPage(0, false);
   };
 
   const handleDistrictChange = (value: string) => {
-    setSelectedDistrictId(value === '' ? null : Number(value));
-    setSelectedUpazilaId(null);
+    const next = resolveNamedEntitySelection(
+      value,
+      loadedDistricts,
+      selectedDistrictId,
+      selectedDistrictName,
+    );
+    setSelectedDistrictId(next.id);
+    setSelectedDistrictName(next.name);
+    resetFilterUpazilaState();
+  };
+
+  const handleFilterUpazilaChange = (value: string) => {
+    const next = resolveNamedEntitySelection(
+      value,
+      filterLoadedUpazilas,
+      selectedUpazilaId,
+      selectedUpazilaName,
+    );
+    setSelectedUpazilaId(next.id);
+    setSelectedUpazilaName(next.name);
   };
 
   const addUsersToDesired = (ids: number[]) => {
@@ -607,7 +733,7 @@ export const AssignmentDialog = ({
     if (!user) return;
 
     if (desiredSet.has(userId)) {
-      if (user.role === 'PO') {
+      if (user.role === 'PO' && userLevelMode === 'po_sk') {
         removeUsersFromDesired([userId, ...childIdsForPo(userId)]);
       } else {
         removeUsersFromDesired([userId]);
@@ -615,7 +741,7 @@ export const AssignmentDialog = ({
       return;
     }
 
-    // PO expand happens on the server at save time.
+    // PO→SK expansion happens on the server when expand_po_assignees is true.
     addUsersToDesired([userId]);
   };
 
@@ -626,7 +752,9 @@ export const AssignmentDialog = ({
     const allSelected = selectable.every((user) => desiredSet.has(user.id));
     if (allSelected) {
       const idsToRemove = selectable.flatMap((user) =>
-        user.role === 'PO' ? [user.id, ...childIdsForPo(user.id)] : [user.id],
+        user.role === 'PO' && userLevelMode === 'po_sk'
+          ? [user.id, ...childIdsForPo(user.id)]
+          : [user.id],
       );
       removeUsersFromDesired(idsToRemove);
       return;
@@ -717,47 +845,41 @@ export const AssignmentDialog = ({
         return;
       }
 
-      const nextIds = [...desiredUserIds];
-      const addedIds = nextIds.filter((id) => !baselineSet.has(id));
-      const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
+      const nextIds = [...selectedUserIdsForMode];
+      const baselineForMode = new Set(baselineUserIdsForMode);
+      const addedIds = nextIds.filter((id) => !baselineForMode.has(id));
+      const removedIds = baselineUserIdsForMode.filter(
+        (id) => !desiredSet.has(id),
+      );
 
       if (addedIds.length === 0 && removedIds.length === 0) {
         setErrorMsg('Please select at least one user or change assignments.');
         return;
       }
 
+      const expandPoAssignees = userLevelMode === 'po_sk';
+      const payload = {
+        user_ids: nextIds,
+        expand_po_assignees: expandPoAssignees,
+      };
+
       if (target.kind === 'module') {
         await replaceModuleUsers({
           moduleId: target.id,
-          user_ids: nextIds,
+          ...payload,
         }).unwrap();
       } else {
         await replaceDocumentUsers({
           sourceDocumentId: target.id,
-          user_ids: nextIds,
+          ...payload,
         }).unwrap();
       }
 
       const knownList = Array.from(knownUsersById.values());
-      if (userLevelMode === 'po_sk') {
-        const addedPos = addedIds.filter(
-          (id) => knownUsersById.get(id)?.role === 'PO',
-        );
-        const removedPos = removedIds.filter(
-          (id) => knownUsersById.get(id)?.role === 'PO',
-        );
-        finishSuccess(
-          'po_sk',
-          buildAssignedUserEntries('po_sk', addedPos, knownList),
-          buildAssignedUserEntries('po_sk', removedPos, knownList),
-        );
-        return;
-      }
-
       finishSuccess(
-        'sk',
-        buildAssignedUserEntries('sk', addedIds, knownList),
-        buildAssignedUserEntries('sk', removedIds, knownList),
+        userLevelMode,
+        buildAssignedUserEntries(userLevelMode, addedIds, knownList),
+        buildAssignedUserEntries(userLevelMode, removedIds, knownList),
       );
     } catch (err: unknown) {
       console.error(err);
@@ -773,9 +895,46 @@ export const AssignmentDialog = ({
 
   if (!open) return null;
 
-  const catalogsLoading = loadingDistricts;
+  const catalogsLoading =
+    (loadingDistricts && loadedDistricts.length === 0) ||
+    (loadingFilterUpazilas && filterLoadedUpazilas.length === 0);
   const geoLoading = loadingUpazilas && loadedUpazilas.length === 0;
   const geoError = districtsError || upazilasError;
+
+  const renderDistrictCombobox = (id: string) => (
+    <Combobox
+      id={id}
+      aria-label="District"
+      value={selectedDistrictId === null ? '' : String(selectedDistrictId)}
+      selectedLabel={
+        selectedDistrictId === null
+          ? ALL_DISTRICTS_OPTION.label
+          : selectedDistrictName || ALL_DISTRICTS_OPTION.label
+      }
+      options={districtComboboxOptions}
+      searchTerm={districtSearchQuery}
+      onSearchTermChange={setDistrictSearchQuery}
+      onChange={handleDistrictChange}
+      isLoading={loadingDistricts && loadedDistricts.length === 0}
+      hint={
+        districtsTotal > 0
+          ? `Showing ${loadedDistricts.length} of ${districtsTotal}`
+          : undefined
+      }
+      placeholder="Type to search districts…"
+      emptyMessage={
+        districtsError ? 'Failed to load districts.' : 'No districts found.'
+      }
+      hasMore={districtsHasMore}
+      onLoadMore={() => {
+        void loadDistrictsPage(districtsOffset, true);
+      }}
+      isLoadingMore={fetchingDistricts && loadedDistricts.length > 0}
+      loadMoreError={districtsError && loadedDistricts.length > 0}
+      onLoadMoreRetry={retryDistricts}
+      className="w-full"
+    />
+  );
 
   return (
     <Modal open={open} labelledBy="assignment-dialog-title" onClose={onClose}>
@@ -826,7 +985,7 @@ export const AssignmentDialog = ({
                   options={USER_LEVEL_MODE_OPTIONS}
                   value={userLevelMode}
                   onChange={(value) => {
-                    setUserLevelMode(value as UserLevelMode);
+                    setUserLevelMode(value as AssignmentUserLevelMode);
                     setErrorMsg('');
                   }}
                   className="min-w-0 flex-1 whitespace-nowrap"
@@ -835,41 +994,96 @@ export const AssignmentDialog = ({
               </label>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className="block space-y-2">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    District
-                  </span>
-                  <Select
-                    options={districtOptions}
-                    value={
-                      selectedDistrictId === null
-                        ? ''
-                        : String(selectedDistrictId)
-                    }
-                    onChange={handleDistrictChange}
-                    className="w-full"
-                    disabled={catalogsLoading || districtsError}
-                  />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Upazila
-                  </span>
-                  <Select
-                    options={upazilaFilterOptions}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-spice-text-primary">
+                      District
+                    </span>
+                    {districtsError ? (
+                      <FetchRetryButton
+                        label="Retry loading districts"
+                        onRetry={retryDistricts}
+                        disabled={fetchingDistricts}
+                      />
+                    ) : null}
+                  </div>
+                  {renderDistrictCombobox(
+                    'assignment-district-filter-combobox',
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-spice-text-primary">
+                      Upazila
+                    </span>
+                    {filterUpazilasError ? (
+                      <FetchRetryButton
+                        label="Retry loading upazilas"
+                        onRetry={retryFilterUpazilas}
+                        disabled={fetchingFilterUpazilas}
+                      />
+                    ) : null}
+                  </div>
+                  <Combobox
+                    id="assignment-upazila-filter-combobox"
+                    aria-label="Upazila"
                     value={
                       selectedUpazilaId === null
                         ? ''
                         : String(selectedUpazilaId)
                     }
-                    onChange={(value) => {
-                      setSelectedUpazilaId(value === '' ? null : Number(value));
+                    selectedLabel={
+                      selectedUpazilaId === null
+                        ? ALL_UPAZILAS_OPTION.label
+                        : selectedUpazilaName || ALL_UPAZILAS_OPTION.label
+                    }
+                    options={filterUpazilaComboboxOptions}
+                    searchTerm={filterUpazilaSearchQuery}
+                    onSearchTermChange={setFilterUpazilaSearchQuery}
+                    onChange={handleFilterUpazilaChange}
+                    isLoading={
+                      loadingFilterUpazilas && filterLoadedUpazilas.length === 0
+                    }
+                    hint={
+                      filterUpazilasTotal > 0
+                        ? `Showing ${filterLoadedUpazilas.length} of ${filterUpazilasTotal}`
+                        : undefined
+                    }
+                    placeholder="Type to search upazilas…"
+                    emptyMessage={
+                      filterUpazilasError
+                        ? 'Failed to load upazilas.'
+                        : 'No upazilas found.'
+                    }
+                    hasMore={filterUpazilasHasMore}
+                    onLoadMore={() => {
+                      void loadFilterUpazilasPage(filterUpazilasOffset, true);
                     }}
+                    isLoadingMore={
+                      fetchingFilterUpazilas && filterLoadedUpazilas.length > 0
+                    }
+                    loadMoreError={
+                      filterUpazilasError && filterLoadedUpazilas.length > 0
+                    }
+                    onLoadMoreRetry={retryFilterUpazilas}
                     className="w-full"
-                    disabled={catalogsLoading}
                   />
-                </label>
+                </div>
               </div>
+
+              <label className="block space-y-2">
+                <span className="text-xs font-semibold text-spice-text-primary">
+                  Search users
+                </span>
+                <SearchInput
+                  value={userSearchQuery}
+                  onChange={setUserSearchQuery}
+                  placeholder="Search by name"
+                  aria-label="Search users by name"
+                  disabled={catalogsLoading}
+                  className="sm:min-w-0"
+                />
+              </label>
 
               <UserSelectionList
                 title="User"
@@ -898,22 +1112,21 @@ export const AssignmentDialog = ({
 
           {activeTab === 'geographical' ? (
             <>
-              <label className="block space-y-2">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  District
-                </span>
-                <Select
-                  options={districtOptions}
-                  value={
-                    selectedDistrictId === null
-                      ? ''
-                      : String(selectedDistrictId)
-                  }
-                  onChange={handleDistrictChange}
-                  className="w-full"
-                  disabled={catalogsLoading || fetchingDistricts}
-                />
-              </label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-spice-text-primary">
+                    District
+                  </span>
+                  {districtsError ? (
+                    <FetchRetryButton
+                      label="Retry loading districts"
+                      onRetry={retryDistricts}
+                      disabled={fetchingDistricts}
+                    />
+                  ) : null}
+                </div>
+                {renderDistrictCombobox('assignment-geo-district-combobox')}
+              </div>
 
               <div className="overflow-hidden rounded-lg border border-spice-border">
                 <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
