@@ -57,6 +57,7 @@
       },
       "nav": {
         "moduleLibrary": "Module Library",
+        "badgeManagement": "Badge Management",
         "ingestDocument": "Ingest Document",
         "videoUpload": "Upload Video",
         "ingestHistory": "Ingestion History",

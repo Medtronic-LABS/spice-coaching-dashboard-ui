@@ -25,6 +25,17 @@ export const testModuleLibrary: ModuleLibraryResponse = {
       createdAt: '8 Apr 2026',
     },
     {
+      id: 'chatbot-faq-htn',
+      title: 'Hypertension Chatbot FAQs',
+      category: 'Hypertension',
+      lessons: 1,
+      questions: 0,
+      durationLabel: '~5 min',
+      status: 'published',
+      createdAt: '30 Mar 2026',
+      chatbot_faqs_only: true,
+    },
+    {
       id: 'community-clinic',
       title: 'Community Clinic Referral Protocol',
       category: 'Referral',

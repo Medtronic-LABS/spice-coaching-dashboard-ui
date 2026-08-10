@@ -1,6 +1,7 @@
 import { matchPath, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  AwardIcon,
   BookIcon,
   ClipboardIcon,
   HistoryIcon,
@@ -94,6 +95,18 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
                   })}
                 />
                 {t('layout.sidebar.nav.moduleLibrary')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.badgeManagement}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <AwardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.badgeManagement')}
               </>
             )}
           </NavLink>
