@@ -1099,7 +1099,13 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     },
   ];
 
-  const expandAssigneeIds = (userIds: number[]): number[] => {
+  const expandAssigneeIds = (
+    userIds: number[],
+    expandPoAssignees: boolean,
+  ): number[] => {
+    if (!expandPoAssignees) {
+      return Array.from(new Set(userIds));
+    }
     const expanded = new Set(userIds);
     for (const userId of userIds) {
       const user = mockHierarchyUsersForAssign.find(
@@ -1122,6 +1128,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       source_document_id: string;
       user_ids?: number[];
       upazilas?: string[];
+      expand_po_assignees?: boolean;
     };
     const sourceDoc = mockSourceDocuments.find(
       (doc) => doc.id === payload.source_document_id,
@@ -1135,7 +1142,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       };
     }
     const now = new Date().toISOString();
-    const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+    const nextIds = expandAssigneeIds(
+      payload.user_ids ?? [],
+      payload.expand_po_assignees === true,
+    );
     // Replace assignees for this document.
     mockDocumentAssignmentsState = mockDocumentAssignmentsState.filter(
       (assignment) =>
@@ -1220,8 +1230,12 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       const payload = (body ?? {}) as {
         user_ids?: number[];
         upazilas?: string[];
+        expand_po_assignees?: boolean;
       };
-      const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+      const nextIds = expandAssigneeIds(
+        payload.user_ids ?? [],
+        payload.expand_po_assignees === true,
+      );
       const previousIds = new Set(
         mockDocumentAssignmentsState
           .filter(
@@ -1727,10 +1741,14 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   if (url === 'admin/districts' && method === 'GET') {
     const query =
       typeof params === 'object' && params
-        ? (params as { limit?: unknown; offset?: unknown })
+        ? (params as { limit?: unknown; offset?: unknown; q?: unknown })
         : {};
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
+    const nameQuery =
+      typeof query.q === 'string' && query.q.trim()
+        ? query.q.trim().toLowerCase()
+        : null;
     const districts = [
       {
         id: 10,
@@ -1741,7 +1759,18 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         created_by: 'system',
         updated_by: 'system',
       },
-    ];
+      {
+        id: 11,
+        name: 'Kurigram',
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+    ].filter((district) =>
+      nameQuery ? district.name.toLowerCase().includes(nameQuery) : true,
+    );
     return {
       data: {
         districts: districts.slice(offset, offset + limit),
@@ -1756,10 +1785,38 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   if (url === 'admin/hierarchy/users' && method === 'GET') {
     const query =
       typeof params === 'object' && params
-        ? (params as { limit?: unknown; offset?: unknown })
+        ? (params as {
+            limit?: unknown;
+            offset?: unknown;
+            district_id?: unknown;
+            role?: unknown;
+            parent_id?: unknown;
+            upazila_id?: unknown;
+            q?: unknown;
+          })
         : {};
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
+    const districtIdFilter =
+      query.district_id === undefined || query.district_id === null
+        ? null
+        : Number(query.district_id);
+    const parentIdFilter =
+      query.parent_id === undefined || query.parent_id === null
+        ? null
+        : Number(query.parent_id);
+    const upazilaIdFilter =
+      query.upazila_id === undefined || query.upazila_id === null
+        ? null
+        : Number(query.upazila_id);
+    const roleFilter =
+      typeof query.role === 'string' && query.role.trim()
+        ? query.role.trim()
+        : null;
+    const nameQuery =
+      typeof query.q === 'string' && query.q.trim()
+        ? query.q.trim().toLowerCase()
+        : null;
     const users = [
       {
         id: 1723477249,
@@ -1813,7 +1870,36 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         created_by: 'system',
         updated_by: 'system',
       },
-    ];
+    ].filter((user) => {
+      if (
+        districtIdFilter !== null &&
+        Number.isFinite(districtIdFilter) &&
+        user.district_id !== districtIdFilter
+      ) {
+        return false;
+      }
+      if (roleFilter && user.role !== roleFilter) {
+        return false;
+      }
+      if (
+        parentIdFilter !== null &&
+        Number.isFinite(parentIdFilter) &&
+        user.parent_id !== parentIdFilter
+      ) {
+        return false;
+      }
+      if (
+        upazilaIdFilter !== null &&
+        Number.isFinite(upazilaIdFilter) &&
+        !user.upazilas.some((upazila) => upazila.id === upazilaIdFilter)
+      ) {
+        return false;
+      }
+      if (nameQuery && !user.name.toLowerCase().includes(nameQuery)) {
+        return false;
+      }
+      return true;
+    });
     return {
       data: {
         users: users.slice(offset, offset + limit),
@@ -1830,6 +1916,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       module_id: string;
       user_ids?: number[];
       upazilas?: string[];
+      expand_po_assignees?: boolean;
     };
     const now = new Date().toISOString();
     const moduleItem = mockModuleLibrary.modules.find(
@@ -1838,7 +1925,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const title = moduleItem
       ? moduleItem.title
       : { bn: 'Unknown', en: 'Unknown' };
-    const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+    const nextIds = expandAssigneeIds(
+      payload.user_ids ?? [],
+      payload.expand_po_assignees === true,
+    );
     mockAssignmentsState = mockAssignmentsState.filter(
       (assignment) => assignment.module_id !== payload.module_id,
     );
@@ -1913,8 +2003,12 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       const payload = (body ?? {}) as {
         user_ids?: number[];
         upazilas?: string[];
+        expand_po_assignees?: boolean;
       };
-      const nextIds = expandAssigneeIds(payload.user_ids ?? []);
+      const nextIds = expandAssigneeIds(
+        payload.user_ids ?? [],
+        payload.expand_po_assignees === true,
+      );
       const previousIds = new Set(
         mockAssignmentsState
           .filter(
@@ -2178,6 +2272,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             district_id?: unknown;
             limit?: unknown;
             offset?: unknown;
+            q?: unknown;
           })
         : {};
     const limit = 'limit' in query ? Number(query.limit) : 50;
@@ -2186,6 +2281,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       query.district_id === undefined || query.district_id === null
         ? null
         : Number(query.district_id);
+    const nameQuery =
+      typeof query.q === 'string' && query.q.trim()
+        ? query.q.trim().toLowerCase()
+        : null;
     const upazilas = [
       {
         id: 1,
@@ -2207,11 +2306,19 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         created_by: 'system',
         updated_by: 'system',
       },
-    ].filter((row) =>
-      districtIdFilter === null || !Number.isFinite(districtIdFilter)
-        ? true
-        : row.district_id === districtIdFilter,
-    );
+    ].filter((row) => {
+      if (
+        districtIdFilter !== null &&
+        Number.isFinite(districtIdFilter) &&
+        row.district_id !== districtIdFilter
+      ) {
+        return false;
+      }
+      if (nameQuery && !row.name.toLowerCase().includes(nameQuery)) {
+        return false;
+      }
+      return true;
+    });
     return {
       data: {
         upazilas: upazilas.slice(offset, offset + limit),

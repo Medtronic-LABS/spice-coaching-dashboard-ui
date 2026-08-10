@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Combobox, type ComboboxOption } from '@/components/ui/Combobox';
 
 const OPTIONS: ComboboxOption[] = [
@@ -16,6 +16,9 @@ interface HarnessProps {
   options?: ComboboxOption[];
   isLoading?: boolean;
   hint?: string;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
 const Harness = ({
@@ -24,6 +27,9 @@ const Harness = ({
   options = OPTIONS,
   isLoading = false,
   hint,
+  hasMore,
+  onLoadMore,
+  isLoadingMore,
 }: HarnessProps) => {
   const [value, setValue] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,11 +52,18 @@ const Harness = ({
       isLoading={isLoading}
       hint={hint}
       emptyMessage="No matches"
+      hasMore={hasMore}
+      onLoadMore={onLoadMore}
+      isLoadingMore={isLoadingMore}
     />
   );
 };
 
 describe('Combobox', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('opens on focus and selects an option with the mouse', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -116,5 +129,41 @@ describe('Combobox', () => {
     await user.click(screen.getByRole('combobox'));
     expect(screen.getByText('Loading…')).toBeInTheDocument();
     expect(screen.getByText('Showing 50 of 320 documents')).toBeInTheDocument();
+  });
+
+  it('requests more options when infinite scroll is enabled', async () => {
+    class ImmediateObserver {
+      callback: IntersectionObserverCallback;
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback;
+      }
+      observe(target: Element) {
+        this.callback(
+          [
+            {
+              isIntersecting: true,
+              target,
+              intersectionRatio: 1,
+              time: 0,
+              boundingClientRect: {} as DOMRectReadOnly,
+              intersectionRect: {} as DOMRectReadOnly,
+              rootBounds: null,
+            },
+          ],
+          this as unknown as IntersectionObserver,
+        );
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal('IntersectionObserver', ImmediateObserver);
+
+    const user = userEvent.setup();
+    const onLoadMore = vi.fn();
+    render(<Harness hasMore onLoadMore={onLoadMore} />);
+
+    await user.click(screen.getByRole('combobox'));
+    expect(screen.getByTestId('infinite-scroll-sentinel')).toBeInTheDocument();
+    expect(onLoadMore).toHaveBeenCalled();
   });
 });

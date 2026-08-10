@@ -56,6 +56,20 @@ describe('buildAssignedUserEntries', () => {
     ]);
   });
 
+  it('lists POs as individuals for po mode', () => {
+    expect(buildAssignedUserEntries('po', [20], sampleUsers)).toEqual([
+      {
+        kind: 'individual',
+        userId: 20,
+        role: 'PO',
+        name: 'Sobita Rani',
+      },
+    ]);
+    expect(
+      countAssignedUsers(buildAssignedUserEntries('po', [20], sampleUsers)),
+    ).toBe(1);
+  });
+
   it('counts PO plus SKs', () => {
     const entries = buildAssignedUserEntries('po_sk', [20], sampleUsers);
     expect(countAssignedUsers(entries)).toBe(3);
@@ -68,6 +82,12 @@ describe('buildAssignedUserDisplayNames', () => {
       'PO - Sobita Rani',
       'SK - Md Abdus Salam',
       'SK - Mst. Rabeya Khatun',
+    ]);
+  });
+
+  it('lists PO users for po mode', () => {
+    expect(buildAssignedUserDisplayNames('po', [20], sampleUsers)).toEqual([
+      'PO - Sobita Rani',
     ]);
   });
 

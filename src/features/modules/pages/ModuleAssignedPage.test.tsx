@@ -92,6 +92,24 @@ describe('ModuleAssignedPage', () => {
     expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
   });
 
+  it('shows PO-only assignment summary', () => {
+    renderAssignedPage({
+      assignmentType: 'po',
+      assignedUsers: [
+        {
+          kind: 'individual',
+          userId: 20,
+          role: 'PO',
+          name: 'Sobita Rani',
+        },
+      ],
+      assignedCount: 1,
+    });
+
+    expect(screen.getByText(/assigned to — po/i)).toBeInTheDocument();
+    expect(screen.getByText('Sobita Rani')).toBeInTheDocument();
+  });
+
   it('shows upazila card and expandable SK users for geographical assignments', async () => {
     const user = userEvent.setup();
     renderAssignedPage({
