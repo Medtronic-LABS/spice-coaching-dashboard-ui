@@ -470,14 +470,14 @@ export const NeedsReviewTab = ({
       header: 'Module',
       sortable: true,
       sortKey: 'title',
-      headerClassName: 'px-4 py-2 sm:px-4',
+      headerClassName: 'max-w-[9rem] px-4 py-2 sm:max-w-none sm:px-4',
       className:
-        'px-4 py-3.5 font-medium text-spice-text-primary sm:px-4 sm:py-3.5',
+        'max-w-[9rem] whitespace-normal px-4 py-3.5 font-medium text-spice-text-primary sm:max-w-none sm:px-4 sm:py-3.5',
       render: (row) => (
         <button
           type="button"
           onClick={() => toggleExpand(row.id)}
-          className="text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
+          className="max-w-full truncate text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
         >
           {row.title}
         </button>
@@ -492,7 +492,7 @@ export const NeedsReviewTab = ({
       render: (row) => {
         const primary = row.raw;
         return (
-          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>
               {primary.card_count === 1
                 ? '1 lesson'
@@ -502,16 +502,14 @@ export const NeedsReviewTab = ({
               |
             </span>
             {primary.quiz_count > 0 ? (
-              <span className="text-center">
+              <span>
                 {primary.quiz_count === 1
                   ? '1 question'
                   : `${primary.quiz_count} questions`}
               </span>
             ) : (
-              <span className="inline-flex w-full items-center justify-center">
-                <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
-                  No quiz
-                </span>
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                No quiz
               </span>
             )}
             <span className="text-spice-text-muted" aria-hidden="true">

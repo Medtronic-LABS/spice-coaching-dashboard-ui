@@ -607,6 +607,8 @@ export const ModuleLibraryPage = () => {
       {
         key: 'title',
         header: 'Module',
+        headerClassName: 'max-w-[9rem] sm:max-w-none',
+        className: 'max-w-[9rem] whitespace-normal sm:max-w-none',
         sortable: true,
         sortKey: 'title',
         render: (row) => (
@@ -642,7 +644,7 @@ export const ModuleLibraryPage = () => {
         key: 'lessons',
         header: 'Content',
         render: (row) => (
-          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>
               {row.lessons === 1 ? '1 lesson' : `${row.lessons} lessons`}
             </span>
@@ -650,16 +652,14 @@ export const ModuleLibraryPage = () => {
               |
             </span>
             {row.questions > 0 ? (
-              <span className="text-center">
+              <span>
                 {row.questions === 1
                   ? '1 question'
                   : `${row.questions} questions`}
               </span>
             ) : (
-              <span className="inline-flex w-full items-center justify-center">
-                <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
-                  No quiz
-                </span>
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                No quiz
               </span>
             )}
             <span className="text-spice-text-muted" aria-hidden="true">
