@@ -30,7 +30,7 @@ export const IngestHistoryPage = () => {
             className="h-9 text-xs"
             onClick={() => navigate(paths.ingestDocument)}
           >
-            Upload Document
+            Ingest Document
           </Button>
         </div>
       </div>

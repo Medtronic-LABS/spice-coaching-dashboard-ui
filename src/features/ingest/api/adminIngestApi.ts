@@ -234,6 +234,7 @@ export const adminIngestApi = baseApi.injectEndpoints({
           body: form,
         };
       },
+      invalidatesTags: ['SourceDocuments'],
     }),
     startIngestBatch: builder.mutation<
       AdminV3IngestAcceptedResponse,

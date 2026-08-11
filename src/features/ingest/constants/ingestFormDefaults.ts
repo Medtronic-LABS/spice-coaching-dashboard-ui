@@ -3,7 +3,7 @@ import type {
   IngestContentDomain,
 } from '@/features/ingest/api/adminIngestApi';
 
-export const INGEST_MODULE_COUNT_MIN = 3;
+export const INGEST_MODULE_COUNT_MIN = 1;
 export const INGEST_MODULE_COUNT_MAX = 7;
 
 export const INGEST_MODULE_COUNT_RANGE_LABEL = `Enter a number from ${INGEST_MODULE_COUNT_MIN} to ${INGEST_MODULE_COUNT_MAX}.`;
