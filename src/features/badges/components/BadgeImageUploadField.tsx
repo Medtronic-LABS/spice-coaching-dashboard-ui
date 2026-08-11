@@ -19,9 +19,13 @@ export interface BadgeImageUploadValue {
 
 interface BadgeImageUploadFieldProps {
   value: BadgeImageUploadValue;
+  /** Remount/reset key when switching milestones (create vs edit ids). */
+  resetKey?: string;
   required?: boolean;
   disabled?: boolean;
   onUploaded: (value: BadgeImageUploadValue) => void;
+  /** True when a file has been selected but not uploaded yet. */
+  onPendingUploadChange?: (pending: boolean) => void;
   onError?: (message: string) => void;
 }
 
@@ -37,19 +41,37 @@ function isAcceptedImage(file: File): boolean {
 
 export const BadgeImageUploadField = ({
   value,
+  resetKey,
   required = false,
   disabled = false,
   onUploaded,
+  onPendingUploadChange,
   onError,
 }: BadgeImageUploadFieldProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState('');
+  const onPendingUploadChangeRef = useRef(onPendingUploadChange);
+  const uploadGenerationRef = useRef(0);
 
   const [uploadAdminFile, { isLoading: isUploading }] =
     useUploadAdminFileMutation();
   const [getPresignedUrl] = useLazyGetAdminFilePresignedUrlQuery();
+
+  useEffect(() => {
+    uploadGenerationRef.current += 1;
+    setPendingFile(null);
+    setFieldError('');
+  }, [resetKey]);
+
+  useEffect(() => {
+    onPendingUploadChangeRef.current = onPendingUploadChange;
+  }, [onPendingUploadChange]);
+
+  useEffect(() => {
+    onPendingUploadChangeRef.current?.(Boolean(pendingFile));
+  }, [pendingFile]);
 
   useEffect(() => {
     if (!pendingFile) {
@@ -64,6 +86,46 @@ export const BadgeImageUploadField = ({
   const openFilePicker = () => {
     if (disabled || isUploading) return;
     fileInputRef.current?.click();
+  };
+
+  const uploadFile = async (file: File) => {
+    const generation = uploadGenerationRef.current;
+    setFieldError('');
+    try {
+      const uploadResponse = await uploadAdminFile({
+        file,
+        prefix: 'badges',
+      }).unwrap();
+      const objectName = uploadResponse.object_name.trim();
+      const storagePath = uploadResponse.storage_path.trim();
+      if (!objectName || !storagePath) {
+        throw new Error('Upload succeeded but returned an empty storage path.');
+      }
+
+      const presigned = await getPresignedUrl({
+        object_name: objectName,
+        expires_seconds: 600,
+      }).unwrap();
+
+      if (generation !== uploadGenerationRef.current) {
+        return;
+      }
+
+      onUploaded({
+        storagePath,
+        objectName,
+        previewUrl: presigned.presigned_url,
+      });
+      setPendingFile(null);
+    } catch (error) {
+      if (generation !== uploadGenerationRef.current) {
+        return;
+      }
+      const message =
+        getMutationErrorMessage(error) || 'Failed to upload image.';
+      setFieldError(message);
+      onError?.(message);
+    }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +143,8 @@ export const BadgeImageUploadField = ({
 
     setFieldError('');
     setPendingFile(file);
+    // Upload immediately so Update/Add always persists the selected image.
+    void uploadFile(file);
   };
 
   const handleUpload = async () => {
@@ -90,37 +154,14 @@ export const BadgeImageUploadField = ({
       onError?.(message);
       return;
     }
-
-    setFieldError('');
-    try {
-      const uploadResponse = await uploadAdminFile({
-        file: pendingFile,
-        prefix: 'badges',
-      }).unwrap();
-      const presigned = await getPresignedUrl({
-        object_name: uploadResponse.object_name,
-        expires_seconds: 600,
-      }).unwrap();
-
-      onUploaded({
-        storagePath: uploadResponse.storage_path,
-        objectName: uploadResponse.object_name,
-        previewUrl: presigned.presigned_url,
-      });
-      setPendingFile(null);
-    } catch (error) {
-      const message =
-        getMutationErrorMessage(error) || 'Failed to upload image.';
-      setFieldError(message);
-      onError?.(message);
-    }
+    await uploadFile(pendingFile);
   };
 
   const displayPreviewUrl = localPreviewUrl || value.previewUrl;
-  const hasStoredImage = Boolean(value.storagePath);
+  const hasStoredImage = Boolean(value.storagePath.trim());
   const showPreview = Boolean(displayPreviewUrl) || hasStoredImage;
   const busy = disabled || isUploading;
-  const isUploaded = hasStoredImage && !pendingFile;
+  const isUploaded = hasStoredImage && !pendingFile && !isUploading;
   const uploadLabel = isUploading
     ? 'Uploading…'
     : isUploaded
@@ -131,7 +172,7 @@ export const BadgeImageUploadField = ({
     <div className="space-y-2 rounded-xl bg-spice-bg-surface p-3 ring-1 ring-spice-border">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-          Badge image
+          Milestone image
           {required ? (
             <span className="text-spice-semantic-error"> *</span>
           ) : null}
@@ -140,8 +181,8 @@ export const BadgeImageUploadField = ({
           <button
             type="button"
             disabled={busy}
-            title="Change badge image"
-            aria-label="Change badge image"
+            title="Change milestone image"
+            aria-label="Change milestone image"
             onClick={openFilePicker}
             className="rounded-md p-1 text-spice-text-muted transition-colors hover:bg-spice-bg-tint hover:text-spice-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -176,15 +217,17 @@ export const BadgeImageUploadField = ({
         <div className="mx-auto h-32 w-32 overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
           {displayPreviewUrl ? (
             <img
+              key={displayPreviewUrl}
               src={displayPreviewUrl}
-              alt="Badge preview"
+              alt="Milestone preview"
               className="h-full w-full object-cover"
             />
           ) : (
             <BadgeImageThumb
+              key={value.storagePath || value.objectName || resetKey}
               storagePath={value.storagePath}
               objectName={value.objectName}
-              alt="Badge preview"
+              alt="Milestone preview"
               className="h-full w-full rounded-none border-0"
             />
           )}
@@ -231,7 +274,7 @@ export const BadgeImageUploadField = ({
 
       {pendingFile ? (
         <p className="break-all text-[10px] leading-snug text-spice-text-muted">
-          Selected: {pendingFile.name}
+          {isUploading ? 'Uploading' : 'Selected'}: {pendingFile.name}
         </p>
       ) : isUploaded ? (
         <p className="text-[10px] text-spice-text-muted">Image uploaded</p>

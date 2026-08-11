@@ -16,7 +16,7 @@ describe('BadgeManagementPage', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', { name: 'Badge Management' }),
+      await screen.findByRole('heading', { name: 'Milestone Management' }),
     ).toBeInTheDocument();
 
     await waitFor(() => {
@@ -44,7 +44,7 @@ describe('BadgeManagementPage', () => {
     });
   });
 
-  it('loads a row into the form for editing without a sequence field', async () => {
+  it('opens the edit modal without a sequence field', async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -68,15 +68,8 @@ describe('BadgeManagementPage', () => {
     expect(screen.getByText('Milestone name')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Update' })).toBeInTheDocument();
     expect(
-      within(dataRow!).getByRole('button', {
-        name: 'Move Safe Motherhood Champion up in sequence',
-      }),
-    ).toBeDisabled();
-    expect(
-      within(dataRow!).getByRole('button', {
-        name: 'Move Safe Motherhood Champion down in sequence',
-      }),
-    ).toBeEnabled();
+      screen.queryByRole('columnheader', { name: 'Domain' }),
+    ).not.toBeInTheDocument();
   });
 
   it('exposes module-library-style pagination controls', async () => {
@@ -96,46 +89,81 @@ describe('BadgeManagementPage', () => {
     expect(screen.getByLabelText('Rows per page')).toHaveValue('5');
   });
 
-  it('reorders adjacent milestones without requiring a catalog refetch', async () => {
+  it('enters sequence edit mode with drag handles and disables search', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await screen.findByText('Safe Motherhood Champion');
 
     await user.click(
-      screen.getByRole('button', {
-        name: 'Move Safe Motherhood Champion down in sequence',
-      }),
+      screen.getByRole('button', { name: 'Rearrange Milestone' }),
     );
 
     await waitFor(() => {
-      const rows = screen.getAllByRole('row').slice(1);
-      expect(within(rows[0]!).getByText('SPICE Navigator')).toBeInTheDocument();
       expect(
-        within(rows[1]!).getByText('Safe Motherhood Champion'),
+        screen.getByRole('button', { name: 'Save Rearrangement' }),
       ).toBeInTheDocument();
-      expect(within(rows[0]!).getByText('1')).toBeInTheDocument();
-      expect(within(rows[1]!).getByText('2')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Save Rearrangement' }),
+      ).toBeDisabled();
     });
+
+    expect(
+      screen.getByRole('searchbox', { name: 'Search milestones' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Create Milestone' }),
+    ).toBeDisabled();
+    expect(
+      screen.getAllByRole('button', { name: 'Drag to reorder' }).length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(
+      screen.getByRole('button', { name: 'Back to list' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Rearrange Milestone' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Back to list' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Rearrange Milestone' }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('searchbox', { name: 'Search milestones' }),
+    ).not.toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: 'Save Rearrangement' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Safe Motherhood Champion')).toBeInTheDocument();
   });
 
-  it('excludes chatbot FAQ-only modules from the create form picker', async () => {
+  it('opens create modal and excludes chatbot FAQ-only modules from the picker', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByRole('heading', { name: 'Create milestone' });
+    await screen.findByText('Safe Motherhood Champion');
 
-    const domainInput = screen.getByRole('combobox', { name: 'Domain' });
-    await user.click(domainInput);
-    await user.click(
-      await screen.findByRole('option', { name: 'Hypertension' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Create Milestone' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Create milestone' }),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('HTN Referral Thresholds')).toBeInTheDocument();
     });
     expect(
       screen.queryByText('Hypertension Chatbot FAQs'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Domain' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: 'Domain' }),
     ).not.toBeInTheDocument();
   });
 });

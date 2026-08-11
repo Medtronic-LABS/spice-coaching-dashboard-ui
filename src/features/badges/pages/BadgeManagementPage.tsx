@@ -3,7 +3,6 @@ import {
   Banner,
   Button,
   Card,
-  Combobox,
   type ComboboxOption,
   ErrorState,
   Loader,
@@ -11,6 +10,7 @@ import {
   SearchInput,
   Tooltip,
 } from '@/components/ui';
+import { ArrowRightIcon, CloseIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -19,20 +19,22 @@ import {
 } from '@/components/common/SettingsFilterDrawer';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import {
+  useCommitBadgeSequenceOrderMutation,
   useCreateBadgeMutation,
   useDeleteBadgeMutation,
   useFetchBadgesQuery,
   useLazyFetchBadgesQuery,
-  useReorderBadgePairMutation,
   useUpdateBadgeMutation,
 } from '@/features/badges/api/adminBadgesApi';
+import { BadgeFormModal } from '@/features/badges/components/BadgeFormModal';
+import type {
+  BadgeFormMode,
+  BadgeFormState,
+} from '@/features/badges/components/BadgeFormModal';
 import { BadgeImageThumb } from '@/features/badges/components/BadgeImageThumb';
-import { BadgeImageUploadField } from '@/features/badges/components/BadgeImageUploadField';
 import { BadgeManagementFiltersPanel } from '@/features/badges/components/BadgeManagementFiltersPanel';
-import {
-  BadgeModuleMultiSelect,
-  type PublishedModuleOption,
-} from '@/features/badges/components/BadgeModuleMultiSelect';
+import { BadgeSequenceReorderList } from '@/features/badges/components/BadgeSequenceReorderList';
+import type { PublishedModuleOption } from '@/features/badges/components/BadgeModuleMultiSelect';
 import {
   EMPTY_BADGE_FILTERS,
   type AdminBadge,
@@ -42,28 +44,28 @@ import {
 } from '@/features/badges/types/badge.types';
 import {
   buildBadgeListDateParams,
-  findSequenceNeighbor,
   getMutationErrorMessage,
   hasActiveBadgeFilters,
   isDateRangeInvalid,
   nextGlobalBadgeSequence,
   objectNameFromStoragePath,
+  reorderBadges,
+  sortBadgesBySequenceAsc,
 } from '@/features/badges/utils/badgeForm';
 import {
-  useFetchModuleDomainOptionsQuery,
   useFetchModulesQuery,
+  useLazyFetchModulesQuery,
 } from '@/features/modules/api/adminModulesApi';
+import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
-import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
-const FIELD_CLASS =
-  'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
 const BADGE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
 const DEFAULT_BADGE_PAGE_SIZE = 10;
-/** Used when filters open — need domain/creator options across a broad slice. */
+const MODULE_PICKER_PAGE_SIZE = 50;
+/** Used for filter options and full-list sequence editing. */
 const BADGE_CATALOG_QUERY: AdminBadgeListQuery = {
   sort_by: 'sequence',
   sort_dir: 'asc',
@@ -78,31 +80,28 @@ const BADGE_MAX_SEQUENCE_QUERY: AdminBadgeListQuery = {
   offset: 0,
 };
 const SEARCH_DEBOUNCE_MS = 300;
+const FEEDBACK_DISMISS_MS = 10_000;
+const SEQUENCE_EDIT_INFO =
+  'Enabling Rearrange Milestone clears search and filters, disables them, and loads all milestones for drag reordering. Use Reset to restore the initial order, or Back to list to discard changes and return to the table.';
+const PAGE_SUBTITLE =
+  'Configure milestones by mapping an image and published modules. Learners earn a milestone after completing all mapped active modules. Use Rearrange Milestone to reorder milestones on the roadmap.';
+const SEQUENCE_MODE_HINT =
+  'Milestones are listed in sequence order. Drag the handle on each row to change their sequence and update the roadmap.';
+const TOOLBAR_BUTTON_CLASS = 'h-9 text-xs';
 
 type FeedbackState =
   | { tone: 'success'; message: string }
   | { tone: 'critical'; message: string }
   | null;
 
-type BadgeFormState = {
-  name: string;
-  domain: string;
-  moduleIds: string[];
-  imageStoragePath: string;
-  imageObjectName: string;
-  imagePreviewUrl: string;
-  /** True when a new image was uploaded in this edit/create session. */
-  imageChanged: boolean;
-};
-
 function emptyForm(): BadgeFormState {
   return {
     name: '',
-    domain: '',
     moduleIds: [],
     imageStoragePath: '',
     imageObjectName: '',
     imagePreviewUrl: '',
+    imagePendingUpload: false,
     imageChanged: false,
   };
 }
@@ -110,11 +109,11 @@ function emptyForm(): BadgeFormState {
 function formFromBadge(badge: AdminBadge): BadgeFormState {
   return {
     name: badge.name,
-    domain: badge.domain,
     moduleIds: [...badge.module_ids],
     imageStoragePath: badge.image_storage_path,
     imageObjectName: objectNameFromStoragePath(badge.image_storage_path),
     imagePreviewUrl: '',
+    imagePendingUpload: false,
     imageChanged: false,
   };
 }
@@ -127,7 +126,7 @@ function moduleCacheFromBadge(
     cache[module.id] = {
       id: module.id,
       title: resolveDisplayText(module.title) || module.id,
-      domain: formatModuleDomainLabel(badge.domain),
+      domain: badge.domain,
     };
   }
   return cache;
@@ -138,22 +137,12 @@ export const BadgeManagementPage = () => {
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const [moduleSearchQuery, setModuleSearchQuery] = useState('');
   const [moduleFilterSearchTerm, setModuleFilterSearchTerm] = useState('');
-  const [domainSearchTerm, setDomainSearchTerm] = useState('');
-  const [domainFilterSearchTerm, setDomainFilterSearchTerm] = useState('');
   const debouncedModuleSearchQuery = useDebouncedValue(
     moduleSearchQuery,
     SEARCH_DEBOUNCE_MS,
   );
   const debouncedModuleFilterSearchTerm = useDebouncedValue(
     moduleFilterSearchTerm,
-    SEARCH_DEBOUNCE_MS,
-  );
-  const debouncedDomainSearchTerm = useDebouncedValue(
-    domainSearchTerm,
-    SEARCH_DEBOUNCE_MS,
-  );
-  const debouncedDomainFilterSearchTerm = useDebouncedValue(
-    domainFilterSearchTerm,
     SEARCH_DEBOUNCE_MS,
   );
   const [draftFilters, setDraftFilters] =
@@ -166,17 +155,22 @@ export const BadgeManagementPage = () => {
   const [pageInput, setPageInput] = useState('1');
 
   const [form, setForm] = useState<BadgeFormState>(emptyForm);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<BadgeFormMode>('create');
   const [selectedModuleCache, setSelectedModuleCache] = useState<
     Record<string, PublishedModuleOption>
   >({});
-  const [editingBadgeId, setEditingBadgeId] = useState<string | null>(null);
-  const [viewingBadgeId, setViewingBadgeId] = useState<string | null>(null);
+  const [activeBadge, setActiveBadge] = useState<AdminBadge | null>(null);
   const [formError, setFormError] = useState('');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminBadge | null>(null);
-  const [reorderingBadgeId, setReorderingBadgeId] = useState<string | null>(
-    null,
-  );
+
+  const [isSequenceEditing, setIsSequenceEditing] = useState(false);
+  const [sequenceBaseline, setSequenceBaseline] = useState<AdminBadge[]>([]);
+  const [sequenceDraft, setSequenceDraft] = useState<AdminBadge[]>([]);
+  const [sequenceCatalogTruncated, setSequenceCatalogTruncated] =
+    useState(false);
+  const [isEnteringSequenceEdit, setIsEnteringSequenceEdit] = useState(false);
 
   const dateParams = useMemo(
     () => buildBadgeListDateParams(appliedFilters),
@@ -186,7 +180,6 @@ export const BadgeManagementPage = () => {
   const listQueryArgs = useMemo(
     () => ({
       q: debouncedQuery.trim() || undefined,
-      domain: appliedFilters.domain.trim() || undefined,
       created_by: appliedFilters.createdBy.trim()
         ? [appliedFilters.createdBy.trim()]
         : undefined,
@@ -207,43 +200,24 @@ export const BadgeManagementPage = () => {
     data: badgeList,
     isLoading: badgesLoading,
     isError: badgesError,
-    isFetching: badgesFetching,
     refetch: refetchBadges,
-  } = useFetchBadgesQuery(listQueryArgs);
+  } = useFetchBadgesQuery(listQueryArgs, { skip: isSequenceEditing });
 
-  /** Creator filter options when the catalog spans multiple pages. */
-  const { data: filterCatalogList } = useFetchBadgesQuery(BADGE_CATALOG_QUERY, {
-    skip: !filtersOpen,
-  });
+  /** Full catalog for filter options and Edit Sequence eligibility. */
+  const { data: catalogList } = useFetchBadgesQuery(BADGE_CATALOG_QUERY);
   const [fetchBadgeCatalog] = useLazyFetchBadgesQuery();
+  const [triggerModulesPage] = useLazyFetchModulesQuery();
 
-  const formDomainQuery = debouncedDomainSearchTerm.trim() || undefined;
-  const filterDomainQuery = debouncedDomainFilterSearchTerm.trim() || undefined;
-
-  const { data: moduleDomains = [], isFetching: formModuleDomainsFetching } =
-    useFetchModuleDomainOptionsQuery({ q: formDomainQuery });
-
-  const {
-    data: filterModuleDomains = [],
-    isFetching: filterModuleDomainsFetching,
-  } = useFetchModuleDomainOptionsQuery({ q: filterDomainQuery });
-
-  const selectedDomain = form.domain.trim();
   const moduleLookupQuery = debouncedModuleSearchQuery.trim();
-  const { data: publishedModulesData, isLoading: modulesLoading } =
-    useFetchModulesQuery(
-      {
-        status: 'published',
-        domain: selectedDomain || undefined,
-        chatbot_faqs_only: false,
-        limit: 50,
-        offset: 0,
-        q: moduleLookupQuery || undefined,
-        sort_by: 'title',
-        sort_dir: 'asc',
-      },
-      { skip: !selectedDomain },
-    );
+  const [loadedPublishedModules, setLoadedPublishedModules] = useState<
+    PublishedModuleOption[]
+  >([]);
+  const [modulesTotal, setModulesTotal] = useState(0);
+  const [modulesOffset, setModulesOffset] = useState(0);
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [modulesLoadingMore, setModulesLoadingMore] = useState(false);
+  const [modulesLoadError, setModulesLoadError] = useState(false);
+
   const moduleFilterLookupQuery = debouncedModuleFilterSearchTerm.trim();
   const { data: filterModulesData, isLoading: filterModulesLoading } =
     useFetchModulesQuery({
@@ -258,53 +232,122 @@ export const BadgeManagementPage = () => {
 
   const [createBadge, { isLoading: isCreating }] = useCreateBadgeMutation();
   const [updateBadge, { isLoading: isUpdating }] = useUpdateBadgeMutation();
-  const [reorderBadgePair] = useReorderBadgePairMutation();
+  const [commitBadgeSequenceOrder, { isLoading: isSavingSequence }] =
+    useCommitBadgeSequenceOrderMutation();
   const [deleteBadge, { isLoading: isDeleting }] = useDeleteBadgeMutation();
 
-  const publishedModules: PublishedModuleOption[] = useMemo(() => {
-    const modules = publishedModulesData?.modules ?? [];
-    return modules.filter(isAssignablePublishedModule).map((module) => ({
-      id: module.id,
-      title: resolveDisplayText(module.title) || module.id,
-      domain: formatModuleDomainLabel(module.domain),
-    }));
-  }, [publishedModulesData?.modules]);
+  const mapPublishedModuleOption = useCallback(
+    (module: AdminModulesListItem): PublishedModuleOption | null => {
+      if (!isAssignablePublishedModule(module)) return null;
+      return {
+        id: module.id,
+        title: resolveDisplayText(module.title) || module.id,
+        domain: module.domain,
+      };
+    },
+    [],
+  );
+
+  const loadPublishedModulesPage = useCallback(
+    async (offset: number, append: boolean) => {
+      if (!formOpen) return;
+      if (append) {
+        setModulesLoadingMore(true);
+      } else {
+        setModulesLoading(true);
+      }
+      setModulesLoadError(false);
+
+      try {
+        const page = await triggerModulesPage({
+          status: 'published',
+          chatbot_faqs_only: false,
+          limit: MODULE_PICKER_PAGE_SIZE,
+          offset,
+          q: moduleLookupQuery || undefined,
+          sort_by: 'title',
+          sort_dir: 'asc',
+        }).unwrap();
+
+        const mapped = page.modules
+          .map(mapPublishedModuleOption)
+          .filter((module): module is PublishedModuleOption => module !== null);
+
+        setModulesTotal(page.total_modules);
+        setModulesOffset(page.offset + page.modules.length);
+        setLoadedPublishedModules((prev) => {
+          if (!append) return mapped;
+          const seen = new Set(prev.map((module) => module.id));
+          const next = [...prev];
+          for (const module of mapped) {
+            if (seen.has(module.id)) continue;
+            next.push(module);
+            seen.add(module.id);
+          }
+          return next;
+        });
+      } catch {
+        setModulesLoadError(true);
+      } finally {
+        setModulesLoading(false);
+        setModulesLoadingMore(false);
+      }
+    },
+    [formOpen, mapPublishedModuleOption, moduleLookupQuery, triggerModulesPage],
+  );
 
   useEffect(() => {
-    if (publishedModules.length === 0) return;
+    if (!formOpen) {
+      setLoadedPublishedModules([]);
+      setModulesTotal(0);
+      setModulesOffset(0);
+      setModulesLoading(false);
+      setModulesLoadingMore(false);
+      setModulesLoadError(false);
+      return;
+    }
+    void loadPublishedModulesPage(0, false);
+  }, [formOpen, loadPublishedModulesPage]);
+
+  useEffect(() => {
+    if (loadedPublishedModules.length === 0) return;
     setSelectedModuleCache((prev) => {
       const next = { ...prev };
-      for (const module of publishedModules) {
+      for (const module of loadedPublishedModules) {
         next[module.id] = module;
       }
       return next;
     });
-  }, [publishedModules]);
+  }, [loadedPublishedModules]);
+
+  const modulesHasMore = modulesOffset < modulesTotal;
 
   const pickerModules = useMemo(() => {
     const merged: PublishedModuleOption[] = [];
     const seen = new Set<string>();
 
-    for (const moduleId of form.moduleIds) {
-      const selected = selectedModuleCache[moduleId];
-      if (!selected || seen.has(selected.id)) continue;
-      merged.push(selected);
-      seen.add(selected.id);
-    }
-
-    for (const module of publishedModules) {
+    // Keep published search order stable; do not hoist selected rows to the top.
+    for (const module of loadedPublishedModules) {
       if (seen.has(module.id)) continue;
       merged.push(module);
       seen.add(module.id);
     }
 
+    for (const moduleId of form.moduleIds) {
+      if (seen.has(moduleId)) continue;
+      const selected = selectedModuleCache[moduleId];
+      if (!selected) continue;
+      merged.push(selected);
+      seen.add(selected.id);
+    }
+
     return merged;
-  }, [form.moduleIds, publishedModules, selectedModuleCache]);
+  }, [form.moduleIds, loadedPublishedModules, selectedModuleCache]);
 
   const badges = useMemo(() => badgeList?.badges ?? [], [badgeList?.badges]);
   const catalogBadges = useMemo(
-    () => filterCatalogList?.badges ?? badges,
-    [badges, filterCatalogList?.badges],
+    () => catalogList?.badges ?? badges,
+    [badges, catalogList?.badges],
   );
   const totalBadges = badgeList?.total ?? badges.length;
   const totalPages = badgeList?.total_pages ?? 0;
@@ -312,6 +355,8 @@ export const BadgeManagementPage = () => {
   const hasNextPage = totalPages > 0 && page + 1 < totalPages;
   const rangeStart = badges.length ? page * pageSize + 1 : 0;
   const rangeEnd = badges.length ? page * pageSize + badges.length : 0;
+  const canEditSequence =
+    (catalogList?.total ?? catalogList?.badges.length ?? totalBadges) >= 2;
 
   useEffect(() => {
     setPage(0);
@@ -360,40 +405,6 @@ export const BadgeManagementPage = () => {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [catalogBadges]);
 
-  const domainComboboxOptions = useMemo<ComboboxOption[]>(() => {
-    const options = moduleDomains.map((domain) => ({
-      label: formatModuleDomainLabel(domain),
-      value: domain,
-    }));
-    if (
-      form.domain &&
-      !options.some((option) => option.value === form.domain)
-    ) {
-      options.unshift({
-        label: formatModuleDomainLabel(form.domain),
-        value: form.domain,
-      });
-    }
-    return options;
-  }, [form.domain, moduleDomains]);
-
-  const filterDomainComboboxOptions = useMemo<ComboboxOption[]>(() => {
-    const options = filterModuleDomains.map((domain) => ({
-      label: formatModuleDomainLabel(domain),
-      value: domain,
-    }));
-    if (
-      draftFilters.domain &&
-      !options.some((option) => option.value === draftFilters.domain)
-    ) {
-      options.unshift({
-        label: formatModuleDomainLabel(draftFilters.domain),
-        value: draftFilters.domain,
-      });
-    }
-    return options;
-  }, [draftFilters.domain, filterModuleDomains]);
-
   const filterModuleOptions = useMemo<ComboboxOption[]>(
     () =>
       (filterModulesData?.modules ?? [])
@@ -405,96 +416,93 @@ export const BadgeManagementPage = () => {
     [filterModulesData?.modules],
   );
 
-  const editingBadge = useMemo(
-    () => badges.find((badge) => badge.id === editingBadgeId) ?? null,
-    [badges, editingBadgeId],
-  );
-  const viewingBadge = useMemo(
-    () => badges.find((badge) => badge.id === viewingBadgeId) ?? null,
-    [badges, viewingBadgeId],
-  );
-
-  useEffect(() => {
-    if (editingBadgeId && !editingBadge && !badgesLoading) {
-      setEditingBadgeId(null);
-      setForm(emptyForm());
-    }
-  }, [badgesLoading, editingBadge, editingBadgeId]);
-  useEffect(() => {
-    if (viewingBadgeId && !viewingBadge && !badgesLoading) {
-      setViewingBadgeId(null);
-      setForm(emptyForm());
-    }
-  }, [badgesLoading, viewingBadge, viewingBadgeId]);
-
-  const isReordering = Boolean(reorderingBadgeId);
   const isSaving = isCreating || isUpdating;
-  const isViewMode = Boolean(viewingBadgeId);
   const filtersActive = hasActiveBadgeFilters(appliedFilters);
+  const hasSequenceDraftChanges = useMemo(() => {
+    if (sequenceBaseline.length !== sequenceDraft.length) return true;
+    return sequenceBaseline.some(
+      (badge, index) => badge.id !== sequenceDraft[index]?.id,
+    );
+  }, [sequenceBaseline, sequenceDraft]);
+
+  useEffect(() => {
+    if (!feedback) return undefined;
+    const timer = window.setTimeout(() => {
+      setFeedback(null);
+    }, FEEDBACK_DISMISS_MS);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
 
   const resetForm = useCallback(() => {
     setForm(emptyForm());
     setSelectedModuleCache({});
     setModuleSearchQuery('');
-    setDomainSearchTerm('');
-    setViewingBadgeId(null);
-    setEditingBadgeId(null);
+    setActiveBadge(null);
+    setFormMode('create');
+    setFormOpen(false);
     setFormError('');
+  }, []);
+
+  const startCreate = useCallback(() => {
+    setForm(emptyForm());
+    setSelectedModuleCache({});
+    setModuleSearchQuery('');
+    setActiveBadge(null);
+    setFormMode('create');
+    setFormOpen(true);
+    setFormError('');
+    setFeedback(null);
   }, []);
 
   const startEdit = useCallback((badge: AdminBadge) => {
     setForm(formFromBadge(badge));
     setSelectedModuleCache(moduleCacheFromBadge(badge));
     setModuleSearchQuery('');
-    setDomainSearchTerm('');
-    setViewingBadgeId(null);
-    setEditingBadgeId(badge.id);
+    setActiveBadge(badge);
+    setFormMode('edit');
+    setFormOpen(true);
     setFormError('');
     setFeedback(null);
-    try {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch {
-      // jsdom does not implement scrollTo
-    }
   }, []);
 
   const startView = useCallback((badge: AdminBadge) => {
     setForm(formFromBadge(badge));
     setSelectedModuleCache(moduleCacheFromBadge(badge));
     setModuleSearchQuery('');
-    setDomainSearchTerm('');
-    setEditingBadgeId(null);
-    setViewingBadgeId(badge.id);
+    setActiveBadge(badge);
+    setFormMode('view');
+    setFormOpen(true);
     setFormError('');
     setFeedback(null);
-    try {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch {
-      // jsdom does not implement scrollTo
-    }
   }, []);
 
-  const handleDomainChange = useCallback((domain: string) => {
-    setForm((prev) => ({
-      ...prev,
-      domain,
-      moduleIds: domain === prev.domain ? prev.moduleIds : [],
-    }));
-    setModuleSearchQuery('');
-    setFormError('');
-  }, []);
+  const resolveWriteDomain = useCallback((): string | null => {
+    for (const moduleId of form.moduleIds) {
+      const fromPicker = pickerModules.find((module) => module.id === moduleId);
+      const domain = (
+        fromPicker ?? selectedModuleCache[moduleId]
+      )?.domain.trim();
+      if (domain) return domain;
+    }
+    return activeBadge?.domain.trim() || null;
+  }, [activeBadge?.domain, form.moduleIds, pickerModules, selectedModuleCache]);
 
   const validateForm = (): string | null => {
     if (!form.name.trim()) return 'Milestone name is required.';
-    if (!form.domain.trim()) return 'Domain is required.';
-    if (!editingBadgeId && !form.imageChanged) {
+    if (formMode === 'create' && !form.imageChanged) {
       return 'Upload a milestone image before adding.';
+    }
+    if (formMode === 'edit' && form.imagePendingUpload && !form.imageChanged) {
+      return 'Finish uploading the selected milestone image before updating.';
     }
     if (!form.imageStoragePath.trim()) {
       return 'Milestone image is required.';
     }
     if (form.moduleIds.length === 0) {
       return 'Select at least one published module.';
+    }
+    if (!resolveWriteDomain()) {
+      return 'Unable to determine domain from the selected modules.';
     }
     return null;
   };
@@ -506,12 +514,12 @@ export const BadgeManagementPage = () => {
       return;
     }
 
-    if (editingBadgeId && !form.imageChanged && !form.imageStoragePath) {
+    if (formMode === 'edit' && !form.imageChanged && !form.imageStoragePath) {
       setFormError('Milestone image is required.');
       return;
     }
 
-    if (!editingBadgeId && !form.imageChanged) {
+    if (formMode === 'create' && !form.imageChanged) {
       setFormError('Upload a milestone image before adding.');
       return;
     }
@@ -519,12 +527,15 @@ export const BadgeManagementPage = () => {
     setFormError('');
     setFeedback(null);
 
-    const domain = form.domain.trim();
-    let sequence: number | null = editingBadgeId
-      ? (editingBadge?.sequence ?? null)
-      : null;
+    const domain = resolveWriteDomain();
+    if (!domain) {
+      setFormError('Unable to determine domain from the selected modules.');
+      return;
+    }
+    let sequence: number | null =
+      formMode === 'edit' ? (activeBadge?.sequence ?? null) : null;
 
-    if (!editingBadgeId) {
+    if (formMode === 'create') {
       try {
         const catalog = await fetchBadgeCatalog(
           BADGE_MAX_SEQUENCE_QUERY,
@@ -545,8 +556,8 @@ export const BadgeManagementPage = () => {
     };
 
     try {
-      if (editingBadgeId) {
-        await updateBadge({ badgeId: editingBadgeId, body }).unwrap();
+      if (formMode === 'edit' && activeBadge) {
+        await updateBadge({ badgeId: activeBadge.id, body }).unwrap();
         setFeedback({
           tone: 'success',
           message: 'Milestone updated successfully.',
@@ -564,47 +575,112 @@ export const BadgeManagementPage = () => {
     }
   };
 
-  const handleReorder = useCallback(
-    async (badge: AdminBadge, direction: 'up' | 'down') => {
-      const neighbor = findSequenceNeighbor(badges, badge.id, direction);
-      if (
-        !neighbor ||
-        badge.sequence == null ||
-        neighbor.sequence == null ||
-        isReordering
-      ) {
-        return;
-      }
+  const exitSequenceEdit = useCallback(() => {
+    setIsSequenceEditing(false);
+    setSequenceBaseline([]);
+    setSequenceDraft([]);
+    setSequenceCatalogTruncated(false);
+  }, []);
 
-      const badgeSeq = badge.sequence;
-      const neighborSeq = neighbor.sequence;
+  const handleEnterSequenceEdit = useCallback(async () => {
+    setFeedback(null);
+    setFormOpen(false);
+    setFiltersOpen(false);
+    setQuery('');
+    setDraftFilters(EMPTY_BADGE_FILTERS);
+    setAppliedFilters(EMPTY_BADGE_FILTERS);
+    setPage(0);
+    setIsEnteringSequenceEdit(true);
 
-      setReorderingBadgeId(badge.id);
-      try {
-        await reorderBadgePair({
-          badge,
-          neighbor,
-          badgeSequence: badgeSeq,
-          neighborSequence: neighborSeq,
-        }).unwrap();
-      } catch (error) {
+    try {
+      const catalog = await fetchBadgeCatalog(BADGE_CATALOG_QUERY).unwrap();
+      const ordered = sortBadgesBySequenceAsc(catalog.badges);
+      if (ordered.length < 2) {
         setFeedback({
           tone: 'critical',
-          message: getMutationErrorMessage(error),
+          message: 'At least two milestones are required to edit sequence.',
         });
-      } finally {
-        setReorderingBadgeId(null);
+        return;
       }
+      if (catalog.total > ordered.length) {
+        setSequenceCatalogTruncated(true);
+        setFeedback({
+          tone: 'critical',
+          message: `Only the first ${ordered.length} of ${catalog.total} milestones can be rearranged in this view. Save is disabled until the catalog fits the limit.`,
+        });
+      } else {
+        setSequenceCatalogTruncated(false);
+      }
+      setSequenceBaseline(ordered);
+      setSequenceDraft(ordered);
+      setIsSequenceEditing(true);
+    } catch (error) {
+      setFeedback({
+        tone: 'critical',
+        message: getMutationErrorMessage(error),
+      });
+    } finally {
+      setIsEnteringSequenceEdit(false);
+    }
+  }, [fetchBadgeCatalog]);
+
+  const handleSequenceReorder = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      setSequenceDraft((prev) => reorderBadges(prev, fromIndex, toIndex));
     },
-    [badges, isReordering, reorderBadgePair],
+    [],
   );
+
+  const handleResetSequence = useCallback(() => {
+    setSequenceDraft([...sequenceBaseline]);
+    setFeedback(null);
+  }, [sequenceBaseline]);
+
+  const handleBackToList = useCallback(() => {
+    setFeedback(null);
+    exitSequenceEdit();
+  }, [exitSequenceEdit]);
+
+  const handleSaveSequence = useCallback(async () => {
+    if (sequenceCatalogTruncated) {
+      setFeedback({
+        tone: 'critical',
+        message:
+          'Cannot save rearrangement while the milestone catalog exceeds the editable limit.',
+      });
+      return;
+    }
+    setFeedback(null);
+    try {
+      await commitBadgeSequenceOrder({
+        baseline: sequenceBaseline,
+        draft: sequenceDraft,
+      }).unwrap();
+      setFeedback({
+        tone: 'success',
+        message: 'Milestone sequence updated successfully.',
+      });
+      exitSequenceEdit();
+    } catch (error) {
+      setFeedback({
+        tone: 'critical',
+        message: getMutationErrorMessage(error),
+      });
+    }
+  }, [
+    commitBadgeSequenceOrder,
+    exitSequenceEdit,
+    sequenceBaseline,
+    sequenceCatalogTruncated,
+    sequenceDraft,
+  ]);
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     setFeedback(null);
     try {
       await deleteBadge({ badgeId: deleteTarget.id }).unwrap();
-      if (editingBadgeId === deleteTarget.id) {
+      if (activeBadge?.id === deleteTarget.id) {
         resetForm();
       }
       setDeleteTarget(null);
@@ -622,6 +698,7 @@ export const BadgeManagementPage = () => {
   };
 
   const applyFilters = () => {
+    if (isSequenceEditing) return;
     if (isDateRangeInvalid(draftFilters.createdFrom, draftFilters.createdTo)) {
       return;
     }
@@ -632,7 +709,6 @@ export const BadgeManagementPage = () => {
 
   const clearFilters = () => {
     setPage(0);
-    setDomainFilterSearchTerm('');
     setDraftFilters(EMPTY_BADGE_FILTERS);
     setAppliedFilters(EMPTY_BADGE_FILTERS);
   };
@@ -642,58 +718,13 @@ export const BadgeManagementPage = () => {
       {
         key: 'sequence',
         header: 'Seq No.',
-        className: 'w-40 whitespace-nowrap px-2 sm:px-3',
-        headerClassName: 'w-40 whitespace-nowrap px-2 sm:px-3',
-        render: (row) => {
-          const canMoveUp = Boolean(findSequenceNeighbor(badges, row.id, 'up'));
-          const canMoveDown = Boolean(
-            findSequenceNeighbor(badges, row.id, 'down'),
-          );
-          const rowBusy = reorderingBadgeId === row.id;
-          const arrowButtonClass =
-            'inline-flex h-7 w-9 items-center justify-center rounded-md border border-spice-border bg-spice-bg-surface text-base leading-none text-spice-text-primary transition hover:bg-spice-bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/30 disabled:cursor-not-allowed disabled:opacity-35';
-          return (
-            <div
-              className={`flex items-center gap-2 ${rowBusy ? 'opacity-70' : ''}`}
-            >
-              <span className="min-w-[1.5rem] font-medium tabular-nums text-spice-text-primary">
-                {row.sequence ?? '—'}
-              </span>
-              <div
-                className="flex items-center gap-0.5"
-                role="group"
-                aria-label="Reorder sequence"
-              >
-                <button
-                  type="button"
-                  className={arrowButtonClass}
-                  title="Move up"
-                  aria-label={`Move ${row.name} up in sequence`}
-                  disabled={!canMoveUp || isReordering}
-                  onClick={() => void handleReorder(row, 'up')}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className={arrowButtonClass}
-                  title="Move down"
-                  aria-label={`Move ${row.name} down in sequence`}
-                  disabled={!canMoveDown || isReordering}
-                  onClick={() => void handleReorder(row, 'down')}
-                >
-                  ↓
-                </button>
-              </div>
-              {rowBusy ? (
-                <span
-                  className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-spice-border-mid border-t-spice-brand-primary"
-                  aria-label="Updating sequence"
-                />
-              ) : null}
-            </div>
-          );
-        },
+        className: 'w-24 whitespace-nowrap px-2 sm:px-3',
+        headerClassName: 'w-24 whitespace-nowrap px-2 sm:px-3',
+        render: (row) => (
+          <span className="font-medium tabular-nums text-spice-text-primary">
+            {row.sequence ?? '—'}
+          </span>
+        ),
       },
       {
         key: 'name',
@@ -711,12 +742,6 @@ export const BadgeManagementPage = () => {
             </span>
           </div>
         ),
-      },
-      {
-        key: 'domain',
-        header: 'Domain (Name)',
-        className: 'whitespace-nowrap',
-        render: (row) => formatModuleDomainLabel(row.domain),
       },
       {
         key: 'module_ids',
@@ -807,21 +832,14 @@ export const BadgeManagementPage = () => {
         ),
       },
     ],
-    [
-      badges,
-      handleReorder,
-      isReordering,
-      reorderingBadgeId,
-      startEdit,
-      startView,
-    ],
+    [startEdit, startView],
   );
 
-  if (badgesLoading) {
+  if (badgesLoading && !isSequenceEditing) {
     return <Loader open label="Loading milestones…" />;
   }
 
-  if (badgesError) {
+  if (badgesError && !isSequenceEditing) {
     return (
       <ErrorState
         title="Failed to load milestones"
@@ -834,254 +852,189 @@ export const BadgeManagementPage = () => {
     );
   }
 
+  // Keep search/filter refetches quiet — only block for mutations / sequence mode.
+  const loaderOpen =
+    isSaving || isDeleting || isSavingSequence || isEnteringSequenceEdit;
+
   return (
     <section className="space-y-6">
       <Loader
-        open={isSaving || isDeleting || badgesFetching}
+        open={loaderOpen}
         label={
-          isSaving
-            ? editingBadgeId
-              ? 'Updating milestone…'
-              : 'Creating milestone…'
-            : isDeleting
-              ? 'Deleting milestone…'
-              : 'Refreshing milestones…'
+          isSavingSequence || isEnteringSequenceEdit
+            ? isSavingSequence
+              ? 'Saving rearrangement…'
+              : 'Loading milestones for sequence edit…'
+            : isSaving
+              ? formMode === 'edit'
+                ? 'Updating milestone…'
+                : 'Creating milestone…'
+              : isDeleting
+                ? 'Deleting milestone…'
+                : 'Working…'
         }
       />
 
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold text-spice-text-primary">
-          Badge Management
+          Milestone Management
         </h1>
         <p className="max-w-3xl text-sm text-spice-text-muted">
-          Map milestone domain, image, and published modules so learners earn
-          milestones when they complete all mapped active modules. Use the
-          sequence arrows in the table to reorder the roadmap.
+          {PAGE_SUBTITLE}
         </p>
       </div>
 
       {feedback ? (
-        <Banner tone={feedback.tone}>{feedback.message}</Banner>
+        <Banner tone={feedback.tone}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{feedback.message}</span>
+            {feedback.tone === 'success' ? (
+              <Button
+                variant="ghost"
+                aria-label="Dismiss success message"
+                onClick={() => setFeedback(null)}
+                className="h-8 w-8 p-0"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </Button>
+            ) : null}
+          </div>
+        </Banner>
       ) : null}
 
-      <Card variant="elevated" className="space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-spice-border pb-4">
-          <div>
-            <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-spice-text-primary">
-              {isViewMode
-                ? 'View milestone'
-                : editingBadgeId
-                  ? 'Edit milestone'
-                  : 'Create milestone'}
-              <Tooltip
-                label="About milestone form"
-                content="Choose domain, image, and published modules for the roadmap. Sequence is assigned automatically on create; reorder milestones with the table arrows."
-                placement="bottom"
-              />
-            </h2>
-          </div>
-          {isViewMode ? (
-            <span className="rounded-full bg-spice-bg-tint px-3 py-1 text-xs font-medium text-spice-text-primary">
-              Viewing
-            </span>
-          ) : editingBadgeId ? (
-            <span className="rounded-full bg-spice-brand-primary/10 px-3 py-1 text-xs font-medium text-spice-brand-primary">
-              Editing
-            </span>
-          ) : null}
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-12">
-          <label className="block space-y-1.5 lg:col-span-6">
-            <span className="text-xs font-semibold text-spice-text-primary">
-              Milestone name{' '}
-              <span className="text-spice-semantic-error">*</span>
-            </span>
-            <input
-              className={FIELD_CLASS}
-              value={form.name}
-              placeholder="e.g. Safe Motherhood Champion"
-              disabled={isViewMode}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, name: event.target.value }))
-              }
-            />
-          </label>
-
-          <div className="space-y-1.5 lg:col-span-6">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
-              Domain <span className="text-spice-semantic-error">*</span>
-              <Tooltip
-                label="About domain"
-                content="Select an existing domain. Published modules refresh for that domain; chatbot-only modules are excluded."
-                placement="bottom"
-              />
-            </span>
-            {isViewMode ? (
-              <input
-                className={FIELD_CLASS}
-                value={formatModuleDomainLabel(form.domain)}
-                disabled
-                readOnly
-              />
-            ) : (
-              <Combobox
-                id="badge-form-domain"
-                aria-label="Domain"
-                value={form.domain}
-                selectedLabel={
-                  form.domain ? formatModuleDomainLabel(form.domain) : ''
-                }
-                options={domainComboboxOptions}
-                searchTerm={domainSearchTerm}
-                onSearchTermChange={setDomainSearchTerm}
-                onChange={handleDomainChange}
-                isLoading={formModuleDomainsFetching}
-                placeholder="Search domains…"
-                emptyMessage="No domains match your search"
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <div className="w-full max-w-[13rem] shrink-0">
-            <BadgeImageUploadField
-              required={!editingBadgeId && !isViewMode}
-              disabled={isSaving || isViewMode}
-              value={{
-                storagePath: form.imageStoragePath,
-                objectName: form.imageObjectName,
-                previewUrl: form.imagePreviewUrl,
-              }}
-              onUploaded={(uploaded) => {
-                setFormError('');
-                setForm((prev) => ({
-                  ...prev,
-                  imageStoragePath: uploaded.storagePath,
-                  imageObjectName: uploaded.objectName,
-                  imagePreviewUrl: uploaded.previewUrl,
-                  imageChanged: true,
-                }));
-              }}
-              onError={(message) => setFormError(message)}
-            />
-          </div>
-
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
-                Published modules{' '}
-                <span className="text-spice-semantic-error">*</span>
-                <Tooltip
-                  label="About published modules"
-                  content="Select a domain first. Only assignable published modules for that domain are listed; chatbot FAQ-only modules cannot be linked."
-                  placement="bottom"
-                />
-              </span>
-              <span className="text-xs text-spice-text-muted">
-                {form.moduleIds.length} selected
-              </span>
-            </div>
-            <BadgeModuleMultiSelect
-              options={selectedDomain ? pickerModules : []}
-              selectedIds={form.moduleIds}
-              onChange={(moduleIds) =>
-                setForm((prev) => ({ ...prev, moduleIds }))
-              }
-              disabled={isViewMode || !selectedDomain}
-              searchValue={moduleSearchQuery}
-              onSearchChange={setModuleSearchQuery}
-              isLoading={Boolean(selectedDomain) && modulesLoading}
-              emptyMessage={
-                selectedDomain
-                  ? 'No assignable published modules match your search.'
-                  : 'Select a domain to load published modules.'
-              }
-            />
-          </div>
-        </div>
-
-        {formError ? <Banner tone="critical">{formError}</Banner> : null}
-
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-spice-border pt-4">
-          {isViewMode ? (
-            <>
-              <Button variant="ghost" onClick={resetForm}>
-                Close
-              </Button>
-              <Button
-                onClick={() => {
-                  if (viewingBadge) startEdit(viewingBadge);
-                }}
-              >
-                Edit
-              </Button>
-            </>
-          ) : editingBadgeId ? (
-            <Button variant="ghost" onClick={resetForm} disabled={isSaving}>
-              Cancel
-            </Button>
-          ) : null}
-          {!isViewMode ? (
-            <Button onClick={() => void handleSubmit()} disabled={isSaving}>
-              {editingBadgeId ? 'Update' : 'Add'}
-            </Button>
-          ) : null}
-        </div>
-      </Card>
-
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <div className="w-56 sm:w-64">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search milestones…"
-            aria-label="Search milestones"
-            className="min-w-0"
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="w-56 sm:w-64">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search milestones…"
+              aria-label="Search milestones"
+              className="min-w-0"
+              disabled={isSequenceEditing}
+            />
+          </div>
+          <SettingsFilterTriggerButton
+            active={filtersActive}
+            expanded={filtersOpen}
+            onClick={() => setFiltersOpen(true)}
+            ariaLabel="Open milestone filters"
+            tooltip={
+              isSequenceEditing
+                ? 'Filters are disabled while rearranging milestones'
+                : 'Filter by creator, module, or created date'
+            }
+            disabled={isSequenceEditing}
           />
         </div>
-        <SettingsFilterTriggerButton
-          active={filtersActive}
-          expanded={filtersOpen}
-          onClick={() => setFiltersOpen(true)}
-          ariaLabel="Open milestone filters"
-          tooltip="Filter by domain, creator, module, or created date"
-        />
+
+        <div className="inline-flex items-center gap-1.5">
+          {isSequenceEditing ? (
+            <>
+              <Button
+                variant="ghost"
+                aria-label="Back to list"
+                title="Back to list"
+                onClick={handleBackToList}
+                disabled={isSavingSequence}
+                className="h-9 w-9 p-0"
+              >
+                <ArrowRightIcon className="h-5 w-5 rotate-180" />
+              </Button>
+              <Button
+                variant="secondary"
+                className={TOOLBAR_BUTTON_CLASS}
+                onClick={handleResetSequence}
+                disabled={isSavingSequence || !hasSequenceDraftChanges}
+              >
+                Reset
+              </Button>
+              <Button
+                className={TOOLBAR_BUTTON_CLASS}
+                onClick={() => void handleSaveSequence()}
+                disabled={
+                  isSavingSequence ||
+                  sequenceCatalogTruncated ||
+                  !hasSequenceDraftChanges
+                }
+              >
+                Save Rearrangement
+              </Button>
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <Button
+                variant="secondary"
+                className={TOOLBAR_BUTTON_CLASS}
+                onClick={() => void handleEnterSequenceEdit()}
+                disabled={!canEditSequence || isEnteringSequenceEdit}
+              >
+                Rearrange Milestone
+              </Button>
+              <Tooltip
+                label="About rearrange milestone"
+                content={SEQUENCE_EDIT_INFO}
+                placement="bottom"
+              />
+            </span>
+          )}
+        </div>
+
+        <Button
+          className={TOOLBAR_BUTTON_CLASS}
+          onClick={startCreate}
+          disabled={isSequenceEditing || isEnteringSequenceEdit}
+        >
+          Create Milestone
+        </Button>
       </div>
 
       <Card className="overflow-hidden p-0">
-        <Table
-          data={badges}
-          columns={columns}
-          keyExtractor={(row) => row.id}
-          emptyMessage="No milestones match the current filters."
-          containerClassName="min-h-[12rem]"
-        />
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          pageSizeOptions={BADGE_PAGE_SIZE_OPTIONS}
-          totalItems={totalBadges}
-          totalPages={totalPages}
-          rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
-          pageInput={pageInput}
-          hasPrevPage={hasPrevPage}
-          hasNextPage={hasNextPage}
-          onPageSizeChange={(next) => {
-            setPageSize(next);
-            setPage(0);
-          }}
-          onPageInputChange={handlePageInputChange}
-          onCommitPageInput={commitPageInput}
-          onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
-          onNextPage={() => setPage((current) => current + 1)}
-        />
+        {isSequenceEditing ? (
+          <div className="space-y-1">
+            <p className="border-b border-spice-border px-3 py-2 text-sm text-spice-text-muted">
+              {SEQUENCE_MODE_HINT}
+            </p>
+            <BadgeSequenceReorderList
+              badges={sequenceDraft}
+              disabled={isSavingSequence}
+              onReorder={handleSequenceReorder}
+            />
+          </div>
+        ) : (
+          <>
+            <Table
+              data={badges}
+              columns={columns}
+              keyExtractor={(row) => row.id}
+              emptyMessage="No milestones match the current filters."
+            />
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              pageSizeOptions={BADGE_PAGE_SIZE_OPTIONS}
+              totalItems={totalBadges}
+              totalPages={totalPages}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              pageInput={pageInput}
+              hasPrevPage={hasPrevPage}
+              hasNextPage={hasNextPage}
+              onPageSizeChange={(next) => {
+                setPageSize(next);
+                setPage(0);
+              }}
+              onPageInputChange={handlePageInputChange}
+              onCommitPageInput={commitPageInput}
+              onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
+              onNextPage={() => setPage((current) => current + 1)}
+            />
+          </>
+        )}
       </Card>
 
       <SettingsFilterDrawer
-        open={filtersOpen}
+        open={filtersOpen && !isSequenceEditing}
         onClose={() => setFiltersOpen(false)}
         title="Filter milestones"
         description="Choose filters, then click Apply to update the list."
@@ -1090,10 +1043,6 @@ export const BadgeManagementPage = () => {
       >
         <BadgeManagementFiltersPanel
           filters={draftFilters}
-          domainOptions={filterDomainComboboxOptions}
-          domainSearchTerm={domainFilterSearchTerm}
-          onDomainSearchTermChange={setDomainFilterSearchTerm}
-          domainOptionsLoading={filterModuleDomainsFetching}
           createdByOptions={createdByOptions}
           moduleOptions={filterModuleOptions}
           moduleSearchTerm={moduleFilterSearchTerm}
@@ -1104,6 +1053,38 @@ export const BadgeManagementPage = () => {
           onApply={applyFilters}
         />
       </SettingsFilterDrawer>
+
+      <BadgeFormModal
+        open={formOpen && !isSequenceEditing}
+        mode={formMode}
+        form={form}
+        imageResetKey={
+          activeBadge?.id ?? `create-${formOpen ? 'open' : 'closed'}`
+        }
+        formError={formError}
+        isSaving={isSaving}
+        pickerModules={pickerModules}
+        modulesLoading={modulesLoading}
+        moduleSearchQuery={moduleSearchQuery}
+        onModuleSearchChange={setModuleSearchQuery}
+        modulesHasMore={modulesHasMore}
+        onModulesLoadMore={() => {
+          if (modulesLoading || modulesLoadingMore || !modulesHasMore) return;
+          void loadPublishedModulesPage(modulesOffset, true);
+        }}
+        modulesLoadingMore={modulesLoadingMore}
+        modulesLoadError={modulesLoadError}
+        onModulesLoadMoreRetry={() => {
+          void loadPublishedModulesPage(modulesOffset, modulesOffset > 0);
+        }}
+        onFormChange={setForm}
+        onClose={resetForm}
+        onSubmit={() => void handleSubmit()}
+        onEditFromView={() => {
+          if (activeBadge) startEdit(activeBadge);
+        }}
+        onFormError={setFormError}
+      />
 
       <Modal
         open={Boolean(deleteTarget)}
@@ -1116,23 +1097,27 @@ export const BadgeManagementPage = () => {
             id="delete-badge-title"
             className="text-lg font-semibold text-spice-text-primary"
           >
-            Delete milestone?
+            Delete Milestone?
           </h2>
           <p
             id="delete-badge-description"
             className="mt-2 text-sm text-spice-text-medium"
           >
-            This removes{' '}
+            Are you sure you want to delete{' '}
             <span className="font-medium text-spice-text-primary">
-              {deleteTarget?.name}
-            </span>{' '}
-            from the learner available/roadmap catalog. Soft-deleted milestones
-            no longer appear as available; previously earned awards may still
-            remain in history.
+              “{deleteTarget?.name}”
+            </span>
+            ?
+          </p>
+          <p className="mt-3 text-sm text-spice-text-medium">
+            Deleting this milestone will remove it from the learner roadmap and
+            prevent it from being awarded to learners in the future. Previously
+            awarded milestones will remain in learners’ history.
           </p>
           <div className="mt-6 flex justify-end gap-3">
             <Button
               variant="ghost"
+              className="h-9 text-xs"
               onClick={() => setDeleteTarget(null)}
               disabled={isDeleting}
             >
@@ -1141,7 +1126,7 @@ export const BadgeManagementPage = () => {
             <Button
               onClick={() => void handleConfirmDelete()}
               disabled={isDeleting}
-              className="bg-spice-semantic-error hover:bg-spice-semantic-error/90"
+              className="h-9 bg-spice-semantic-error text-xs hover:bg-spice-semantic-error/90"
             >
               Delete
             </Button>

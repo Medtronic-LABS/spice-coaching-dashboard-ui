@@ -10,6 +10,7 @@ interface SettingsFilterTriggerButtonProps {
   /** Accessible name for the filter trigger control (required). */
   ariaLabel: string;
   tooltip?: string;
+  disabled?: boolean;
 }
 
 export const SettingsFilterTriggerButton = ({
@@ -18,6 +19,7 @@ export const SettingsFilterTriggerButton = ({
   onClick,
   ariaLabel,
   tooltip,
+  disabled = false,
 }: SettingsFilterTriggerButtonProps) => {
   const tooltipId = useId();
 
@@ -28,10 +30,12 @@ export const SettingsFilterTriggerButton = ({
         aria-label={ariaLabel}
         aria-expanded={expanded}
         aria-describedby={tooltip ? tooltipId : undefined}
+        disabled={disabled}
         onClick={onClick}
         className={cn(
           'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-spice-border-mid bg-spice-bg-surface text-spice-text-primary shadow-sm',
           'transition hover:bg-spice-bg-tint hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/30',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-spice-bg-surface disabled:hover:shadow-sm',
           active &&
             'border-spice-brand-primary/35 ring-1 ring-spice-brand-primary/20',
         )}

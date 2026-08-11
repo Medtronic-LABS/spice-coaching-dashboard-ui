@@ -2,16 +2,11 @@ import { useMemo } from 'react';
 import type { ComboboxOption, SelectOption } from '@/components/ui';
 import { SettingsFilterRenderer } from '@/components/common/SettingsFilterRenderer';
 import type { SettingsFilterSection } from '@/components/common/settingsFilter.types';
-import { isDateRangeInvalid } from '@/features/badges/utils/badgeForm';
+import { dateRangeValidationMessage } from '@/features/badges/utils/badgeForm';
 import type { BadgeManagementFilters } from '@/features/badges/types/badge.types';
-import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 
 export interface BadgeManagementFiltersPanelProps {
   filters: BadgeManagementFilters;
-  domainOptions: ComboboxOption[];
-  domainSearchTerm: string;
-  onDomainSearchTermChange: (term: string) => void;
-  domainOptionsLoading?: boolean;
   createdByOptions: string[];
   moduleOptions: ComboboxOption[];
   moduleSearchTerm: string;
@@ -25,10 +20,6 @@ export interface BadgeManagementFiltersPanelProps {
 
 export const BadgeManagementFiltersPanel = ({
   filters,
-  domainOptions,
-  domainSearchTerm,
-  onDomainSearchTermChange,
-  domainOptionsLoading = false,
   createdByOptions,
   moduleOptions,
   moduleSearchTerm,
@@ -39,16 +30,11 @@ export const BadgeManagementFiltersPanel = ({
   onApply,
   applyDisabled = false,
 }: BadgeManagementFiltersPanelProps) => {
-  const dateInvalid = isDateRangeInvalid(
+  const dateValidationMessage = dateRangeValidationMessage(
     filters.createdFrom,
     filters.createdTo,
   );
-
-  const domainComboboxOptions: ComboboxOption[] = useMemo(() => {
-    const allOption: ComboboxOption = { label: 'All domains', value: '' };
-    const withoutEmpty = domainOptions.filter((option) => option.value !== '');
-    return [allOption, ...withoutEmpty];
-  }, [domainOptions]);
+  const dateInvalid = dateValidationMessage !== null;
 
   const createdBySelectOptions: SelectOption[] = useMemo(
     () => [
@@ -66,30 +52,12 @@ export const BadgeManagementFiltersPanel = ({
     [moduleOptions],
   );
 
-  const domainSelectedLabel = filters.domain
-    ? formatModuleDomainLabel(filters.domain)
-    : 'All domains';
-
   const sections = useMemo<SettingsFilterSection[]>(
     () => [
       {
         id: 'badge-filters-general',
         label: 'General',
         fields: [
-          {
-            type: 'combobox',
-            id: 'badge-filter-domain',
-            label: 'Domain',
-            value: filters.domain,
-            selectedLabel: domainSelectedLabel,
-            options: domainComboboxOptions,
-            searchTerm: domainSearchTerm,
-            onSearchTermChange: onDomainSearchTermChange,
-            onChange: (domain) => onChange({ ...filters, domain }),
-            isLoading: domainOptionsLoading,
-            placeholder: 'Type to search domains…',
-            emptyMessage: 'No domains match your search',
-          },
           {
             type: 'select',
             id: 'badge-filter-created-by',
@@ -129,9 +97,7 @@ export const BadgeManagementFiltersPanel = ({
               onChange: (createdTo) => onChange({ ...filters, createdTo }),
             },
             invalid: dateInvalid,
-            errorMessage: dateInvalid
-              ? 'Created date From must be on or before To.'
-              : undefined,
+            errorMessage: dateValidationMessage ?? undefined,
           },
         ],
       },
@@ -139,15 +105,11 @@ export const BadgeManagementFiltersPanel = ({
     [
       createdBySelectOptions,
       dateInvalid,
-      domainComboboxOptions,
-      domainOptionsLoading,
-      domainSearchTerm,
-      domainSelectedLabel,
+      dateValidationMessage,
       filters,
       moduleComboboxOptions,
       moduleOptionsLoading,
       moduleSearchTerm,
-      onDomainSearchTermChange,
       onModuleSearchTermChange,
       onChange,
     ],

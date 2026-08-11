@@ -672,6 +672,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
 
 export const {
   useFetchModulesQuery,
+  useLazyFetchModulesQuery,
   useFetchModuleDomainOptionsQuery,
   useCreateModuleMutation,
   useGetModuleDetailQuery,

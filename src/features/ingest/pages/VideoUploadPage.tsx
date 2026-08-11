@@ -966,7 +966,13 @@ export const VideoUploadPage = () => {
         },
       },
     ],
-    [isUploading, navigate, selectedIds, sourceDocumentsById],
+    [
+      goToAllModulesForSource,
+      goToNeedsReviewForSource,
+      isUploading,
+      selectedIds,
+      sourceDocumentsById,
+    ],
   );
 
   const uploadBusy = isUploading || isStartingIngest || anyIngestionInProgress;
@@ -1343,7 +1349,11 @@ export const VideoUploadPage = () => {
 
         <div className="flex flex-col gap-2 sm:items-end">
           <div className="flex flex-wrap justify-end gap-2">
-            <Button disabled={!canIngest} onClick={() => void runIngest()}>
+            <Button
+              className="h-9 text-xs"
+              disabled={!canIngest}
+              onClick={() => void runIngest()}
+            >
               {isStartingIngest
                 ? 'Starting…'
                 : anyIngestionInProgress

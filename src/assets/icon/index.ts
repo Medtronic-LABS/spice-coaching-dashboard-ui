@@ -12,6 +12,7 @@ export {
   type FiltersSlidersIconProps,
 } from './FiltersSlidersIcon';
 export { HistoryIcon, type HistoryIconProps } from './HistoryIcon';
+export { KnowledgeIcon, type KnowledgeIconProps } from './KnowledgeIcon';
 export { MenuIcon, type MenuIconProps } from './MenuIcon';
 export { RefreshIcon, type RefreshIconProps } from './RefreshIcon';
 export { SaveDraftIcon, type SaveDraftIconProps } from './SaveDraftIcon';

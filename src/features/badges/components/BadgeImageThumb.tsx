@@ -34,7 +34,7 @@ export const BadgeImageThumb = ({
           'h-10 w-10 animate-pulse rounded-md bg-spice-bg-tint',
           className,
         )}
-        aria-label="Loading badge image"
+        aria-label="Loading milestone image"
       />
     );
   }

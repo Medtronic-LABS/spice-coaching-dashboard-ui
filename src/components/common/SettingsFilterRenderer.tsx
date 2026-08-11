@@ -290,15 +290,11 @@ export const SettingsFilterRenderer = ({
       </div>
 
       <div className="flex shrink-0 items-center gap-3 border-t border-spice-border bg-spice-bg-surface/95 px-5 py-4 backdrop-blur-sm">
-        <Button
-          variant="ghost"
-          className="h-10 px-4 text-sm"
-          onClick={onClearAll}
-        >
+        <Button variant="ghost" className="h-9 text-xs" onClick={onClearAll}>
           Clear All
         </Button>
         <Button
-          className="ml-auto h-10 min-w-[7.5rem] px-5 text-sm"
+          className="ml-auto h-9 text-xs"
           onClick={onApply}
           disabled={applyDisabled}
         >

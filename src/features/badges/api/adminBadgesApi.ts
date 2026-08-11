@@ -1,3 +1,4 @@
+import type { FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { baseApi } from '@/store/apis/base';
 import type {
   AdminBadge,
@@ -6,9 +7,17 @@ import type {
   AdminBadgeWriteBody,
 } from '@/features/badges/types/badge.types';
 import {
+  assignSequencesByOrder,
+  diffBadgeSequenceChanges,
   sortBadgesBySequenceAsc,
-  toBadgeWriteBody,
-} from '@/features/badges/utils/badgeForm';
+} from '@/features/badges/utils/badgeSequence';
+import { toBadgeWriteBody } from '@/features/badges/utils/badgeForm';
+
+type BadgePutBaseQuery = (
+  arg: string | FetchArgs,
+) =>
+  | PromiseLike<{ data?: unknown; error?: unknown }>
+  | { data?: unknown; error?: unknown };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -105,6 +114,31 @@ export function normalizeAdminBadge(raw: unknown): AdminBadge | null {
   };
 }
 
+async function putBadge(
+  baseQuery: BadgePutBaseQuery,
+  badgeId: string,
+  body: AdminBadgeWriteBody,
+): Promise<{ data: AdminBadge } | { error: FetchBaseQueryError }> {
+  const result = await baseQuery({
+    url: `/admin/badges/${encodeURIComponent(badgeId)}`,
+    method: 'PUT',
+    body,
+  });
+  if (result.error) {
+    return { error: result.error as FetchBaseQueryError };
+  }
+  const badge = normalizeAdminBadge(result.data);
+  if (!badge) {
+    return {
+      error: {
+        status: 500,
+        data: { message: 'Invalid milestone response' },
+      },
+    };
+  }
+  return { data: badge };
+}
+
 function normalizeBadgeListResponse(raw: unknown): AdminBadgeListResponse {
   if (!isPlainObject(raw)) {
     return { badges: [], total: 0, total_pages: 0, limit: 50, offset: 0 };
@@ -159,27 +193,21 @@ function buildListParams(
   return params;
 }
 
-export type ReorderBadgePairArg = {
-  badge: AdminBadge;
-  neighbor: AdminBadge;
-  /** Current sequence of `badge` (moves onto neighbor). */
-  badgeSequence: number;
-  /** Current sequence of `neighbor` (moves onto badge). */
-  neighborSequence: number;
+export type CommitBadgeSequenceOrderArg = {
+  baseline: AdminBadge[];
+  draft: AdminBadge[];
 };
 
-function patchBadgeSequencesInCaches(
+function patchCommittedSequencesInCaches(
   dispatch: {
     (action: ReturnType<typeof adminBadgesApi.util.updateQueryData>): {
       undo: () => void;
     };
   },
   getState: () => unknown,
-  badgeId: string,
-  neighborId: string,
-  badgeNextSequence: number,
-  neighborNextSequence: number,
+  ordered: AdminBadge[],
 ): Array<{ undo: () => void }> {
+  const byId = new Map(ordered.map((badge) => [badge.id, badge.sequence]));
   const cachedArgs = adminBadgesApi.util.selectCachedArgsForQuery(
     getState() as never,
     'fetchBadges',
@@ -187,10 +215,11 @@ function patchBadgeSequencesInCaches(
   return cachedArgs.map((queryArgs) =>
     dispatch(
       adminBadgesApi.util.updateQueryData('fetchBadges', queryArgs, (draft) => {
-        const badge = draft.badges.find((row) => row.id === badgeId);
-        const neighbor = draft.badges.find((row) => row.id === neighborId);
-        if (badge) badge.sequence = badgeNextSequence;
-        if (neighbor) neighbor.sequence = neighborNextSequence;
+        for (const row of draft.badges) {
+          if (byId.has(row.id)) {
+            row.sequence = byId.get(row.id) ?? null;
+          }
+        }
         draft.badges = sortBadgesBySequenceAsc(draft.badges);
       }),
     ),
@@ -226,7 +255,7 @@ export const adminBadgesApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown) => {
         const badge = normalizeAdminBadge(response);
         if (!badge) {
-          throw new Error('Invalid badge response');
+          throw new Error('Invalid milestone response');
         }
         return badge;
       },
@@ -241,7 +270,7 @@ export const adminBadgesApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown) => {
         const badge = normalizeAdminBadge(response);
         if (!badge) {
-          throw new Error('Invalid badge response');
+          throw new Error('Invalid milestone response');
         }
         return badge;
       },
@@ -259,7 +288,7 @@ export const adminBadgesApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown) => {
         const badge = normalizeAdminBadge(response);
         if (!badge) {
-          throw new Error('Invalid badge response');
+          throw new Error('Invalid milestone response');
         }
         return badge;
       },
@@ -269,90 +298,74 @@ export const adminBadgesApi = baseApi.injectEndpoints({
       ],
     }),
     /**
-     * Swap two badge sequences in one mutation (3 PUTs internally).
-     * Optimistically patches list caches; does not invalidate LIST on success
-     * so reorder does not refetch page + catalog queries.
+     * Persist a full drag-reorder with minimal PUTs: clear then assign only
+     * badges whose sequence changed (unique-sequence safe).
      */
-    reorderBadgePair: builder.mutation<
-      { badge: AdminBadge; neighbor: AdminBadge },
-      ReorderBadgePairArg
+    commitBadgeSequenceOrder: builder.mutation<
+      AdminBadge[],
+      CommitBadgeSequenceOrderArg
     >({
       async queryFn(arg, _api, _extraOptions, baseQuery) {
-        const putBadge = async (badgeId: string, body: AdminBadgeWriteBody) => {
-          const result = await baseQuery({
-            url: `/admin/badges/${encodeURIComponent(badgeId)}`,
-            method: 'PUT',
-            body,
-          });
-          if (result.error) {
-            return { error: result.error };
+        const assigned = assignSequencesByOrder(arg.draft);
+        const changes = diffBadgeSequenceChanges(arg.baseline, arg.draft);
+        if (changes.length === 0) {
+          return { data: assigned };
+        }
+
+        const clearedIds: string[] = [];
+        for (const change of changes) {
+          const cleared = await putBadge(
+            baseQuery,
+            change.badge.id,
+            toBadgeWriteBody(change.badge, null),
+          );
+          if ('error' in cleared && cleared.error) {
+            for (const id of clearedIds) {
+              const original = arg.baseline.find((badge) => badge.id === id);
+              if (original) {
+                await putBadge(
+                  baseQuery,
+                  id,
+                  toBadgeWriteBody(original, original.sequence),
+                );
+              }
+            }
+            return { error: cleared.error };
           }
-          const badge = normalizeAdminBadge(result.data);
-          if (!badge) {
-            return {
-              error: {
-                status: 500,
-                data: { message: 'Invalid badge response' },
-              },
-            };
+          clearedIds.push(change.badge.id);
+        }
+
+        const assignedIds: string[] = [];
+        for (const change of changes) {
+          const updated = await putBadge(
+            baseQuery,
+            change.badge.id,
+            toBadgeWriteBody(change.badge, change.toSequence),
+          );
+          if ('error' in updated && updated.error) {
+            for (const id of [...assignedIds, ...clearedIds]) {
+              const original = arg.baseline.find((badge) => badge.id === id);
+              if (original) {
+                await putBadge(
+                  baseQuery,
+                  id,
+                  toBadgeWriteBody(original, original.sequence),
+                );
+              }
+            }
+            return { error: updated.error };
           }
-          return { data: badge };
-        };
-
-        // Three-step swap avoids unique-sequence conflicts on the backend.
-        const cleared = await putBadge(
-          arg.badge.id,
-          toBadgeWriteBody(arg.badge, null),
-        );
-        if ('error' in cleared && cleared.error) {
-          return { error: cleared.error };
+          assignedIds.push(change.badge.id);
         }
 
-        const neighborUpdated = await putBadge(
-          arg.neighbor.id,
-          toBadgeWriteBody(arg.neighbor, arg.badgeSequence),
-        );
-        if ('error' in neighborUpdated && neighborUpdated.error) {
-          // Compensate: restore the cleared badge sequence.
-          await putBadge(
-            arg.badge.id,
-            toBadgeWriteBody(arg.badge, arg.badgeSequence),
-          );
-          return { error: neighborUpdated.error };
-        }
-
-        const badgeUpdated = await putBadge(
-          arg.badge.id,
-          toBadgeWriteBody(arg.badge, arg.neighborSequence),
-        );
-        if ('error' in badgeUpdated && badgeUpdated.error) {
-          // Compensate: restore both badges to their original sequences.
-          await putBadge(
-            arg.neighbor.id,
-            toBadgeWriteBody(arg.neighbor, arg.neighborSequence),
-          );
-          await putBadge(
-            arg.badge.id,
-            toBadgeWriteBody(arg.badge, arg.badgeSequence),
-          );
-          return { error: badgeUpdated.error };
-        }
-
-        return {
-          data: {
-            badge: badgeUpdated.data as AdminBadge,
-            neighbor: neighborUpdated.data as AdminBadge,
-          },
-        };
+        return { data: assigned };
       },
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
-        const patches = patchBadgeSequencesInCaches(
+        const assigned = assignSequencesByOrder(arg.draft);
+        const patches = patchCommittedSequencesInCaches(
           dispatch,
           getState,
-          arg.badge.id,
-          arg.neighbor.id,
-          arg.neighborSequence,
-          arg.badgeSequence,
+          assigned,
         );
         try {
           await queryFulfilled;
@@ -362,6 +375,8 @@ export const adminBadgesApi = baseApi.injectEndpoints({
           }
         }
       },
+      // Refetch list pages so sorted membership is correct across offsets.
+      invalidatesTags: [{ type: 'Badges', id: 'LIST' }],
     }),
     deleteBadge: builder.mutation<void, { badgeId: string }>({
       query: ({ badgeId }) => ({
@@ -383,6 +398,6 @@ export const {
   useGetBadgeQuery,
   useCreateBadgeMutation,
   useUpdateBadgeMutation,
-  useReorderBadgePairMutation,
+  useCommitBadgeSequenceOrderMutation,
   useDeleteBadgeMutation,
 } = adminBadgesApi;
