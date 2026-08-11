@@ -10,6 +10,7 @@ vi.mock('@/store/apis/mockBaseQuery', () => ({
 
 async function dispatchFetchIngestionRuns(arg: {
   status?: string;
+  q?: string;
   limit?: number;
   offset?: number;
 }) {
@@ -64,6 +65,31 @@ describe('adminIngestionRunsApi', () => {
       limit: 10,
       offset: 0,
       status: 'failed',
+    });
+  });
+
+  it('includes optional search query in the request', async () => {
+    const { request } = await dispatchFetchIngestionRuns({
+      q: 'hypertension',
+      limit: 10,
+      offset: 0,
+    });
+    expect(request.params).toEqual({
+      limit: 10,
+      offset: 0,
+      q: 'hypertension',
+    });
+  });
+
+  it('omits empty search query from the request', async () => {
+    const { request } = await dispatchFetchIngestionRuns({
+      q: '',
+      limit: 10,
+      offset: 0,
+    });
+    expect(request.params).toEqual({
+      limit: 10,
+      offset: 0,
     });
   });
 

@@ -24,6 +24,7 @@ export interface IngestionRunListResponse {
 
 export interface FetchIngestionRunsQueryArgs {
   status?: string;
+  q?: string;
   limit?: number;
   offset?: number;
   sort_by?: string;
@@ -128,13 +129,14 @@ export const adminIngestionRunsApi = baseApi.injectEndpoints({
       IngestionRunListResponse,
       FetchIngestionRunsQueryArgs
     >({
-      query: ({ limit, offset, status, sort_by, sort_dir }) => ({
+      query: ({ limit, offset, status, q, sort_by, sort_dir }) => ({
         url: '/admin/ingestion-runs',
         method: 'GET',
         params: {
           limit,
           offset,
           ...(status ? { status } : {}),
+          ...(q ? { q } : {}),
           ...(sort_by ? { sort_by } : {}),
           ...(sort_dir ? { sort_dir } : {}),
         },

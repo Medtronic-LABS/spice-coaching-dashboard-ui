@@ -8,6 +8,7 @@ import {
   Card,
   ErrorState,
   Loader,
+  SearchInput,
   TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -23,12 +24,14 @@ import {
   shouldPollIngestionRunList,
 } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const RUN_HISTORY_PAGE_SIZE_OPTIONS = [5, 10, 15, 25] as const;
 const DEFAULT_RUN_HISTORY_PAGE_SIZE = 10;
 const RUN_HISTORY_POLL_INTERVAL_MS = 30000;
+const RUN_HISTORY_SEARCH_DEBOUNCE_MS = 300;
 
 type IngestRunHistoryRow = {
   id: string;
@@ -53,6 +56,12 @@ export const IngestRunHistoryTable = () => {
   const [pollIntervalMs, setPollIntervalMs] = useState(0);
   const [sortBy, setSortBy] = useState<string | undefined>('started_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(
+    query,
+    RUN_HISTORY_SEARCH_DEBOUNCE_MS,
+  );
+  const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
 
   const handleSort = useCallback(
     (newSortBy: string, newSortDir: 'asc' | 'desc') => {
@@ -63,14 +72,19 @@ export const IngestRunHistoryTable = () => {
     [],
   );
 
+  useEffect(() => {
+    setPage(0);
+  }, [searchQ]);
+
   const queryArgs = useMemo(
     () => ({
       limit: pageSize,
       offset: page * pageSize,
       sort_by: sortBy,
       sort_dir: sortDir,
+      ...(searchQ ? { q: searchQ } : {}),
     }),
-    [page, pageSize, sortBy, sortDir],
+    [page, pageSize, searchQ, sortBy, sortDir],
   );
 
   const {
@@ -275,26 +289,41 @@ export const IngestRunHistoryTable = () => {
     [openGeneratedModules],
   );
 
+  const emptyMessage = isLoading
+    ? 'Loading run history…'
+    : searchQ
+      ? 'No ingestion runs match your search.'
+      : 'No ingestion history available. Upload your first document to generate learning modules.';
+
   return (
     <Card variant="elevated" className="space-y-4 p-4">
-      <div className="flex items-center justify-end gap-3">
-        <span className="text-[11px] text-spice-text-muted">
-          Last updated {lastUpdatedLabel}
-        </span>
-        {isFetching && !isLoading ? (
-          <span className="text-[11px] text-spice-text-muted">Updating…</span>
-        ) : null}
-        <Button
-          variant="secondary"
-          className="h-8 w-8 px-0"
-          aria-label="Refresh"
-          title="Refresh"
-          onClick={() => {
-            refetch();
-          }}
-        >
-          <RefreshIcon className="h-4 w-4" />
-        </Button>
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-3">
+          <div className="w-64 sm:w-72">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search ingestion history…"
+              aria-label="Search ingestion history"
+              className="h-9"
+            />
+          </div>
+          <Button
+            variant="secondary"
+            className="h-8 w-8 px-0"
+            aria-label="Refresh"
+            title="Refresh"
+            onClick={() => {
+              refetch();
+            }}
+          >
+            <RefreshIcon className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-spice-text-muted">
+          <span>Last updated {lastUpdatedLabel}</span>
+          {isFetching && !isLoading ? <span>Updating…</span> : null}
+        </div>
       </div>
 
       {error ? (
@@ -322,11 +351,7 @@ export const IngestRunHistoryTable = () => {
         columns={columns}
         keyExtractor={(row) => row.id}
         caption="Ingestion run history"
-        emptyMessage={
-          isLoading
-            ? 'Loading run history…'
-            : 'No ingestion history available. Upload your first document to generate learning modules.'
-        }
+        emptyMessage={emptyMessage}
         sortBy={sortBy}
         sortDir={sortDir}
         onSort={handleSort}
