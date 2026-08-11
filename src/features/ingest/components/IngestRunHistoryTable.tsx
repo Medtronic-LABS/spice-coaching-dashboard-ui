@@ -233,9 +233,11 @@ export const IngestRunHistoryTable = () => {
         header: 'Status',
         sortable: true,
         sortKey: 'status',
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span
-            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ${ingestRunStatusBadgeClassName(row.statusTone)}`}
+            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${ingestRunStatusBadgeClassName(row.statusTone)}`}
           >
             {row.statusLabel}
           </span>
@@ -245,6 +247,8 @@ export const IngestRunHistoryTable = () => {
         key: 'durationLabel',
         header: 'Duration',
         sortable: false,
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.durationLabel}
@@ -256,6 +260,8 @@ export const IngestRunHistoryTable = () => {
         header: 'Uploaded Date',
         sortable: true,
         sortKey: 'started_at',
+        headerClassName: 'whitespace-nowrap px-3 sm:px-4',
+        className: 'whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {formatIngestRunTimestamp(row.uploadedAt)}
@@ -266,8 +272,10 @@ export const IngestRunHistoryTable = () => {
         key: 'actions',
         header: 'Actions',
         sortable: false,
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 text-left sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 text-left sm:px-4',
         render: (row) => (
-          <span
+          <div
             className="inline-flex"
             title={
               row.hasGeneratedModules
@@ -276,13 +284,14 @@ export const IngestRunHistoryTable = () => {
             }
           >
             <Button
-              className="h-8 px-3 text-xs"
+              variant={row.hasGeneratedModules ? 'primary' : 'secondary'}
+              className="h-8 min-w-[7.75rem] px-3 text-xs"
               disabled={!row.sourceDocumentId || !row.hasGeneratedModules}
               onClick={() => openGeneratedModules(row)}
             >
               {row.hasGeneratedModules ? 'Open modules' : 'No modules'}
             </Button>
-          </span>
+          </div>
         ),
       },
     ],

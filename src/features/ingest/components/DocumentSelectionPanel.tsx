@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -10,6 +11,7 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import type { StatusBadgeProps } from '@/components/ui/StatusBadge';
+import { paths } from '@/constants/routes';
 import type {
   AdminV3IngestUploadPayload,
   AdminV3IngestUploadResponse,
@@ -32,6 +34,7 @@ import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefa
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 import { formatIngestRunStatusDisplay } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
+import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
@@ -44,6 +47,7 @@ type DocumentSelectionRow = {
   status: string;
   uploadedAt: string;
   selection: '';
+  actions: '';
 };
 
 export interface DocumentSelectionPanelProps {
@@ -90,6 +94,12 @@ function titleFromFilename(filename: string): string {
   return trimmed.slice(0, dot) || trimmed;
 }
 
+/** Statuses that mean ingestion finished and modules can be opened. */
+function isIngestedDocumentStatus(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return normalized === 'ingested' || normalized === 'succeeded';
+}
+
 export const DocumentSelectionPanel = ({
   selectedDocuments,
   onSelectedDocumentsChange,
@@ -101,6 +111,7 @@ export const DocumentSelectionPanel = ({
   isUploading = false,
   uploadClearSignal = 0,
 }: DocumentSelectionPanelProps) => {
+  const navigate = useNavigate();
   const debouncedQuery = useDebouncedValue(
     searchQuery,
     DOCUMENT_SELECTION_SEARCH_DEBOUNCE_MS,
@@ -161,6 +172,7 @@ export const DocumentSelectionPanel = ({
         status: doc.status,
         uploadedAt: doc.uploaded_date || doc.ingested_at,
         selection: '',
+        actions: '',
       })),
     [catalog?.source_documents],
   );
@@ -255,6 +267,18 @@ export const DocumentSelectionPanel = ({
     setUploadError('');
     setPendingFiles(next);
   };
+
+  const goToModulesForSource = useCallback(
+    (sourceDocumentId: string, sourceTitle?: string) => {
+      const state: ModuleLibraryLocationState = {
+        tab: 'all',
+        sourceDocumentId,
+        ...(sourceTitle ? { sourceDocumentTitle: sourceTitle } : {}),
+      };
+      navigate(paths.moduleLibrary, { state });
+    },
+    [navigate],
+  );
 
   const runUpload = useCallback(async () => {
     if (!pendingFiles.length || disabled || isUploading) return;
@@ -361,8 +385,35 @@ export const DocumentSelectionPanel = ({
           </span>
         ),
       },
+      {
+        key: 'actions',
+        header: 'Actions',
+        sortable: false,
+        render: (row) => {
+          if (isIngestedDocumentStatus(row.status)) {
+            return (
+              <Button
+                variant="secondary"
+                className="h-8 shrink-0 px-3 text-xs"
+                onClick={() => {
+                  goToModulesForSource(row.id, row.title);
+                }}
+              >
+                View modules
+              </Button>
+            );
+          }
+          return <StatusBadge status="neutral" label="Not ingested" />;
+        },
+      },
     ],
-    [disabled, selectedDocuments.length, selectedIds, toggleDocument],
+    [
+      disabled,
+      goToModulesForSource,
+      selectedDocuments.length,
+      selectedIds,
+      toggleDocument,
+    ],
   );
 
   const uploadFieldsDisabled = disabled || isUploading;

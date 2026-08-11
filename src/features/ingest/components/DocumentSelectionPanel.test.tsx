@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { paths } from '@/constants/routes';
 import { DocumentSelectionPanel } from '@/features/ingest/components/DocumentSelectionPanel';
 import type { DocumentSelectionPanelProps } from '@/features/ingest/components/DocumentSelectionPanel';
 import { INGESTABLE_KNOWLEDGE_SOURCE_TYPES } from '@/features/ingest/constants/documentSelection';
@@ -52,6 +53,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     sourceDocuments,
+    navigate: vi.fn(),
     useFetchSourceDocumentsQuery: vi.fn(() => ({
       data: {
         source_documents: mocks.sourceDocuments,
@@ -67,6 +69,14 @@ const mocks = vi.hoisted(() => {
     })),
     uploadFiles: vi.fn(),
   };
+});
+
+vi.mock('react-router-dom', async () => {
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom',
+    );
+  return { ...actual, useNavigate: () => mocks.navigate };
 });
 
 vi.mock(
@@ -134,6 +144,7 @@ describe('DocumentSelectionPanel', () => {
   beforeEach(() => {
     mocks.useFetchSourceDocumentsQuery.mockClear();
     mocks.uploadFiles.mockClear();
+    mocks.navigate.mockClear();
   });
 
   it('requests knowledge-visible ingestable documents and supports search q', async () => {
@@ -214,6 +225,22 @@ describe('DocumentSelectionPanel', () => {
     });
     await waitFor(() => {
       expect(screen.getByTestId('selected-count')).toHaveTextContent('1');
+    });
+  });
+
+  it('shows View modules for ingested docs and navigates with source filter', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ControlledPanel />);
+
+    expect(screen.getByText('Not ingested')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /view modules/i }));
+
+    expect(mocks.navigate).toHaveBeenCalledWith(paths.moduleLibrary, {
+      state: {
+        tab: 'all',
+        sourceDocumentId: 'doc-2',
+        sourceDocumentTitle: 'Protocol Deck',
+      },
     });
   });
 });
