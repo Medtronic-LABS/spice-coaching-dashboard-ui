@@ -155,4 +155,37 @@ describe('AdminModuleDetailsStep', () => {
       screen.getByRole('button', { name: /save draft/i }),
     ).toBeInTheDocument();
   });
+
+  it('toggles Chatbot FAQs Only on draft modules', async () => {
+    const user = userEvent.setup();
+    const { store } = renderDetailsStep();
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: /Chatbot FAQs Only/i,
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeEnabled();
+
+    await user.click(checkbox);
+
+    expect(store.getState().adminModuleReview.working?.chatbot_faqs_only).toBe(
+      true,
+    );
+  });
+
+  it('keeps Chatbot FAQs Only read-only on published modules', () => {
+    mockModule = baseAdminModuleDetail({
+      card_count: 2,
+      lifecycle_status: 'published',
+      chatbot_faqs_only: true,
+    });
+    renderDetailsStep();
+
+    expect(
+      screen.getByRole('checkbox', { name: /Chatbot FAQs Only/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', { name: /Chatbot FAQs Only/i }),
+    ).toBeChecked();
+  });
 });

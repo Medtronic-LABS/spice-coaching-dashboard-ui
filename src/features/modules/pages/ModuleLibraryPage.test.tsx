@@ -131,6 +131,21 @@ describe('ModuleLibraryPage', () => {
     expect(screen.queryByRole('tab', { name: /all/i })).not.toBeInTheDocument();
   });
 
+  it('hides Assign for chatbot FAQ-only published modules', async () => {
+    renderModuleLibraryPage();
+
+    const faqTitle = await screen.findByRole('link', {
+      name: 'Hypertension Chatbot FAQs',
+    });
+    const faqRow = faqTitle.closest('tr');
+    expect(faqRow).not.toBeNull();
+    expect(
+      within(faqRow as HTMLElement).queryByRole('button', {
+        name: /^assign$/i,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens a published module from its title for supervisors', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();

@@ -176,6 +176,22 @@ describe('AdminModulePublishStep', () => {
     });
   });
 
+  it('hides Assign to CHWs for chatbot FAQ-only published modules', () => {
+    mockModule = {
+      ...createMockModule(),
+      lifecycle_status: 'published',
+      chatbot_faqs_only: true,
+    };
+    renderPublishStep();
+
+    expect(
+      screen.queryByRole('button', { name: 'Assign to CHWs' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/chatbot FAQ-only module.*cannot be assigned to CHWs/i),
+    ).toBeInTheDocument();
+  });
+
   it('redirects to the published tab after the success modal', async () => {
     const user = userEvent.setup();
     renderPublishStep();

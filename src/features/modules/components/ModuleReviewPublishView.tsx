@@ -1,5 +1,6 @@
 import { EyeIcon, SaveDraftIcon } from '@/assets/icon';
 import { Button, Card } from '@/components/ui';
+import { getPublishCardDescription } from '@/features/modules/utils/getPublishCardDescription';
 
 export interface ModuleReviewPublishLessonRow {
   id: string;
@@ -32,6 +33,8 @@ export interface ModuleReviewPublishViewProps {
   onPublish: () => void;
   /** Navigates to CHW assignment when the module is already published. */
   onAssign?: () => void;
+  /** When true, assignment is unavailable (e.g. chatbot FAQ-only modules). */
+  assignDisabled?: boolean;
   /** Returns to the module library when the module is already published. */
   onBackToLibrary?: () => void;
   onSave?: () => void;
@@ -98,6 +101,7 @@ export const ModuleReviewPublishView = ({
   onEditQuiz,
   onPublish,
   onAssign,
+  assignDisabled = false,
   onBackToLibrary,
   onSave,
   isPublishing,
@@ -112,6 +116,12 @@ export const ModuleReviewPublishView = ({
   const sectionActionLabel = readonly ? 'View' : editActionLabel;
   const lessonLabel = lessonCount === 1 ? '1 lesson' : `${lessonCount} lessons`;
   const quizLabel = quizCount === 1 ? '1 question' : `${quizCount} questions`;
+  const showAssignAction = Boolean(onAssign) && !assignDisabled;
+  const publishCardDescription = getPublishCardDescription({
+    readonly,
+    isAlreadyPublished,
+    assignDisabled,
+  });
 
   return (
     <div className="space-y-4">
@@ -313,11 +323,7 @@ export const ModuleReviewPublishView = ({
                   : 'Ready to publish?'}
             </div>
             <p className="mt-1 text-xs leading-relaxed text-white/90">
-              {readonly
-                ? 'Review module content before assigning it to CHWs.'
-                : isAlreadyPublished
-                  ? 'This module is already published. Assign it to CHWs or return to the module library.'
-                  : 'This module will be added to the library. You can assign it to CHWs after publishing.'}
+              {publishCardDescription}
             </p>
             {publishError ? (
               <div className="mt-3 rounded-lg bg-white/15 px-3 py-2 text-xs text-white">
@@ -327,7 +333,7 @@ export const ModuleReviewPublishView = ({
             <div className="mt-4 space-y-2">
               {readonly || isAlreadyPublished ? (
                 <>
-                  {onAssign ? (
+                  {showAssignAction ? (
                     <Button
                       variant="secondary"
                       className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"

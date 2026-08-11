@@ -608,7 +608,11 @@ export const VideoUploadPage = () => {
       void uploadPendingThumbnails(response.sources, metas).then(() => {
         void refetchSourceDocumentList();
       });
-      setActionSuccess('Videos uploaded successfully.');
+      setActionSuccess(
+        response.sources.length === 1
+          ? 'Video uploaded successfully.'
+          : 'Videos uploaded successfully.',
+      );
     },
     [
       clearPendingAfterUpload,
@@ -955,9 +959,7 @@ export const VideoUploadPage = () => {
                   View modules
                 </Button>
               ) : (
-                <span className="inline-flex h-8 shrink-0 items-center text-xs text-spice-text-muted ml-3">
-                  Not ingested
-                </span>
+                <StatusBadge status="neutral" label="Not ingested" />
               )}
             </div>
           );

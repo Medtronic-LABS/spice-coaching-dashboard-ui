@@ -32,12 +32,14 @@ import {
 } from '@/features/modules/api/adminModulesApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
+import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
 import {
   NEEDS_REVIEW_TOOLTIP_CONTENT,
   NeedsReviewTab,
 } from '@/features/modules/components/NeedsReviewTab';
+import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
@@ -434,6 +436,17 @@ export const ModuleLibraryPage = () => {
     [modulesForList, tab],
   );
 
+  useEffect(() => {
+    if (!assignmentOpen || !assignmentModule) return;
+    const listed = modulesForDisplay.find(
+      (module) => module.id === assignmentModule.id,
+    );
+    if (listed && !isAssignablePublishedModule(listed)) {
+      setAssignmentOpen(false);
+      setAssignmentModule(null);
+    }
+  }, [assignmentModule, assignmentOpen, modulesForDisplay]);
+
   const documentFilterOptions = useMemo(() => {
     const searchTerm = documentSearchQ?.toLowerCase();
     const options = [{ label: 'All documents', value: '' }];
@@ -521,6 +534,7 @@ export const ModuleLibraryPage = () => {
       publishedAt: formatDisplayDateTime(m.published_at),
       activatedAt: formatDisplayDateTime(getModuleActivatedAt(m)),
       deactivatedAt: formatDisplayDateTime(m.last_deactivated_at),
+      chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
     }));
     return rows;
   }, [modulesForDisplay]);
@@ -697,15 +711,17 @@ export const ModuleLibraryPage = () => {
           if (row.status === 'published') {
             return (
               <div className="flex justify-start gap-2">
-                <Button
-                  className="h-8 px-3 text-xs"
-                  onClick={() => {
-                    setAssignmentModule({ id: row.id, title: row.title });
-                    setAssignmentOpen(true);
-                  }}
-                >
-                  Assign
-                </Button>
+                {isAssignablePublishedModule(row) ? (
+                  <Button
+                    className="h-8 px-3 text-xs"
+                    onClick={() => {
+                      setAssignmentModule({ id: row.id, title: row.title });
+                      setAssignmentOpen(true);
+                    }}
+                  >
+                    Assign
+                  </Button>
+                ) : null}
                 {isProgramManager ? (
                   <Button
                     variant="secondary"
@@ -958,25 +974,16 @@ export const ModuleLibraryPage = () => {
                 </label>
               </div>
 
-              <label className="flex min-h-10 items-start gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 shrink-0"
-                  disabled={isCreating}
-                  checked={createForm.chatbot_faqs_only}
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({
-                      ...prev,
-                      chatbot_faqs_only: e.target.checked,
-                    }))
-                  }
-                />
-                <span className="text-sm text-spice-text-medium">
-                  <span className="font-semibold text-spice-text-primary">
-                    Chatbot FAQs Only
-                  </span>
-                </span>
-              </label>
+              <ChatbotFaqsOnlyField
+                checked={createForm.chatbot_faqs_only}
+                disabled={isCreating}
+                onChange={(checked) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    chatbot_faqs_only: checked,
+                  }))
+                }
+              />
             </div>
 
             <div className="flex shrink-0 justify-end gap-2 px-6 pb-6 pt-6">
