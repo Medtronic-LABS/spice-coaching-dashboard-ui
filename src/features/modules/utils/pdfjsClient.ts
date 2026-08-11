@@ -13,7 +13,46 @@ export async function loadPdfjs(): Promise<PdfjsModule> {
     pdfjsLoadPromise = (async () => {
       const pdfjs = await import('pdfjs-dist');
       const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+
+      // PDF.js loads its worker as a *module* (`type: "module"`). Some QA/CDN
+      // setups serve the `.mjs` worker with an invalid Content-Type
+      // (often `application/octet-stream`), which causes browsers to reject it.
+      //
+      // We avoid breaking local by only applying the workaround when we
+      // detect a bad Content-Type at runtime.
+      const workerUrl: string = worker.default;
+
+      const looksLikeJsMime = (contentType: string | null): boolean => {
+        if (!contentType) return false;
+        const ct = contentType.toLowerCase();
+        return (
+          ct.includes('javascript') ||
+          ct.includes('ecmascript') ||
+          ct.includes('text/javascript') ||
+          ct.includes('+javascript')
+        );
+      };
+
+      try {
+        const res = await fetch(workerUrl);
+        const contentType = res.headers.get('content-type');
+
+        if (res.ok && !looksLikeJsMime(contentType)) {
+          // Use GlobalWorkerOptions.workerPort so PDF.js doesn't wrap the
+          // (blob:) URL through its CDN wrapper logic.
+          const bytes = await res.arrayBuffer();
+          const blob = new Blob([bytes], { type: 'text/javascript' });
+          const blobUrl = URL.createObjectURL(blob);
+          const workerPort = new Worker(blobUrl, { type: 'module' });
+          pdfjs.GlobalWorkerOptions.workerPort = workerPort;
+        } else {
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+        }
+      } catch {
+        // If the probe fails (offline, CSP, etc.), fall back to default.
+        pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+      }
+
       return pdfjs;
     })();
   }
