@@ -209,9 +209,9 @@ export const IngestConfigurationPanel = ({
                   disabled={disabled}
                   onClick={() => onPrimaryLanguageChange(code)}
                   className={cn(
-                    'flex flex-col items-center gap-0.5 rounded-xl border px-2 py-3 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/50',
+                    'flex flex-col items-center gap-0.5 rounded-xl border px-2 py-3 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary',
                     selected
-                      ? 'border-spice-brand-primary/40 bg-spice-brand-primary/8 shadow-sm ring-1 ring-spice-brand-primary/20'
+                      ? 'border-spice-brand-primary bg-spice-bg-tint shadow-sm'
                       : 'border-spice-border bg-spice-bg-surface hover:border-spice-border-mid hover:bg-spice-bg-tint',
                     disabled && 'cursor-not-allowed opacity-50',
                   )}
@@ -233,7 +233,7 @@ export const IngestConfigurationPanel = ({
                     className={cn(
                       'mt-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide',
                       selected
-                        ? 'bg-spice-brand-primary/10 text-spice-brand-primary'
+                        ? 'bg-spice-bg-tint text-spice-brand-primary'
                         : 'bg-spice-bg-tint text-spice-text-muted',
                     )}
                   >
