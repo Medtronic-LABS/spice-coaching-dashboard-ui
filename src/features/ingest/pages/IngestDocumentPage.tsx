@@ -46,6 +46,7 @@ import {
   isOverriddenUploadedSource,
   sourceDocumentFromDuplicateConflict,
 } from '@/features/ingest/utils/parseIngestDuplicateError';
+import { DEPLOYMENT_PRIMARY_LOCALE } from '@/config/deploymentLocale';
 
 function titleFromFilename(filename: string): string {
   const trimmed = filename.trim();
@@ -60,6 +61,9 @@ export const IngestDocumentPage = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [contentDomain, setContentDomain] = useState<IngestContentDomain>(
     INGEST_FORM_DEFAULTS.content_domain,
+  );
+  const [primaryLanguage, setPrimaryLanguage] = useState<string>(
+    DEPLOYMENT_PRIMARY_LOCALE,
   );
   const [assessmentMode, setAssessmentMode] = useState<
     'with_quiz' | 'read_only'
@@ -358,8 +362,9 @@ export const IngestDocumentPage = () => {
       sync_published_visible: files.map(
         () => INGEST_FORM_DEFAULTS.sync_published_visible,
       ),
+      primary_languages: files.map(() => primaryLanguage),
     });
-  }, [contentDomain, files, uploadFiles]);
+  }, [contentDomain, files, primaryLanguage, uploadFiles]);
 
   const runStartIngest = useCallback(async () => {
     if (!uploadedSources.length) return;
@@ -462,6 +467,11 @@ export const IngestDocumentPage = () => {
           contentDomain={contentDomain}
           onContentDomainChange={(value) => {
             setContentDomain(value);
+            clearUploadedState();
+          }}
+          primaryLanguage={primaryLanguage}
+          onPrimaryLanguageChange={(value) => {
+            setPrimaryLanguage(value);
             clearUploadedState();
           }}
           cardsPerModule={cardsPerModule}

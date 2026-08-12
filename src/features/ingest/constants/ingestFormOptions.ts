@@ -13,6 +13,14 @@ export const INGEST_ASSESSMENT_MODE_OPTIONS: SelectOption[] = [
   ingestOption('Cards Only', 'read_only' satisfies IngestAssessmentMode),
 ];
 
+export const INGEST_PRIMARY_LANGUAGE_OPTIONS: SelectOption[] = [
+  ingestOption('English (en)', 'en'),
+  ingestOption('Bangla (bn)', 'bn'),
+  ingestOption('Hindi (hi)', 'hi'),
+  ingestOption('Tamil (ta)', 'ta'),
+  ingestOption('Telugu (te)', 'te'),
+];
+
 export const INGEST_CONTENT_DOMAIN_OPTIONS: SelectOption[] = [
   ingestOption('Clinical', 'clinical' satisfies IngestContentDomain),
   ingestOption('Digital', 'digital' satisfies IngestContentDomain),

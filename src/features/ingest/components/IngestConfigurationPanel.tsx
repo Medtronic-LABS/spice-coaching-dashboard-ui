@@ -14,6 +14,7 @@ import {
 import {
   INGEST_ASSESSMENT_MODE_OPTIONS,
   INGEST_CONTENT_DOMAIN_OPTIONS,
+  INGEST_PRIMARY_LANGUAGE_OPTIONS,
 } from '@/features/ingest/constants/ingestFormOptions';
 import { cn } from '@/utils';
 
@@ -26,6 +27,8 @@ export interface IngestConfigurationPanelProps {
   onAssessmentModeChange: (value: IngestAssessmentMode) => void;
   contentDomain: IngestContentDomain;
   onContentDomainChange: (value: IngestContentDomain) => void;
+  primaryLanguage: string;
+  onPrimaryLanguageChange: (value: string) => void;
   cardsPerModule: IngestModuleCountInput;
   onCardsPerModuleChange: (value: IngestModuleCountInput) => void;
   quizzesPerModule: IngestModuleCountInput;
@@ -56,6 +59,8 @@ export const IngestConfigurationPanel = ({
   onAssessmentModeChange,
   contentDomain,
   onContentDomainChange,
+  primaryLanguage,
+  onPrimaryLanguageChange,
   cardsPerModule,
   onCardsPerModuleChange,
   quizzesPerModule,
@@ -114,6 +119,19 @@ export const IngestConfigurationPanel = ({
               onChange={(value) =>
                 onContentDomainChange(value as IngestContentDomain)
               }
+            />
+          </label>
+
+          <label className="block min-w-0 space-y-1">
+            <span className="text-xs font-semibold text-spice-text-primary">
+              Document language
+            </span>
+            <Select
+              className="w-full rounded-lg"
+              options={INGEST_PRIMARY_LANGUAGE_OPTIONS}
+              value={primaryLanguage}
+              disabled={disabled}
+              onChange={onPrimaryLanguageChange}
             />
           </label>
 

@@ -36,6 +36,8 @@ export interface AdminV3IngestUploadPayload {
   content_domains?: IngestContentDomain[];
   sync_published_visible?: boolean[];
   override_duplicates?: boolean[];
+  /** Parallel to `files`; BCP-47 codes: en, bn, hi, ta, te. Defaults to deployment locale. */
+  primary_languages?: string[];
 }
 
 export interface AdminV3IngestUploadedSource {
@@ -226,6 +228,12 @@ export const adminIngestApi = baseApi.injectEndpoints({
           form.append(
             'override_duplicates',
             JSON.stringify(payload.override_duplicates),
+          );
+        }
+        if (payload.primary_languages?.length) {
+          form.append(
+            'primary_languages',
+            JSON.stringify(payload.primary_languages),
           );
         }
         return {
