@@ -38,7 +38,7 @@ async function saveDuration(
   await waitFor(
     () => {
       expect(
-        screen.getByText('Assignment duration updated successfully.'),
+        screen.getByText('Quiz reattempt validity updated successfully.'),
       ).toBeInTheDocument();
     },
     { timeout: FIND_TIMEOUT_MS },
