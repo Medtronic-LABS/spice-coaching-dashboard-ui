@@ -222,8 +222,13 @@ export const ModuleLibraryPage = () => {
   const [fetchModuleDetail] = useLazyGetModuleDetailQuery();
 
   const handleOverrideMerge = async (moduleId: string) => {
-    await overrideMergeModule({ moduleId }).unwrap();
-    refreshModuleList();
+    const result = await overrideMergeModule({ moduleId }).unwrap();
+    navigate(
+      paths.adminModuleReviewDetails.replace(
+        ':moduleId',
+        encodeURIComponent(result.secondary_module_id),
+      ),
+    );
   };
 
   const handleSkipReview = async (moduleId: string) => {

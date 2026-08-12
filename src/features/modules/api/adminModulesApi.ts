@@ -659,7 +659,12 @@ export const adminModulesApi = baseApi.injectEndpoints({
       }),
     }),
     overrideMergeModule: builder.mutation<
-      { id: string; lifecycle_status: AdminModuleLifecycleStatus },
+      {
+        primary_module_id: string;
+        secondary_module_id: string;
+        source_module_id: string;
+        secondary_lifecycle_status: string;
+      },
       { moduleId: string }
     >({
       query: ({ moduleId }) => ({
