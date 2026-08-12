@@ -14,9 +14,16 @@ import {
 import {
   INGEST_ASSESSMENT_MODE_OPTIONS,
   INGEST_CONTENT_DOMAIN_OPTIONS,
-  INGEST_PRIMARY_LANGUAGE_OPTIONS,
 } from '@/features/ingest/constants/ingestFormOptions';
 import { cn } from '@/utils';
+
+const LANGUAGE_CARDS = [
+  { code: 'en', name: 'English', native: 'English' },
+  { code: 'bn', name: 'Bangla', native: 'বাংলা' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు' },
+] as const;
 
 const DEFAULT_INSTRUCTIONS_PLACEHOLDER =
   'e.g. Focus on hypertension counselling workflows…';
@@ -124,19 +131,6 @@ export const IngestConfigurationPanel = ({
 
           <label className="block min-w-0 space-y-1">
             <span className="text-xs font-semibold text-spice-text-primary">
-              Document language
-            </span>
-            <Select
-              className="w-full rounded-lg"
-              options={INGEST_PRIMARY_LANGUAGE_OPTIONS}
-              value={primaryLanguage}
-              disabled={disabled}
-              onChange={onPrimaryLanguageChange}
-            />
-          </label>
-
-          <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
               Learning Material per Module{' '}
               <span className="font-normal text-spice-text-muted/65">
                 (Optional)
@@ -199,6 +193,56 @@ export const IngestConfigurationPanel = ({
               </span>
             )}
           </label>
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-xs font-semibold text-spice-text-primary">
+            Document language
+          </span>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {LANGUAGE_CARDS.map(({ code, name, native }) => {
+              const selected = primaryLanguage === code;
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onPrimaryLanguageChange(code)}
+                  className={cn(
+                    'flex flex-col items-center gap-0.5 rounded-xl border px-2 py-3 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/50',
+                    selected
+                      ? 'border-spice-brand-primary/40 bg-spice-brand-primary/8 shadow-sm ring-1 ring-spice-brand-primary/20'
+                      : 'border-spice-border bg-spice-bg-surface hover:border-spice-border-mid hover:bg-spice-bg-tint',
+                    disabled && 'cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'text-[13px] font-semibold leading-tight',
+                      selected
+                        ? 'text-spice-brand-primary'
+                        : 'text-spice-text-primary',
+                    )}
+                  >
+                    {name}
+                  </span>
+                  <span className="text-[12px] leading-tight text-spice-text-muted">
+                    {native}
+                  </span>
+                  <span
+                    className={cn(
+                      'mt-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide',
+                      selected
+                        ? 'bg-spice-brand-primary/10 text-spice-brand-primary'
+                        : 'bg-spice-bg-tint text-spice-text-muted',
+                    )}
+                  >
+                    {code}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <label className="block space-y-1">
