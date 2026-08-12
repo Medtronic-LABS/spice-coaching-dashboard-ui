@@ -32,7 +32,9 @@ const defaultHeaderProps = {
 describe('Header', () => {
   it('renders the UHIS logo and Coaching label in the header', () => {
     renderWithProviders(<Header {...defaultHeaderProps} />);
-    expect(screen.getByRole('img', { name: 'UHIS' })).toBeInTheDocument();
+    const logo = screen.getByRole('img', { name: 'UHIS' });
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute('draggable', 'false');
     expect(screen.getByText('AI Coaching')).toBeInTheDocument();
   });
 

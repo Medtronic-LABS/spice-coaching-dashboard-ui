@@ -23,7 +23,9 @@ describe('LoginPage', () => {
   it('renders login form elements matching SPICE admin-web copy', () => {
     renderWithProviders(<LoginPage />);
 
-    expect(screen.getByAltText('Medtronic')).toBeInTheDocument();
+    const logo = screen.getByAltText('Medtronic');
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute('draggable', 'false');
     expect(screen.getByText(/^Welcome$/i)).toBeInTheDocument();
     expect(screen.getByText(/Login to your account/i)).toBeInTheDocument();
     expect(

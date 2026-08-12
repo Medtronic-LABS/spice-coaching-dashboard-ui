@@ -52,7 +52,8 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
           <img
             src={uhisLogo}
             alt="UHIS"
-            className="h-8 w-auto object-contain sm:h-9"
+            draggable={false}
+            className="h-8 w-auto select-none object-contain sm:h-9"
           />
           <span className="truncate text-lg font-semibold tracking-tight text-[#E5007D] sm:text-xl">
             AI Coaching

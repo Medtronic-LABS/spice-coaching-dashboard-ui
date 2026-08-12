@@ -56,7 +56,8 @@ export const LoginPage = () => {
           <img
             src={appLogo}
             alt="Medtronic"
-            className="h-[75px] w-auto object-contain"
+            draggable={false}
+            className="h-[75px] w-auto select-none object-contain"
           />
         </div>
 
