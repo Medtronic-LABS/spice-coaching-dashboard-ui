@@ -676,6 +676,7 @@ export const {
   useFetchModuleDomainOptionsQuery,
   useCreateModuleMutation,
   useGetModuleDetailQuery,
+  useLazyGetModuleDetailQuery,
   useEditModuleMutation,
   useSetClinicallyReviewedMutation,
   useDeleteModuleMutation,

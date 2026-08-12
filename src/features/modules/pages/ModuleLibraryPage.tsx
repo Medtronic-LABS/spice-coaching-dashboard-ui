@@ -26,6 +26,7 @@ import {
   useDeleteModuleMutation,
   useFetchModuleDomainOptionsQuery,
   useFetchModulesQuery,
+  useLazyGetModuleDetailQuery,
   useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
@@ -218,6 +219,7 @@ export const ModuleLibraryPage = () => {
     useReactivateModuleMutation();
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
+  const [fetchModuleDetail] = useLazyGetModuleDetailQuery();
 
   const handleOverrideMerge = async (moduleId: string) => {
     await overrideMergeModule({ moduleId }).unwrap();
@@ -344,11 +346,13 @@ export const ModuleLibraryPage = () => {
       });
     }
     if (state.openAssignment) {
-      setAssignmentModule({
-        id: state.openAssignment.moduleId,
-        title: state.openAssignment.moduleTitle,
+      const { moduleId, moduleTitle } = state.openAssignment;
+      void fetchModuleDetail(moduleId).then((result) => {
+        if (result.data?.lifecycle_status === 'published') {
+          setAssignmentModule({ id: moduleId, title: moduleTitle });
+          setAssignmentOpen(true);
+        }
       });
-      setAssignmentOpen(true);
     }
 
     const hasTransientState =
@@ -369,6 +373,7 @@ export const ModuleLibraryPage = () => {
     navigate,
     resolveExternalViewSearch,
     tab,
+    fetchModuleDetail,
   ]);
 
   const debouncedDocumentSearch = useDebouncedValue(
