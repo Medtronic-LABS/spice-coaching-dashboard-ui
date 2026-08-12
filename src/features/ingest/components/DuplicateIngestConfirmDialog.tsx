@@ -123,6 +123,7 @@ export const DuplicateIngestConfirmDialog = ({
       render: (row) => (
         <input
           type="checkbox"
+          className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
           checked={selectedFilenames.includes(row.filename)}
           disabled={isConfirming}
           onChange={(event) =>

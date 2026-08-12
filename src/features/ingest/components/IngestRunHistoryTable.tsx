@@ -201,7 +201,7 @@ export const IngestRunHistoryTable = () => {
         sortKey: 'document_label',
         className: 'whitespace-normal',
         render: (row) => (
-          <div className="min-w-[12rem] max-w-[20rem]">
+          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
             <TruncatedText
               text={row.fileName ?? '—'}
               focusable
@@ -306,7 +306,7 @@ export const IngestRunHistoryTable = () => {
 
   return (
     <Card variant="elevated" className="space-y-4 p-4">
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-col items-end gap-3">
         <div className="flex items-center gap-3">
           <div className="w-64 sm:w-72">
             <SearchInput

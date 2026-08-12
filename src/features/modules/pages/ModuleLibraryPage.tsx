@@ -607,12 +607,12 @@ export const ModuleLibraryPage = () => {
       {
         key: 'title',
         header: 'Module',
-        headerClassName: 'max-w-[9rem] sm:max-w-none',
-        className: 'max-w-[9rem] whitespace-normal sm:max-w-none',
+        headerClassName: 'w-[20rem] min-w-[20rem] max-w-[20rem]',
+        className: 'w-[20rem] min-w-[20rem] max-w-[20rem] whitespace-normal',
         sortable: true,
         sortKey: 'title',
         render: (row) => (
-          <div className="min-w-0">
+          <div className="w-full min-w-0">
             <TruncatedText text={row.title}>
               {isNeedsReviewStatus(row.status) ? (
                 <button

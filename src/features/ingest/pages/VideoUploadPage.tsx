@@ -839,6 +839,7 @@ export const VideoUploadPage = () => {
         render: (row) => (
           <input
             type="checkbox"
+            className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
             aria-label={`Select ${row.title}`}
             checked={selectedIds.has(row.id)}
             disabled={isUploading}
@@ -860,7 +861,7 @@ export const VideoUploadPage = () => {
         sortKey: 'title',
         className: 'whitespace-normal',
         render: (row) => (
-          <div className="max-w-[22rem] sm:max-w-[28rem]">
+          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
             <TruncatedText
               text={row.title}
               focusable
@@ -1008,7 +1009,7 @@ export const VideoUploadPage = () => {
           className="h-9 text-xs"
           onClick={() => navigate(paths.moduleLibrary)}
         >
-          Back to modules
+          Module Library
         </Button>
       </div>
 

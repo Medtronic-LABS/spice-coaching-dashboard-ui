@@ -365,12 +365,12 @@ export const KnowledgeLibraryTable = () => {
         sortable: true,
         sortKey: 'title',
         render: (row) => (
-          <div className="min-w-[12rem] max-w-[22rem]">
+          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
             <TruncatedText text={row.title} className="font-semibold">
               {row.title}
             </TruncatedText>
             {row.originalFilename ? (
-              <div className="mt-0.5 text-xs text-spice-text-muted">
+              <div className="mt-0.5 truncate text-xs text-spice-text-muted">
                 {row.originalFilename}
               </div>
             ) : null}

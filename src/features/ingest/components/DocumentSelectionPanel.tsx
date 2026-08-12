@@ -323,6 +323,7 @@ export const DocumentSelectionPanel = ({
           return (
             <input
               type="checkbox"
+              className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
               aria-label={`Select ${row.title}`}
               checked={checked}
               disabled={disabled || atCap}
@@ -340,7 +341,7 @@ export const DocumentSelectionPanel = ({
         sortKey: 'title',
         className: 'whitespace-normal',
         render: (row) => (
-          <div className="min-w-[12rem] max-w-[22rem]">
+          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
             <TruncatedText
               text={row.title}
               focusable

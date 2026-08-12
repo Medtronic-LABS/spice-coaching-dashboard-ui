@@ -14,7 +14,7 @@ export function ChatbotFaqsOnlyField({
     <label className="flex min-h-10 items-start gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5">
       <input
         type="checkbox"
-        className="mt-0.5 shrink-0"
+        className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30 mt-0.5"
         disabled={disabled}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
