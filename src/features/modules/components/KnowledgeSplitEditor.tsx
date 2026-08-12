@@ -71,14 +71,8 @@ export const KnowledgeSplitEditor = ({
   return (
     <div className="rounded-xl border border-spice-border bg-spice-bg-surface/70 p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-spice-text-primary">
-            {rowLabel}
-          </div>
-          <div className="mt-1 text-xs text-spice-text-muted">
-            Provide title and page range. Thumbnail can use the PDF start page,
-            a custom image, or stay blank.
-          </div>
+        <div className="text-sm font-semibold text-spice-text-primary">
+          {rowLabel}
         </div>
         <Button
           variant="ghost"
@@ -92,11 +86,11 @@ export const KnowledgeSplitEditor = ({
         </Button>
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-3 space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1 space-y-4">
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-              Title
+              Title <span className="text-spice-semantic-error">*</span>
             </div>
             <input
               type="text"
@@ -120,7 +114,8 @@ export const KnowledgeSplitEditor = ({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                  Start page
+                  Start page{' '}
+                  <span className="text-spice-semantic-error">*</span>
                 </div>
                 <input
                   type="number"
@@ -151,7 +146,7 @@ export const KnowledgeSplitEditor = ({
               </div>
               <div>
                 <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                  End page
+                  End page <span className="text-spice-semantic-error">*</span>
                 </div>
                 <input
                   type="number"

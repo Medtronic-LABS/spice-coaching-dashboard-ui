@@ -26,6 +26,27 @@ function draft(
 }
 
 describe('KnowledgeSplitEditor', () => {
+  it('marks required fields with asterisks and omits thumbnail', () => {
+    render(
+      <KnowledgeSplitEditor
+        index={0}
+        value={draft()}
+        onChange={vi.fn()}
+        onRemove={vi.fn()}
+        pdfDocument={{} as PDFDocumentProxy}
+        pageCount={5}
+      />,
+    );
+
+    expect(screen.getByText(/^Title$/)).toHaveTextContent('Title *');
+    expect(screen.getByText(/start page/i)).toHaveTextContent('Start page *');
+    expect(screen.getByText(/end page/i)).toHaveTextContent('End page *');
+    expect(screen.getByText(/^Thumbnail/)).not.toHaveTextContent('*');
+    expect(
+      screen.queryByText(/provide title and page range/i),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows PDF auto preview and clearing leaves an intentional blank thumbnail', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

@@ -421,21 +421,17 @@ export const KnowledgeLibraryPage = () => {
       ) : null}
 
       <Card variant="elevated" className="min-w-0 space-y-5 p-4 sm:p-6">
-        <div className="flex flex-col gap-1">
-          <div className="text-sm font-semibold text-spice-text-primary">
-            Upload
-          </div>
-          <div className="text-sm text-spice-text-muted">
-            Choose upload mode, pick one PDF, and upload. Documents appear in
-            the library immediately.
-          </div>
+        <div className="text-sm font-semibold text-spice-text-primary">
+          Upload
         </div>
 
         <div className="space-y-3 rounded-xl bg-spice-bg-tint/50 p-4 ring-1 ring-spice-border">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-spice-text-medium">
-                <span>PDF file</span>
+                <span>
+                  PDF file <span className="text-spice-semantic-error">*</span>
+                </span>
                 <Tooltip
                   label="About PDF file upload"
                   content="PDF only. Single file upload. Max 100 MB."
@@ -507,7 +503,8 @@ export const KnowledgeLibraryPage = () => {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                        Title
+                        Title{' '}
+                        <span className="text-spice-semantic-error">*</span>
                       </div>
                       <input
                         type="text"
@@ -575,7 +572,7 @@ export const KnowledgeLibraryPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-spice-text-medium">
