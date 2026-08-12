@@ -45,4 +45,14 @@ describe('resolveDashboardQueryUiState', () => {
       }),
     ).toEqual({ showLoading: false, showError: false });
   });
+
+  it('treats omitted data the same as undefined', () => {
+    expect(
+      resolveDashboardQueryUiState({
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+      }),
+    ).toEqual({ showLoading: false, showError: false });
+  });
 });

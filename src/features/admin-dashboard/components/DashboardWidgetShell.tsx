@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Card } from '@/components/ui';
 import { cn } from '@/utils';
 
-export type DashboardWidgetShellSize = 'md' | 'lg';
+export type DashboardWidgetShellSize = 'md' | 'lg' | 'xl';
 
 interface DashboardWidgetShellProps {
   title: string;
@@ -18,7 +18,8 @@ interface DashboardWidgetShellProps {
   flush?: boolean;
   /**
    * Caps widget height; body scrolls when content overflows.
-   * `md` (~28rem) for paired row widgets; `lg` (~32rem) for full-width lists.
+   * `md` (~28rem) for paired row widgets; `lg` (~32rem) for full-width lists;
+   * `xl` (~40rem) for denser multi-section widgets (e.g. document usage).
    */
   size?: DashboardWidgetShellSize;
   className?: string;
@@ -27,6 +28,7 @@ interface DashboardWidgetShellProps {
 const SIZE_MAX_HEIGHT: Record<DashboardWidgetShellSize, string> = {
   md: 'max-h-[28rem]',
   lg: 'max-h-[32rem]',
+  xl: 'max-h-[40rem]',
 };
 
 /**

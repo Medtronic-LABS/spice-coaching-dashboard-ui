@@ -19,4 +19,5 @@ export { RefreshIcon, type RefreshIconProps } from './RefreshIcon';
 export { SaveDraftIcon, type SaveDraftIconProps } from './SaveDraftIcon';
 export { SearchIcon, type SearchIconProps } from './SearchIcon';
 export { SettingsIcon, type SettingsIconProps } from './SettingsIcon';
+export { UsersIcon, type UsersIconProps } from './UsersIcon';
 export { VideoIcon, type VideoIconProps } from './VideoIcon';

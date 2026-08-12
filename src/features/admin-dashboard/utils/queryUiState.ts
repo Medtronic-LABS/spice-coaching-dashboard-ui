@@ -2,7 +2,8 @@ export interface DashboardQuerySlice {
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
-  data: unknown;
+  /** Optional so RTK Query uninitialized/skip states type-check cleanly. */
+  data?: unknown;
 }
 
 export interface DashboardQueryUiState {

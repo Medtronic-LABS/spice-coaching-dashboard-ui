@@ -9,6 +9,7 @@ import { DocumentUsageSection } from '@/features/admin-dashboard/components/Docu
 import { ModuleDemandDetailDrawer } from '@/features/admin-dashboard/components/ModuleDemandDetailDrawer';
 import { ModulePerformanceSection } from '@/features/admin-dashboard/components/ModulePerformanceSection';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
+import type { HierarchyFocusSelection } from '@/features/admin-dashboard/types/dashboard.types';
 import {
   TopModuleDemandWidget,
   type TopModuleDemandRow,
@@ -91,6 +92,8 @@ export const AdminDashboardPage = () => {
     moduleId: string;
     title: string;
   } | null>(null);
+  const [hierarchyFocus, setHierarchyFocus] =
+    useState<HierarchyFocusSelection | null>(null);
 
   const {
     query: modulesQuery,
@@ -183,6 +186,8 @@ export const AdminDashboardPage = () => {
         status={filters.status}
         sortKey={hierarchySort}
         onSortChange={setHierarchySort}
+        focusUserId={hierarchyFocus?.userId ?? null}
+        onFocusChange={setHierarchyFocus}
       />
 
       <TrainingModulesSection
@@ -194,18 +199,18 @@ export const AdminDashboardPage = () => {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
           {t('adminDashboard.insightsTitle')}
         </h2>
-        <div className="grid items-stretch gap-3 xl:grid-cols-2">
-          <ModulePerformanceSection
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-          />
-          <DocumentUsageSection
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-            geography={filters.geography}
-            compact
-          />
-        </div>
+        <ModulePerformanceSection
+          fromDate={dateRange.fromDate}
+          toDate={dateRange.toDate}
+        />
+        <DocumentUsageSection
+          fromDate={dateRange.fromDate}
+          toDate={dateRange.toDate}
+          geography={filters.geography}
+          userId={hierarchyFocus?.userId}
+          focusUserName={hierarchyFocus?.userName}
+          onClearFocus={() => setHierarchyFocus(null)}
+        />
       </div>
 
       <div className="grid items-stretch gap-3 xl:grid-cols-2">

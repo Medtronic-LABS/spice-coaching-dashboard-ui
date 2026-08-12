@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import { EmptyState, SearchInput, Select, StatusBadge } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  SearchInput,
+  Select,
+  StatusBadge,
+} from '@/components/ui';
 import { useFetchTeamActivityQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import {
   DashboardHierarchySkeleton,
@@ -11,6 +17,7 @@ import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 import type {
   DashboardStatusFilter,
+  HierarchyFocusSelection,
   TeamActivityMember,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -29,12 +36,16 @@ import {
 } from '@/features/admin-dashboard/utils/teamActivity';
 import { cn } from '@/utils';
 
+export type { HierarchyFocusSelection };
+
 interface TeamHierarchySectionProps {
   fromDate: string;
   toDate: string;
   status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   onSortChange: (sort: TeamHierarchySortKey) => void;
+  focusUserId?: number | null;
+  onFocusChange?: (focus: HierarchyFocusSelection | null) => void;
 }
 
 const ROLE_TABS: Array<{ value: HierarchyRoleTab; labelKey: string }> = [
@@ -106,6 +117,8 @@ interface HierarchyMemberRowProps {
   status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   depth: number;
+  focusUserId: number | null;
+  onFocusChange?: (focus: HierarchyFocusSelection | null) => void;
 }
 
 const HierarchyMemberRow = ({
@@ -115,6 +128,8 @@ const HierarchyMemberRow = ({
   status,
   sortKey,
   depth,
+  focusUserId,
+  onFocusChange,
 }: HierarchyMemberRowProps) => {
   const { t } = useTranslation();
   const { roleLabel, childrenActionLabel } = useHierarchyLabels();
@@ -122,6 +137,16 @@ const HierarchyMemberRow = ({
   const modules = memberModuleStats(member);
   const atRisk = isMemberAtRisk(member);
   const canExpand = member.can_drill_down;
+  const isFocused = focusUserId === member.user_id;
+
+  const handleFocusToggle = () => {
+    if (!onFocusChange) return;
+    if (isFocused) {
+      onFocusChange(null);
+      return;
+    }
+    onFocusChange({ userId: member.user_id, userName: member.name });
+  };
 
   const descendantsQuery = useFetchTeamActivityQuery(
     {
@@ -161,30 +186,58 @@ const HierarchyMemberRow = ({
 
   const peopleLabel = t('adminDashboard.hierarchy.metrics.sksLabel');
 
+  const personBlock = (
+    <>
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-spice-brand-primary/15 text-xs font-semibold text-spice-brand-primary">
+        {memberInitials(member.name)}
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold text-spice-text-primary">
+          {member.name}
+        </div>
+        <div className="truncate text-xs text-spice-text-muted">
+          {roleLabel(member.role)}
+          {isFocused ? ` · ${t('adminDashboard.hierarchy.focusActive')}` : null}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div
       className={cn(
         'border-b border-spice-border/70 last:border-b-0',
         depth > 0 && 'bg-spice-bg-tint/30',
+        isFocused && 'bg-spice-brand-primary/5',
       )}
     >
       <div className="flex items-center gap-3 px-4 py-3">
-        <div
-          className="flex min-w-0 flex-1 items-center gap-3"
-          style={{ paddingLeft: `${depth * 24}px` }}
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-spice-brand-primary/15 text-xs font-semibold text-spice-brand-primary">
-            {memberInitials(member.name)}
+        {onFocusChange ? (
+          <button
+            type="button"
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary',
+              isFocused && 'ring-1 ring-spice-brand-primary/40',
+            )}
+            style={{ paddingLeft: `${depth * 24}px` }}
+            onClick={handleFocusToggle}
+            aria-pressed={isFocused}
+            title={
+              isFocused
+                ? t('adminDashboard.hierarchy.clearFocus')
+                : t('adminDashboard.hierarchy.focusForAnalytics')
+            }
+          >
+            {personBlock}
+          </button>
+        ) : (
+          <div
+            className="flex min-w-0 flex-1 items-center gap-3"
+            style={{ paddingLeft: `${depth * 24}px` }}
+          >
+            {personBlock}
           </div>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-spice-text-primary">
-              {member.name}
-            </div>
-            <div className="truncate text-xs text-spice-text-muted">
-              {roleLabel(member.role)}
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="ml-auto flex shrink-0 items-center gap-6">
           <MetricCell
@@ -258,6 +311,8 @@ const HierarchyMemberRow = ({
                 status={status}
                 sortKey={sortKey}
                 depth={depth + 1}
+                focusUserId={focusUserId}
+                onFocusChange={onFocusChange}
               />
             ))
           )}
@@ -273,6 +328,8 @@ export const TeamHierarchySection = ({
   status,
   sortKey,
   onSortChange,
+  focusUserId = null,
+  onFocusChange,
 }: TeamHierarchySectionProps) => {
   const { t } = useTranslation();
   const { roleLabel } = useHierarchyLabels();
@@ -329,6 +386,15 @@ export const TeamHierarchySection = ({
       size="lg"
       actions={
         <>
+          {focusUserId != null && onFocusChange ? (
+            <Button
+              variant="secondary"
+              className="h-10 text-xs"
+              onClick={() => onFocusChange(null)}
+            >
+              {t('adminDashboard.hierarchy.clearFocus')}
+            </Button>
+          ) : null}
           <Select
             options={sortOptions}
             value={sortKey}
@@ -395,6 +461,8 @@ export const TeamHierarchySection = ({
               status={status}
               sortKey={sortKey}
               depth={0}
+              focusUserId={focusUserId}
+              onFocusChange={onFocusChange}
             />
           ))}
         </div>

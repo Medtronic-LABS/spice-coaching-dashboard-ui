@@ -205,13 +205,16 @@
       "allUpazilas": "সব উপজেলা"
     },
     "hierarchy": {
-      "description": "PO এবং SK দেখতে \"View POs\" ট্যাপ করুন।",
+      "description": "ডকুমেন্ট অ্যানালিটিক্স ফোকাস করতে একজন ব্যক্তিকে ট্যাপ করুন। PO/SK দেখতে \"View POs\" / \"View SKs\" ব্যবহার করুন।",
       "emptyChildren": "এই রেঞ্জে কোনো সরাসরি রিপোর্ট নেই।",
       "searchPlaceholder": "এরিয়া ম্যানেজার খুঁজুন...",
       "searchPlaceholderPo": "প্রোগ্রাম অফিসার খুঁজুন...",
       "searchPlaceholderSk": "SK খুঁজুন...",
       "emptyTitle": "কোনো টিম মেম্বার নেই",
       "emptyDescription": "বর্তমান ফিল্টারে কোনো হায়ারার্কি সারি নেই।",
+      "focusForAnalytics": "এই ব্যক্তির উপর ডকুমেন্ট অ্যানালিটিক্স ফোকাস করুন",
+      "clearFocus": "ফোকাস সরান",
+      "focusActive": "ফোকাসড",
       "roleLabels": {
         "am": "এরিয়া ম্যানেজার",
         "po": "প্রোগ্রাম অফিসার",
@@ -310,20 +313,52 @@
     },
     "documentUsage": {
       "title": "PDF / নলেজ ভিউ",
-      "description": "নির্বাচিত সময়ে ডকুমেন্ট ভিউ।",
+      "description": "নির্বাচিত ফিল্টারের ইনসাইট। কে খুলেছে দেখতে একটি সারিতে ক্লিক করুন।",
       "emptyTitle": "কোনো ডকুমেন্ট ভিউ নেই",
       "emptyDescription": "ডকুমেন্ট ভিউ টেলিমেট্রি এখনো রেকর্ড হয়নি।",
       "chartLabel": "সর্বাধিক দেখা ডকুমেন্ট",
+      "tableTitle": "সব ডকুমেন্ট",
+      "topAllTitle": "সব সর্বাধিক দেখা ডকুমেন্ট",
+      "topAllDescription": "নির্বাচিত ফিল্টার অনুযায়ী মোট ভিউ দিয়ে র‍্যাঙ্ক করা।",
+      "documentsAllDescription": "নির্বাচিত ফিল্টার অনুযায়ী সব ডকুমেন্টের এনগেজমেন্ট বিবরণ।",
+      "topAllFooter": "নির্বাচিত সময়ে মোট ভিউ অনুযায়ী র‍্যাঙ্ক করা ডকুমেন্ট দেখায়।",
+      "documentsAllFooter": "এনগেজমেন্ট মেট্রিকসহ পূর্ণ ডকুমেন্ট তালিকা। সার্চ বর্তমান পেজ ফিল্টার করে।",
+      "detailDescription": "নির্বাচিত ডকুমেন্ট ও ফিল্টার অনুযায়ী প্রতিটি ওপেন ইভেন্ট।",
+      "detailTitle": "ডকুমেন্ট ওপেন",
+      "opensTitle": "ওপেন ইভেন্ট",
+      "unknownUser": "অজানা ব্যবহারকারী",
+      "openDetail": "{{title}} এর ওপেনে ড্রিল ডাউন করুন",
+      "clearFocus": "ফোকাস সরান: {{name}}",
+      "viewAll": "সব দেখুন",
+      "viewAllDocuments": "সব ডকুমেন্ট দেখুন",
+      "backToOverview": "ওভারভিউতে ফিরুন",
+      "backToDocuments": "ডকুমেন্টে ফিরুন",
+      "searchPlaceholder": "ডকুমেন্ট খুঁজুন…",
+      "viewsCount": "{{count}} ভিউ",
+      "showingRange": "{{total}} ডকুমেন্টের মধ্যে {{from}} থেকে {{to}} দেখানো হচ্ছে",
+      "rowsPerPage": "প্রতি পেজে ডকুমেন্ট সারি",
+      "pageNumber": "ডকুমেন্ট ইউজেজ পেজ নম্বর",
+      "eventRowsPerPage": "প্রতি পেজে ওপেন ইভেন্ট সারি",
+      "eventPageNumber": "ওপেন ইভেন্ট পেজ নম্বর",
       "kpis": {
         "views": "মোট ভিউ",
         "documents": "ইউনিক ডকুমেন্ট",
         "users": "ইউনিক ব্যবহারকারী"
       },
       "columns": {
+        "rank": "র‍্যাঙ্ক",
         "title": "ডকুমেন্ট",
+        "trend": "ভিউ",
         "views": "ভিউ",
         "users": "ইউনিক ব্যবহারকারী",
-        "lastViewed": "সর্বশেষ দেখা"
+        "lastViewed": "সর্বশেষ দেখা",
+        "lastViewedBy": "সর্বশেষ দেখেছেন"
+      },
+      "eventColumns": {
+        "user": "ব্যবহারকারী",
+        "role": "ভূমিকা",
+        "viewedAt": "খোলার সময়",
+        "geography": "ভূগোল"
       }
     }
   },

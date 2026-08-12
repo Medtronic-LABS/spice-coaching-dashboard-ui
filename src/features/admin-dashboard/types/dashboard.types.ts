@@ -236,6 +236,12 @@ export interface DocumentUsageResponse {
   events_offset: number;
 }
 
+/** Hierarchy person selected to scope document-usage analytics. */
+export interface HierarchyFocusSelection {
+  userId: number;
+  userName: string;
+}
+
 export type ModuleDemandInteractionType =
   | 'chatbot_served'
   | 'assignment_requested';

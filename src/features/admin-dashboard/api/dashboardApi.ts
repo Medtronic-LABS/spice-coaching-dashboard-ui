@@ -44,6 +44,7 @@ export interface DocumentUsageQuery {
   district?: string;
   upazila_id?: string;
   user_id?: number;
+  document_id?: string;
   top_limit?: number;
   documents_limit?: number;
   documents_offset?: number;
@@ -164,6 +165,7 @@ export const dashboardApi = baseApi.injectEndpoints({
         district,
         upazila_id,
         user_id,
+        document_id,
         top_limit,
         documents_limit,
         documents_offset,
@@ -177,6 +179,7 @@ export const dashboardApi = baseApi.injectEndpoints({
           district,
           upazila_id,
           user_id,
+          document_id,
           top_limit,
           documents_limit,
           documents_offset,

@@ -204,13 +204,16 @@
       "allUpazilas": "All upazilas"
     },
     "hierarchy": {
-      "description": "Tap \"View POs\" to expand and see program officers and SKs.",
+      "description": "Tap a person to focus document analytics on their subtree. Use \"View POs\" / \"View SKs\" to expand.",
       "emptyChildren": "No direct reports in this range.",
       "searchPlaceholder": "Search area managers...",
       "searchPlaceholderPo": "Search program officers...",
       "searchPlaceholderSk": "Search SKs...",
       "emptyTitle": "No team members",
       "emptyDescription": "No hierarchy rows match the current filters.",
+      "focusForAnalytics": "Focus document analytics on this person",
+      "clearFocus": "Clear focus",
+      "focusActive": "Focused",
       "roleLabels": {
         "am": "Area Manager",
         "po": "Program Officer",
@@ -309,20 +312,52 @@
     },
     "documentUsage": {
       "title": "PDF / knowledge views",
-      "description": "Document views in the selected period.",
+      "description": "Insights for the selected filters. Click a row to see who opened each document.",
       "emptyTitle": "No document views",
       "emptyDescription": "Document view telemetry has not been recorded yet.",
       "chartLabel": "Top viewed documents",
+      "tableTitle": "All documents",
+      "topAllTitle": "All top viewed documents",
+      "topAllDescription": "Ranked by total views for the selected filters.",
+      "documentsAllDescription": "All documents with engagement details for the selected filters.",
+      "topAllFooter": "Shows documents ranked by total views within the selected period.",
+      "documentsAllFooter": "Shows the full document list with engagement metrics. Search filters the current page.",
+      "detailDescription": "Individual document opens for the selected document and filters.",
+      "detailTitle": "Document opens",
+      "opensTitle": "Open events",
+      "unknownUser": "Unknown user",
+      "openDetail": "Drill down into opens for {{title}}",
+      "clearFocus": "Clear focus: {{name}}",
+      "viewAll": "View all",
+      "viewAllDocuments": "View all documents",
+      "backToOverview": "Back to overview",
+      "backToDocuments": "Back to documents",
+      "searchPlaceholder": "Search documents…",
+      "viewsCount": "{{count}} views",
+      "showingRange": "Showing {{from}} to {{to}} of {{total}} documents",
+      "rowsPerPage": "Document rows per page",
+      "pageNumber": "Document usage page number",
+      "eventRowsPerPage": "Open event rows per page",
+      "eventPageNumber": "Open events page number",
       "kpis": {
         "views": "Total views",
         "documents": "Unique documents",
         "users": "Unique users"
       },
       "columns": {
+        "rank": "Rank",
         "title": "Document",
+        "trend": "Views",
         "views": "Views",
         "users": "Unique users",
-        "lastViewed": "Last viewed"
+        "lastViewed": "Last viewed",
+        "lastViewedBy": "Last viewed by"
+      },
+      "eventColumns": {
+        "user": "User",
+        "role": "Role",
+        "viewedAt": "Opened at",
+        "geography": "Geography"
       }
     }
   },

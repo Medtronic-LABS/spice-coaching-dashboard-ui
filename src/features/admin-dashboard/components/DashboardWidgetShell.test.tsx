@@ -49,5 +49,13 @@ describe('DashboardWidgetShell', () => {
     );
 
     expect(container.firstChild).toHaveClass('max-h-[32rem]');
+
+    rerender(
+      <DashboardWidgetShell title="Sized" size="xl">
+        Body
+      </DashboardWidgetShell>,
+    );
+
+    expect(container.firstChild).toHaveClass('max-h-[40rem]');
   });
 });
