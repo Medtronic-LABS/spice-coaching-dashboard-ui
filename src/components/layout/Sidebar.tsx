@@ -86,6 +86,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
             }
             to={paths.moduleLibrary}
             end
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (
@@ -102,6 +103,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.badgeManagement}
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (
@@ -114,6 +116,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.ingestDocument}
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (
@@ -126,6 +129,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.uploadKnowledge}
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (
@@ -138,6 +142,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.videoUpload}
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (
@@ -150,6 +155,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.ingestHistory}
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (
@@ -165,6 +171,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.configs}
+            draggable={false}
             onClick={onMobileClose}
           >
             {({ isActive }) => (

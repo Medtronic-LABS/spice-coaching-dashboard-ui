@@ -44,6 +44,10 @@ describe('Sidebar', () => {
     expect(
       screen.getByRole('link', { name: /configurations/i }),
     ).toBeInTheDocument();
+
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).toHaveAttribute('draggable', 'false');
+    }
   });
 
   it('applies active class to active link', () => {
