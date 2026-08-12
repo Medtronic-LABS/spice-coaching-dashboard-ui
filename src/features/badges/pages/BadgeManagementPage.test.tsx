@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
@@ -10,6 +10,23 @@ function renderPage() {
   });
 }
 
+function setElementWidth(
+  element: HTMLElement,
+  clientWidth: number,
+  scrollWidth: number,
+) {
+  Object.defineProperties(element, {
+    clientWidth: { configurable: true, value: clientWidth },
+    scrollWidth: { configurable: true, value: scrollWidth },
+  });
+}
+
+function assertElementPrecedes(follower: Element, leader: Element) {
+  expect(
+    leader.compareDocumentPosition(follower) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+}
+
 describe('BadgeManagementPage', () => {
   it('lists milestones sorted by sequence and supports search', async () => {
     const user = userEvent.setup();
@@ -18,13 +35,18 @@ describe('BadgeManagementPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Milestone Management' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Learners earn a milestone after completing all mapped active modules/,
+      ),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Safe Motherhood Champion')).toBeInTheDocument();
       expect(screen.getByText('SPICE Navigator')).toBeInTheDocument();
       expect(screen.getByText('Referral Pro')).toBeInTheDocument();
       expect(
-        screen.getByText(/HTN Referral Thresholds.*FBS vs RBS/),
+        screen.getByText('HTN Referral Thresholds, FBS vs RBS — Timing Rules'),
       ).toBeInTheDocument();
       expect(
         screen.getByText('Community Clinic Referral Protocol'),
@@ -42,6 +64,27 @@ describe('BadgeManagementPage', () => {
         screen.queryByText('Safe Motherhood Champion'),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('renders toolbar controls in rearrange-create-search-filter order', async () => {
+    renderPage();
+
+    await screen.findByText('Safe Motherhood Champion');
+
+    const rearrange = screen.getByRole('button', {
+      name: 'Rearrange Milestone',
+    });
+    const create = screen.getByRole('button', { name: 'Create Milestone' });
+    const search = screen.getByRole('searchbox', {
+      name: 'Search milestones',
+    });
+    const filter = screen.getByRole('button', {
+      name: 'Open milestone filters',
+    });
+
+    assertElementPrecedes(create, rearrange);
+    assertElementPrecedes(search, create);
+    assertElementPrecedes(filter, search);
   });
 
   it('opens the edit modal without a sequence field', async () => {
@@ -89,6 +132,24 @@ describe('BadgeManagementPage', () => {
     expect(screen.getByLabelText('Rows per page')).toHaveValue('5');
   });
 
+  it('uses TruncatedText for table module lists and reveals the full list on hover', async () => {
+    renderPage();
+
+    await screen.findByText('Safe Motherhood Champion');
+
+    const label = 'HTN Referral Thresholds, FBS vs RBS — Timing Rules';
+    const content = screen.getByText(label);
+    const trigger = content.parentElement;
+    expect(trigger).not.toBeNull();
+    setElementWidth(content, 120, 360);
+
+    fireEvent.mouseEnter(trigger!);
+    expect(
+      screen.getAllByRole('tooltip').some((node) => node.textContent === label),
+    ).toBe(true);
+    expect(screen.queryByText(/\+\d/)).not.toBeInTheDocument();
+  });
+
   it('enters sequence edit mode with drag handles and disables search', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -124,6 +185,18 @@ describe('BadgeManagementPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Rearrange Milestone' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Drag the handle on each row/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Milestones are listed in sequence order/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Seq')).toBeInTheDocument();
+    expect(screen.getByText('Milestone')).toBeInTheDocument();
+    expect(screen.getByText('Modules')).toBeInTheDocument();
+    expect(
+      screen.getByText('HTN Referral Thresholds, FBS vs RBS — Timing Rules'),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Back to list' }));
 

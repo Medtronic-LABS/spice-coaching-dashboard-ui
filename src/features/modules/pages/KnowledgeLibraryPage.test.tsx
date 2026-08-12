@@ -112,6 +112,10 @@ describe('KnowledgeLibraryPage', () => {
     expect(
       screen.queryByRole('tab', { name: /split document/i }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/choose upload mode, pick one pdf/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/PDF file/)).toHaveTextContent('PDF file *');
   });
 
   it('rejects a non-PDF file', async () => {
@@ -156,6 +160,7 @@ describe('KnowledgeLibraryPage', () => {
     expect(
       screen.getByPlaceholderText(/htn referral guidelines/i),
     ).toBeInTheDocument();
+    expect(screen.getByText(/^Title$/)).toHaveTextContent('Title *');
     expect(screen.queryByText(/page splits/i)).not.toBeInTheDocument();
     expect(screen.getByText(/This PDF has/)).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
@@ -222,6 +227,13 @@ describe('KnowledgeLibraryPage', () => {
 
     await user.click(screen.getByRole('tab', { name: /split document/i }));
     expect(screen.getByText(/page splits/i)).toBeInTheDocument();
+    expect(screen.getByText(/page splits/i)).not.toHaveTextContent('*');
+    expect(screen.getByText(/^Title$/)).toHaveTextContent('Title *');
+    expect(screen.getByText(/start page/i)).toHaveTextContent('Start page *');
+    expect(screen.getByText(/end page/i)).toHaveTextContent('End page *');
+    expect(
+      screen.queryByText(/provide title and page range/i),
+    ).not.toBeInTheDocument();
 
     const uploadButton = screen.getByRole('button', { name: /^upload$/i });
     expect(uploadButton).toBeEnabled();

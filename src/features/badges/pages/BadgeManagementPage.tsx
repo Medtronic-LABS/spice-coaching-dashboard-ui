@@ -9,6 +9,7 @@ import {
   Modal,
   SearchInput,
   Tooltip,
+  TruncatedText,
 } from '@/components/ui';
 import { ArrowRightIcon, CloseIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
@@ -85,8 +86,6 @@ const SEQUENCE_EDIT_INFO =
   'Enabling Rearrange Milestone clears search and filters, disables them, and loads all milestones for drag reordering. Use Reset to restore the initial order, or Back to list to discard changes and return to the table.';
 const PAGE_SUBTITLE =
   'Configure milestones by mapping an image and published modules. Learners earn a milestone after completing all mapped active modules. Use Rearrange Milestone to reorder milestones on the roadmap.';
-const SEQUENCE_MODE_HINT =
-  'Milestones are listed in sequence order. Drag the handle on each row to change their sequence and update the roadmap.';
 const TOOLBAR_BUTTON_CLASS = 'h-9 text-xs';
 
 type FeedbackState =
@@ -759,19 +758,14 @@ export const BadgeManagementPage = () => {
           if (!titles.length) {
             return <span className="text-sm text-spice-text-muted">—</span>;
           }
-          const visible = titles.slice(0, 2);
-          const remaining = titles.length - visible.length;
-          const label =
-            remaining > 0
-              ? `${visible.join(', ')} +${remaining}`
-              : visible.join(', ');
+          const label = titles.join(', ');
           return (
-            <span
-              className="line-clamp-2 text-sm text-spice-text-medium"
-              title={titles.join(', ')}
-            >
-              {label}
-            </span>
+            <div className="w-full min-w-0 max-w-[16rem]">
+              <TruncatedText
+                text={label}
+                className="text-sm text-spice-text-medium"
+              />
+            </div>
           );
         },
       },
@@ -875,60 +869,15 @@ export const BadgeManagementPage = () => {
         }
       />
 
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold text-spice-text-primary">
-          Milestone Management
-        </h1>
-        <p className="max-w-3xl text-sm text-spice-text-muted">
-          {PAGE_SUBTITLE}
-        </p>
-      </div>
-
-      {feedback ? (
-        <Banner tone={feedback.tone}>
-          <div className="flex items-center justify-between gap-3">
-            <span>{feedback.message}</span>
-            {feedback.tone === 'success' ? (
-              <Button
-                variant="ghost"
-                aria-label="Dismiss success message"
-                onClick={() => setFeedback(null)}
-                className="h-8 w-8 p-0"
-              >
-                <CloseIcon className="h-5 w-5" />
-              </Button>
-            ) : null}
-          </div>
-        </Banner>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className="w-56 sm:w-64">
-            <SearchInput
-              value={query}
-              onChange={setQuery}
-              placeholder="Search milestones…"
-              aria-label="Search milestones"
-              className="min-w-0"
-              disabled={isSequenceEditing}
-            />
-          </div>
-          <SettingsFilterTriggerButton
-            active={filtersActive}
-            expanded={filtersOpen}
-            onClick={() => setFiltersOpen(true)}
-            ariaLabel="Open milestone filters"
-            tooltip={
-              isSequenceEditing
-                ? 'Filters are disabled while rearranging milestones'
-                : 'Filter by creator, module, or created date'
-            }
-            disabled={isSequenceEditing}
-          />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 max-w-xl space-y-1">
+          <h1 className="text-2xl font-semibold text-spice-text-primary">
+            Milestone Management
+          </h1>
+          <p className="text-sm text-spice-text-muted">{PAGE_SUBTITLE}</p>
         </div>
 
-        <div className="inline-flex items-center gap-1.5">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {isSequenceEditing ? (
             <>
               <Button
@@ -978,29 +927,65 @@ export const BadgeManagementPage = () => {
               />
             </span>
           )}
-        </div>
 
-        <Button
-          className={TOOLBAR_BUTTON_CLASS}
-          onClick={startCreate}
-          disabled={isSequenceEditing || isEnteringSequenceEdit}
-        >
-          Create Milestone
-        </Button>
+          <Button
+            className={TOOLBAR_BUTTON_CLASS}
+            onClick={startCreate}
+            disabled={isSequenceEditing || isEnteringSequenceEdit}
+          >
+            Create Milestone
+          </Button>
+
+          <div className="w-56 sm:w-64">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search milestones…"
+              aria-label="Search milestones"
+              className="min-w-0"
+              disabled={isSequenceEditing}
+            />
+          </div>
+          <SettingsFilterTriggerButton
+            active={filtersActive}
+            expanded={filtersOpen}
+            onClick={() => setFiltersOpen(true)}
+            ariaLabel="Open milestone filters"
+            tooltip={
+              isSequenceEditing
+                ? 'Filters are disabled while rearranging milestones'
+                : 'Filter by creator, module, or created date'
+            }
+            disabled={isSequenceEditing}
+          />
+        </div>
       </div>
+
+      {feedback ? (
+        <Banner tone={feedback.tone}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{feedback.message}</span>
+            {feedback.tone === 'success' ? (
+              <Button
+                variant="ghost"
+                aria-label="Dismiss success message"
+                onClick={() => setFeedback(null)}
+                className="h-8 w-8 p-0"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </Button>
+            ) : null}
+          </div>
+        </Banner>
+      ) : null}
 
       <Card className="overflow-hidden p-0">
         {isSequenceEditing ? (
-          <div className="space-y-1">
-            <p className="border-b border-spice-border px-3 py-2 text-sm text-spice-text-muted">
-              {SEQUENCE_MODE_HINT}
-            </p>
-            <BadgeSequenceReorderList
-              badges={sequenceDraft}
-              disabled={isSavingSequence}
-              onReorder={handleSequenceReorder}
-            />
-          </div>
+          <BadgeSequenceReorderList
+            badges={sequenceDraft}
+            disabled={isSavingSequence}
+            onReorder={handleSequenceReorder}
+          />
         ) : (
           <>
             <Table
