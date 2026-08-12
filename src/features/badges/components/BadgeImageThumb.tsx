@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import { objectNameFromStoragePath } from '@/features/badges/utils/badgeForm';
 import { cn } from '@/utils';
@@ -9,6 +10,39 @@ interface BadgeImageThumbProps {
   className?: string;
 }
 
+function NoBadgeFallback({
+  className,
+  title,
+}: {
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-10 w-10 items-center justify-center text-center text-[10px] leading-tight text-spice-text-muted',
+        className,
+      )}
+      title={title}
+    >
+      No Badge
+    </span>
+  );
+}
+
+function ImageSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'h-10 w-10 animate-pulse rounded-md bg-spice-bg-tint',
+        className,
+      )}
+      aria-label="Loading milestone image"
+      data-testid="badge-image-skeleton"
+    />
+  );
+}
+
 export const BadgeImageThumb = ({
   storagePath,
   objectName,
@@ -17,44 +51,55 @@ export const BadgeImageThumb = ({
 }: BadgeImageThumbProps) => {
   const resolvedObjectName =
     objectName?.trim() || objectNameFromStoragePath(storagePath);
-  const { url, isLoading } = usePresignedFileUrl(resolvedObjectName || null);
+  const { url, isLoading, isError } = usePresignedFileUrl(
+    resolvedObjectName || null,
+  );
+  const [imageStatus, setImageStatus] = useState<
+    'loading' | 'loaded' | 'error'
+  >('loading');
+
+  useEffect(() => {
+    setImageStatus('loading');
+  }, [url]);
 
   if (!resolvedObjectName) {
+    return <NoBadgeFallback className={className} />;
+  }
+
+  if (isError || (!isLoading && !url) || imageStatus === 'error') {
     return (
-      <span className="text-xs text-spice-text-muted" aria-hidden="true">
-        —
-      </span>
+      <NoBadgeFallback className={className} title={storagePath || undefined} />
     );
   }
 
-  if (isLoading && !url) {
-    return (
-      <div
-        className={cn(
-          'h-10 w-10 animate-pulse rounded-md bg-spice-bg-tint',
-          className,
-        )}
-        aria-label="Loading milestone image"
-      />
-    );
-  }
-
-  if (!url) {
-    return (
-      <span className="text-xs text-spice-text-muted" title={storagePath}>
-        —
-      </span>
-    );
+  if (isLoading || !url) {
+    return <ImageSkeleton className={className} />;
   }
 
   return (
-    <img
-      src={url}
-      alt={alt}
+    <div
       className={cn(
-        'h-10 w-10 rounded-md border border-spice-border object-contain',
+        'relative h-10 w-10 overflow-hidden rounded-md border border-spice-border',
         className,
       )}
-    />
+    >
+      {imageStatus === 'loading' ? (
+        <div
+          className="absolute inset-0 z-10 animate-pulse bg-spice-bg-tint"
+          aria-label="Loading milestone image"
+          data-testid="badge-image-skeleton"
+        />
+      ) : null}
+      <img
+        src={url}
+        alt={alt}
+        onLoad={() => setImageStatus('loaded')}
+        onError={() => setImageStatus('error')}
+        className={cn(
+          'h-full w-full object-contain',
+          imageStatus !== 'loaded' && 'invisible',
+        )}
+      />
+    </div>
   );
 };

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Banner, Button, Card, Modal, Tooltip } from '@/components/ui';
 import { BadgeImageUploadField } from '@/features/badges/components/BadgeImageUploadField';
 import {
@@ -84,6 +85,14 @@ export function BadgeFormModal({
       : mode === 'edit'
         ? 'Edit milestone'
         : 'Create milestone';
+
+  const moduleOptions = useMemo(() => {
+    if (!isViewMode) return pickerModules;
+    const byId = new Map(pickerModules.map((module) => [module.id, module]));
+    return form.moduleIds
+      .map((id) => byId.get(id))
+      .filter((module): module is PublishedModuleOption => Boolean(module));
+  }, [form.moduleIds, isViewMode, pickerModules]);
 
   return (
     <Modal
@@ -190,25 +199,28 @@ export function BadgeFormModal({
               </span>
             </div>
             <BadgeModuleMultiSelect
-              options={pickerModules}
+              options={moduleOptions}
               selectedIds={form.moduleIds}
               onChange={(moduleIds) =>
                 onFormChange((prev) => ({ ...prev, moduleIds }))
               }
               disabled={isViewMode || isSaving}
+              showSearch={!isViewMode}
               searchValue={moduleSearchQuery}
               onSearchChange={onModuleSearchChange}
-              isLoading={modulesLoading}
+              isLoading={modulesLoading && !isViewMode}
               emptyMessage={
-                modulesLoadError
-                  ? 'Failed to load published modules.'
-                  : 'No assignable published modules match your search.'
+                isViewMode
+                  ? 'No modules mapped to this milestone.'
+                  : modulesLoadError
+                    ? 'Failed to load published modules.'
+                    : 'No assignable published modules match your search.'
               }
-              hasMore={modulesHasMore}
-              onLoadMore={onModulesLoadMore}
-              isLoadingMore={modulesLoadingMore}
-              loadMoreError={modulesLoadError}
-              onLoadMoreRetry={onModulesLoadMoreRetry}
+              hasMore={isViewMode ? false : modulesHasMore}
+              onLoadMore={isViewMode ? undefined : onModulesLoadMore}
+              isLoadingMore={isViewMode ? false : modulesLoadingMore}
+              loadMoreError={isViewMode ? false : modulesLoadError}
+              onLoadMoreRetry={isViewMode ? undefined : onModulesLoadMoreRetry}
             />
           </div>
         </div>

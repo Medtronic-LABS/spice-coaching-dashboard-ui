@@ -171,7 +171,7 @@ describe('BadgeManagementPage', () => {
     });
 
     expect(
-      screen.getByRole('searchbox', { name: 'Search milestones' }),
+      screen.getByRole('button', { name: 'Search milestones' }),
     ).toBeDisabled();
     expect(
       screen.getByRole('button', { name: 'Create Milestone' }),
