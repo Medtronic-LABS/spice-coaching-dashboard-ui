@@ -5,6 +5,7 @@ import {
   useFetchConfigByKeyQuery,
   useUpdateConfigMutation,
 } from '@/features/admin-configs/api/adminConfigsApi';
+import { ConfigHistoryTable } from '@/features/admin-configs/components/ConfigHistoryTable';
 import {
   DURATION_MAX_DAYS,
   DURATION_VALIDATION_ERROR,
@@ -62,6 +63,7 @@ export const ConfigsPage = () => {
   const [assignmentDurationDays, setAssignmentDurationDays] = useState('');
   const [formError, setFormError] = useState('');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const savedDuration = useMemo(
     () => (config ? formatConfigDurationValue(config.value_json) : ''),
@@ -98,6 +100,7 @@ export const ConfigsPage = () => {
           value_json: Number(assignmentDurationDays),
         },
       }).unwrap();
+      setHistoryRefreshNonce((current) => current + 1);
       setFeedback({
         tone: 'success',
         message: 'Assignment duration updated successfully.',
@@ -190,6 +193,7 @@ export const ConfigsPage = () => {
                   );
                 }}
                 placeholder="30"
+                aria-label="Quiz reattempt validity days"
                 aria-invalid={Boolean(formError)}
               />
               <span className="shrink-0 text-sm font-medium text-spice-text-muted">
@@ -220,6 +224,11 @@ export const ConfigsPage = () => {
           </div>
         </div>
       </Card>
+
+      <ConfigHistoryTable
+        configKey={MODULE_ASSIGNMENT_DURATION_KEY}
+        refreshNonce={historyRefreshNonce}
+      />
     </section>
   );
 };
