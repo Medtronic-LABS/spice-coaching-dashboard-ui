@@ -52,7 +52,7 @@ export const BadgeImageThumb = ({
       src={url}
       alt={alt}
       className={cn(
-        'h-10 w-10 rounded-md border border-spice-border object-cover',
+        'h-10 w-10 rounded-md border border-spice-border object-contain',
         className,
       )}
     />

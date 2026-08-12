@@ -17,6 +17,8 @@ export interface ImagePickerProps {
   className?: string;
   /** Classes for the tile preview / dropzone frame (tile variant only). */
   frameClassName?: string;
+  /** How the preview image fits inside the frame (default: cover). */
+  previewObjectFit?: 'cover' | 'contain';
   clearable?: boolean;
 }
 
@@ -54,8 +56,11 @@ export const ImagePicker = ({
   previewAlt = 'Selected image',
   className,
   frameClassName,
+  previewObjectFit = 'cover',
   clearable = false,
 }: ImagePickerProps) => {
+  const previewFitClassName =
+    previewObjectFit === 'contain' ? 'object-contain' : 'object-cover';
   const [isDragActive, setIsDragActive] = useState(false);
 
   const objectUrl = useMemo(() => {
@@ -106,7 +111,7 @@ export const ImagePicker = ({
             <img
               src={previewSrc ?? undefined}
               alt={previewAlt}
-              className="h-full w-full object-cover"
+              className={cn('h-full w-full', previewFitClassName)}
             />
           </div>
         ) : null}
@@ -160,7 +165,7 @@ export const ImagePicker = ({
           <img
             src={previewSrc ?? undefined}
             alt={previewAlt}
-            className="h-full w-full object-cover"
+            className={cn('h-full w-full', previewFitClassName)}
           />
         </div>
         <label
