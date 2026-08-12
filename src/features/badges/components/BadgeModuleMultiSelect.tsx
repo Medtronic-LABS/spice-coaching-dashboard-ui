@@ -17,6 +17,8 @@ interface BadgeModuleMultiSelectProps {
   searchValue: string;
   onSearchChange: (query: string) => void;
   disabled?: boolean;
+  /** When false, hides the search field (e.g. view-only selected list). */
+  showSearch?: boolean;
   isLoading?: boolean;
   emptyMessage?: string;
   hasMore?: boolean;
@@ -33,6 +35,7 @@ export const BadgeModuleMultiSelect = ({
   searchValue,
   onSearchChange,
   disabled = false,
+  showSearch = true,
   isLoading = false,
   emptyMessage = 'No published modules match your search.',
   hasMore = false,
@@ -94,15 +97,17 @@ export const BadgeModuleMultiSelect = ({
 
   return (
     <div className="space-y-2">
-      <div className="w-full">
-        <SearchInput
-          value={searchValue}
-          onChange={onSearchChange}
-          placeholder="Search published modules…"
-          aria-label="Search published modules"
-          disabled={disabled}
-        />
-      </div>
+      {showSearch ? (
+        <div className="w-full">
+          <SearchInput
+            value={searchValue}
+            onChange={onSearchChange}
+            placeholder="Search published modules…"
+            aria-label="Search published modules"
+            disabled={disabled}
+          />
+        </div>
+      ) : null}
       {onLoadMore ? (
         <InfiniteScrollContainer
           className={cn(
