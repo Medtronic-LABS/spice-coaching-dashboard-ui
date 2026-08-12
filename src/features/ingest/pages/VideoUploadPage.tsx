@@ -88,6 +88,7 @@ type PendingVideoItem = {
   thumbnailFile: File | null;
   thumbnailPreviewUrl: string | null;
   thumbnailSource: 'auto' | 'custom';
+  syncPublishedVisible: boolean;
 };
 
 type PendingUploadMeta = {
@@ -319,6 +320,7 @@ export const VideoUploadPage = () => {
           thumbnailFile: null,
           thumbnailPreviewUrl: null,
           thumbnailSource: 'auto',
+          syncPublishedVisible: false,
         });
       }
       if (!additions.length) return previous;
@@ -772,9 +774,7 @@ export const VideoUploadPage = () => {
         item.description.trim() ? item.description.trim() : null,
       ),
       content_domains: items.map(() => contentDomain),
-      sync_published_visible: items.map(
-        () => INGEST_FORM_DEFAULTS.sync_published_visible,
-      ),
+      sync_published_visible: items.map((item) => item.syncPublishedVisible),
     });
     // Pending items are cleared in handleUploaded after a successful upload
     // (including duplicate-confirm flows). Keep them if the dialog opens.
@@ -1089,6 +1089,61 @@ export const VideoUploadPage = () => {
                         className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
                       />
                     </label>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        paddingTop: '8px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={item.syncPublishedVisible}
+                        disabled={uploadBusy}
+                        onClick={() =>
+                          updatePendingItem(item.key, {
+                            syncPublishedVisible: !item.syncPublishedVisible,
+                          })
+                        }
+                        style={{
+                          position: 'relative',
+                          display: 'inline-flex',
+                          height: '22px',
+                          width: '40px',
+                          flexShrink: 0,
+                          cursor: uploadBusy ? 'not-allowed' : 'pointer',
+                          alignItems: 'center',
+                          borderRadius: '9999px',
+                          border: 'none',
+                          padding: '2px',
+                          transition: 'background-color 0.2s',
+                          backgroundColor: item.syncPublishedVisible
+                            ? '#2563eb'
+                            : '#9ca3af',
+                          opacity: uploadBusy ? 0.5 : 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            height: '16px',
+                            width: '16px',
+                            borderRadius: '9999px',
+                            backgroundColor: 'white',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                            transition: 'transform 0.2s',
+                            transform: item.syncPublishedVisible
+                              ? 'translateX(18px)'
+                              : 'translateX(0)',
+                          }}
+                        />
+                      </button>
+                      <span style={{ fontSize: '12px' }}>
+                        Visible in SDK sync (knowledge)
+                      </span>
+                    </div>
                   </div>
 
                   <Button

@@ -25,6 +25,7 @@ export interface SourceDocumentSummary {
   thumbnail_storage_path: string | null;
   thumbnail_presigned_url?: string | null;
   ingested_at: string;
+  sync_published_visible: boolean;
 }
 
 /** Paginated envelope returned by `GET /admin/source-documents`. */
@@ -50,6 +51,7 @@ export interface FetchSourceDocumentsParams {
 export interface UpdateSourceDocumentMetadataRequest {
   title?: string;
   description?: string | null;
+  sync_published_visible?: boolean;
 }
 
 export interface UpdateSourceDocumentThumbnailRequest {
@@ -87,6 +89,7 @@ function normalizeSourceDocumentSummary(
         ? item.thumbnail_presigned_url
         : null,
     ingested_at: typeof item.ingested_at === 'string' ? item.ingested_at : '',
+    sync_published_visible: item.sync_published_visible === true,
   };
 }
 

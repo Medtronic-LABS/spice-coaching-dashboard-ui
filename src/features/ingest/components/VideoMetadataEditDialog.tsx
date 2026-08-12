@@ -27,6 +27,7 @@ export const VideoMetadataEditDialog = ({
 }: VideoMetadataEditDialogProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [syncPublishedVisible, setSyncPublishedVisible] = useState(false);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(
     null,
@@ -46,6 +47,7 @@ export const VideoMetadataEditDialog = ({
     if (!open || !document) return;
     setTitle(document.title);
     setDescription(document.description ?? '');
+    setSyncPublishedVisible(document.sync_published_visible ?? false);
     setThumbnailFile(null);
     setThumbnailPreviewUrl(document.thumbnail_presigned_url ?? null);
     setFieldError('');
@@ -95,7 +97,8 @@ export const VideoMetadataEditDialog = ({
       const descriptionValue = description.trim() ? description.trim() : null;
       const metadataChanged =
         trimmedTitle !== document.title ||
-        descriptionValue !== (document.description ?? null);
+        descriptionValue !== (document.description ?? null) ||
+        syncPublishedVisible !== (document.sync_published_visible ?? false);
 
       if (metadataChanged) {
         latest = await updateMetadata({
@@ -103,6 +106,7 @@ export const VideoMetadataEditDialog = ({
           body: {
             title: trimmedTitle,
             description: descriptionValue,
+            sync_published_visible: syncPublishedVisible,
           },
         }).unwrap();
       }
@@ -175,6 +179,49 @@ export const VideoMetadataEditDialog = ({
             className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
           />
         </label>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={syncPublishedVisible}
+            disabled={isSaving}
+            onClick={() => setSyncPublishedVisible((v) => !v)}
+            style={{
+              position: 'relative',
+              display: 'inline-flex',
+              height: '22px',
+              width: '40px',
+              flexShrink: 0,
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              alignItems: 'center',
+              borderRadius: '9999px',
+              border: 'none',
+              padding: '2px',
+              transition: 'background-color 0.2s',
+              backgroundColor: syncPublishedVisible ? '#2563eb' : '#9ca3af',
+              opacity: isSaving ? 0.5 : 1,
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                height: '16px',
+                width: '16px',
+                borderRadius: '9999px',
+                backgroundColor: 'white',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                transition: 'transform 0.2s',
+                transform: syncPublishedVisible
+                  ? 'translateX(18px)'
+                  : 'translateX(0)',
+              }}
+            />
+          </button>
+          <span style={{ fontSize: '12px' }}>
+            Visible in SDK sync (knowledge)
+          </span>
+        </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
