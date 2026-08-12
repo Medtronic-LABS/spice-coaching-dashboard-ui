@@ -199,7 +199,7 @@ export const IngestConfigurationPanel = ({
           <span className="text-xs font-semibold text-spice-text-primary">
             Document language
           </span>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="flex gap-4">
             {LANGUAGE_CARDS.map(({ code, name, native }) => {
               const selected = primaryLanguage === code;
               return (
@@ -209,35 +209,29 @@ export const IngestConfigurationPanel = ({
                   disabled={disabled}
                   onClick={() => onPrimaryLanguageChange(code)}
                   className={cn(
-                    'flex flex-col items-center gap-0.5 rounded-xl border px-2 py-3 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary',
-                    selected
-                      ? 'border-spice-brand-primary bg-spice-bg-tint shadow-sm'
-                      : 'border-spice-border bg-spice-bg-surface hover:border-spice-border-mid hover:bg-spice-bg-tint',
+                    'flex flex-col items-center gap-1.5 focus-visible:outline-none',
                     disabled && 'cursor-not-allowed opacity-50',
                   )}
                 >
                   <span
                     className={cn(
-                      'text-[13px] font-semibold leading-tight',
+                      'flex h-14 w-14 items-center justify-center rounded-full text-[15px] font-bold transition-all duration-150',
                       selected
-                        ? 'text-spice-brand-primary'
-                        : 'text-spice-text-primary',
+                        ? 'bg-spice-brand-primary text-white ring-2 ring-spice-brand-primary ring-offset-2'
+                        : 'bg-spice-bg-tint text-spice-text-primary ring-2 ring-spice-border hover:ring-spice-border-mid',
                     )}
                   >
-                    {name}
-                  </span>
-                  <span className="text-[12px] leading-tight text-spice-text-muted">
-                    {native}
+                    {native === name ? code.toUpperCase() : native.charAt(0)}
                   </span>
                   <span
                     className={cn(
-                      'mt-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide',
+                      'text-[11px] font-semibold leading-tight',
                       selected
-                        ? 'bg-spice-bg-tint text-spice-brand-primary'
-                        : 'bg-spice-bg-tint text-spice-text-muted',
+                        ? 'text-spice-brand-primary'
+                        : 'text-spice-text-muted',
                     )}
                   >
-                    {code}
+                    {name}
                   </span>
                 </button>
               );
