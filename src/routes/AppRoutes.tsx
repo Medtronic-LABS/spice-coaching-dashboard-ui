@@ -105,6 +105,13 @@ const ConfigsPage = lazy(() =>
     default: module.ConfigsPage,
   })),
 );
+const AdminDashboardPage = lazy(() =>
+  import('@/features/admin-dashboard/pages/AdminDashboardPage').then(
+    (module) => ({
+      default: module.AdminDashboardPage,
+    }),
+  ),
+);
 const BadgeManagementPage = lazy(() =>
   import('@/features/badges/pages/BadgeManagementPage').then((module) => ({
     default: module.BadgeManagementPage,
@@ -134,6 +141,7 @@ export const AppRoutes = () => {
         />
         <Route path={paths.videoUpload} element={<VideoUploadPage />} />
         <Route path={paths.ingestHistory} element={<IngestHistoryPage />} />
+        <Route path={paths.adminDashboard} element={<AdminDashboardPage />} />
         <Route
           path={paths.adminModuleReview}
           element={<AdminModuleReviewLayout />}

@@ -37,7 +37,11 @@
     "retry": "আবার চেষ্টা করুন",
     "reset": "রিসেট",
     "clearFilters": "ফিল্টার মুছুন",
-    "view": "দেখুন"
+    "view": "দেখুন",
+    "close": "বন্ধ করুন",
+    "previous": "পূর্ববর্তী",
+    "next": "পরবর্তী",
+    "pageOf": "পৃষ্ঠা {{page}} / {{total}}"
   },
   "charts": {
     "errorTitle": "ত্রুটি",
@@ -63,6 +67,7 @@
         "uploadKnowledge": "নলেজ আপলোড",
         "videoUpload": "ভিডিও আপলোড",
         "ingestHistory": "ইনজেশন হিস্ট্রি",
+        "dashboard": "ড্যাশবোর্ড",
         "configs": "কনফিগারেশন"
       },
       "user": {
@@ -139,6 +144,186 @@
       "sample": {
         "module": "HTN রেফারাল থ্রেশহোল্ডস",
         "deadline": "সোম, ২৮ এপ্রি ২০২৬"
+      }
+    }
+  },
+  "adminDashboard": {
+    "title": "অ্যাডমিন ড্যাশবোর্ড",
+    "description": "প্রোগ্রাম-ব্যাপী প্রশিক্ষণ কার্যকলাপ, মডিউল চাহিদা এবং নলেজ ব্যবহার।",
+    "insightsTitle": "প্রশিক্ষণ ইনসাইটস",
+    "widgetError": {
+      "title": "এই অংশ লোড করা যায়নি",
+      "description": "ডেটা সাময়িকভাবে অনুপলব্ধ। আপনার সংযোগ পরীক্ষা করুন বা কিছুক্ষণ পর আবার চেষ্টা করুন।",
+      "compactDescription": "এই অংশ পুনরায় লোড করতে আবার চেষ্টা করুন।",
+      "retry": "আবার চেষ্টা করুন"
+    },
+    "kpis": {
+      "active": "এখন সক্রিয় SK",
+      "inactive": "নিষ্ক্রিয় SK",
+      "finishedModules": "সব মডিউল সম্পন্ন SK",
+      "chatbotEngaged": "চ্যাটবট এনগেজড",
+      "totalModules": "মোট তৈরি মডিউল"
+    },
+    "filters": {
+      "button": "ফিল্টার",
+      "apply": "প্রয়োগ করুন",
+      "clearAll": "সব ফিল্টার মুছুন",
+      "activeCount": "{{count}}টি ফিল্টার প্রয়োগ করা হয়েছে",
+      "panelLabel": "ড্যাশবোর্ড ফিল্টার",
+      "statusLabel": "স্ট্যাটাস",
+      "durationLabel": "সময়কাল:",
+      "clearCustomRange": "কাস্টম তারিখ রেঞ্জ মুছুন",
+      "invalidRangeTitle": "অবৈধ তারিখ রেঞ্জ",
+      "invalidRangeDescription": "একটি বৈধ কাস্টম শুরু/শেষ রেঞ্জ বেছে নিন, অথবা চালিয়ে যেতে কাস্টম রেঞ্জ মুছুন।",
+      "duration": {
+        "allTime": "সব সময়",
+        "thisWeek": "এই সপ্তাহ",
+        "thisMonth": "এই মাস",
+        "custom": "কাস্টম রেঞ্জ"
+      },
+      "from": "শুরু",
+      "to": "শেষ",
+      "sortLabel": "সাজান:",
+      "sort": {
+        "default": "ডিফল্ট",
+        "at_risk_first": "ঝুঁকিতে প্রথম",
+        "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
+        "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
+        "most_inactive": "সর্বাধিক নিষ্ক্রিয় SK",
+        "name": "নাম (A–Z)"
+      },
+      "status": {
+        "all": "সব স্ট্যাটাস",
+        "on_track": "ঠিক পথে",
+        "at_risk": "ঝুঁকিতে"
+      },
+      "division": "বিভাগ",
+      "allDivisions": "সব বিভাগ",
+      "district": "জেলা",
+      "upazila": "উপজেলা",
+      "allDistricts": "সব জেলা",
+      "allUpazilas": "সব উপজেলা"
+    },
+    "hierarchy": {
+      "description": "PO এবং SK দেখতে \"View POs\" ট্যাপ করুন।",
+      "emptyChildren": "এই রেঞ্জে কোনো সরাসরি রিপোর্ট নেই।",
+      "searchPlaceholder": "এরিয়া ম্যানেজার খুঁজুন...",
+      "searchPlaceholderPo": "প্রোগ্রাম অফিসার খুঁজুন...",
+      "searchPlaceholderSk": "SK খুঁজুন...",
+      "emptyTitle": "কোনো টিম মেম্বার নেই",
+      "emptyDescription": "বর্তমান ফিল্টারে কোনো হায়ারার্কি সারি নেই।",
+      "roleLabels": {
+        "am": "এরিয়া ম্যানেজার",
+        "po": "প্রোগ্রাম অফিসার",
+        "sk": "স্বাস্থ্যকর্মী"
+      },
+      "viewChildrenActions": {
+        "pos": "PO দেখুন",
+        "sks": "SK দেখুন",
+        "generic": "দেখুন"
+      },
+      "hideChildrenActions": {
+        "pos": "PO লুকান",
+        "sks": "SK লুকান",
+        "generic": "লুকান"
+      },
+      "tabs": {
+        "am": "এরিয়া ম্যানেজার",
+        "po": "প্রোগ্রাম অফিসার",
+        "sk": "SK"
+      },
+      "metrics": {
+        "members": "{{count}} সদস্য",
+        "inactive": "{{count}} নিষ্ক্রিয়",
+        "modules": "{{completed}}/{{total}} মডিউল",
+        "chatbot": "{{count}} চ্যাটবট",
+        "sksLabel": "SK",
+        "membersLabel": "সদস্য",
+        "inactiveLabel": "নিষ্ক্রিয়",
+        "modulesLabel": "মডিউল"
+      },
+      "columns": {
+        "name": "নাম",
+        "status": "স্ট্যাটাস",
+        "modules": "মডিউল",
+        "chatbot": "চ্যাটবট প্রশ্ন",
+        "lastActive": "সর্বশেষ সক্রিয়"
+      }
+    },
+    "trainingModules": {
+      "title": "প্রশিক্ষণ মডিউল",
+      "description": "সম্পন্নতা বর্তমান ভিউয়ের SK-দের প্রতিফলিত করে।",
+      "emptyTitle": "কোনো প্রকাশিত মডিউল নেই",
+      "emptyDescription": "এই তারিখের রেঞ্জে কোনো মডিউল প্রকাশিত হয়নি।",
+      "columns": {
+        "name": "মডিউল নাম",
+        "launched": "লঞ্চ করা",
+        "completed": "SK সম্পন্ন"
+      }
+    },
+    "modulePerformance": {
+      "title": "মডিউল পারফরম্যান্স",
+      "description": "প্রকাশিত মডিউল জুড়ে SK সম্পন্নতার অগ্রগতি।"
+    },
+    "existingModules": {
+      "title": "টপ সার্চ করা মডিউল",
+      "description": "ফিল্ড স্টাফ AI হেল্পের মাধ্যমে সবচেয়ে বেশি যে মডিউল খোঁজে।",
+      "footer": "উচ্চ সার্চ ভলিউম ইঙ্গিত দেয় কোথায় SK-দের পরিষ্কার কনটেন্ট বা ফিল্ড সাপোর্ট দরকার।",
+      "emptyTitle": "কোনো সার্চ করা মডিউল নেই",
+      "emptyDescription": "এই তারিখ পরিসরে প্রকাশিত মডিউলের জন্য কোনো AI হেল্প লুকআপ নেই।"
+    },
+    "suggestedModules": {
+      "title": "টপ সাজেস্টেড মডিউল",
+      "description": "প্রশিক্ষণ অ্যাক্সেসের জন্য ফিল্ড স্টাফ সবচেয়ে বেশি যে মডিউল অনুরোধ করে।",
+      "footer": "উচ্চ রিকোয়েস্ট ভলিউম ইঙ্গিত দেয় কোন প্রকাশিত মডিউল অ্যাসাইন বা রিফ্রেশ করা দরকার।",
+      "emptyTitle": "কোনো অনুরোধ করা মডিউল নেই",
+      "emptyDescription": "এই তারিখ পরিসরে প্রকাশিত মডিউলের জন্য কোনো প্রশিক্ষণ অ্যাক্সেস অনুরোধ নেই।"
+    },
+    "moduleDemand": {
+      "columns": {
+        "title": "মডিউল শিরোনাম",
+        "searchCount": "সার্চ কাউন্ট",
+        "action": "অ্যাকশন"
+      },
+      "emptyTitle": "কোনো মডিউল চাহিদা নেই",
+      "emptyDescription": "এই তারিখ পরিসরে কোনো চ্যাটবট মডিউল কার্যকলাপ নেই।",
+      "requestSummary": "এই সময়ে {{count}}টি প্রশিক্ষণ অ্যাক্সেস অনুরোধ",
+      "detailDescription": "এই মডিউল বা টপিকের সাথে যুক্ত প্রশ্ন এবং অনুরোধ।",
+      "occurrences": "{{count}} ঘটনা",
+      "interaction": {
+        "chatbotServed": "চ্যাটবটে সরবরাহ",
+        "assignmentRequested": "অ্যাসাইনমেন্টের জন্য অনুরোধ"
+      },
+      "metadata": {
+        "timestamp": "টাইমস্ট্যাম্প",
+        "skName": "SK নাম",
+        "district": "জেলা",
+        "upazila": "উপজেলা",
+        "interaction": "ইন্টারঅ্যাকশন",
+        "reason": "কারণ"
+      },
+      "actions": {
+        "assign": "অ্যাসাইন",
+        "publish": "প্রকাশ",
+        "create": "মডিউল তৈরি"
+      }
+    },
+    "documentUsage": {
+      "title": "PDF / নলেজ ভিউ",
+      "description": "নির্বাচিত সময়ে ডকুমেন্ট ভিউ।",
+      "emptyTitle": "কোনো ডকুমেন্ট ভিউ নেই",
+      "emptyDescription": "ডকুমেন্ট ভিউ টেলিমেট্রি এখনো রেকর্ড হয়নি।",
+      "chartLabel": "সর্বাধিক দেখা ডকুমেন্ট",
+      "kpis": {
+        "views": "মোট ভিউ",
+        "documents": "ইউনিক ডকুমেন্ট",
+        "users": "ইউনিক ব্যবহারকারী"
+      },
+      "columns": {
+        "title": "ডকুমেন্ট",
+        "views": "ভিউ",
+        "users": "ইউনিক ব্যবহারকারী",
+        "lastViewed": "সর্বশেষ দেখা"
       }
     }
   },

@@ -5,6 +5,7 @@ export { ChevronIcon, type ChevronIconProps } from './ChevronIcon';
 export { ClipboardIcon, type ClipboardIconProps } from './ClipboardIcon';
 export { CloseIcon, type CloseIconProps } from './CloseIcon';
 export { CopyIcon, type CopyIconProps } from './CopyIcon';
+export { DashboardIcon, type DashboardIconProps } from './DashboardIcon';
 export { DeleteIcon, type DeleteIconProps } from './DeleteIcon';
 export { EyeIcon, type EyeIconProps } from './EyeIcon';
 export {

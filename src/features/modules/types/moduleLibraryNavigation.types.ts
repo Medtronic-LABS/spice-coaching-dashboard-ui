@@ -11,4 +11,8 @@ export type ModuleLibraryLocationState = {
     moduleId: string;
     moduleTitle: string;
   };
+  openCreateModule?: {
+    title_bn?: string;
+    domain?: string;
+  };
 };

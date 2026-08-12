@@ -16,6 +16,8 @@ describe('requestRouting', () => {
     expect(shouldUseRealFetchForRequest('/auth/session')).toBe(true);
     expect(shouldUseRealFetchForRequest('auth/session')).toBe(true);
     expect(shouldUseRealFetchForRequest('/admin/modules')).toBe(true);
+    expect(shouldUseRealFetchForRequest('/dashboard/team-activity')).toBe(true);
+    expect(shouldUseRealFetchForRequest('/telemetry/events')).toBe(true);
     expect(
       shouldUseRealFetchForRequest({
         url: '/admin/ingest/by-document/doc-1',

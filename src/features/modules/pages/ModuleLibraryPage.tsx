@@ -391,11 +391,25 @@ export const ModuleLibraryPage = () => {
       });
       setAssignmentOpen(true);
     }
+    if (state.openCreateModule) {
+      setCreateError('');
+      setCreateForm({
+        ...createEmptyCreateForm(),
+        title_bn:
+          state.openCreateModule.title_bn?.trim() ??
+          createEmptyCreateForm().title_bn,
+        domain:
+          state.openCreateModule.domain?.trim() ??
+          createEmptyCreateForm().domain,
+      });
+      setCreateOpen(true);
+    }
 
     const hasTransientState =
       state.tab !== undefined ||
       state.sourceDocumentId !== undefined ||
-      state.openAssignment !== undefined;
+      state.openAssignment !== undefined ||
+      state.openCreateModule !== undefined;
 
     if (!hasTransientState) return;
 

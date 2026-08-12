@@ -37,7 +37,11 @@
     "retry": "Retry",
     "reset": "Reset",
     "clearFilters": "Clear filters",
-    "view": "View"
+    "view": "View",
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "charts": {
     "errorTitle": "Error",
@@ -62,6 +66,7 @@
         "uploadKnowledge": "Upload Knowledge",
         "videoUpload": "Upload Video",
         "ingestHistory": "Ingestion History",
+        "dashboard": "Dashboard",
         "configs": "Configurations"
       },
       "user": {
@@ -138,6 +143,186 @@
       "sample": {
         "module": "HTN Referral Thresholds",
         "deadline": "Mon, 28 Apr 2026"
+      }
+    }
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "description": "Program-wide training activity, module demand, and knowledge usage.",
+    "insightsTitle": "Training Insights",
+    "widgetError": {
+      "title": "Couldn't load this section",
+      "description": "This data is temporarily unavailable. Check your connection or try again in a moment.",
+      "compactDescription": "Try again to reload this section.",
+      "retry": "Try again"
+    },
+    "kpis": {
+      "active": "SKs active now",
+      "inactive": "Inactive SKs",
+      "finishedModules": "SKs finished all modules",
+      "chatbotEngaged": "Chatbot engaged",
+      "totalModules": "Total modules created"
+    },
+    "filters": {
+      "button": "Filters",
+      "apply": "Apply",
+      "clearAll": "Clear all filters",
+      "activeCount": "{{count}} filters applied",
+      "panelLabel": "Dashboard filters",
+      "statusLabel": "Status",
+      "durationLabel": "Duration:",
+      "clearCustomRange": "Clear custom date range",
+      "invalidRangeTitle": "Invalid date range",
+      "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
+      "duration": {
+        "allTime": "All time",
+        "thisWeek": "This week",
+        "thisMonth": "This month",
+        "custom": "Custom range"
+      },
+      "from": "From",
+      "to": "To",
+      "sortLabel": "Sort:",
+      "sort": {
+        "default": "Default",
+        "at_risk_first": "At risk first",
+        "lowest_completion": "Lowest module completion",
+        "lowest_chatbot": "Lowest chatbot engagement",
+        "most_inactive": "Most inactive SKs",
+        "name": "Name (A–Z)"
+      },
+      "status": {
+        "all": "All statuses",
+        "on_track": "On track",
+        "at_risk": "At risk"
+      },
+      "division": "Division",
+      "allDivisions": "All divisions",
+      "district": "District",
+      "upazila": "Upazila",
+      "allDistricts": "All districts",
+      "allUpazilas": "All upazilas"
+    },
+    "hierarchy": {
+      "description": "Tap \"View POs\" to expand and see program officers and SKs.",
+      "emptyChildren": "No direct reports in this range.",
+      "searchPlaceholder": "Search area managers...",
+      "searchPlaceholderPo": "Search program officers...",
+      "searchPlaceholderSk": "Search SKs...",
+      "emptyTitle": "No team members",
+      "emptyDescription": "No hierarchy rows match the current filters.",
+      "roleLabels": {
+        "am": "Area Manager",
+        "po": "Program Officer",
+        "sk": "Shasthya Kormi"
+      },
+      "viewChildrenActions": {
+        "pos": "View POs",
+        "sks": "View SKs",
+        "generic": "View"
+      },
+      "hideChildrenActions": {
+        "pos": "Hide POs",
+        "sks": "Hide SKs",
+        "generic": "Hide"
+      },
+      "tabs": {
+        "am": "Area Managers",
+        "po": "Program Officers",
+        "sk": "SKs"
+      },
+      "metrics": {
+        "members": "{{count}} members",
+        "inactive": "{{count}} Inactive",
+        "modules": "{{completed}}/{{total}} Modules",
+        "chatbot": "{{count}} chatbot",
+        "sksLabel": "SKs",
+        "membersLabel": "members",
+        "inactiveLabel": "Inactive",
+        "modulesLabel": "Modules"
+      },
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "modules": "Modules",
+        "chatbot": "Chatbot queries",
+        "lastActive": "Last active"
+      }
+    },
+    "trainingModules": {
+      "title": "Training Modules",
+      "description": "Completion reflects SKs in the current view.",
+      "emptyTitle": "No published modules",
+      "emptyDescription": "No modules were published in this date range.",
+      "columns": {
+        "name": "Module Name",
+        "launched": "Launched",
+        "completed": "SKs Completed"
+      }
+    },
+    "modulePerformance": {
+      "title": "Module Performance",
+      "description": "SK completion progress across published modules."
+    },
+    "existingModules": {
+      "title": "Top searched modules",
+      "description": "Modules field staff look up most via AI help.",
+      "footer": "High search volume signals where SKs need clearer module content or field support.",
+      "emptyTitle": "No searched modules",
+      "emptyDescription": "No AI help lookups for published modules in this date range."
+    },
+    "suggestedModules": {
+      "title": "Top suggested modules",
+      "description": "Modules field staff request most for training access.",
+      "footer": "High request volume signals demand for assigning or refreshing a published module.",
+      "emptyTitle": "No requested modules",
+      "emptyDescription": "No training access requests for published modules in this date range."
+    },
+    "moduleDemand": {
+      "columns": {
+        "title": "Module Title",
+        "searchCount": "Search Count",
+        "action": "Action"
+      },
+      "emptyTitle": "No module demand",
+      "emptyDescription": "No chatbot module activity in this date range.",
+      "requestSummary": "{{count}} training access requests in this period",
+      "detailDescription": "Queries and requests associated with this module or topic.",
+      "occurrences": "{{count}} occurrences",
+      "interaction": {
+        "chatbotServed": "Served by chatbot",
+        "assignmentRequested": "Requested for assignment"
+      },
+      "metadata": {
+        "timestamp": "Timestamp",
+        "skName": "SK name",
+        "district": "District",
+        "upazila": "Upazila",
+        "interaction": "Interaction",
+        "reason": "Reason"
+      },
+      "actions": {
+        "assign": "Assign",
+        "publish": "Publish",
+        "create": "Create Module"
+      }
+    },
+    "documentUsage": {
+      "title": "PDF / knowledge views",
+      "description": "Document views in the selected period.",
+      "emptyTitle": "No document views",
+      "emptyDescription": "Document view telemetry has not been recorded yet.",
+      "chartLabel": "Top viewed documents",
+      "kpis": {
+        "views": "Total views",
+        "documents": "Unique documents",
+        "users": "Unique users"
+      },
+      "columns": {
+        "title": "Document",
+        "views": "Views",
+        "users": "Unique users",
+        "lastViewed": "Last viewed"
       }
     }
   },

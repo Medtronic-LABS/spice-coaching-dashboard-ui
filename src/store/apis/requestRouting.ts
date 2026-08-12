@@ -23,6 +23,8 @@ export function shouldUseRealFetchForRequest(
     url === 'auth/session' ||
     url.startsWith('auth/') ||
     url.startsWith('admin/') ||
+    url.startsWith('dashboard/') ||
+    url.startsWith('telemetry/') ||
     isSpiceAdminServiceRequest(url) ||
     isSpiceUserServiceRequest(url)
   );

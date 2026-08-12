@@ -4,6 +4,7 @@ import {
   AwardIcon,
   BookIcon,
   ClipboardIcon,
+  DashboardIcon,
   HistoryIcon,
   KnowledgeIcon,
   SettingsIcon,
@@ -168,6 +169,19 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <div className={sectionTitleClassName}>
             {t('layout.sidebar.sections.administration')}
           </div>
+          <NavLink
+            className={linkClassName}
+            to={paths.adminDashboard}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <DashboardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.dashboard')}
+              </>
+            )}
+          </NavLink>
           <NavLink
             className={linkClassName}
             to={paths.configs}
