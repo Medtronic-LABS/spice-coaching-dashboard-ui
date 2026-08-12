@@ -15,6 +15,11 @@ export interface KnowledgeUploadPayload {
   thumbnailStoragePath?: string | null;
   /** When present and non-empty, backend physically splits the PDF. */
   splits?: KnowledgeSplitInput[];
+  /**
+   * When true, create a new knowledge row even if content SHA matches an
+   * existing uploaded/ingested document (409 duplicate_content otherwise).
+   */
+  overrideDuplicates?: boolean;
 }
 
 export interface KnowledgeUploadedSource {
@@ -90,33 +95,37 @@ export function normalizeKnowledgeUploadersResponse(
   };
 }
 
+export function buildKnowledgeUploadFormData(
+  payload: KnowledgeUploadPayload,
+): FormData {
+  const form = new FormData();
+  form.append('file', payload.file, payload.file.name);
+  if (payload.title?.trim()) {
+    form.append('title', payload.title.trim());
+  }
+  if (payload.thumbnailStoragePath?.trim()) {
+    form.append('thumbnail_storage_path', payload.thumbnailStoragePath.trim());
+  }
+  if (payload.splits?.length) {
+    form.append('splits', JSON.stringify(payload.splits));
+  }
+  if (payload.overrideDuplicates) {
+    form.append('override_duplicates', 'true');
+  }
+  return form;
+}
+
 export const adminKnowledgeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     uploadKnowledgeDocument: builder.mutation<
       KnowledgeUploadResponse,
       KnowledgeUploadPayload
     >({
-      query: (payload) => {
-        const form = new FormData();
-        form.append('file', payload.file, payload.file.name);
-        if (payload.title?.trim()) {
-          form.append('title', payload.title.trim());
-        }
-        if (payload.thumbnailStoragePath?.trim()) {
-          form.append(
-            'thumbnail_storage_path',
-            payload.thumbnailStoragePath.trim(),
-          );
-        }
-        if (payload.splits?.length) {
-          form.append('splits', JSON.stringify(payload.splits));
-        }
-        return {
-          url: '/admin/knowledge/upload',
-          method: 'POST',
-          body: form,
-        };
-      },
+      query: (payload) => ({
+        url: '/admin/knowledge/upload',
+        method: 'POST',
+        body: buildKnowledgeUploadFormData(payload),
+      }),
       transformResponse: (response: unknown): KnowledgeUploadResponse => {
         if (!isPlainObject(response) || !Array.isArray(response.sources)) {
           return { sources: [] };

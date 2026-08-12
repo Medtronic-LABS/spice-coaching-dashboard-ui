@@ -204,12 +204,14 @@ export const ConfigsPage = () => {
           <div className="flex flex-wrap justify-end gap-2 pt-4">
             <Button
               variant="secondary"
+              className="h-9 text-xs"
               disabled={!isDirty || isSaving}
               onClick={handleReset}
             >
               Reset
             </Button>
             <Button
+              className="h-9 text-xs"
               disabled={!isDirty || !isValid || isSaving || Boolean(formError)}
               onClick={() => void handleSave()}
             >

@@ -5,6 +5,7 @@ import {
   BookIcon,
   ClipboardIcon,
   HistoryIcon,
+  KnowledgeIcon,
   SettingsIcon,
   VideoIcon,
 } from '@/assets/icon';
@@ -129,7 +130,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           >
             {({ isActive }) => (
               <>
-                <ClipboardIcon className={iconClassName({ isActive })} />
+                <KnowledgeIcon className={iconClassName({ isActive })} />
                 {t('layout.sidebar.nav.uploadKnowledge')}
               </>
             )}

@@ -295,9 +295,14 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   if (url === 'admin/files' && method === 'POST') {
     const body = getBody(args);
     const file = body instanceof FormData ? body.get('file') : null;
+    const prefixRaw = body instanceof FormData ? body.get('prefix') : null;
+    const prefix =
+      typeof prefixRaw === 'string' && prefixRaw.trim()
+        ? prefixRaw.trim().replace(/^\/+|\/+$/g, '')
+        : 'media';
     const name = file instanceof File ? file.name : 'upload.bin';
     const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
-    const objectName = `media/mock-${Date.now()}${ext}`;
+    const objectName = `${prefix}/mock-${Date.now()}${ext}`;
     return {
       data: {
         bucket_name: 'microcoaching-uploads',
@@ -364,7 +369,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         error: {
           status: 409,
           data: {
-            message: `An active badge named '${name}' already exists.`,
+            message: `An active milestone named '${name}' already exists.`,
             code: 'badge_name_conflict',
           },
         },
@@ -380,7 +385,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         error: {
           status: 409,
           data: {
-            message: `Sequence ${sequence} is already used by another active badge.`,
+            message: `Sequence ${sequence} is already used by another active milestone.`,
             code: 'badge_sequence_conflict',
           },
         },
@@ -498,7 +503,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     if (method === 'GET') {
       if (!existing) {
         return {
-          error: { status: 404, data: { message: 'Badge not found' } },
+          error: { status: 404, data: { message: 'Milestone not found' } },
         };
       }
       return { data: existing };
@@ -507,7 +512,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     if (method === 'PUT') {
       if (!existing) {
         return {
-          error: { status: 404, data: { message: 'Badge not found' } },
+          error: { status: 404, data: { message: 'Milestone not found' } },
         };
       }
       const payload =
@@ -564,7 +569,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           error: {
             status: 409,
             data: {
-              message: `An active badge named '${name}' already exists.`,
+              message: `An active milestone named '${name}' already exists.`,
               code: 'badge_name_conflict',
             },
           },
@@ -583,7 +588,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           error: {
             status: 409,
             data: {
-              message: `Sequence ${sequence} is already used by another active badge.`,
+              message: `Sequence ${sequence} is already used by another active milestone.`,
               code: 'badge_sequence_conflict',
             },
           },
@@ -609,7 +614,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     if (method === 'DELETE') {
       if (!existing) {
         return {
-          error: { status: 404, data: { message: 'Badge not found' } },
+          error: { status: 404, data: { message: 'Milestone not found' } },
         };
       }
       mockBadgesState = mockBadgesState.map((badge) =>

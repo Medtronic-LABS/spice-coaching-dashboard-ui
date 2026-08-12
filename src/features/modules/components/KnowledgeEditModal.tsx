@@ -99,14 +99,14 @@ export function KnowledgeEditModal({
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-spice-border px-5 py-3">
           <Button
             variant="ghost"
-            className="h-9 px-3 text-sm"
+            className="h-9 text-xs"
             disabled={disabled}
             onClick={onClose}
           >
             Cancel
           </Button>
           <Button
-            className="h-9 px-3 text-sm"
+            className="h-9 text-xs"
             disabled={disabled || !title.trim() || !asset}
             onClick={onSave}
           >

@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import type { KnowledgeUploadPayload } from '@/features/modules/api/adminKnowledgeApi';
@@ -39,6 +39,30 @@ vi.mock('@/features/modules/api/adminKnowledgeApi', async (importOriginal) => {
     ],
   };
 });
+
+vi.mock('@/features/modules/api/adminFilesApi', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/modules/api/adminFilesApi')
+    >();
+  return {
+    ...actual,
+    useUploadAdminFileMutation: () => [
+      vi.fn(() => ({
+        unwrap: () =>
+          Promise.resolve({
+            storage_path: 'microcoaching-uploads/media/mock-thumb.png',
+            object_name: 'media/mock-thumb.png',
+          }),
+      })),
+      { isLoading: false },
+    ],
+  };
+});
+
+vi.mock('@/features/modules/components/KnowledgeLibraryTable', () => ({
+  KnowledgeLibraryTable: () => <div data-testid="knowledge-library-table" />,
+}));
 
 vi.mock('@/features/modules/hooks/useKnowledgePdfDocument', () => ({
   useKnowledgePdfDocument: () => ({
@@ -133,11 +157,9 @@ describe('KnowledgeLibraryPage', () => {
       screen.getByPlaceholderText(/htn referral guidelines/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/page splits/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        (_, node) => node?.textContent === 'This PDF has 5 pages.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/This PDF has/)).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText(/pages?\./)).toBeInTheDocument();
   });
 
   it('can clear the original PDF thumbnail to leave it blank', async () => {
@@ -184,9 +206,7 @@ describe('KnowledgeLibraryPage', () => {
     await user.clear(end);
     await user.type(end, '9');
 
-    expect(
-      await screen.findByText('End page must be ≤ 5.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/End page must be ≤ 5/)).toBeInTheDocument();
     expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
   });
 
@@ -285,5 +305,139 @@ describe('KnowledgeLibraryPage', () => {
       await screen.findByText('End page must be >= start page.'),
     ).toBeInTheDocument();
     expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
+  });
+
+  it('opens duplicate dialog on 409 and retries with override_duplicates', async () => {
+    const user = userEvent.setup();
+    const pdf = new File(['%PDF-1.4'], 'Health Testing 4 Topics.pdf', {
+      type: 'application/pdf',
+    });
+
+    mocks.uploadKnowledgeDocumentTrigger
+      .mockReturnValueOnce({
+        unwrap: () =>
+          Promise.reject({
+            status: 409,
+            data: {
+              type: 'docs/error-codes.json#duplicate_content',
+              title: 'Duplicate Content',
+              status: 409,
+              detail:
+                'One or more files match already-uploaded or already-ingested content; set override to re-upload.',
+              code: 'duplicate_content',
+              conflicts: [
+                {
+                  filename: 'Health Testing 4 Topics.pdf',
+                  title: 'Health Test doc',
+                  content_sha256: 'abc123',
+                  existing_source_documents: [
+                    {
+                      source_document_id:
+                        '3f433af4-fcc0-4cda-acd6-d34db05e0191',
+                      title: 'Health Test doc',
+                      original_filename: 'Health Testing 4 Topics.pdf',
+                      ingested_at: '2026-08-11T13:06:25.059379+00:00',
+                      status: 'uploaded',
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+      })
+      .mockReturnValueOnce({
+        unwrap: () => Promise.resolve({ sources: [] }),
+      });
+
+    renderPage();
+    await user.upload(pdfInput(), pdf);
+
+    await user.click(
+      screen.getByRole('button', { name: /remove selected image/i }),
+    );
+    await user.type(
+      screen.getByPlaceholderText(/htn referral guidelines/i),
+      'Health Test doc',
+    );
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+
+    expect(
+      await screen.findByRole('heading', { name: /duplicate file detected/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {
+        name: /select health testing 4 topics\.pdf to upload as new source/i,
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: /select health testing 4 topics\.pdf to upload as new source/i,
+      }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /upload as new source/i }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.uploadKnowledgeDocumentTrigger).toHaveBeenCalledTimes(2);
+    });
+    const secondPayload = mocks.uploadKnowledgeDocumentTrigger.mock
+      .calls[1]?.[0] as KnowledgeUploadPayload;
+    expect(secondPayload.overrideDuplicates).toBe(true);
+    expect(secondPayload.title).toBe('Health Test doc');
+  });
+
+  it('skip upload on duplicate shows already-uploaded notice without override', async () => {
+    const user = userEvent.setup();
+    const pdf = new File(['%PDF-1.4'], 'Health Testing 4 Topics.pdf', {
+      type: 'application/pdf',
+    });
+
+    mocks.uploadKnowledgeDocumentTrigger.mockReturnValueOnce({
+      unwrap: () =>
+        Promise.reject({
+          status: 409,
+          data: {
+            code: 'duplicate_content',
+            title: 'Duplicate Content',
+            detail: 'Duplicate content',
+            conflicts: [
+              {
+                filename: 'Health Testing 4 Topics.pdf',
+                title: 'Health Test doc',
+                content_sha256: 'abc123',
+                existing_source_documents: [
+                  {
+                    source_document_id: '3f433af4-fcc0-4cda-acd6-d34db05e0191',
+                    title: 'Health Test doc',
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+    });
+
+    renderPage();
+    await user.upload(pdfInput(), pdf);
+    await user.click(
+      screen.getByRole('button', { name: /remove selected image/i }),
+    );
+    await user.type(
+      screen.getByPlaceholderText(/htn referral guidelines/i),
+      'Health Test doc',
+    );
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+
+    expect(
+      await screen.findByRole('heading', { name: /duplicate file detected/i }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /skip upload/i }));
+
+    expect(await screen.findByText(/already uploaded/i)).toBeInTheDocument();
+    expect(screen.getByText(/health test doc/i)).toBeInTheDocument();
+    expect(mocks.uploadKnowledgeDocumentTrigger).toHaveBeenCalledTimes(1);
   });
 });

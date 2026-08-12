@@ -4,6 +4,7 @@ import {
   type AdminBadgeWriteBody,
   type BadgeManagementFilters,
 } from '@/features/badges/types/badge.types';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 /** Derive object key from `bucket/key` or bare object key storage paths. */
 export function objectNameFromStoragePath(storagePath: string): string {
@@ -21,17 +22,25 @@ export function objectNameFromStoragePath(storagePath: string): string {
 }
 
 export function isDateRangeInvalid(dateFrom: string, dateTo: string): boolean {
+  return dateRangeValidationMessage(dateFrom, dateTo) !== null;
+}
+
+export function dateRangeValidationMessage(
+  dateFrom: string,
+  dateTo: string,
+): string | null {
   const from = dateFrom.trim();
   const to = dateTo.trim();
-  if (!from || !to) return false;
-  return from > to;
+  if (!from && !to) return null;
+  if (!from || !to) return 'Both from and to dates are required.';
+  if (from > to) return 'From date must be on or before to date.';
+  return null;
 }
 
 export function hasActiveBadgeFilters(
   filters: BadgeManagementFilters,
 ): boolean {
   return (
-    Boolean(filters.domain.trim()) ||
     Boolean(filters.createdBy.trim()) ||
     Boolean(filters.createdFrom.trim()) ||
     Boolean(filters.createdTo.trim()) ||
@@ -73,47 +82,19 @@ export function nextGlobalBadgeSequence(
 }
 
 /** Active badges ordered by sequence ascending (nulls last). */
-export function sortBadgesBySequenceAsc(
-  badges: readonly AdminBadge[],
-): AdminBadge[] {
-  return [...badges].sort((a, b) => {
-    if (a.sequence == null && b.sequence == null) {
-      return a.id.localeCompare(b.id);
-    }
-    if (a.sequence == null) return 1;
-    if (b.sequence == null) return -1;
-    if (a.sequence !== b.sequence) return a.sequence - b.sequence;
-    return a.id.localeCompare(b.id);
-  });
-}
-
-export function findSequenceNeighbor(
-  badges: readonly AdminBadge[],
-  badgeId: string,
-  direction: 'up' | 'down',
-): AdminBadge | null {
-  const ordered = sortBadgesBySequenceAsc(badges);
-  const index = ordered.findIndex((badge) => badge.id === badgeId);
-  if (index < 0) return null;
-  const neighborIndex = direction === 'up' ? index - 1 : index + 1;
-  if (neighborIndex < 0 || neighborIndex >= ordered.length) return null;
-  const current = ordered[index];
-  const neighbor = ordered[neighborIndex];
-  if (current.sequence == null || neighbor.sequence == null) return null;
-  return neighbor;
-}
+export {
+  assignSequencesByOrder,
+  diffBadgeSequenceChanges,
+  reorderBadges,
+  sortBadgesBySequenceAsc,
+  type BadgeSequenceChange,
+} from '@/features/badges/utils/badgeSequence';
 
 export function getMutationErrorMessage(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error &&
-    'data' in error &&
-    typeof (error as { data?: unknown }).data === 'object' &&
-    (error as { data?: { message?: unknown } }).data?.message
-  ) {
-    return String((error as { data: { message: unknown } }).data.message);
-  }
-  return 'Something went wrong. Please try again.';
+  const message = formatRtkQueryError(error);
+  return message === 'Something went wrong'
+    ? 'Something went wrong. Please try again.'
+    : message;
 }
 
 /** Full badge write body for create/update/reorder PUTs. */

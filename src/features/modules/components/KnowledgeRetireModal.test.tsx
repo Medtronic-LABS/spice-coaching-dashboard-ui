@@ -37,10 +37,21 @@ describe('KnowledgeRetireModal', () => {
     expect(
       screen.getByRole('heading', { name: 'Remove Knowledge Document' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('HTN Referral Guidelines')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Are you sure you want to remove/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/HTN Referral Guidelines/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /This will retire the knowledge document and remove it from users’ access and active assignments/,
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Confirm Remove' }),
     ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Confirm Remove' })).toHaveClass(
+      'bg-spice-semantic-error',
+    );
   });
 
   it('shows Removing… and blocks cancel while busy', () => {

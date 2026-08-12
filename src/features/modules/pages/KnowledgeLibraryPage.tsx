@@ -11,9 +11,15 @@ import {
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import { useUploadKnowledgeDocumentMutation } from '@/features/modules/api/adminKnowledgeApi';
+import {
+  useUploadKnowledgeDocumentMutation,
+  type KnowledgeUploadPayload,
+} from '@/features/modules/api/adminKnowledgeApi';
 import { useUploadAdminFileMutation } from '@/features/modules/api/adminFilesApi';
+import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
 import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
+import type { IngestDuplicateConflict } from '@/features/ingest/api/adminIngestApi';
+import { parseIngestDuplicateError } from '@/features/ingest/utils/parseIngestDuplicateError';
 import { KnowledgeSplitEditor } from '@/features/modules/components/KnowledgeSplitEditor';
 import { KnowledgeLibraryTable } from '@/features/modules/components/KnowledgeLibraryTable';
 import {
@@ -106,9 +112,26 @@ export const KnowledgeLibraryPage = () => {
   );
 
   const [actionError, setActionError] = useState('');
+  const [reusedUploadNotice, setReusedUploadNotice] = useState<
+    IngestDuplicateConflict[] | null
+  >(null);
+  const [pendingUploadPayload, setPendingUploadPayload] =
+    useState<KnowledgeUploadPayload | null>(null);
+  const [duplicateConflicts, setDuplicateConflicts] = useState<
+    IngestDuplicateConflict[]
+  >([]);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [isConfirmingDuplicate, setIsConfirmingDuplicate] = useState(false);
   const [splitDraftErrors, setSplitDraftErrors] = useState<
     KnowledgeSplitDraftFieldErrors[]
   >([]);
+
+  const clearDuplicateDialog = useCallback(() => {
+    setDuplicateDialogOpen(false);
+    setDuplicateConflicts([]);
+    setPendingUploadPayload(null);
+    setIsConfirmingDuplicate(false);
+  }, []);
 
   const clearAllDrafts = useCallback(() => {
     setFile(null);
@@ -118,12 +141,14 @@ export const KnowledgeLibraryPage = () => {
     setOriginalSuppressAutoThumbnail(false);
     setSplitDraftErrors([]);
     setSplitDrafts([createEmptyKnowledgeSplitDraft()]);
-  }, []);
+    clearDuplicateDialog();
+  }, [clearDuplicateDialog]);
 
   const onModeChange = useCallback((nextMode: string) => {
     const resolved = nextMode === 'split' ? 'split' : 'original';
     setMode(resolved);
     setActionError('');
+    setReusedUploadNotice(null);
     setFileSelectionError('');
     setSplitDraftErrors([]);
 
@@ -159,7 +184,8 @@ export const KnowledgeLibraryPage = () => {
     }));
   }, [livePageFieldErrors, splitDraftErrors, splitDrafts]);
 
-  const isBusy = isUploadingKnowledge || isUploadingThumbnail;
+  const isBusy =
+    isUploadingKnowledge || isUploadingThumbnail || isConfirmingDuplicate;
 
   const canSubmit = useMemo(() => {
     if (!file) return false;
@@ -168,6 +194,28 @@ export const KnowledgeLibraryPage = () => {
     return true;
   }, [file, isBusy, mode, originalTitle]);
 
+  const runKnowledgeUpload = useCallback(
+    async (payload: KnowledgeUploadPayload) => {
+      try {
+        await uploadKnowledgeDocument(payload).unwrap();
+        setReusedUploadNotice(null);
+        clearAllDrafts();
+        return true;
+      } catch (err) {
+        const duplicateDetail = parseIngestDuplicateError(err);
+        if (duplicateDetail?.conflicts.length && !payload.overrideDuplicates) {
+          setPendingUploadPayload(payload);
+          setDuplicateConflicts(duplicateDetail.conflicts);
+          setDuplicateDialogOpen(true);
+          return false;
+        }
+        setActionError(formatRtkQueryError(err));
+        return false;
+      }
+    },
+    [clearAllDrafts, uploadKnowledgeDocument],
+  );
+
   const submitUpload = useCallback(async () => {
     if (!file) {
       setFileSelectionError('Please select a PDF.');
@@ -175,8 +223,10 @@ export const KnowledgeLibraryPage = () => {
     }
 
     setActionError('');
+    setReusedUploadNotice(null);
     setFileSelectionError('');
     setSplitDraftErrors([]);
+    clearDuplicateDialog();
 
     try {
       if (mode === 'original') {
@@ -200,13 +250,11 @@ export const KnowledgeLibraryPage = () => {
           thumbnailStoragePath = uploaded.storage_path;
         }
 
-        await uploadKnowledgeDocument({
+        await runKnowledgeUpload({
           file,
           title,
           thumbnailStoragePath,
-        }).unwrap();
-
-        clearAllDrafts();
+        });
         return;
       }
 
@@ -275,17 +323,15 @@ export const KnowledgeLibraryPage = () => {
         });
       }
 
-      await uploadKnowledgeDocument({
+      await runKnowledgeUpload({
         file,
         splits: splitsPayload,
-      }).unwrap();
-
-      clearAllDrafts();
+      });
     } catch (err) {
       setActionError(formatRtkQueryError(err));
     }
   }, [
-    clearAllDrafts,
+    clearDuplicateDialog,
     file,
     mode,
     originalAutoThumbnailUrl,
@@ -294,10 +340,44 @@ export const KnowledgeLibraryPage = () => {
     originalTitle,
     pageCount,
     pdfDocument,
+    runKnowledgeUpload,
     splitDrafts,
     uploadAdminFile,
-    uploadKnowledgeDocument,
   ]);
+
+  const confirmDuplicate = useCallback(
+    async (selectedFilenames: string[]) => {
+      if (!pendingUploadPayload) return;
+
+      // Skip Upload — keep existing library document(s); do not create a new row.
+      if (selectedFilenames.length === 0) {
+        setReusedUploadNotice(duplicateConflicts);
+        clearAllDrafts();
+        return;
+      }
+
+      setIsConfirmingDuplicate(true);
+      setActionError('');
+      try {
+        const ok = await runKnowledgeUpload({
+          ...pendingUploadPayload,
+          overrideDuplicates: true,
+        });
+        if (!ok) {
+          clearDuplicateDialog();
+        }
+      } finally {
+        setIsConfirmingDuplicate(false);
+      }
+    },
+    [
+      clearAllDrafts,
+      clearDuplicateDialog,
+      duplicateConflicts,
+      pendingUploadPayload,
+      runKnowledgeUpload,
+    ],
+  );
 
   const disableInputs = isBusy;
 
@@ -322,6 +402,23 @@ export const KnowledgeLibraryPage = () => {
           </Button>
         </div>
       </div>
+
+      {reusedUploadNotice?.length ? (
+        <div
+          className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-medium"
+          role="status"
+        >
+          <span className="font-semibold text-spice-text-primary">
+            Already uploaded.
+          </span>{' '}
+          Reusing existing knowledge document
+          {reusedUploadNotice.length === 1 ? '' : 's'}:{' '}
+          {reusedUploadNotice
+            .map((conflict) => conflict.title || conflict.filename)
+            .join(', ')}
+          . It remains available in the library below.
+        </div>
+      ) : null}
 
       <Card variant="elevated" className="min-w-0 space-y-5 p-4 sm:p-6">
         <div className="flex flex-col gap-1">
@@ -357,6 +454,7 @@ export const KnowledgeLibraryPage = () => {
             onChange={(next) => {
               setFileSelectionError('');
               setActionError('');
+              setReusedUploadNotice(null);
               setSplitDraftErrors([]);
               setOriginalThumbnailFile(null);
               setOriginalSuppressAutoThumbnail(false);
@@ -562,17 +660,18 @@ export const KnowledgeLibraryPage = () => {
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
             variant="ghost"
-            className="h-10 text-sm"
+            className="h-9 text-xs"
             disabled={disableInputs}
             onClick={() => {
               clearAllDrafts();
               setActionError('');
+              setReusedUploadNotice(null);
             }}
           >
             Reset
           </Button>
           <Button
-            className="h-10 min-w-[10rem] text-sm"
+            className="h-9 text-xs"
             disabled={!canSubmit}
             onClick={() => void submitUpload()}
           >
@@ -582,6 +681,17 @@ export const KnowledgeLibraryPage = () => {
       </Card>
 
       <KnowledgeLibraryTable />
+
+      <DuplicateIngestConfirmDialog
+        open={duplicateDialogOpen}
+        variant="upload"
+        conflicts={duplicateConflicts}
+        isConfirming={isConfirmingDuplicate}
+        onCancel={clearDuplicateDialog}
+        onConfirm={(selectedFilenames) => {
+          void confirmDuplicate(selectedFilenames);
+        }}
+      />
     </section>
   );
 };

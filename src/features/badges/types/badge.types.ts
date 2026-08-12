@@ -51,7 +51,6 @@ export interface AdminBadgeListQuery {
 }
 
 export interface BadgeManagementFilters {
-  domain: string;
   createdBy: string;
   createdFrom: string;
   createdTo: string;
@@ -59,7 +58,6 @@ export interface BadgeManagementFilters {
 }
 
 export const EMPTY_BADGE_FILTERS: BadgeManagementFilters = {
-  domain: '',
   createdBy: '',
   createdFrom: '',
   createdTo: '',

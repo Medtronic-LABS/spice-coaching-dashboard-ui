@@ -24,6 +24,7 @@ export function KnowledgeRetireModal({
     <Modal
       open={open}
       labelledBy="knowledge-retire-title"
+      describedBy="knowledge-retire-description"
       onClose={() => {
         if (disabled) return;
         onClose();
@@ -31,43 +32,58 @@ export function KnowledgeRetireModal({
     >
       <Card
         variant="elevated"
-        className="w-full max-w-xl border-spice-border p-0 shadow-lg"
+        className="w-full max-w-md border-spice-border p-0 shadow-lg"
       >
-        <div className="shrink-0 space-y-4 p-6 pb-4">
+        <div className="space-y-3 p-6 pb-4">
           <h2
             id="knowledge-retire-title"
-            className="text-xl font-semibold text-spice-text-primary"
+            className="text-lg font-semibold text-spice-text-primary"
           >
             Remove Knowledge Document
           </h2>
+
+          <p
+            id="knowledge-retire-description"
+            className="text-sm text-spice-text-medium"
+          >
+            Are you sure you want to remove{' '}
+            {asset ? (
+              <span className="font-medium text-spice-text-primary">
+                “{asset.title}”
+              </span>
+            ) : (
+              'this knowledge document'
+            )}
+            ?
+          </p>
+
+          <p className="text-sm text-spice-text-medium">
+            This will retire the knowledge document and remove it from users’
+            access and active assignments. The original uploaded document will
+            be retained.
+          </p>
+
           {error ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+            <div
+              className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error"
+              role="alert"
+            >
               {error}
             </div>
           ) : null}
-          <p className="text-sm text-spice-text-muted">
-            This will retire the document and hide it from devices. Stored files
-            are kept.
-            {asset ? (
-              <>
-                {' '}
-                Document: <span className="font-semibold">{asset.title}</span>.
-              </>
-            ) : null}
-          </p>
         </div>
 
-        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-spice-border bg-spice-bg-surface/95 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-spice-border px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
           <Button
             variant="ghost"
-            className="h-10 text-sm"
+            className="h-9 text-xs"
             disabled={disabled}
             onClick={onClose}
           >
             Cancel
           </Button>
           <Button
-            className="h-10 min-w-[10rem] text-sm"
+            className="h-9 bg-spice-semantic-error text-xs hover:bg-spice-semantic-error/90"
             disabled={disabled || !asset}
             onClick={onConfirm}
           >

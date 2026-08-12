@@ -32,6 +32,10 @@ import {
 import { useLazyGetAdminFilePresignedUrlQuery } from '@/features/modules/api/adminFilesApi';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
+  knowledgeDownloadFilename,
+  downloadFileAs,
+} from '@/features/modules/utils/knowledgeDownloadFilename';
+import {
   KNOWLEDGE_LIBRARY_FILTER_DEFAULTS,
   type KnowledgeLibraryItem,
   type KnowledgeLibraryStatusTab,
@@ -444,17 +448,13 @@ export const KnowledgeLibraryTable = () => {
                     try {
                       setDownloadError('');
                       setDownloadingId(row.id);
+                      // Use the same title shown in the table row — not the storage object key.
+                      const downloadName = knowledgeDownloadFilename(row.title);
                       const res = await triggerPresignedUrl({
                         object_name: row.storedPath,
                         disposition: 'attachment',
                       }).unwrap();
-                      const a = document.createElement('a');
-                      a.href = res.presigned_url;
-                      a.download = row.originalFilename || `${row.title}.pdf`;
-                      a.rel = 'noreferrer';
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
+                      await downloadFileAs(res.presigned_url, downloadName);
                     } catch (err) {
                       setDownloadError(formatRtkQueryError(err));
                     } finally {
