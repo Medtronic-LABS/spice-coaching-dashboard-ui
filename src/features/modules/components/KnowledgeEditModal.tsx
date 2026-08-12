@@ -92,6 +92,7 @@ export function KnowledgeEditModal({
               label="Choose thumbnail"
               labelWhenSelected="Change thumbnail"
               previewAlt="Knowledge thumbnail"
+              previewObjectFit="contain"
             />
           </div>
         </div>

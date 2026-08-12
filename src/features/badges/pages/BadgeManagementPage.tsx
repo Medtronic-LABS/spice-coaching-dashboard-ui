@@ -11,7 +11,7 @@ import {
   Tooltip,
   TruncatedText,
 } from '@/components/ui';
-import { ArrowRightIcon, CloseIcon } from '@/assets/icon';
+import { ArrowRightIcon, CloseIcon, SearchIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -936,16 +936,27 @@ export const BadgeManagementPage = () => {
             Create Milestone
           </Button>
 
-          <div className="w-56 sm:w-64">
-            <SearchInput
-              value={query}
-              onChange={setQuery}
-              placeholder="Search milestones…"
+          {isSequenceEditing ? (
+            <button
+              type="button"
+              disabled
               aria-label="Search milestones"
-              className="min-w-0"
-              disabled={isSequenceEditing}
-            />
-          </div>
+              title="Search is disabled while rearranging milestones"
+              className="inline-flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-lg border border-spice-border-mid bg-spice-bg-surface text-spice-text-primary opacity-50 shadow-sm"
+            >
+              <SearchIcon className="h-5 w-5" />
+            </button>
+          ) : (
+            <div className="w-56 sm:w-64">
+              <SearchInput
+                value={query}
+                onChange={setQuery}
+                placeholder="Search milestones…"
+                aria-label="Search milestones"
+                className="min-w-0"
+              />
+            </div>
+          )}
           <SettingsFilterTriggerButton
             active={filtersActive}
             expanded={filtersOpen}

@@ -207,6 +207,7 @@ export const KnowledgeSplitEditor = ({
               }
               previewAlt={`${rowLabel} thumbnail`}
               frameClassName="aspect-square h-auto w-full"
+              previewObjectFit="contain"
             />
             {isBlankThumbnail ? (
               <button

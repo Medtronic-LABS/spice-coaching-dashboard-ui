@@ -554,6 +554,7 @@ export const KnowledgeLibraryPage = () => {
                         }
                         previewAlt="Knowledge thumbnail"
                         frameClassName="aspect-square h-auto w-full"
+                        previewObjectFit="contain"
                       />
                       {isBlankOriginalThumbnail ? (
                         <button
