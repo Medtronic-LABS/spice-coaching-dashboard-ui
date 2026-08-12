@@ -25,7 +25,6 @@ import {
   type AdminV3IngestBatchStatusResponse,
   type AdminV3IngestUploadResponse,
   type AdminV3IngestUploadedSource,
-  type IngestDuplicateConflict,
 } from '@/features/ingest/api/adminIngestApi';
 import {
   useFetchSourceDocumentsQuery,
@@ -212,9 +211,6 @@ export const VideoUploadPage = () => {
   );
   const [batchStatus, setBatchStatus] =
     useState<AdminV3IngestBatchStatusResponse | null>(null);
-  const [uploadedSources, setUploadedSources] = useState<
-    AdminV3IngestUploadedSource[]
-  >([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDragActive, setIsDragActive] = useState(false);
   const [fileError, setFileError] = useState('');
@@ -589,19 +585,7 @@ export const VideoUploadPage = () => {
   }, []);
 
   const handleUploaded = useCallback(
-    (
-      response: AdminV3IngestUploadResponse,
-      {
-        isReupload,
-      }: {
-        isReupload: boolean;
-        overriddenFilenames: string[];
-        duplicateConflicts: IngestDuplicateConflict[];
-      },
-    ) => {
-      setUploadedSources((previous) =>
-        isReupload ? [...previous, ...response.sources] : response.sources,
-      );
+    (response: AdminV3IngestUploadResponse) => {
       const metas = pendingUploadMetaRef.current;
       pendingUploadMetaRef.current = [];
       clearPendingAfterUpload();
@@ -645,7 +629,6 @@ export const VideoUploadPage = () => {
         setActiveBatchId(response.batch_id);
         mergeActiveVideoIngestSessions(response.batch_id, response.sources);
       }
-      setUploadedSources([]);
     },
     [],
   );
@@ -755,15 +738,6 @@ export const VideoUploadPage = () => {
     },
     [],
   );
-
-  const activeStatusTitle = useMemo(() => {
-    const first =
-      acceptedSources[0] ??
-      restoredAcceptedSources[0] ??
-      uploadedSources[0] ??
-      null;
-    return first?.title;
-  }, [acceptedSources, restoredAcceptedSources, uploadedSources]);
 
   const goToAllModulesForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
@@ -1368,29 +1342,10 @@ export const VideoUploadPage = () => {
       {activeBatchId ? (
         <IngestRunStatusPanel
           batchId={activeBatchId}
-          sourceTitle={activeStatusTitle}
           initialPollDelayMs={5000}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={() => {
-            const first =
-              acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
-            const sourceId =
-              first?.source_document_id ??
-              batchStatus?.sources[0]?.source_document_id;
-            const sourceTitle =
-              first?.title ?? batchStatus?.sources[0]?.document_label;
-            goToAllModulesForSource(sourceId ?? '', sourceTitle);
-          }}
-          onGoToNeedsReview={() => {
-            const first =
-              acceptedSources[0] ?? restoredAcceptedSources[0] ?? null;
-            const sourceId =
-              first?.source_document_id ??
-              batchStatus?.sources[0]?.source_document_id;
-            const sourceTitle =
-              first?.title ?? batchStatus?.sources[0]?.document_label;
-            goToNeedsReviewForSource(sourceId ?? '', sourceTitle);
-          }}
+          onGoToDrafts={goToAllModulesForSource}
+          onGoToNeedsReview={goToNeedsReviewForSource}
         />
       ) : null}
 

@@ -105,6 +105,16 @@ const config: Config = {
         sp12: 'var(--space-12)',
         sp16: 'var(--space-16)',
       },
+      keyframes: {
+        'progress-indeterminate': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(350%)' },
+        },
+      },
+      animation: {
+        'progress-indeterminate':
+          'progress-indeterminate 2s ease-in-out infinite',
+      },
       fontSize: {
         'dash-title': [
           'var(--text-dash-title-size)',

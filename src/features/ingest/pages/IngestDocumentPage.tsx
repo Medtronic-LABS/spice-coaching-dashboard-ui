@@ -219,25 +219,7 @@ export const IngestDocumentPage = () => {
     statusData?.completed_at,
   ]);
 
-  const goToAllModules = useCallback(() => {
-    const state: ModuleLibraryLocationState = {
-      tab: 'all',
-      sourceDocumentId: primarySourceDocumentId,
-      sourceDocumentTitle: activeSourceTitle,
-    };
-    navigate(paths.moduleLibrary, { state });
-  }, [activeSourceTitle, navigate, primarySourceDocumentId]);
-
-  const goToNeedsReview = useCallback(() => {
-    const state: ModuleLibraryLocationState = {
-      tab: 'needs_review',
-      sourceDocumentId: primarySourceDocumentId,
-      sourceDocumentTitle: activeSourceTitle,
-    };
-    navigate(paths.moduleLibrary, { state });
-  }, [activeSourceTitle, navigate, primarySourceDocumentId]);
-
-  const goToModulesForSource = useCallback(
+  const goToAllModulesForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
         tab: 'all',
@@ -248,6 +230,20 @@ export const IngestDocumentPage = () => {
     },
     [navigate],
   );
+
+  const goToNeedsReviewForSource = useCallback(
+    (sourceDocumentId: string, sourceTitle?: string) => {
+      const state: ModuleLibraryLocationState = {
+        tab: 'needs_review',
+        sourceDocumentId,
+        sourceDocumentTitle: sourceTitle,
+      };
+      navigate(paths.moduleLibrary, { state });
+    },
+    [navigate],
+  );
+
+  const goToModulesForSource = goToAllModulesForSource;
 
   const runStartIngest = useCallback(async () => {
     if (!selectedDocuments.length) return;
@@ -438,51 +434,21 @@ export const IngestDocumentPage = () => {
         </Button>
       </div>
 
-      {accepted?.sources?.length ? (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-spice-text-primary">
-            Queued sources
-          </div>
-          <div className="space-y-2">
-            {accepted.sources.map((s) => (
-              <div
-                key={s.source_document_id}
-                className="w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-left text-xs text-spice-text-medium"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold text-spice-text-primary">
-                      {s.title}
-                    </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
-                      {s.source_document_id}
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-spice-text-muted">
-                    {s.source_type}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {accepted.note ? (
-            <div className="rounded-lg bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-muted">
-              {accepted.note}
-            </div>
-          ) : null}
+      {accepted?.note ? (
+        <div className="rounded-lg bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-muted">
+          {accepted.note}
         </div>
       ) : null}
 
       {batchId ? (
         <IngestRunStatusPanel
           batchId={batchId}
-          sourceTitle={activeSourceTitle}
           isUploading={isUploading}
           uploadLabel="Uploading document…"
           initialPollDelayMs={activeBatchId ? 5000 : 0}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={goToAllModules}
-          onGoToNeedsReview={goToNeedsReview}
+          onGoToDrafts={goToAllModulesForSource}
+          onGoToNeedsReview={goToNeedsReviewForSource}
         />
       ) : null}
 

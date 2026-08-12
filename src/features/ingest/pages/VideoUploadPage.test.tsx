@@ -60,7 +60,7 @@ const mocks = vi.hoisted(() => {
     onUploadedRef: { current: null as IngestUploadedCallback | null },
     panelStatus: { current: null as AdminV3IngestBatchStatusResponse | null },
     panelProps: {
-      current: [] as Array<{ batchId: string; sourceTitle?: string }>,
+      current: [] as Array<{ batchId: string }>,
     },
     sourceDocuments: [videoSourceDocument] as Array<typeof videoSourceDocument>,
     refetchSourceDocuments: vi.fn().mockResolvedValue(undefined),
@@ -145,30 +145,31 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
   return {
     IngestRunStatusPanel: ({
       batchId,
-      sourceTitle,
       onStatusChange,
       onGoToDrafts,
       onGoToNeedsReview,
       successAction,
     }: {
       batchId: string;
-      sourceTitle?: string;
       onStatusChange?: (
         batchId: string,
         status: AdminV3IngestBatchStatusResponse | null,
       ) => void;
-      onGoToDrafts?: () => void;
-      onGoToNeedsReview?: () => void;
+      onGoToDrafts?: (sourceDocumentId: string, documentLabel: string) => void;
+      onGoToNeedsReview?: (
+        sourceDocumentId: string,
+        documentLabel: string,
+      ) => void;
       successAction?: ReactNode;
     }) => {
       useEffect(() => {
-        mocks.panelProps.current.push({ batchId, sourceTitle });
+        mocks.panelProps.current.push({ batchId });
         return () => {
           mocks.panelProps.current = mocks.panelProps.current.filter(
             (panel) => panel.batchId !== batchId,
           );
         };
-      }, [batchId, sourceTitle]);
+      }, [batchId]);
       useEffect(() => {
         if (mocks.panelStatus.current) {
           onStatusChange?.(batchId, mocks.panelStatus.current);
@@ -176,17 +177,25 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
       }, [batchId, onStatusChange]);
       const status = mocks.panelStatus.current;
       const succeeded = isIngestSucceeded(status?.status);
+      const sourceId = status?.sources[0]?.source_document_id ?? '';
+      const sourceLabel = status?.sources[0]?.document_label ?? '';
       if (!succeeded) return null;
       if (onGoToNeedsReview) {
         return (
-          <button type="button" onClick={onGoToNeedsReview}>
+          <button
+            type="button"
+            onClick={() => onGoToNeedsReview(sourceId, sourceLabel)}
+          >
             Review Modules
           </button>
         );
       }
       if (onGoToDrafts) {
         return (
-          <button type="button" onClick={onGoToDrafts}>
+          <button
+            type="button"
+            onClick={() => onGoToDrafts(sourceId, sourceLabel)}
+          >
             Go to Drafts
           </button>
         );
@@ -721,9 +730,7 @@ describe('VideoUploadPage', () => {
       },
     ]);
     renderPage();
-    expect(mocks.panelProps.current).toEqual([
-      { batchId: 'batch-1', sourceTitle: 'existing.mp4' },
-    ]);
+    expect(mocks.panelProps.current).toEqual([{ batchId: 'batch-1' }]);
   });
 
   it('prunes restored sessions when batch status is terminal', async () => {
@@ -799,9 +806,7 @@ describe('VideoUploadPage', () => {
         },
       ]),
     );
-    expect(mocks.panelProps.current).toEqual([
-      { batchId: 'batch-1', sourceTitle: 'new-video' },
-    ]);
+    expect(mocks.panelProps.current).toEqual([{ batchId: 'batch-1' }]);
   });
 
   it('does not set status to Running for unrelated videos when batch status is running', () => {
