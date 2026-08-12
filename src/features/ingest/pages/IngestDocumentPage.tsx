@@ -54,7 +54,7 @@ export const IngestDocumentPage = () => {
   const [selectedDocuments, setSelectedDocuments] = useState<
     SelectedIngestDocument[]
   >([]);
-  const [selectionPanelOpen, setSelectionPanelOpen] = useState(true);
+  const [selectionPanelOpen, setSelectionPanelOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState('');
   const [uploadClearSignal, setUploadClearSignal] = useState(0);
 

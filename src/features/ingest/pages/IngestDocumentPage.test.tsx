@@ -136,15 +136,18 @@ describe('IngestDocumentPage', () => {
     sessionStorage.clear();
   });
 
-  it('renders Ingest Document title and document selection section', () => {
+  it('renders Ingest Document title and document selection section collapsed by default', () => {
     renderPage();
     expect(
       screen.getByRole('heading', { name: 'Ingest Document' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Document Selection')).toBeInTheDocument();
     expect(
-      screen.getByRole('searchbox', { name: /search knowledge documents/i }),
+      screen.getByText('Expand to select documents or upload new files'),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('searchbox', { name: /search knowledge documents/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('0 documents selected')).toBeInTheDocument();
   });
 
@@ -152,6 +155,9 @@ describe('IngestDocumentPage', () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.click(
+      screen.getByRole('button', { name: 'Expand Document Selection' }),
+    );
     await user.click(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     );
@@ -171,6 +177,9 @@ describe('IngestDocumentPage', () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.click(
+      screen.getByRole('button', { name: 'Expand Document Selection' }),
+    );
     await user.click(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     );
