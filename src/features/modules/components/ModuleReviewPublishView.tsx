@@ -151,7 +151,7 @@ export const ModuleReviewPublishView = ({
                 </div>
               </div>
               <div>
-                <SectionLabel>TOPIC</SectionLabel>
+                <SectionLabel>DOMAIN</SectionLabel>
                 <div className="mt-1 text-sm text-spice-text-primary">
                   {topic}
                 </div>
