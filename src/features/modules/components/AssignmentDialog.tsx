@@ -44,7 +44,6 @@ import {
   buildNamedEntityComboboxOptions,
   filterUserIdsForMode,
   getUserLevelEmptyMessage,
-  getUserLevelHint,
   hierarchyRoleForMode,
   resolveNamedEntitySelection,
   type AssignmentUserLevelMode,
@@ -68,7 +67,7 @@ const USER_LEVEL_MODE_OPTIONS: Array<{
 }> = [
   { label: 'PO and SK', value: 'po_sk' },
   { label: 'PO only', value: 'po' },
-  { label: 'SK', value: 'sk' },
+  { label: 'SK only', value: 'sk' },
 ];
 
 const ASSIGNMENT_TABS: Array<{ label: string; value: AssignmentTab }> = [
@@ -140,7 +139,7 @@ function FetchRetryButton({ label, onRetry, disabled }: FetchRetryButtonProps) {
 interface UserSelectionListProps {
   title: string;
   users: AdminUser[];
-  selectedUserIds: number[];
+  desiredUserIds: number[];
   userAssignmentStatus: Map<number, UserAssignmentStatus>;
   isLoading: boolean;
   isError: boolean;
@@ -157,7 +156,7 @@ interface UserSelectionListProps {
 function UserSelectionList({
   title,
   users,
-  selectedUserIds,
+  desiredUserIds,
   userAssignmentStatus,
   isLoading,
   isError,
@@ -173,6 +172,9 @@ function UserSelectionList({
   const selectableUsers = users.filter(
     (user) => !userAssignmentStatus.get(user.id)?.isDisabledInCurrentMode,
   );
+  const allSelectableSelected = selectableUsers.every((user) =>
+    desiredUserIds.includes(user.id),
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-spice-border">
@@ -187,15 +189,13 @@ function UserSelectionList({
             />
           ) : null}
         </div>
-        {selectableUsers.length > 0 ? (
+        {selectableUsers.length > 0 && !allSelectableSelected ? (
           <button
             type="button"
             onClick={onSelectAll}
             className="text-spice-brand-primary hover:underline"
           >
-            {selectableUsers.every((user) => selectedUserIds.includes(user.id))
-              ? 'Deselect loaded'
-              : 'Select loaded'}
+            Select all
           </button>
         ) : null}
       </div>
@@ -223,7 +223,9 @@ function UserSelectionList({
           <div className="divide-y divide-spice-border">
             {users.map((user) => {
               const status = userAssignmentStatus.get(user.id);
-              const isChecked = selectedUserIds.includes(user.id);
+              const isChecked =
+                Boolean(status?.isInherited) ||
+                desiredUserIds.includes(user.id);
               const isDisabled = Boolean(status?.isDisabledInCurrentMode);
               const locationLabel = user.upazila
                 ? `${user.district} · ${user.upazila}`
@@ -1088,7 +1090,7 @@ export const AssignmentDialog = ({
               <UserSelectionList
                 title="User"
                 users={loadedUsers}
-                selectedUserIds={selectedUserIdsForMode}
+                desiredUserIds={desiredUserIds}
                 userAssignmentStatus={userAssignmentStatus}
                 isLoading={loadingUsers && loadedUsers.length === 0}
                 isError={usersError}
@@ -1103,10 +1105,6 @@ export const AssignmentDialog = ({
                 onToggleUser={handleToggleUser}
                 emptyMessage={getUserLevelEmptyMessage(userLevelMode)}
               />
-
-              <p className="text-xs leading-relaxed text-spice-text-muted">
-                {getUserLevelHint(userLevelMode, noun)}
-              </p>
             </>
           ) : null}
 
@@ -1140,17 +1138,16 @@ export const AssignmentDialog = ({
                       />
                     ) : null}
                   </div>
-                  {loadedUpazilas.length > 0 ? (
+                  {loadedUpazilas.length > 0 &&
+                  !loadedUpazilas.every((upazila) =>
+                    desiredUpazilaSet.has(upazila.name),
+                  ) ? (
                     <button
                       type="button"
                       onClick={handleSelectAllUpazilas}
                       className="text-spice-brand-primary hover:underline"
                     >
-                      {loadedUpazilas.every((upazila) =>
-                        desiredUpazilaSet.has(upazila.name),
-                      )
-                        ? 'Deselect loaded'
-                        : 'Select loaded'}
+                      Select all
                     </button>
                   ) : null}
                 </div>
@@ -1215,11 +1212,6 @@ export const AssignmentDialog = ({
                   )}
                 </InfiniteScrollContainer>
               </div>
-
-              <p className="text-xs leading-relaxed text-spice-text-muted">
-                Assign this {noun} to all users in the selected upazila(s). Save
-                sends upazila names; the server expands them to assignees.
-              </p>
             </>
           ) : null}
         </div>

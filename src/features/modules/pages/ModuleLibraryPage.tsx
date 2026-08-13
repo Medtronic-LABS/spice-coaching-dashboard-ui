@@ -92,7 +92,7 @@ import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEst
 const DIFFICULTY_LEVEL_OPTIONS = ['easy', 'moderate', 'hard'] as const;
 
 /** Minimum characters before the module list search hits the API. */
-const MODULE_SEARCH_MIN_CHARS = 3;
+const MODULE_SEARCH_MIN_CHARS = 1;
 const MODULE_SEARCH_DEBOUNCE_MS = 300;
 /** Page size for the server-side source document typeahead. */
 const SOURCE_DOCUMENT_SEARCH_LIMIT = 50;

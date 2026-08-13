@@ -111,6 +111,23 @@ describe('Sidebar', () => {
     expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
   });
 
+  it('highlights Module Library on the assignment success route', () => {
+    render(
+      <MemoryRouter initialEntries={[paths.moduleAssigned]}>
+        <Sidebar {...defaultSidebarProps} />
+      </MemoryRouter>,
+    );
+
+    const modulesLink = screen.getByRole('link', { name: /^module library$/i });
+    const ingestLink = screen.getByRole('link', { name: /ingest document/i });
+
+    expect(modulesLink).toHaveClass(
+      'bg-spice-brand-pm/20',
+      'text-spice-text-onDark-hi',
+    );
+    expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
+  });
+
   it('highlights ingest document but not module library on the ingest route', () => {
     render(
       <MemoryRouter initialEntries={[paths.ingestDocument]}>

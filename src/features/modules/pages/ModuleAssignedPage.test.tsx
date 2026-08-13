@@ -1,9 +1,15 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleAssignedPage } from './ModuleAssignedPage';
+
+function LibraryTabProbe() {
+  const location = useLocation();
+  const tab = (location.state as { tab?: string } | null)?.tab ?? '';
+  return <div data-testid="library" data-tab={tab} />;
+}
 
 function renderAssignedPage(state?: Record<string, unknown>) {
   renderWithProviders(
@@ -148,5 +154,31 @@ describe('ModuleAssignedPage', () => {
 
     expect(screen.getByText(/assigned to — organization/i)).toBeInTheDocument();
     expect(screen.getByText('Bo District')).toBeInTheDocument();
+  });
+
+  it('navigates to published tab when assigning more users', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <Routes>
+        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+        <Route path={paths.moduleLibrary} element={<LibraryTabProbe />} />
+      </Routes>,
+      {
+        route: paths.moduleAssigned,
+        routerState: {
+          moduleId: 'mod-1',
+          moduleName: 'Sample module',
+        },
+      },
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /assign to more users/i }),
+    );
+
+    expect(screen.getByTestId('library')).toHaveAttribute(
+      'data-tab',
+      'published',
+    );
   });
 });

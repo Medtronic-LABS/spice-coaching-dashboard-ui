@@ -29,6 +29,10 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
   const isModuleReviewRoute = Boolean(
     matchPath({ path: paths.adminModuleReview, end: false }, location.pathname),
   );
+  const isModuleAssignedRoute = Boolean(
+    matchPath({ path: paths.moduleAssigned, end: true }, location.pathname),
+  );
+  const isModuleLibraryNavActive = isModuleReviewRoute || isModuleAssignedRoute;
   const authSession = getAuthSession();
   const displayName = authSession
     ? getAuthDisplayName(authSession)
@@ -83,7 +87,9 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           </div>
           <NavLink
             className={({ isActive }) =>
-              linkClassName({ isActive: isActive || isModuleReviewRoute })
+              linkClassName({
+                isActive: isActive || isModuleLibraryNavActive,
+              })
             }
             to={paths.moduleLibrary}
             end
@@ -94,7 +100,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
               <>
                 <BookIcon
                   className={iconClassName({
-                    isActive: isActive || isModuleReviewRoute,
+                    isActive: isActive || isModuleLibraryNavActive,
                   })}
                 />
                 {t('layout.sidebar.nav.moduleLibrary')}

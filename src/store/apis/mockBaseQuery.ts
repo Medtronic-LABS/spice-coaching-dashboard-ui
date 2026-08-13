@@ -139,7 +139,14 @@ interface MockConfigThreshold {
   updated_at: string;
 }
 
-let mockConfigsState: MockConfigThreshold[] = [
+interface MockConfigChange {
+  previous_value_json: unknown | null;
+  current_value_json: unknown;
+  updated_by: string;
+  updated_at: string;
+}
+
+const INITIAL_MOCK_CONFIGS: MockConfigThreshold[] = [
   {
     id: 1,
     version: 1,
@@ -152,6 +159,40 @@ let mockConfigsState: MockConfigThreshold[] = [
     updated_at: '2026-07-02T12:00:00Z',
   },
 ];
+
+const INITIAL_MOCK_CONFIG_CHANGES: Record<string, MockConfigChange[]> = {
+  quiz_reattempt_validity_days: [
+    {
+      previous_value_json: null,
+      current_value_json: 30,
+      updated_by: 'admin',
+      updated_at: '2026-07-02T12:00:00Z',
+    },
+  ],
+};
+
+let mockConfigsState: MockConfigThreshold[] =
+  structuredClone(INITIAL_MOCK_CONFIGS);
+
+let mockConfigChangesState: Record<string, MockConfigChange[]> =
+  structuredClone(INITIAL_MOCK_CONFIG_CHANGES);
+
+/** Test helper: restore config + history mocks between cases. */
+export function resetMockConfigsState() {
+  mockConfigsState = structuredClone(INITIAL_MOCK_CONFIGS);
+  mockConfigChangesState = structuredClone(INITIAL_MOCK_CONFIG_CHANGES);
+}
+
+/** Test helper: replace history rows for a config key (newest-first). */
+export function seedMockConfigChanges(
+  configKey: string,
+  changes: MockConfigChange[],
+) {
+  mockConfigChangesState = {
+    ...mockConfigChangesState,
+    [configKey]: structuredClone(changes),
+  };
+}
 
 let mockAssignmentsState: MockAssignment[] = [
   {
@@ -1686,7 +1727,45 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   }
 
   if (url.startsWith('admin/configs/') && method === 'GET') {
-    const configKey = decodeURIComponent(url.slice('admin/configs/'.length));
+    const remainder = url.slice('admin/configs/'.length);
+    const changesMatch = remainder.match(/^([^/]+)\/changes$/);
+    if (changesMatch) {
+      const configKey = decodeURIComponent(changesMatch[1] ?? '');
+      const config = mockConfigsState.find((item) => item.key === configKey);
+      if (!config) {
+        return {
+          error: {
+            status: 404,
+            data: { message: `Config "${configKey}" not found` },
+          },
+        };
+      }
+      const query =
+        typeof params === 'object' && params
+          ? (params as { limit?: unknown; offset?: unknown })
+          : {};
+      const limit = Number.isFinite(Number(query.limit))
+        ? Math.max(1, Number(query.limit))
+        : 50;
+      const offset = Number.isFinite(Number(query.offset))
+        ? Math.max(0, Number(query.offset))
+        : 0;
+      const allChanges = mockConfigChangesState[configKey] ?? [];
+      const total_changes = allChanges.length;
+      const total_pages =
+        total_changes > 0 ? Math.ceil(total_changes / limit) : 0;
+      return {
+        data: {
+          changes: allChanges.slice(offset, offset + limit),
+          total_changes,
+          total_pages,
+          limit,
+          offset,
+        },
+      };
+    }
+
+    const configKey = decodeURIComponent(remainder);
     const config = mockConfigsState.find((item) => item.key === configKey);
     if (!config) {
       return {
@@ -1718,6 +1797,11 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       description?: unknown;
     };
     const existing = mockConfigsState[existingIndex];
+    const nextValue =
+      'value_json' in payload ? payload.value_json : existing.value_json;
+    const valueChanged =
+      JSON.stringify(nextValue) !== JSON.stringify(existing.value_json);
+    const now = new Date().toISOString();
     const updated: MockConfigThreshold = {
       ...existing,
       title:
@@ -1726,20 +1810,34 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           : payload.title === null
             ? null
             : existing.title,
-      value_json:
-        'value_json' in payload ? payload.value_json : existing.value_json,
+      value_json: nextValue,
       description:
         typeof payload.description === 'string'
           ? payload.description
           : payload.description === null
             ? null
             : existing.description,
-      version: existing.version + 1,
-      updated_at: new Date().toISOString(),
+      version: valueChanged ? existing.version + 1 : existing.version,
+      updated_at: valueChanged ? now : existing.updated_at,
     };
     mockConfigsState = mockConfigsState.map((config, index) =>
       index === existingIndex ? updated : config,
     );
+    if (valueChanged) {
+      const previous = mockConfigChangesState[configKey] ?? [];
+      mockConfigChangesState = {
+        ...mockConfigChangesState,
+        [configKey]: [
+          {
+            previous_value_json: existing.value_json,
+            current_value_json: nextValue,
+            updated_by: 'admin',
+            updated_at: now,
+          },
+          ...previous,
+        ],
+      };
+    }
     return { data: updated };
   }
 
@@ -1927,9 +2025,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const moduleItem = mockModuleLibrary.modules.find(
       (m) => m.id === payload.module_id,
     );
-    const title = moduleItem
-      ? moduleItem.title
-      : { bn: 'Unknown', en: 'Unknown' };
+    const titleText = moduleItem?.title?.trim() || 'Unknown';
+    const title = { bn: titleText, en: titleText };
     const nextIds = expandAssigneeIds(
       payload.user_ids ?? [],
       payload.expand_po_assignees === true,
@@ -2026,9 +2123,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       const moduleItem = mockModuleLibrary.modules.find(
         (m) => m.id === moduleId,
       );
-      const title = moduleItem
-        ? moduleItem.title
-        : { bn: 'Unknown', en: 'Unknown' };
+      const titleText = moduleItem?.title?.trim() || 'Unknown';
+      const title = { bn: titleText, en: titleText };
       mockAssignmentsState = mockAssignmentsState.filter(
         (assignment) => assignment.module_id !== moduleId,
       );

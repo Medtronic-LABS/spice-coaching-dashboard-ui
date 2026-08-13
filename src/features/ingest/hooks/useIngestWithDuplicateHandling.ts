@@ -13,10 +13,11 @@ import {
   buildIngestOverrideFlags,
   conflictFilenamesFromList,
   conflictsKeptExisting,
-  allPayloadSourcesAreIngestDuplicates,
   normalizeUploadResponse,
   parseIngestDuplicateError,
   selectFilesForConflicts,
+  selectSourceDocumentIdsForConflicts,
+  selectSourcesForDuplicateIngestRetry,
   uploadResponseFromDuplicateConflicts,
 } from '@/features/ingest/utils/parseIngestDuplicateError';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
@@ -135,6 +136,10 @@ export function useIngestWithDuplicateHandling({
       if (!response.skipped_duplicates?.length || isReingest) {
         return;
       }
+      const skippedSourceIds = selectSourceDocumentIdsForConflicts(
+        originalPayload.source_document_ids,
+        response.skipped_duplicates,
+      );
       setDuplicateDialog({
         open: true,
         variant: 'skipped',
@@ -142,8 +147,14 @@ export function useIngestWithDuplicateHandling({
       });
       setPendingStartPayload({
         ...originalPayload,
+        // Already-queued non-duplicates must not be sent again.
+        source_document_ids: skippedSourceIds.length
+          ? skippedSourceIds
+          : originalPayload.source_document_ids,
         override_duplicates: buildIngestOverrideFlags(
-          originalPayload.source_document_ids,
+          skippedSourceIds.length
+            ? skippedSourceIds
+            : originalPayload.source_document_ids,
           response.skipped_duplicates,
         ),
       });
@@ -326,25 +337,19 @@ export function useIngestWithDuplicateHandling({
     async (selectedFilenames: string[]) => {
       if (!pendingStartPayload) return;
 
-      const selectedSet = conflictFilenamesFromList(
-        selectedFilenames.map((filename) => ({ filename })),
-      );
-      const selectedConflicts = duplicateDialog.conflicts.filter((conflict) =>
-        selectedSet.has(conflict.filename),
-      );
       const keptExistingConflicts = conflictsKeptExisting(
         duplicateDialog.conflicts,
         selectedFilenames,
       );
-      const keepAllExistingWithoutReingest =
-        selectedFilenames.length === 0 &&
-        (duplicateDialog.variant === 'skipped' ||
-          allPayloadSourcesAreIngestDuplicates(
-            pendingStartPayload.source_document_ids,
-            duplicateDialog.conflicts,
-          ));
+      const { sourceDocumentIds, overrideDuplicates } =
+        selectSourcesForDuplicateIngestRetry(
+          pendingStartPayload.source_document_ids,
+          duplicateDialog.conflicts,
+          selectedFilenames,
+        );
 
-      if (keepAllExistingWithoutReingest) {
+      // Nothing left to queue: keep existing for unselected duplicates.
+      if (sourceDocumentIds.length === 0) {
         setKeptExistingIngestNotice(
           keptExistingConflicts.length ? keptExistingConflicts : null,
         );
@@ -355,10 +360,8 @@ export function useIngestWithDuplicateHandling({
 
       const nextPayload: AdminV3IngestStartPayload = {
         ...pendingStartPayload,
-        override_duplicates: buildIngestOverrideFlags(
-          pendingStartPayload.source_document_ids,
-          selectedConflicts,
-        ),
+        source_document_ids: sourceDocumentIds,
+        override_duplicates: overrideDuplicates,
       };
 
       setIsConfirmingDuplicate(true);

@@ -7,7 +7,6 @@ import {
   buildNamedEntityComboboxOptions,
   filterUserIdsForMode,
   getUserLevelEmptyMessage,
-  getUserLevelHint,
   hierarchyRoleForMode,
   isPoSelectionMode,
   resolveNamedEntitySelection,
@@ -130,11 +129,9 @@ describe('assignment mode helpers', () => {
     ).toEqual([30]);
   });
 
-  it('returns mode-specific copy', () => {
+  it('returns mode-specific empty messages', () => {
     expect(getUserLevelEmptyMessage('sk')).toBe('No SK users found.');
     expect(getUserLevelEmptyMessage('po')).toBe('No program organizers found.');
-    expect(getUserLevelHint('po', 'module')).toContain('POs only');
-    expect(getUserLevelHint('po_sk', 'module')).toContain('automatically');
   });
 });
 

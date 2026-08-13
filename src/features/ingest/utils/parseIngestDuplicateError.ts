@@ -259,17 +259,64 @@ export function buildOverrideFlags(
   return files.map((file) => conflictFilenames.has(file.name));
 }
 
-export function buildIngestOverrideFlags(
-  sourceDocumentIds: string[],
-  conflicts: IngestDuplicateConflict[],
-): boolean[] {
+/** Source document IDs referenced by duplicate conflicts. */
+export function duplicateSourceDocumentIdsFromConflicts(
+  conflicts: readonly IngestDuplicateConflict[],
+): Set<string> {
   const duplicateIds = new Set<string>();
   for (const conflict of conflicts) {
     for (const existing of conflict.existing_source_documents) {
       duplicateIds.add(existing.source_document_id);
     }
   }
+  return duplicateIds;
+}
+
+export function buildIngestOverrideFlags(
+  sourceDocumentIds: string[],
+  conflicts: IngestDuplicateConflict[],
+): boolean[] {
+  const duplicateIds = duplicateSourceDocumentIdsFromConflicts(conflicts);
   return sourceDocumentIds.map((id) => duplicateIds.has(id));
+}
+
+/**
+ * Narrow an ingest-start retry to non-duplicates plus sources the user chose
+ * to re-ingest. Unselected duplicates are omitted from the next request.
+ */
+export function selectSourcesForDuplicateIngestRetry(
+  sourceDocumentIds: readonly string[],
+  conflicts: readonly IngestDuplicateConflict[],
+  selectedFilenames: readonly string[],
+): {
+  sourceDocumentIds: string[];
+  overrideDuplicates: boolean[];
+} {
+  const allDuplicateIds = duplicateSourceDocumentIdsFromConflicts(conflicts);
+  const selectedSet = conflictFilenamesFromList(
+    selectedFilenames.map((filename) => ({ filename })),
+  );
+  const selectedDuplicateIds = duplicateSourceDocumentIdsFromConflicts(
+    conflicts.filter((conflict) => selectedSet.has(conflict.filename)),
+  );
+
+  const filteredIds = sourceDocumentIds.filter(
+    (id) => !allDuplicateIds.has(id) || selectedDuplicateIds.has(id),
+  );
+
+  return {
+    sourceDocumentIds: filteredIds,
+    overrideDuplicates: filteredIds.map((id) => selectedDuplicateIds.has(id)),
+  };
+}
+
+/** Keep only payload sources that appear in the given conflicts (e.g. skipped). */
+export function selectSourceDocumentIdsForConflicts(
+  sourceDocumentIds: readonly string[],
+  conflicts: readonly IngestDuplicateConflict[],
+): string[] {
+  const duplicateIds = duplicateSourceDocumentIdsFromConflicts(conflicts);
+  return sourceDocumentIds.filter((id) => duplicateIds.has(id));
 }
 
 export function conflictFilenamesFromList(

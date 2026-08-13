@@ -92,7 +92,10 @@ function PoSkAssignedGroupCard({ group }: { group: AssignedPoSkGroup }) {
             {skCountLabel}
           </div>
         </div>
-        <ChevronIcon expanded={expanded} />
+        <ChevronIcon
+          expanded={expanded}
+          className="h-4 w-4 shrink-0 text-spice-text-muted"
+        />
       </button>
 
       {expanded ? (
@@ -147,7 +150,10 @@ function UpazilaGroupCard({ upazila }: { upazila: AssignedUpazilaGroup }) {
             {skCountLabel}
           </div>
         </div>
-        <ChevronIcon expanded={expanded} />
+        <ChevronIcon
+          expanded={expanded}
+          className="h-4 w-4 shrink-0 text-spice-text-muted"
+        />
       </button>
 
       {expanded ? (
