@@ -105,6 +105,8 @@ describe('AdminModuleDetailsStep', () => {
     renderDetailsStep();
 
     expect(screen.getByText('Module details')).toBeInTheDocument();
+    expect(screen.getByText('Domain')).toBeInTheDocument();
+    expect(screen.getByText('RMNCH')).toBeInTheDocument();
     expect(screen.getByText('needs_review')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Module BN')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Module EN')).not.toBeInTheDocument();

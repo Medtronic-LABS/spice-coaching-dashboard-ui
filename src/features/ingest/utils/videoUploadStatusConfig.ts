@@ -1,4 +1,5 @@
 import type { SourceDocumentStatus } from '@/features/modules/api/adminSourceDocumentsApi';
+import { dateRangeValidationMessage } from '@/features/modules/utils/moduleListFilters';
 
 export interface VideoUploadStatusOption {
   value: SourceDocumentStatus;
@@ -14,10 +15,16 @@ export const VIDEO_UPLOAD_STATUS_OPTIONS: VideoUploadStatusOption[] = [
 
 export interface VideoUploadFiltersState {
   statuses: SourceDocumentStatus[];
+  /** `YYYY-MM-DD` date input; converted to ISO `uploaded_from` on apply. */
+  uploadedAtFrom: string;
+  /** `YYYY-MM-DD` date input; converted to ISO `uploaded_to` on apply. */
+  uploadedAtTo: string;
 }
 
 export const EMPTY_VIDEO_UPLOAD_FILTERS: VideoUploadFiltersState = {
   statuses: [],
+  uploadedAtFrom: '',
+  uploadedAtTo: '',
 };
 
 const VALID_VIDEO_UPLOAD_STATUSES = new Set(
@@ -43,10 +50,33 @@ export function normalizeVideoUploadStatuses(
   return normalized;
 }
 
+export function normalizeVideoUploadFilters(
+  filters: VideoUploadFiltersState,
+): VideoUploadFiltersState {
+  return {
+    statuses: normalizeVideoUploadStatuses(filters.statuses),
+    uploadedAtFrom: filters.uploadedAtFrom.trim(),
+    uploadedAtTo: filters.uploadedAtTo.trim(),
+  };
+}
+
 export function hasActiveVideoUploadFilters(
   filters: VideoUploadFiltersState,
 ): boolean {
-  return filters.statuses.length > 0;
+  return Boolean(
+    filters.statuses.length > 0 ||
+    filters.uploadedAtFrom.trim() ||
+    filters.uploadedAtTo.trim(),
+  );
+}
+
+export function isVideoUploadDateRangeInvalid(
+  filters: VideoUploadFiltersState,
+): boolean {
+  return (
+    dateRangeValidationMessage(filters.uploadedAtFrom, filters.uploadedAtTo) !==
+    null
+  );
 }
 
 export function toggleVideoUploadStatus(

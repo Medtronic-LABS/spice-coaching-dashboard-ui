@@ -66,10 +66,16 @@ import {
   EMPTY_VIDEO_UPLOAD_FILTERS,
   VIDEO_UPLOAD_STATUS_OPTIONS,
   hasActiveVideoUploadFilters,
+  isVideoUploadDateRangeInvalid,
+  normalizeVideoUploadFilters,
   normalizeVideoUploadStatuses,
   toggleVideoUploadStatus,
   type VideoUploadFiltersState,
 } from '@/features/ingest/utils/videoUploadStatusConfig';
+import {
+  uploadedDateInputToFromIso,
+  uploadedDateInputToToIso,
+} from '@/features/modules/utils/knowledgeLibraryFilters';
 import {
   VIDEO_THUMBNAIL_ACCEPT,
   captureVideoFirstFrame,
@@ -294,9 +300,8 @@ export const VideoUploadPage = () => {
   }, []);
 
   const handleApplyFilters = useCallback(() => {
-    setAppliedFilters({
-      statuses: normalizeVideoUploadStatuses(draftFilters.statuses),
-    });
+    if (isVideoUploadDateRangeInvalid(draftFilters)) return;
+    setAppliedFilters(normalizeVideoUploadFilters(draftFilters));
     setPage(0);
     setFiltersDrawerOpen(false);
   }, [draftFilters]);
@@ -445,6 +450,18 @@ export const VideoUploadPage = () => {
     source_type: 'video',
     ...(combinedStatuses.length ? { status: combinedStatuses } : {}),
     ...(searchQ ? { q: searchQ } : {}),
+    ...(appliedFilters.uploadedAtFrom
+      ? {
+          uploaded_from: uploadedDateInputToFromIso(
+            appliedFilters.uploadedAtFrom,
+          ),
+        }
+      : {}),
+    ...(appliedFilters.uploadedAtTo
+      ? {
+          uploaded_to: uploadedDateInputToToIso(appliedFilters.uploadedAtTo),
+        }
+      : {}),
     limit: pageSize,
     offset: page * pageSize,
     sort_by: sortBy,
@@ -1239,8 +1256,8 @@ export const VideoUploadPage = () => {
               expanded={filtersDrawerOpen}
               tooltip={
                 filtersActive
-                  ? 'Status filters are applied. Open filters to edit or clear them.'
-                  : 'Filter uploaded videos by status'
+                  ? 'Filters are applied. Open filters to edit or clear them.'
+                  : 'Filter uploaded videos by status or uploaded date'
               }
               onClick={handleOpenFiltersDrawer}
             />
@@ -1254,13 +1271,14 @@ export const VideoUploadPage = () => {
           open={filtersDrawerOpen}
           onClose={handleCloseFiltersDrawer}
           title="Filters"
-          description="Choose one or more statuses, then click Apply to update the table."
+          description="Choose status and/or uploaded date range, then click Apply to update the table."
           closeLabel="Close video filters"
           titleId="video-upload-filters-title"
           descriptionId="video-upload-filters-desc"
         >
           <VideoUploadFilters
             filters={draftFilters}
+            onChange={setDraftFilters}
             onToggleStatus={(status) => {
               setDraftFilters((current) =>
                 toggleVideoUploadStatus(current, status),
