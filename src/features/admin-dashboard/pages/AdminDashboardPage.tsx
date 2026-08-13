@@ -215,6 +215,8 @@ export const AdminDashboardPage = () => {
               showLoading={modulesUi.showLoading}
               showError={modulesUi.showError}
               onRetry={() => void modulesQuery.refetch()}
+              onRefresh={() => void modulesQuery.refetch()}
+              isRefreshing={modulesQuery.isFetching}
               showActions={isAdmin}
               footerNote={t('adminDashboard.existingModules.footer')}
               emptyTitle={t('adminDashboard.existingModules.emptyTitle')}
@@ -238,6 +240,8 @@ export const AdminDashboardPage = () => {
               showLoading={modulesUi.showLoading}
               showError={modulesUi.showError}
               onRetry={() => void modulesQuery.refetch()}
+              onRefresh={() => void modulesQuery.refetch()}
+              isRefreshing={modulesQuery.isFetching}
               showActions={isAdmin}
               footerNote={t('adminDashboard.suggestedModules.footer')}
               emptyTitle={t('adminDashboard.suggestedModules.emptyTitle')}

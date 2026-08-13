@@ -15,33 +15,66 @@ export interface DashboardDateParams {
   to_date: string;
 }
 
+/**
+ * Pending BE Slice A (`DASHBOARD_BE_LEFTOVERS.md`). Typed for FE readiness —
+ * do not pass these into `query.params` until the platform documents support.
+ */
+export type DashboardStatusQueryParam = 'all' | 'on_track' | 'at_risk';
+
 export interface TeamActivityQuery extends DashboardDateParams {
   limit?: number;
   offset?: number;
   user_id?: number;
   depth?: number;
+  /** Pending BE: search before pagination. */
+  q?: string;
+  /** Pending BE: sort key aligned with hierarchy sort dropdown. */
+  sort_by?: string;
+  /** Pending BE: `asc` | `desc`. */
+  sort_dir?: 'asc' | 'desc';
+  /** Pending BE: hierarchy status filter. */
+  status?: DashboardStatusQueryParam;
+  /** Pending BE Slice C: org-map geography. */
+  district?: string;
+  /** Pending BE Slice C: prefer numeric admin id once BE accepts it. */
+  upazila_id?: string;
 }
 
 export interface DigitalHelpModulesQuery extends DashboardDateParams {
   limit?: number;
   offset?: number;
+  /** Pending BE Slice C. */
+  district?: string;
+  upazila_id?: string;
+  /** Pending BE Slice B: hierarchy focus. */
+  user_id?: number;
 }
 
 export interface DigitalHelpModuleQuestionsQuery extends DashboardDateParams {
   moduleId: string;
   limit?: number;
   offset?: number;
+  /** Pending BE Slice C. */
+  district?: string;
+  upazila_id?: string;
 }
 
 export interface ModuleCreationSuggestionsQuery extends DashboardDateParams {
   limit?: number;
   offset?: number;
+  /** Pending BE Slice C. */
+  district?: string;
+  upazila_id?: string;
 }
 
 export interface DocumentUsageQuery {
   from: string;
   to: string;
   district?: string;
+  /**
+   * Today BE matches this by upazila **name** (param name is historical).
+   * FE sends the display name until BE documents numeric admin id support.
+   */
   upazila_id?: string;
   user_id?: number;
   document_id?: string;

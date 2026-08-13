@@ -176,6 +176,7 @@
       "panelLabel": "Dashboard filters",
       "statusLabel": "Status",
       "durationLabel": "Duration:",
+      "scopeNote": "Status filters the team hierarchy list only. District and upazila apply to Document & knowledge views. Duration updates every widget.",
       "clearCustomRange": "Clear custom date range",
       "invalidRangeTitle": "Invalid date range",
       "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
@@ -203,6 +204,7 @@
       },
       "division": "Division",
       "allDivisions": "All divisions",
+      "divisionUnavailable": "Division filtering is not available yet.",
       "district": "District",
       "upazila": "Upazila",
       "allDistricts": "All districts",
@@ -251,7 +253,8 @@
         "sksLabel": "SKs",
         "membersLabel": "members",
         "inactiveLabel": "Inactive",
-        "modulesLabel": "Modules"
+        "modulesLabel": "Modules",
+        "queriesLabel": "Queries"
       },
       "columns": {
         "name": "Name",
@@ -320,8 +323,8 @@
       }
     },
     "documentUsage": {
-      "title": "PDF / knowledge views",
-      "description": "Insights for the selected filters. Click a row to see who opened each document.",
+      "title": "Document & knowledge views",
+      "description": "PDF and knowledge-base document opens for the selected filters. Click a row to see who opened each document.",
       "emptyTitle": "No document views",
       "emptyDescription": "Document view telemetry has not been recorded yet.",
       "chartLabel": "Top viewed documents",
@@ -349,9 +352,12 @@
       "eventRowsPerPage": "Open event rows per page",
       "eventPageNumber": "Open events page number",
       "kpis": {
-        "views": "Total views",
-        "documents": "Unique documents",
-        "users": "Unique users"
+        "views": "Total Views",
+        "viewsTooltip": "All document views",
+        "documents": "Documents Viewed",
+        "documentsTooltip": "Unique documents",
+        "users": "Unique Users",
+        "usersTooltip": "Users who viewed"
       },
       "columns": {
         "rank": "Rank",

@@ -48,7 +48,7 @@ export const TrainingModulesSection = ({
     limit: 50,
     offset: 0,
   });
-  const { data, error, refetch } = query;
+  const { data, error, refetch, isFetching } = query;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
 
   const isForbidden =
@@ -68,6 +68,8 @@ export const TrainingModulesSection = ({
       description={t('adminDashboard.trainingModules.description')}
       flush
       size="lg"
+      onRefresh={() => void refetch()}
+      isRefreshing={isFetching}
     >
       {showLoading ? (
         <DashboardTableSkeleton rows={5} columns={3} />

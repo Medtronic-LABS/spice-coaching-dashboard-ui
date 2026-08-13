@@ -22,7 +22,6 @@ function countPanelFilters(
 ): number {
   let count = 0;
   if (status !== 'all') count += 1;
-  if (geography.division.trim()) count += 1;
   if (geography.district.trim()) count += 1;
   if (geography.upazila.trim()) count += 1;
   return count;
@@ -138,7 +137,7 @@ export const DashboardFilterBar = ({
       { label: t('adminDashboard.filters.allUpazilas'), value: '' },
       ...upazilaOptions,
     ],
-    [upazilaOptions, t],
+    [t, upazilaOptions],
   );
 
   const durationOptions = useMemo(
@@ -208,7 +207,10 @@ export const DashboardFilterBar = ({
 
   const handleApplyFilters = () => {
     onStatusChange(draftStatus);
-    onGeographyChange(draftGeography);
+    onGeographyChange({
+      ...draftGeography,
+      division: '',
+    });
     setFiltersOpen(false);
   };
 
@@ -256,6 +258,9 @@ export const DashboardFilterBar = ({
             role="dialog"
             aria-label={t('adminDashboard.filters.panelLabel')}
           >
+            <p className="text-xs leading-relaxed text-spice-text-muted">
+              {t('adminDashboard.filters.scopeNote')}
+            </p>
             <FilterField label={t('adminDashboard.filters.statusLabel')}>
               <Select
                 options={statusOptions}
@@ -269,17 +274,18 @@ export const DashboardFilterBar = ({
             <FilterField label={t('adminDashboard.filters.division')}>
               <Select
                 options={divisionOptions}
-                value={draftGeography.division}
-                onChange={(value) =>
-                  setDraftGeography({
-                    ...draftGeography,
-                    division: value,
-                    district: '',
-                    upazila: '',
-                  })
-                }
-                className={selectClassName}
+                value=""
+                onChange={() => undefined}
+                className={cn(selectClassName, 'opacity-60')}
+                disabled
+                aria-describedby="dashboard-division-unavailable"
               />
+              <span
+                id="dashboard-division-unavailable"
+                className="block text-[11px] text-spice-text-muted"
+              >
+                {t('adminDashboard.filters.divisionUnavailable')}
+              </span>
             </FilterField>
             <FilterField label={t('adminDashboard.filters.district')}>
               <Select
@@ -288,6 +294,7 @@ export const DashboardFilterBar = ({
                 onChange={(value) =>
                   setDraftGeography({
                     ...draftGeography,
+                    division: '',
                     district: value,
                     upazila: '',
                   })

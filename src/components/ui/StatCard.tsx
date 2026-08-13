@@ -13,7 +13,13 @@ import { cn } from '@/utils';
  * <StatCard label="Completion Rate" value="68%" change={5} />
  * <StatCard tone="pink" label="SKs active now" value={127} outOf={155} tooltip="..." />
  */
-export type StatCardTone = 'pink' | 'amber' | 'blue' | 'violet' | 'purple';
+export type StatCardTone =
+  | 'pink'
+  | 'amber'
+  | 'blue'
+  | 'green'
+  | 'violet'
+  | 'purple';
 
 export interface StatCardProps {
   /** Optional icon shown above the label. */
@@ -61,6 +67,12 @@ const TONE_STYLES: Record<
     iconBg: 'bg-blue-500/10',
     iconFg: 'text-blue-700',
     value: 'text-blue-700',
+  },
+  green: {
+    border: 'border-t-green-600',
+    iconBg: 'bg-green-600/10',
+    iconFg: 'text-green-700',
+    value: 'text-green-700',
   },
   violet: {
     border: 'border-t-violet-500',

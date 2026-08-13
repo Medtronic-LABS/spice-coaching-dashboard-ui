@@ -45,7 +45,7 @@ export const ModulePerformanceSection = ({
     limit: 20,
     offset: 0,
   });
-  const { data, refetch } = query;
+  const { data, refetch, isFetching } = query;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
 
   const rows = useMemo(() => {
@@ -69,6 +69,8 @@ export const ModulePerformanceSection = ({
     <DashboardWidgetShell
       title={t('adminDashboard.modulePerformance.title')}
       description={t('adminDashboard.modulePerformance.description')}
+      onRefresh={() => void refetch()}
+      isRefreshing={isFetching}
     >
       {showLoading ? (
         <DashboardListSkeleton rows={6} />

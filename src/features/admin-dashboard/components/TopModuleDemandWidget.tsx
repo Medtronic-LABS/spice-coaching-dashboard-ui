@@ -21,6 +21,8 @@ interface TopModuleDemandWidgetProps {
   showLoading: boolean;
   showError: boolean;
   onRetry: () => void;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
   onRowClick: (rowId: string) => void;
   showActions: boolean;
   footerNote?: string;
@@ -35,6 +37,8 @@ export const TopModuleDemandWidget = ({
   showLoading,
   showError,
   onRetry,
+  onRefresh,
+  isRefreshing = false,
   onRowClick,
   showActions,
   footerNote,
@@ -51,6 +55,8 @@ export const TopModuleDemandWidget = ({
     <DashboardWidgetShell
       title={title}
       description={description}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
       footer={
         footerNote ? (
           <p className="rounded-md bg-spice-bg-tint px-3 py-2 text-[11px] text-spice-text-muted">

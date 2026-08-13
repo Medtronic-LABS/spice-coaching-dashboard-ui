@@ -17,8 +17,14 @@ export type TeamHierarchySortKey =
   | 'name';
 
 export interface DashboardGeographyFilters {
+  /** Reserved; Division control is disabled until BE provides a divisions API. */
   division: string;
+  /** District display name (also the document-usage `district` query value). */
   district: string;
+  /**
+   * Upazila display name. Sent as document-usage `upazila_id` because the
+   * platform currently resolves that param by name (see DASHBOARD_BE_LEFTOVERS §6).
+   */
   upazila: string;
 }
 

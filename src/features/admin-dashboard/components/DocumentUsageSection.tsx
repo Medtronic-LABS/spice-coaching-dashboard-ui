@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookIcon, ChevronIcon, RefreshIcon } from '@/assets/icon';
+import { BookIcon, ChevronIcon } from '@/assets/icon';
 import { type ColumnDef } from '@/components/common/Table';
 import { Button, EmptyState } from '@/components/ui';
 import { useFetchDocumentUsageQuery } from '@/features/admin-dashboard/api/dashboardApi';
@@ -29,7 +29,6 @@ import {
 } from '@/features/admin-dashboard/utils/documentUsage';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
-import { cn } from '@/utils';
 
 interface DocumentUsageSectionProps {
   fromDate: string;
@@ -309,7 +308,7 @@ export const DocumentUsageSection = ({
       : t('adminDashboard.documentUsage.backToOverview');
 
   const headerActions = (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <>
       {view !== 'overview' ? (
         <Button
           variant="secondary"
@@ -336,17 +335,7 @@ export const DocumentUsageSection = ({
           })}
         </Button>
       ) : null}
-      <Button
-        variant="secondary"
-        className="h-9 w-9 shrink-0 px-0"
-        onClick={() => void refetch()}
-        aria-label={t('common.refresh')}
-        title={t('common.refresh')}
-        disabled={isFetching}
-      >
-        <RefreshIcon className={cn('h-4 w-4', isFetching && 'animate-spin')} />
-      </Button>
-    </div>
+    </>
   );
 
   return (
@@ -356,6 +345,8 @@ export const DocumentUsageSection = ({
       size="xl"
       flush
       actions={headerActions}
+      onRefresh={() => void refetch()}
+      isRefreshing={isFetching}
     >
       <div className="space-y-4 px-4 pb-4">
         {showLoading ? (

@@ -177,6 +177,7 @@
       "panelLabel": "ড্যাশবোর্ড ফিল্টার",
       "statusLabel": "স্ট্যাটাস",
       "durationLabel": "সময়কাল:",
+      "scopeNote": "স্ট্যাটাস শুধু টিম হাইয়ারার্কি তালিকা ফিল্টার করে। জেলা ও উপজেলা Document & knowledge views-এ প্রযোজ্য। সময়কাল সব উইজেট আপডেট করে।",
       "clearCustomRange": "কাস্টম তারিখ রেঞ্জ মুছুন",
       "invalidRangeTitle": "অবৈধ তারিখ রেঞ্জ",
       "invalidRangeDescription": "একটি বৈধ কাস্টম শুরু/শেষ রেঞ্জ বেছে নিন, অথবা চালিয়ে যেতে কাস্টম রেঞ্জ মুছুন।",
@@ -204,6 +205,7 @@
       },
       "division": "বিভাগ",
       "allDivisions": "সব বিভাগ",
+      "divisionUnavailable": "বিভাগ ফিল্টারিং এখনো উপলব্ধ নয়।",
       "district": "জেলা",
       "upazila": "উপজেলা",
       "allDistricts": "সব জেলা",
@@ -252,7 +254,8 @@
         "sksLabel": "SK",
         "membersLabel": "সদস্য",
         "inactiveLabel": "নিষ্ক্রিয়",
-        "modulesLabel": "মডিউল"
+        "modulesLabel": "মডিউল",
+        "queriesLabel": "প্রশ্ন"
       },
       "columns": {
         "name": "নাম",
@@ -321,8 +324,8 @@
       }
     },
     "documentUsage": {
-      "title": "PDF / নলেজ ভিউ",
-      "description": "নির্বাচিত ফিল্টারের ইনসাইট। কে খুলেছে দেখতে একটি সারিতে ক্লিক করুন।",
+      "title": "ডকুমেন্ট ও নলেজ ভিউ",
+      "description": "নির্বাচিত ফিল্টার অনুযায়ী PDF ও নলেজ-বেস ডকুমেন্ট ওপেন। কে খুলেছে দেখতে একটি সারিতে ক্লিক করুন।",
       "emptyTitle": "কোনো ডকুমেন্ট ভিউ নেই",
       "emptyDescription": "ডকুমেন্ট ভিউ টেলিমেট্রি এখনো রেকর্ড হয়নি।",
       "chartLabel": "সর্বাধিক দেখা ডকুমেন্ট",
@@ -351,8 +354,11 @@
       "eventPageNumber": "ওপেন ইভেন্ট পেজ নম্বর",
       "kpis": {
         "views": "মোট ভিউ",
-        "documents": "ইউনিক ডকুমেন্ট",
-        "users": "ইউনিক ব্যবহারকারী"
+        "viewsTooltip": "সব ডকুমেন্ট ভিউ",
+        "documents": "দেখা ডকুমেন্ট",
+        "documentsTooltip": "ইউনিক ডকুমেন্ট",
+        "users": "ইউনিক ব্যবহারকারী",
+        "usersTooltip": "যারা দেখেছেন"
       },
       "columns": {
         "rank": "র‍্যাঙ্ক",

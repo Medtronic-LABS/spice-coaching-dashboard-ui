@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { Card } from '@/components/ui';
+import { DashboardWidgetRefreshButton } from '@/features/admin-dashboard/components/DashboardWidgetRefreshButton';
 import { cn } from '@/utils';
 
 export type DashboardWidgetShellSize = 'md' | 'lg' | 'xl';
@@ -9,6 +10,13 @@ interface DashboardWidgetShellProps {
   description?: string;
   /** Right-side header controls (sort, search, actions). */
   actions?: ReactNode;
+  /**
+   * When set, appends the shared refresh control after `actions`.
+   * Prefer this over a one-off refresh button in each widget.
+   */
+  onRefresh?: () => void;
+  /** Disables refresh and spins the icon while the widget query is fetching. */
+  isRefreshing?: boolean;
   children: ReactNode;
   footer?: ReactNode;
   /**
@@ -40,12 +48,16 @@ export const DashboardWidgetShell = ({
   title,
   description,
   actions,
+  onRefresh,
+  isRefreshing = false,
   children,
   footer,
   flush = false,
   size = 'md',
   className,
 }: DashboardWidgetShellProps) => {
+  const hasHeaderControls = Boolean(actions) || Boolean(onRefresh);
+
   return (
     <Card
       className={cn(
@@ -70,9 +82,15 @@ export const DashboardWidgetShell = ({
             <p className="mt-1 text-xs text-spice-text-muted">{description}</p>
           ) : null}
         </div>
-        {actions ? (
+        {hasHeaderControls ? (
           <div className="flex max-w-full shrink-0 items-center justify-end gap-2">
             {actions}
+            {onRefresh ? (
+              <DashboardWidgetRefreshButton
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
+              />
+            ) : null}
           </div>
         ) : null}
       </div>

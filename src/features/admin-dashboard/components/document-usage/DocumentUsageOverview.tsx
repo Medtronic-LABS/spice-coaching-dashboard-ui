@@ -39,24 +39,32 @@ export const DocumentUsageOverview = ({
   onViewAllDocuments,
 }: DocumentUsageOverviewProps) => {
   const { t } = useTranslation();
+  const iconClassName = 'h-4 w-4';
+  const iconProps = { className: iconClassName, strokeWidth: 2 } as const;
 
   return (
     <>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
-          icon={<EyeIcon className="h-3.5 w-3.5" />}
+          tone="blue"
+          icon={<EyeIcon {...iconProps} />}
           label={t('adminDashboard.documentUsage.kpis.views')}
           value={totalViews}
+          tooltip={t('adminDashboard.documentUsage.kpis.viewsTooltip')}
         />
         <StatCard
-          icon={<BookIcon className="h-3.5 w-3.5" />}
+          tone="green"
+          icon={<BookIcon {...iconProps} />}
           label={t('adminDashboard.documentUsage.kpis.documents')}
           value={uniqueDocuments}
+          tooltip={t('adminDashboard.documentUsage.kpis.documentsTooltip')}
         />
         <StatCard
-          icon={<UsersIcon className="h-3.5 w-3.5" />}
+          tone="purple"
+          icon={<UsersIcon {...iconProps} />}
           label={t('adminDashboard.documentUsage.kpis.users')}
           value={uniqueUsers}
+          tooltip={t('adminDashboard.documentUsage.kpis.usersTooltip')}
         />
       </div>
 
