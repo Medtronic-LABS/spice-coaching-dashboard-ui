@@ -149,6 +149,7 @@ export const AdminModuleDetailsStep = () => {
                     <img
                       src={working.thumbnail_presigned_url}
                       alt="Module thumbnail"
+                      draggable={false}
                       className="max-h-full max-w-full object-contain"
                     />
                   </div>

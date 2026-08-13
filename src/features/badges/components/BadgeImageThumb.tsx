@@ -93,6 +93,7 @@ export const BadgeImageThumb = ({
       <img
         src={url}
         alt={alt}
+        draggable={false}
         onLoad={() => setImageStatus('loaded')}
         onError={() => setImageStatus('error')}
         className={cn(

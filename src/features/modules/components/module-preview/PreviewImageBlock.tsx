@@ -38,6 +38,7 @@ export const PreviewImageBlock = ({ attrs }: PreviewImageBlockProps) => {
           <img
             src={url}
             alt="Lesson image"
+            draggable={false}
             className={
               hasDisplayWidth
                 ? 'h-auto max-w-full rounded-lg object-contain'

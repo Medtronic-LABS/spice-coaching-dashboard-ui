@@ -1098,6 +1098,7 @@ export const VideoUploadPage = () => {
                           <img
                             src={item.thumbnailPreviewUrl}
                             alt=""
+                            draggable={false}
                             className="max-h-[160px] max-w-full object-contain"
                           />
                         ) : (

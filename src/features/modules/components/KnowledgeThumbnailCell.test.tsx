@@ -130,6 +130,7 @@ describe('KnowledgeThumbnailCell', () => {
       'src',
       'https://cdn.example.test/thumbnails%2Fdoc.png',
     );
+    expect(img).toHaveAttribute('draggable', 'false');
     expect(img).toHaveAttribute('loading', 'lazy');
     expect(img).toHaveAttribute('decoding', 'async');
 

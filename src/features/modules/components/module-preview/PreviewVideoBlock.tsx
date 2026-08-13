@@ -38,6 +38,7 @@ export const PreviewVideoBlock = ({ attrs }: PreviewVideoBlockProps) => {
             playsInline
             preload="metadata"
             poster={posterUrl ?? undefined}
+            draggable={false}
             aria-label="Video"
           >
             <source src={url} type={attrs.content_type ?? undefined} />

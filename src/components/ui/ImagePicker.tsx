@@ -111,14 +111,14 @@ export const ImagePicker = ({
             <img
               src={previewSrc ?? undefined}
               alt={previewAlt}
+              draggable={false}
               className={cn('h-full w-full', previewFitClassName)}
             />
           </div>
         ) : null}
         <label
           className={cn(
-            'inline-flex cursor-pointer items-center justify-center rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-medium hover:bg-spice-bg-tint',
-            hasPreview ? 'h-10 w-full' : 'h-10 w-full',
+            'inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-medium hover:bg-spice-bg-tint',
             disabled && 'cursor-not-allowed opacity-60',
           )}
         >
@@ -165,6 +165,7 @@ export const ImagePicker = ({
           <img
             src={previewSrc ?? undefined}
             alt={previewAlt}
+            draggable={false}
             className={cn('h-full w-full', previewFitClassName)}
           />
         </div>
