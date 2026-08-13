@@ -142,16 +142,8 @@ function CardImageNodeView({
     document.addEventListener('pointerup', handlePointerUp);
   };
 
-  const frameStyle =
-    displayDimensions.width && displayDimensions.height
-      ? {
-          width: `${displayDimensions.width}px`,
-          height: `${displayDimensions.height}px`,
-        }
-      : undefined;
-
   const frameClassName = [
-    'relative shrink-0 overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint',
+    'relative shrink-0 rounded-md border border-spice-border bg-spice-bg-tint',
     editable && selected && displayDimensions.width
       ? 'ring-2 ring-spice-brand-primary'
       : '',
@@ -161,8 +153,16 @@ function CardImageNodeView({
 
   const imageClassName =
     displayDimensions.width && displayDimensions.height
-      ? 'block h-full w-full object-contain'
-      : 'block max-h-64 max-w-full object-contain';
+      ? 'block h-auto w-full max-w-full object-contain'
+      : 'block h-auto max-h-64 max-w-full object-contain';
+
+  const frameStyle =
+    displayDimensions.width && displayDimensions.height
+      ? {
+          width: `${displayDimensions.width}px`,
+          maxWidth: '100%',
+        }
+      : undefined;
 
   return (
     <NodeViewWrapper

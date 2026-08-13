@@ -145,11 +145,11 @@ export const AdminModuleDetailsStep = () => {
 
               {isReadonly ? (
                 working.thumbnail_presigned_url ? (
-                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+                  <div className="relative flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
                     <img
                       src={working.thumbnail_presigned_url}
                       alt="Module thumbnail"
-                      className="h-full w-full object-cover"
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                 ) : (
@@ -160,7 +160,7 @@ export const AdminModuleDetailsStep = () => {
               ) : (
                 <ImagePicker
                   variant="tile"
-                  value={working.thumbnail_presigned_url}
+                  value={working.thumbnail_presigned_url ?? null}
                   onChange={(file) => {
                     if (file) void uploadThumbnailFile(file);
                   }}
@@ -168,6 +168,7 @@ export const AdminModuleDetailsStep = () => {
                   label="Add thumbnail"
                   labelWhenSelected="Change thumbnail"
                   previewAlt="Module thumbnail"
+                  previewObjectFit="contain"
                   accept="image/png,image/jpeg,image/jpg,image/webp"
                 />
               )}

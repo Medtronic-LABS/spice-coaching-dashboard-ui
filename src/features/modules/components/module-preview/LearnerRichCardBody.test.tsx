@@ -120,7 +120,7 @@ describe('LearnerRichCardBody', () => {
       'flex',
       'justify-center',
     );
-    expect(container.querySelector('.aspect-video')).toBeInTheDocument();
+    expect(container.querySelector('.aspect-video')).not.toBeInTheDocument();
   });
 
   it('centers stored image display dimensions in preview', () => {
@@ -138,8 +138,9 @@ describe('LearnerRichCardBody', () => {
     const { container } = render(<LearnerRichCardBody blocks={blocks} />);
 
     const image = screen.getByRole('img', { name: 'Lesson image' });
-    expect(image).toHaveStyle({ width: '240px', height: '135px' });
-    expect(image).toHaveClass('max-w-full', 'object-contain');
+    expect(image).toHaveStyle({ width: '240px' });
+    expect(image).not.toHaveStyle({ height: '135px' });
+    expect(image).toHaveClass('max-w-full', 'object-contain', 'h-auto');
     expect(container.querySelector('figure')).toHaveClass(
       'flex',
       'justify-center',

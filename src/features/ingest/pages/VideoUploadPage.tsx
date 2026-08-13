@@ -1053,15 +1053,15 @@ export const VideoUploadPage = () => {
                           </svg>
                         </button>
                       </div>
-                      <div className="overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint">
+                      <div className="flex min-h-[120px] items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint p-1">
                         {item.thumbnailPreviewUrl ? (
                           <img
                             src={item.thumbnailPreviewUrl}
                             alt=""
-                            className="aspect-video w-full object-cover"
+                            className="max-h-[160px] max-w-full object-contain"
                           />
                         ) : (
-                          <div className="flex aspect-video items-center justify-center text-[11px] text-spice-text-muted">
+                          <div className="flex min-h-[120px] items-center justify-center text-[11px] text-spice-text-muted">
                             Capturing…
                           </div>
                         )}
@@ -1090,15 +1090,28 @@ export const VideoUploadPage = () => {
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-2">
-                    <div className="truncate text-xs text-spice-text-muted">
-                      {item.file.name} · {Math.round(item.file.size / 1024)} KB
-                    </div>
-                    <label className="block space-y-1">
-                      <span className="text-xs font-semibold text-spice-text-primary">
-                        Title{' '}
-                        <span className="text-spice-semantic-error">*</span>
-                      </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <label
+                          htmlFor={`pending-video-title-${item.key}`}
+                          className="text-xs font-semibold text-spice-text-primary"
+                        >
+                          Title{' '}
+                          <span className="text-spice-semantic-error">*</span>
+                        </label>
+                        <Button
+                          variant="ghost"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                          disabled={uploadBusy}
+                          aria-label={`Remove ${item.file.name}`}
+                          title="Remove"
+                          onClick={() => removePendingItem(item.key)}
+                        >
+                          <DeleteIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <input
+                        id={`pending-video-title-${item.key}`}
                         type="text"
                         value={item.title}
                         disabled={uploadBusy}
@@ -1126,7 +1139,7 @@ export const VideoUploadPage = () => {
                           Title is required.
                         </span>
                       ) : null}
-                    </label>
+                    </div>
                     <label className="block space-y-1">
                       <span className="text-xs font-semibold text-spice-text-primary">
                         Description
@@ -1144,17 +1157,6 @@ export const VideoUploadPage = () => {
                       />
                     </label>
                   </div>
-
-                  <Button
-                    variant="ghost"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center self-start p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-                    disabled={uploadBusy}
-                    aria-label={`Remove ${item.file.name}`}
-                    title="Remove"
-                    onClick={() => removePendingItem(item.key)}
-                  >
-                    <DeleteIcon className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             );
