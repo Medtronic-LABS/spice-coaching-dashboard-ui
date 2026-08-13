@@ -16,6 +16,7 @@ import {
   mapAdminCardsToLessonRows,
   mapAdminQuizToRows,
 } from '@/features/modules/utils/moduleReviewPublishMappers';
+import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { sourceDocumentLabel } from '@/features/modules/utils/sourceDocument';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
@@ -73,7 +74,7 @@ export const AdminModulePublishStep = () => {
     if (!working) return null;
     return {
       title: moduleDisplayTitle,
-      topic: working.domain,
+      topic: formatModuleDomainLabel(working.domain),
       lessonCount: working.cards.length,
       quizCount: working.quiz.length,
       estimateMinutes: working.estimated_minutes,
@@ -125,7 +126,7 @@ export const AdminModulePublishStep = () => {
       >
         <ModuleReviewPublishView
           title={moduleDisplayTitle}
-          topic={working.domain}
+          topic={formatModuleDomainLabel(working.domain)}
           description={readLocaleText(
             working.description,
             DEPLOYMENT_PRIMARY_LOCALE,

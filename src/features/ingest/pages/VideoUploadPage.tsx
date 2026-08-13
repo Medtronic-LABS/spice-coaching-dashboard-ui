@@ -66,10 +66,16 @@ import {
   EMPTY_VIDEO_UPLOAD_FILTERS,
   VIDEO_UPLOAD_STATUS_OPTIONS,
   hasActiveVideoUploadFilters,
+  isVideoUploadDateRangeInvalid,
+  normalizeVideoUploadFilters,
   normalizeVideoUploadStatuses,
   toggleVideoUploadStatus,
   type VideoUploadFiltersState,
 } from '@/features/ingest/utils/videoUploadStatusConfig';
+import {
+  uploadedDateInputToFromIso,
+  uploadedDateInputToToIso,
+} from '@/features/modules/utils/knowledgeLibraryFilters';
 import {
   VIDEO_THUMBNAIL_ACCEPT,
   captureVideoFirstFrame,
@@ -298,9 +304,8 @@ export const VideoUploadPage = () => {
   }, []);
 
   const handleApplyFilters = useCallback(() => {
-    setAppliedFilters({
-      statuses: normalizeVideoUploadStatuses(draftFilters.statuses),
-    });
+    if (isVideoUploadDateRangeInvalid(draftFilters)) return;
+    setAppliedFilters(normalizeVideoUploadFilters(draftFilters));
     setPage(0);
     setFiltersDrawerOpen(false);
   }, [draftFilters]);
@@ -449,6 +454,18 @@ export const VideoUploadPage = () => {
     source_type: 'video',
     ...(combinedStatuses.length ? { status: combinedStatuses } : {}),
     ...(searchQ ? { q: searchQ } : {}),
+    ...(appliedFilters.uploadedAtFrom
+      ? {
+          uploaded_from: uploadedDateInputToFromIso(
+            appliedFilters.uploadedAtFrom,
+          ),
+        }
+      : {}),
+    ...(appliedFilters.uploadedAtTo
+      ? {
+          uploaded_to: uploadedDateInputToToIso(appliedFilters.uploadedAtTo),
+        }
+      : {}),
     limit: pageSize,
     offset: page * pageSize,
     sort_by: sortBy,
@@ -1076,15 +1093,15 @@ export const VideoUploadPage = () => {
                           </svg>
                         </button>
                       </div>
-                      <div className="overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint">
+                      <div className="flex min-h-[120px] items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint p-1">
                         {item.thumbnailPreviewUrl ? (
                           <img
                             src={item.thumbnailPreviewUrl}
                             alt=""
-                            className="aspect-video w-full object-cover"
+                            className="max-h-[160px] max-w-full object-contain"
                           />
                         ) : (
-                          <div className="flex aspect-video items-center justify-center text-[11px] text-spice-text-muted">
+                          <div className="flex min-h-[120px] items-center justify-center text-[11px] text-spice-text-muted">
                             Capturing…
                           </div>
                         )}
@@ -1113,15 +1130,28 @@ export const VideoUploadPage = () => {
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-2">
-                    <div className="truncate text-xs text-spice-text-muted">
-                      {item.file.name} · {Math.round(item.file.size / 1024)} KB
-                    </div>
-                    <label className="block space-y-1">
-                      <span className="text-xs font-semibold text-spice-text-primary">
-                        Title{' '}
-                        <span className="text-spice-semantic-error">*</span>
-                      </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <label
+                          htmlFor={`pending-video-title-${item.key}`}
+                          className="text-xs font-semibold text-spice-text-primary"
+                        >
+                          Title{' '}
+                          <span className="text-spice-semantic-error">*</span>
+                        </label>
+                        <Button
+                          variant="ghost"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                          disabled={uploadBusy}
+                          aria-label={`Remove ${item.file.name}`}
+                          title="Remove"
+                          onClick={() => removePendingItem(item.key)}
+                        >
+                          <DeleteIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <input
+                        id={`pending-video-title-${item.key}`}
                         type="text"
                         value={item.title}
                         disabled={uploadBusy}
@@ -1149,7 +1179,7 @@ export const VideoUploadPage = () => {
                           Title is required.
                         </span>
                       ) : null}
-                    </label>
+                    </div>
                     <label className="block space-y-1">
                       <span className="text-xs font-semibold text-spice-text-primary">
                         Description
@@ -1167,17 +1197,6 @@ export const VideoUploadPage = () => {
                       />
                     </label>
                   </div>
-
-                  <Button
-                    variant="ghost"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center self-start p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-                    disabled={uploadBusy}
-                    aria-label={`Remove ${item.file.name}`}
-                    title="Remove"
-                    onClick={() => removePendingItem(item.key)}
-                  >
-                    <DeleteIcon className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             );
@@ -1279,8 +1298,8 @@ export const VideoUploadPage = () => {
               expanded={filtersDrawerOpen}
               tooltip={
                 filtersActive
-                  ? 'Status filters are applied. Open filters to edit or clear them.'
-                  : 'Filter uploaded videos by status'
+                  ? 'Filters are applied. Open filters to edit or clear them.'
+                  : 'Filter uploaded videos by status or uploaded date'
               }
               onClick={handleOpenFiltersDrawer}
             />
@@ -1294,13 +1313,14 @@ export const VideoUploadPage = () => {
           open={filtersDrawerOpen}
           onClose={handleCloseFiltersDrawer}
           title="Filters"
-          description="Choose one or more statuses, then click Apply to update the table."
+          description="Choose status and/or uploaded date range, then click Apply to update the table."
           closeLabel="Close video filters"
           titleId="video-upload-filters-title"
           descriptionId="video-upload-filters-desc"
         >
           <VideoUploadFilters
             filters={draftFilters}
+            onChange={setDraftFilters}
             onToggleStatus={(status) => {
               setDraftFilters((current) =>
                 toggleVideoUploadStatus(current, status),

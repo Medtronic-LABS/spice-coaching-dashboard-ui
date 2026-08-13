@@ -21,10 +21,10 @@ export const PreviewVideoBlock = ({ attrs }: PreviewVideoBlockProps) => {
 
   return (
     <figure className="my-3">
-      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-[#101828]">
+      <div className="relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-[#101828]">
         {isLoading ? (
           <div
-            className="flex h-full w-full items-center justify-center text-xs text-white/70"
+            className="flex aspect-video w-full items-center justify-center text-xs text-white/70"
             role="status"
             aria-label="Loading video"
           >
@@ -33,7 +33,7 @@ export const PreviewVideoBlock = ({ attrs }: PreviewVideoBlockProps) => {
         ) : null}
         {!isLoading && url ? (
           <video
-            className="h-full w-full object-contain"
+            className="max-h-[min(70vh,420px)] w-full object-contain"
             controls
             playsInline
             preload="metadata"
@@ -45,7 +45,7 @@ export const PreviewVideoBlock = ({ attrs }: PreviewVideoBlockProps) => {
           </video>
         ) : null}
         {!isLoading && (!url || isError) ? (
-          <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs text-white/70">
+          <div className="flex aspect-video w-full items-center justify-center px-4 text-center text-xs text-white/70">
             Video unavailable
           </div>
         ) : null}

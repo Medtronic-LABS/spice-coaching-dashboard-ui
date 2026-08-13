@@ -9,6 +9,7 @@ import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminM
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { updateDetails } from '@/features/modules/store/adminModuleReviewSlice';
+import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { useAppDispatch } from '@/store/hooks';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { patchLocaleField, readLocaleText } from '@/types/localized';
@@ -75,13 +76,19 @@ export const AdminModuleDetailsStep = () => {
             Module details
           </div>
           <div className="mt-1 text-xs text-spice-text-muted">
-            {working.domain} · {working.module_type} · v{working.version} ·{' '}
-            {working.lifecycle_status}
+            {formatModuleDomainLabel(working.domain)} · {working.module_type} ·
+            v{working.version} · {working.lifecycle_status}
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 items-stretch">
           <div className="flex-1 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border text-xs min-h-[180px]">
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">Domain</span>
+              <span className="font-semibold text-spice-text-primary">
+                {formatModuleDomainLabel(working.domain) || '—'}
+              </span>
+            </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
               <span className="text-spice-text-muted font-medium">Status</span>
               <span className="font-semibold capitalize text-spice-text-primary">
@@ -138,11 +145,11 @@ export const AdminModuleDetailsStep = () => {
 
               {isReadonly ? (
                 working.thumbnail_presigned_url ? (
-                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+                  <div className="relative flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
                     <img
                       src={working.thumbnail_presigned_url}
                       alt="Module thumbnail"
-                      className="h-full w-full object-cover"
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                 ) : (
@@ -153,7 +160,7 @@ export const AdminModuleDetailsStep = () => {
               ) : (
                 <ImagePicker
                   variant="tile"
-                  value={working.thumbnail_presigned_url}
+                  value={working.thumbnail_presigned_url ?? null}
                   onChange={(file) => {
                     if (file) void uploadThumbnailFile(file);
                   }}
@@ -161,6 +168,7 @@ export const AdminModuleDetailsStep = () => {
                   label="Add thumbnail"
                   labelWhenSelected="Change thumbnail"
                   previewAlt="Module thumbnail"
+                  previewObjectFit="contain"
                   accept="image/png,image/jpeg,image/jpg,image/webp"
                 />
               )}

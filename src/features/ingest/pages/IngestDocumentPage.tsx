@@ -284,8 +284,9 @@ export const IngestDocumentPage = () => {
             Ingest Document
           </h1>
           <p className="mt-1 text-sm text-spice-text-muted">
-            Select documents from the Upload Knowledge library, then configure
-            and start ingestion to generate modules.
+            Select a configuration, upload a new document or choose existing
+            documents under Document Selection, then start the ingestion process
+            to generate modules.
           </p>
         </div>
         <div className="flex gap-2">

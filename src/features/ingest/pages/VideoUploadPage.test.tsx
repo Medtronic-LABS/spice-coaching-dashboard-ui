@@ -576,6 +576,8 @@ describe('VideoUploadPage', () => {
         offset: 0,
       }),
     );
+    expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_from');
+    expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_to');
     expect(
       screen.queryByRole('combobox', { name: /filter uploaded videos/i }),
     ).not.toBeInTheDocument();
@@ -619,6 +621,48 @@ describe('VideoUploadPage', () => {
           offset: 0,
         }),
       );
+    });
+  });
+
+  it('applies uploaded date filters as ISO uploaded_from / uploaded_to', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_from');
+    expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_to');
+
+    await user.click(
+      screen.getByRole('button', { name: /open video filters/i }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Filters' });
+    await user.type(
+      within(dialog).getByLabelText('Uploaded from'),
+      '2026-01-01',
+    );
+    await user.type(within(dialog).getByLabelText('Uploaded to'), '2026-01-31');
+    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => {
+      expect(latestUploadedVideosQuery()).toEqual(
+        expect.objectContaining({
+          source_type: 'video',
+          uploaded_from: '2026-01-01T00:00:00.000Z',
+          uploaded_to: '2026-01-31T23:59:59.999Z',
+        }),
+      );
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: /open video filters/i }),
+    );
+    const reopenedDialog = screen.getByRole('dialog', { name: 'Filters' });
+    await user.click(
+      within(reopenedDialog).getByRole('button', { name: 'Clear All' }),
+    );
+
+    await waitFor(() => {
+      expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_from');
+      expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_to');
     });
   });
 
