@@ -24,6 +24,7 @@ import {
   shouldPollIngestionRunList,
 } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus';
+import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
@@ -43,7 +44,8 @@ type IngestRunHistoryRow = {
   statusLabel: string;
   statusTone: ReturnType<typeof ingestRunStatusTone>;
   durationLabel: string;
-  uploadedAt: string;
+  ingestedAt: string;
+  ingestedBy: string | null;
   hasGeneratedModules: boolean;
   actions: '';
 };
@@ -127,7 +129,8 @@ export const IngestRunHistoryTable = () => {
           run.started_at,
           run.completed_at,
         ),
-        uploadedAt: run.started_at,
+        ingestedAt: run.started_at,
+        ingestedBy: run.ingested_by?.name ?? null,
         hasGeneratedModules: hasGeneratedIngestModules(
           run.generated_module_count,
         ),
@@ -256,15 +259,27 @@ export const IngestRunHistoryTable = () => {
         ),
       },
       {
-        key: 'uploadedAt',
-        header: 'Uploaded Date',
+        key: 'ingestedBy',
+        header: 'Ingested By',
+        sortable: false,
+        headerClassName: 'whitespace-nowrap px-3 sm:px-4',
+        className: 'whitespace-nowrap px-3 sm:px-4',
+        render: (row) => (
+          <span className="text-xs text-spice-text-medium">
+            {formatHierarchyActorName(row.ingestedBy)}
+          </span>
+        ),
+      },
+      {
+        key: 'ingestedAt',
+        header: 'Ingested Date',
         sortable: true,
         sortKey: 'started_at',
         headerClassName: 'whitespace-nowrap px-3 sm:px-4',
         className: 'whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
-            {formatIngestRunTimestamp(row.uploadedAt)}
+            {formatIngestRunTimestamp(row.ingestedAt)}
           </span>
         ),
       },

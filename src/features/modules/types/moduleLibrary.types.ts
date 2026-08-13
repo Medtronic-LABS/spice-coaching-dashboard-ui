@@ -14,9 +14,14 @@ export interface ModuleLibraryItem {
   durationLabel: string;
   status: ModuleStatus;
   createdAt: string;
+  lastUpdatedAt?: string;
   publishedAt?: string;
   activatedAt?: string;
   deactivatedAt?: string;
+  generatedBy?: string | null;
+  publishedBy?: string | null;
+  activatedBy?: string | null;
+  deactivatedBy?: string | null;
   draftProgress?: string;
   /** When true, module is Chatbot FAQ-only (not assignable to milestones). */
   chatbot_faqs_only?: boolean;

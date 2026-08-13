@@ -384,8 +384,20 @@ describe('VideoUploadPage', () => {
       screen.getByRole('columnheader', { name: 'Status' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', { name: 'Date/time' }),
+      screen.getByRole('columnheader', { name: 'Uploaded' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Uploaded By' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Ingested Date' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Ingested By' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: 'Date/time' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('columnheader', { name: 'Upload status' }),
     ).not.toBeInTheDocument();
@@ -434,7 +446,11 @@ describe('VideoUploadPage', () => {
     ];
     renderPage();
 
-    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Uploaded' }),
+    ).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(within(table).getAllByText('Uploaded').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Assign' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     const notIngested = screen.getByText('Not ingested');
@@ -866,7 +882,9 @@ describe('VideoUploadPage', () => {
     };
     renderPage();
 
-    expect(screen.getByText('Uploaded')).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    // Status badge + renamed "Uploaded" date column header both say Uploaded.
+    expect(within(table).getAllByText('Uploaded').length).toBeGreaterThan(1);
   });
 
   it('triggers duplicate confirmation flow via API and confirms selective re-ingest', async () => {

@@ -1,4 +1,8 @@
 import { baseApi } from '@/store/apis/base';
+import {
+  normalizeHierarchyActorRef,
+  type HierarchyActorRef,
+} from '@/features/modules/types/hierarchyActor';
 
 export interface IngestionRunSummary {
   id: string;
@@ -11,6 +15,7 @@ export interface IngestionRunSummary {
   generated_card_count: number;
   generated_quiz_count: number;
   generated_module_count: number;
+  ingested_by: HierarchyActorRef | null;
 }
 
 export interface IngestionRunListResponse {
@@ -63,6 +68,7 @@ function normalizeIngestionRunSummary(
     generated_card_count: normalizeCount(item.generated_card_count),
     generated_quiz_count: normalizeCount(item.generated_quiz_count),
     generated_module_count: normalizeCount(item.generated_module_count),
+    ingested_by: normalizeHierarchyActorRef(item.ingested_by),
   };
 }
 

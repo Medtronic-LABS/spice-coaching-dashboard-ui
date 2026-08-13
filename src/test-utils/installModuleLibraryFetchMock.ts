@@ -128,47 +128,70 @@ export function installModuleLibraryFetchMock(): void {
         const dateTo = asString(params.get('date_to'));
 
         const items = testModuleLibrary.modules
-          .filter((m) => (status ? m.status === status : true))
+          .filter((m) =>
+            status ? m.status === status : m.status !== 'retired',
+          )
           .filter((m) =>
             chatbotFaqsOnlyFilter === null
               ? true
               : Boolean(m.chatbot_faqs_only) === chatbotFaqsOnlyFilter,
           )
-          .map((m, idx) => ({
-            id: m.id,
-            module_family_id: `family_${m.id}`,
-            version: 1,
-            title: { bn: m.title },
-            description: m.category ? { bn: m.category } : null,
-            domain: m.category,
-            module_type: 'initial_training',
-            lifecycle_status: m.status,
-            clinically_reviewed: false,
-            has_visibility_window: false,
-            card_count: m.lessons,
-            estimated_minutes: Math.max(
-              1,
-              Math.round(
-                Number.parseInt(m.durationLabel.replace(/\D/g, ''), 10) || 10,
-              ),
-            ),
-            published_at:
+          .map((m, idx) => {
+            const createdAt = new Date(
+              Date.now() - idx * 86400000,
+            ).toISOString();
+            const publishedAt =
               m.status === 'published' || m.status === 'deactivated'
-                ? new Date(Date.now() - idx * 86400000).toISOString()
-                : null,
-            created_at: new Date(Date.now() - idx * 86400000).toISOString(),
-            first_activated_at:
-              m.status === 'published' || m.status === 'deactivated'
-                ? new Date(Date.now() - idx * 86400000).toISOString()
-                : null,
-            last_deactivated_at:
+                ? createdAt
+                : null;
+            const deactivated =
               m.status === 'deactivated'
-                ? (deactivatedAt.get(m.id) ?? null)
-                : null,
-            last_reactivated_at: null,
-            quality_flags: { flags: [] },
-            chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
-          }))
+                ? (deactivatedAt.get(m.id) ?? createdAt)
+                : null;
+            return {
+              id: m.id,
+              module_family_id: `family_${m.id}`,
+              version: 1,
+              title: { bn: m.title },
+              description: m.category ? { bn: m.category } : null,
+              domain: m.category,
+              module_type: 'initial_training',
+              lifecycle_status: m.status,
+              clinically_reviewed: false,
+              has_visibility_window: false,
+              card_count: m.lessons,
+              quiz_count: m.questions,
+              estimated_minutes: Math.max(
+                1,
+                Math.round(
+                  Number.parseInt(m.durationLabel.replace(/\D/g, ''), 10) || 10,
+                ),
+              ),
+              published_at: publishedAt,
+              created_at: createdAt,
+              updated_at: createdAt,
+              activated_at: publishedAt,
+              deactivated_at: deactivated,
+              first_activated_at: publishedAt,
+              last_deactivated_at: deactivated,
+              last_reactivated_at: null,
+              created_by: { id: 101, name: 'Mock Content Admin' },
+              published_by:
+                m.status === 'published' || m.status === 'deactivated'
+                  ? { id: 102, name: 'Mock Publisher' }
+                  : null,
+              activated_by:
+                m.status === 'published' || m.status === 'deactivated'
+                  ? { id: 102, name: 'Mock Publisher' }
+                  : null,
+              deactivated_by:
+                m.status === 'deactivated'
+                  ? { id: 103, name: 'Mock Deactivator' }
+                  : null,
+              quality_flags: { flags: [] },
+              chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
+            };
+          })
           .filter((item) => (domain ? item.domain === domain : true))
           .filter((item) => {
             const listingDate =
@@ -177,7 +200,7 @@ export function installModuleLibraryFetchMock(): void {
                 : status === 'draft'
                   ? item.created_at
                   : status === 'deactivated'
-                    ? item.last_deactivated_at
+                    ? item.deactivated_at
                     : (item.published_at ?? item.created_at);
             if (!listingDate) return true;
             const listingTime = new Date(listingDate).getTime();
@@ -234,6 +257,25 @@ export function installModuleLibraryFetchMock(): void {
           total_pages: limit > 0 ? Math.ceil(items.length / limit) : 0,
           limit,
           offset,
+        });
+      }
+
+      if (path.includes('/publish') && method === 'POST') {
+        const moduleId = decodeURIComponent(
+          path.slice(
+            path.indexOf('admin/modules/') + 'admin/modules/'.length,
+            -'/publish'.length,
+          ),
+        );
+        const module = testModuleLibrary.modules.find((m) => m.id === moduleId);
+        if (module && module.status === 'draft') {
+          module.status = 'published';
+        }
+        return jsonResponse({
+          id: moduleId,
+          module_family_id: `family_${moduleId}`,
+          lifecycle_status: 'published',
+          activated_at: new Date().toISOString(),
         });
       }
 

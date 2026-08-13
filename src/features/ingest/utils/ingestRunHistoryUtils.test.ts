@@ -22,6 +22,7 @@ const baseRun: IngestionRunSummary = {
   generated_module_count: 0,
   generated_card_count: 0,
   generated_quiz_count: 0,
+  ingested_by: null,
 };
 
 describe('ingestRunHistoryUtils', () => {
