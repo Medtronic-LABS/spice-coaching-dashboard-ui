@@ -114,7 +114,7 @@
         "quizReattemptAllowedMeta": "{{count}} days from assignment date",
         "quizReattemptAllowedMetaLoading": "Loading reattempt window…",
         "quizReattemptAllowedMetaUnavailable": "Reattempt window unavailable",
-        "assignedTo": "ASSIGNED TO — {{count}} users",
+        "assignedTo": "ASSIGNED TO",
         "assignedToIndividual": "ASSIGNED TO — Individual",
         "assignedToPoSk": "ASSIGNED TO — PO + SKs",
         "assignedToPo": "ASSIGNED TO — PO",

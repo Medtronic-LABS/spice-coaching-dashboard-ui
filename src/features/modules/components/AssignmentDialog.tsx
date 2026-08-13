@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Banner,
@@ -31,7 +31,7 @@ import {
   useReplaceDocumentAssignedUsersMutation,
 } from '@/features/ingest/api/adminDocumentAssignmentApi';
 import {
-  buildAssignedUserEntries,
+  buildFlatAssignedUserEntries,
   buildGeographicalAssignedEntries,
   countAssignedUsers,
   type AssignedUserEntry,
@@ -41,10 +41,14 @@ import {
   ALL_UPAZILAS_OPTION,
   ASSIGNMENT_SEARCH_DEBOUNCE_MS,
   baselineUpazilaNames,
+  buildAssignmentListUsers,
   buildNamedEntityComboboxOptions,
-  filterUserIdsForMode,
+  buildReplaceAssignmentUserIds,
   getUserLevelEmptyMessage,
+  hasAssignmentUserFilters,
   hierarchyRoleForMode,
+  idsToAddWhenSelectingPo,
+  idsToRemoveWhenClearingPo,
   resolveNamedEntitySelection,
   type AssignmentUserLevelMode,
 } from '@/features/modules/utils/assignmentDialogHelpers';
@@ -99,8 +103,6 @@ interface UserAssignmentStatus {
   label: string;
   displayLabel: string;
   matchesCurrentMode: boolean;
-  isInherited?: boolean;
-  isDisabledInCurrentMode: boolean;
 }
 
 function entityNoun(target: AssignmentDialogTarget): string {
@@ -169,12 +171,8 @@ function UserSelectionList({
   onToggleUser,
   emptyMessage,
 }: UserSelectionListProps) {
-  const selectableUsers = users.filter(
-    (user) => !userAssignmentStatus.get(user.id)?.isDisabledInCurrentMode,
-  );
-  const allSelectableSelected = selectableUsers.every((user) =>
-    desiredUserIds.includes(user.id),
-  );
+  const allSelected =
+    users.length > 0 && users.every((user) => desiredUserIds.includes(user.id));
 
   return (
     <div className="overflow-hidden rounded-lg border border-spice-border">
@@ -189,7 +187,7 @@ function UserSelectionList({
             />
           ) : null}
         </div>
-        {selectableUsers.length > 0 && !allSelectableSelected ? (
+        {users.length > 0 && !allSelected ? (
           <button
             type="button"
             onClick={onSelectAll}
@@ -223,10 +221,7 @@ function UserSelectionList({
           <div className="divide-y divide-spice-border">
             {users.map((user) => {
               const status = userAssignmentStatus.get(user.id);
-              const isChecked =
-                Boolean(status?.isInherited) ||
-                desiredUserIds.includes(user.id);
-              const isDisabled = Boolean(status?.isDisabledInCurrentMode);
+              const isChecked = desiredUserIds.includes(user.id);
               const locationLabel = user.upazila
                 ? `${user.district} · ${user.upazila}`
                 : user.district;
@@ -234,11 +229,7 @@ function UserSelectionList({
               return (
                 <label
                   key={user.id}
-                  className={`flex items-center justify-between gap-3 px-3 py-2.5 ${
-                    isDisabled
-                      ? 'cursor-not-allowed bg-spice-bg-tint/20 opacity-70'
-                      : 'cursor-pointer hover:bg-spice-bg-tint/30'
-                  }`}
+                  className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 hover:bg-spice-bg-tint/30"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-spice-text-primary">
@@ -250,7 +241,7 @@ function UserSelectionList({
                     {status ? (
                       <div
                         className={
-                          status.isInherited || status.matchesCurrentMode
+                          status.matchesCurrentMode
                             ? 'text-xs font-semibold text-spice-brand-primary'
                             : 'text-xs text-spice-text-muted'
                         }
@@ -262,7 +253,6 @@ function UserSelectionList({
                   <input
                     type="checkbox"
                     checked={isChecked}
-                    disabled={isDisabled}
                     onChange={() => onToggleUser(user.id)}
                     className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
                   />
@@ -325,12 +315,26 @@ export const AssignmentDialog = ({
   const [desiredUpazilas, setDesiredUpazilas] = useState<string[]>([]);
   const [baselineUpazilas, setBaselineUpazilas] = useState<string[]>([]);
   const [loadedUsers, setLoadedUsers] = useState<AdminUser[]>([]);
+  const [poChildUsers, setPoChildUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersOffset, setUsersOffset] = useState(0);
   const [loadedUpazilas, setLoadedUpazilas] = useState<AdminUpazila[]>([]);
   const [upazilasTotal, setUpazilasTotal] = useState(0);
   const [upazilasOffset, setUpazilasOffset] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const districtsRequestSeqRef = useRef(0);
+  const filterUpazilasRequestSeqRef = useRef(0);
+  const usersRequestSeqRef = useRef(0);
+  const upazilasRequestSeqRef = useRef(0);
+
+  const usersFetchRole = hierarchyRoleForMode(userLevelMode);
+  const usersListQueryKey = [
+    usersFetchRole,
+    selectedDistrictId ?? '',
+    selectedUpazilaId ?? '',
+    debouncedUserSearchQuery.trim(),
+  ].join('|');
 
   const [
     triggerDistrictsPage,
@@ -345,6 +349,8 @@ export const AssignmentDialog = ({
     triggerUsersPage,
     { isLoading: loadingUsers, isError: usersError, isFetching: fetchingUsers },
   ] = useLazyFetchHierarchyUsersPageQuery();
+  // Separate trigger so PO→child SK fetches do not flip the main list loading flags.
+  const [triggerChildUsersPage] = useLazyFetchHierarchyUsersPageQuery();
 
   const [
     triggerFilterUpazilasPage,
@@ -398,8 +404,26 @@ export const AssignmentDialog = ({
     const map = new Map<number, AdminUser>();
     for (const user of assignedUsersForTarget) map.set(user.id, user);
     for (const user of loadedUsers) map.set(user.id, user);
+    for (const user of poChildUsers) map.set(user.id, user);
     return map;
-  }, [assignedUsersForTarget, loadedUsers]);
+  }, [assignedUsersForTarget, loadedUsers, poChildUsers]);
+
+  const filtersActive = hasAssignmentUserFilters({
+    districtId: selectedDistrictId,
+    upazilaId: selectedUpazilaId,
+    searchQuery: debouncedUserSearchQuery,
+  });
+
+  const listUsers = useMemo(
+    () =>
+      buildAssignmentListUsers(
+        userLevelMode,
+        loadedUsers,
+        assignedUsersForTarget,
+        filtersActive,
+      ),
+    [assignedUsersForTarget, filtersActive, loadedUsers, userLevelMode],
+  );
 
   const districtComboboxOptions = useMemo(
     () =>
@@ -431,12 +455,16 @@ export const AssignmentDialog = ({
 
   const loadDistrictsPage = useCallback(
     async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? districtsRequestSeqRef.current
+        : ++districtsRequestSeqRef.current;
       const nameQuery = debouncedDistrictSearchQuery.trim();
       const result = await triggerDistrictsPage({
         limit: ASSIGNMENT_LIST_PAGE_SIZE,
         offset,
         ...(nameQuery ? { q: nameQuery } : {}),
       });
+      if (requestSeq !== districtsRequestSeqRef.current) return;
       if ('error' in result && result.error) return;
       const page = result.data;
       if (!page) return;
@@ -451,6 +479,9 @@ export const AssignmentDialog = ({
 
   const loadFilterUpazilasPage = useCallback(
     async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? filterUpazilasRequestSeqRef.current
+        : ++filterUpazilasRequestSeqRef.current;
       const nameQuery = debouncedFilterUpazilaSearchQuery.trim();
       const result = await triggerFilterUpazilasPage({
         limit: ASSIGNMENT_LIST_PAGE_SIZE,
@@ -460,6 +491,7 @@ export const AssignmentDialog = ({
           : {}),
         ...(nameQuery ? { q: nameQuery } : {}),
       });
+      if (requestSeq !== filterUpazilasRequestSeqRef.current) return;
       if ('error' in result && result.error) return;
       const page = result.data;
       if (!page) return;
@@ -478,17 +510,21 @@ export const AssignmentDialog = ({
 
   const loadUsersPage = useCallback(
     async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? usersRequestSeqRef.current
+        : ++usersRequestSeqRef.current;
       const nameQuery = debouncedUserSearchQuery.trim();
       const result = await triggerUsersPage({
         limit: ASSIGNMENT_USERS_PAGE_SIZE,
         offset,
-        role: hierarchyRoleForMode(userLevelMode),
+        role: usersFetchRole,
         ...(selectedDistrictId !== null
           ? { districtId: selectedDistrictId }
           : {}),
         ...(selectedUpazilaId !== null ? { upazilaId: selectedUpazilaId } : {}),
         ...(nameQuery ? { q: nameQuery } : {}),
       });
+      if (requestSeq !== usersRequestSeqRef.current) return;
       if ('error' in result && result.error) return;
       const page = result.data;
       if (!page) return;
@@ -503,12 +539,15 @@ export const AssignmentDialog = ({
       selectedDistrictId,
       selectedUpazilaId,
       triggerUsersPage,
-      userLevelMode,
+      usersFetchRole,
     ],
   );
 
   const loadUpazilasPage = useCallback(
     async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? upazilasRequestSeqRef.current
+        : ++upazilasRequestSeqRef.current;
       const result = await triggerUpazilasPage({
         limit: ASSIGNMENT_LIST_PAGE_SIZE,
         offset,
@@ -516,6 +555,7 @@ export const AssignmentDialog = ({
           ? { districtId: selectedDistrictId }
           : {}),
       });
+      if (requestSeq !== upazilasRequestSeqRef.current) return;
       if ('error' in result && result.error) return;
       const page = result.data;
       if (!page) return;
@@ -551,27 +591,40 @@ export const AssignmentDialog = ({
     setUserSearchQuery('');
     setErrorMsg('');
     setLoadedUsers([]);
+    setPoChildUsers([]);
     setUsersTotal(0);
     setUsersOffset(0);
     setLoadedUpazilas([]);
     setUpazilasTotal(0);
     setUpazilasOffset(0);
+    setBaselineUserIds([]);
+    setDesiredUserIds([]);
+    setBaselineUpazilas([]);
+    setDesiredUpazilas([]);
+
+    const applyAssignedUsers = (users: AdminUser[]) => {
+      const ids = users.map((user) => user.id);
+      const upazilas = baselineUpazilaNames(users);
+      setBaselineUserIds(ids);
+      setDesiredUserIds(ids);
+      setBaselineUpazilas(upazilas);
+      setDesiredUpazilas(upazilas);
+    };
+
     if (target.kind === 'module') {
-      void triggerModuleAssignedUsers(target.id);
+      void triggerModuleAssignedUsers(target.id).then((result) => {
+        if ('data' in result && result.data) {
+          applyAssignedUsers(result.data);
+        }
+      });
     } else {
-      void triggerDocumentAssignedUsers(target.id);
+      void triggerDocumentAssignedUsers(target.id).then((result) => {
+        if ('data' in result && result.data) {
+          applyAssignedUsers(result.data);
+        }
+      });
     }
   }, [open, target, triggerDocumentAssignedUsers, triggerModuleAssignedUsers]);
-
-  useEffect(() => {
-    if (!open) return;
-    const ids = assignedUsersForTarget.map((user) => user.id);
-    const upazilas = baselineUpazilaNames(assignedUsersForTarget);
-    setBaselineUserIds(ids);
-    setDesiredUserIds(ids);
-    setBaselineUpazilas(upazilas);
-    setDesiredUpazilas(upazilas);
-  }, [assignedUsersForTarget, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -587,7 +640,7 @@ export const AssignmentDialog = ({
     setUsersTotal(0);
     setUsersOffset(0);
     void loadUsersPage(0, false);
-  }, [activeTab, loadUsersPage, open]);
+  }, [activeTab, loadUsersPage, open, usersListQueryKey]);
 
   useEffect(() => {
     if (!open || activeTab !== 'user') return;
@@ -595,7 +648,7 @@ export const AssignmentDialog = ({
     setFilterUpazilasTotal(0);
     setFilterUpazilasOffset(0);
     void loadFilterUpazilasPage(0, false);
-  }, [activeTab, loadFilterUpazilasPage, open]);
+  }, [activeTab, loadFilterUpazilasPage, open, selectedDistrictId]);
 
   useEffect(() => {
     if (!open || activeTab !== 'geographical') return;
@@ -607,61 +660,18 @@ export const AssignmentDialog = ({
 
   const userAssignmentStatus = useMemo(() => {
     const map = new Map<number, UserAssignmentStatus>();
-    const selectedPoIds = Array.from(desiredSet).filter((id) => {
-      const user = knownUsersById.get(id);
-      return user?.role === 'PO';
-    });
 
-    for (const user of loadedUsers) {
-      if (
-        user.role === 'SK' &&
-        user.parent_id !== null &&
-        selectedPoIds.includes(user.parent_id)
-      ) {
-        const parent = knownUsersById.get(user.parent_id);
-        map.set(user.id, {
-          label: 'Inherited',
-          displayLabel: `Included via PO${parent ? ` — ${parent.name}` : ''}`,
-          matchesCurrentMode: userLevelMode === 'po_sk',
-          isInherited: true,
-          isDisabledInCurrentMode: true,
-        });
-        continue;
-      }
-
+    for (const user of listUsers) {
       if (baselineSet.has(user.id)) {
         map.set(user.id, {
           label: 'Assigned',
           displayLabel: 'Already assigned',
           matchesCurrentMode: true,
-          isDisabledInCurrentMode: false,
         });
       }
     }
     return map;
-  }, [baselineSet, desiredSet, knownUsersById, loadedUsers, userLevelMode]);
-
-  const selectedUserIdsForMode = useMemo(
-    () =>
-      filterUserIdsForMode(
-        desiredUserIds,
-        knownUsersById,
-        desiredSet,
-        userLevelMode,
-      ),
-    [desiredSet, desiredUserIds, knownUsersById, userLevelMode],
-  );
-
-  const baselineUserIdsForMode = useMemo(
-    () =>
-      filterUserIdsForMode(
-        baselineUserIds,
-        knownUsersById,
-        baselineSet,
-        userLevelMode,
-      ),
-    [baselineSet, baselineUserIds, knownUsersById, userLevelMode],
-  );
+  }, [baselineSet, listUsers]);
 
   const retryUsers = () => {
     setLoadedUsers([]);
@@ -720,48 +730,100 @@ export const AssignmentDialog = ({
     setDesiredUserIds((prev) => prev.filter((id) => !remove.has(id)));
   };
 
-  const childIdsForPo = (poId: number): number[] => {
-    const fromKnown = Array.from(knownUsersById.values())
-      .filter((user) => user.parent_id === poId)
-      .map((user) => user.id);
-    return fromKnown;
+  const mergePoChildUsers = (users: AdminUser[]) => {
+    if (users.length === 0) return;
+    setPoChildUsers((prev) => {
+      const map = new Map(prev.map((user) => [user.id, user]));
+      for (const user of users) map.set(user.id, user);
+      return Array.from(map.values());
+    });
+  };
+
+  const loadChildSksForPo = async (poId: number): Promise<number[]> => {
+    const collected: AdminUser[] = [];
+    let offset = 0;
+    let total = Number.POSITIVE_INFINITY;
+
+    while (offset < total) {
+      const result = await triggerChildUsersPage({
+        limit: ASSIGNMENT_USERS_PAGE_SIZE,
+        offset,
+        role: 'SHASTIYA_KORMI',
+        parentId: poId,
+      });
+      if ('error' in result && result.error) break;
+      const page = result.data;
+      if (!page) break;
+      collected.push(...page.users);
+      total = page.total;
+      offset += page.users.length;
+      if (page.users.length === 0) break;
+    }
+
+    mergePoChildUsers(collected);
+    return collected.map((user) => user.id);
   };
 
   const handleToggleUser = (userId: number) => {
-    const status = userAssignmentStatus.get(userId);
-    if (status?.isDisabledInCurrentMode) return;
-
     const user = knownUsersById.get(userId);
     if (!user) return;
 
     if (desiredSet.has(userId)) {
-      if (user.role === 'PO' && userLevelMode === 'po_sk') {
-        removeUsersFromDesired([userId, ...childIdsForPo(userId)]);
+      if (user.role === 'PO') {
+        removeUsersFromDesired(
+          idsToRemoveWhenClearingPo(userId, knownUsersById, userLevelMode),
+        );
       } else {
         removeUsersFromDesired([userId]);
       }
       return;
     }
 
-    // PO→SK expansion happens on the server when expand_po_assignees is true.
+    if (user.role === 'PO') {
+      const immediateIds = idsToAddWhenSelectingPo(
+        userId,
+        knownUsersById,
+        userLevelMode,
+      );
+      addUsersToDesired(immediateIds);
+      if (userLevelMode === 'po_sk') {
+        void loadChildSksForPo(userId).then((childIds) => {
+          if (childIds.length > 0) addUsersToDesired(childIds);
+        });
+      }
+      return;
+    }
+
     addUsersToDesired([userId]);
   };
 
   const handleSelectAllUsers = () => {
-    const selectable = loadedUsers.filter(
-      (user) => !userAssignmentStatus.get(user.id)?.isDisabledInCurrentMode,
-    );
-    const allSelected = selectable.every((user) => desiredSet.has(user.id));
+    const visibleIds = listUsers.map((user) => user.id);
+    const allSelected = visibleIds.every((id) => desiredSet.has(id));
     if (allSelected) {
-      const idsToRemove = selectable.flatMap((user) =>
-        user.role === 'PO' && userLevelMode === 'po_sk'
-          ? [user.id, ...childIdsForPo(user.id)]
+      const idsToRemove = listUsers.flatMap((user) =>
+        user.role === 'PO'
+          ? idsToRemoveWhenClearingPo(user.id, knownUsersById, userLevelMode)
           : [user.id],
       );
       removeUsersFromDesired(idsToRemove);
       return;
     }
-    addUsersToDesired(selectable.map((user) => user.id));
+
+    for (const user of listUsers) {
+      if (user.role === 'PO') {
+        addUsersToDesired(
+          idsToAddWhenSelectingPo(user.id, knownUsersById, userLevelMode),
+        );
+        if (userLevelMode === 'po_sk') {
+          void loadChildSksForPo(user.id).then((childIds) => {
+            if (childIds.length > 0) addUsersToDesired(childIds);
+          });
+        }
+      } else {
+        addUsersToDesired([user.id]);
+      }
+    }
   };
 
   const handleUpazilaCheckboxChange = (upazilaName: string) => {
@@ -785,7 +847,7 @@ export const AssignmentDialog = ({
   };
 
   const finishSuccess = (
-    assignmentType: AssignmentSummaryType,
+    assignmentType: AssignmentSummaryType | undefined,
     assignedUsers: AssignedUserEntry[],
     removedUsers: AssignedUserEntry[],
   ) => {
@@ -795,7 +857,7 @@ export const AssignmentDialog = ({
         state: {
           moduleId: target.id,
           moduleName: target.title,
-          assignmentType,
+          ...(assignmentType ? { assignmentType } : {}),
           assignedCount: countAssignedUsers(assignedUsers),
           assignedUsers,
           removedUsers,
@@ -847,22 +909,18 @@ export const AssignmentDialog = ({
         return;
       }
 
-      const nextIds = [...selectedUserIdsForMode];
-      const baselineForMode = new Set(baselineUserIdsForMode);
-      const addedIds = nextIds.filter((id) => !baselineForMode.has(id));
-      const removedIds = baselineUserIdsForMode.filter(
-        (id) => !desiredSet.has(id),
-      );
+      const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
+      const addedIds = nextIds.filter((id) => !baselineSet.has(id));
+      const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
 
       if (addedIds.length === 0 && removedIds.length === 0) {
         setErrorMsg('Please select at least one user or change assignments.');
         return;
       }
 
-      const expandPoAssignees = userLevelMode === 'po_sk';
       const payload = {
         user_ids: nextIds,
-        expand_po_assignees: expandPoAssignees,
+        expand_po_assignees: false,
       };
 
       if (target.kind === 'module') {
@@ -879,9 +937,9 @@ export const AssignmentDialog = ({
 
       const knownList = Array.from(knownUsersById.values());
       finishSuccess(
-        userLevelMode,
-        buildAssignedUserEntries(userLevelMode, addedIds, knownList),
-        buildAssignedUserEntries(userLevelMode, removedIds, knownList),
+        undefined,
+        buildFlatAssignedUserEntries(nextIds, knownList),
+        buildFlatAssignedUserEntries(removedIds, knownList),
       );
     } catch (err: unknown) {
       console.error(err);
@@ -1089,7 +1147,7 @@ export const AssignmentDialog = ({
 
               <UserSelectionList
                 title="User"
-                users={loadedUsers}
+                users={listUsers}
                 desiredUserIds={desiredUserIds}
                 userAssignmentStatus={userAssignmentStatus}
                 isLoading={loadingUsers && loadedUsers.length === 0}

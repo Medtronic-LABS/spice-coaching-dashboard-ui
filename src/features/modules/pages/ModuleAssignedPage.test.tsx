@@ -43,10 +43,15 @@ describe('ModuleAssignedPage', () => {
     expect(screen.getByTestId('library')).toBeInTheDocument();
   });
 
-  it('shows individual assignment summary', () => {
+  it('shows flat assigned users without mode-specific labels', () => {
     renderAssignedPage({
-      assignmentType: 'individual',
       assignedUsers: [
+        {
+          kind: 'individual',
+          userId: 20,
+          role: 'PO',
+          name: 'Sobita Rani',
+        },
         {
           kind: 'individual',
           userId: 21,
@@ -60,89 +65,34 @@ describe('ModuleAssignedPage', () => {
           name: 'Mst. Rabeya Khatun',
         },
       ],
-      assignedCount: 2,
-    });
-
-    expect(screen.getByText(/assigned to — individual/i)).toBeInTheDocument();
-    expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
-    expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
-  });
-
-  it('shows PO card and expandable SK users for po_sk assignments', async () => {
-    const user = userEvent.setup();
-    renderAssignedPage({
-      assignmentType: 'po_sk',
-      assignedUsers: [
-        {
-          kind: 'po_sk',
-          poId: 20,
-          poName: 'Sobita Rani',
-          skUsers: [
-            { userId: 21, name: 'Md Abdus Salam' },
-            { userId: 22, name: 'Mst. Rabeya Khatun' },
-          ],
-        },
-      ],
       assignedCount: 3,
-    });
-
-    expect(screen.getByText(/assigned to — po \+ sks/i)).toBeInTheDocument();
-    expect(screen.getByText('Sobita Rani')).toBeInTheDocument();
-    expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: /show sk users for sobita rani/i }),
-    );
-
-    expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
-    expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
-  });
-
-  it('shows PO-only assignment summary', () => {
-    renderAssignedPage({
-      assignmentType: 'po',
-      assignedUsers: [
+      removedUsers: [
         {
           kind: 'individual',
-          userId: 20,
-          role: 'PO',
-          name: 'Sobita Rani',
+          userId: 30,
+          role: 'SK',
+          name: 'Independent SK',
         },
       ],
-      assignedCount: 1,
     });
 
-    expect(screen.getByText(/assigned to — po/i)).toBeInTheDocument();
+    expect(screen.getByText(/^assigned to$/i)).toBeInTheDocument();
     expect(screen.getByText('Sobita Rani')).toBeInTheDocument();
+    expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
+    expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
+    expect(screen.getByText(/revoked/i)).toBeInTheDocument();
+    expect(screen.getByText('Independent SK')).toBeInTheDocument();
   });
 
-  it('shows upazila card and expandable SK users for geographical assignments', async () => {
-    const user = userEvent.setup();
+  it('shows upazila assignment as a simple geographical card', () => {
     renderAssignedPage({
       assignmentType: 'geographical',
-      assignedUsers: [
-        {
-          kind: 'upazila',
-          upazilaName: 'Hatibandha',
-          skUsers: [
-            { userId: 21, name: 'Md Abdus Salam' },
-            { userId: 22, name: 'Mst. Rabeya Khatun' },
-          ],
-        },
-      ],
-      assignedCount: 3,
+      assignedUsers: [{ kind: 'geographical', name: 'Hatibandha' }],
+      assignedCount: 1,
     });
 
     expect(screen.getByText(/assigned to — upazila/i)).toBeInTheDocument();
     expect(screen.getByText('Hatibandha')).toBeInTheDocument();
-    expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: /show sk users for hatibandha/i }),
-    );
-
-    expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
-    expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
   });
 
   it('shows organization assignment summary for group assignments', () => {

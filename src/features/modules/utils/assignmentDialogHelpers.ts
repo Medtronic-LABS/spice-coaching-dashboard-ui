@@ -86,24 +86,97 @@ export function isPoSelectionMode(mode: AssignmentUserLevelMode): boolean {
   return mode === 'po_sk' || mode === 'po';
 }
 
-/** Role-based payload / UI selection ids for the active assignment mode. */
-export function filterUserIdsForMode(
-  userIds: number[],
+/** Direct SK children of a PO known in the current user map. */
+export function childSkIdsForPo(
+  poId: number,
   usersById: Map<number, AdminUser>,
-  parentSelectedIds: Set<number>,
+): number[] {
+  return Array.from(usersById.values())
+    .filter((user) => user.role === 'SK' && user.parent_id === poId)
+    .map((user) => user.id);
+}
+
+/**
+ * Full replace set for role-based assign: keep previously selected ids unless
+ * removed, plus any newly selected ids. Mode does not strip roles from the payload.
+ */
+export function buildReplaceAssignmentUserIds(
+  desiredUserIds: number[],
+): number[] {
+  return Array.from(new Set(desiredUserIds));
+}
+
+/**
+ * When selecting a PO in PO and SK mode, include that PO and all known child SKs.
+ * Individual SKs can later be removed from desired without clearing the PO.
+ */
+export function idsToAddWhenSelectingPo(
+  poId: number,
+  usersById: Map<number, AdminUser>,
   mode: AssignmentUserLevelMode,
 ): number[] {
-  if (isPoSelectionMode(mode)) {
-    return userIds.filter((id) => usersById.get(id)?.role === 'PO');
+  if (mode === 'po_sk') {
+    return [poId, ...childSkIdsForPo(poId, usersById)];
   }
-  return userIds.filter((id) => {
-    const user = usersById.get(id);
-    if (!user || user.role !== 'SK') return false;
-    if (user.parent_id !== null && parentSelectedIds.has(user.parent_id)) {
-      return false;
-    }
-    return true;
-  });
+  return [poId];
+}
+
+/** When clearing a PO in PO and SK mode, drop the PO and remaining selected child SKs. */
+export function idsToRemoveWhenClearingPo(
+  poId: number,
+  usersById: Map<number, AdminUser>,
+  mode: AssignmentUserLevelMode,
+): number[] {
+  if (mode === 'po_sk') {
+    return [poId, ...childSkIdsForPo(poId, usersById)];
+  }
+  return [poId];
+}
+
+/**
+ * Build the visible assignment list.
+ *
+ * When filters are active, only show API-filtered `loadedUsers` (do not inject
+ * already-assigned users from outside the filter). Off-filter selected ids stay
+ * in desired state and are still sent on save.
+ *
+ * When filters are clear, pin already-assigned users for the mode so they remain
+ * visible/checked even if not on the current page.
+ */
+export function buildAssignmentListUsers(
+  mode: AssignmentUserLevelMode,
+  loadedUsers: AdminUser[],
+  assignedUsers: AdminUser[],
+  filtersActive: boolean,
+): AdminUser[] {
+  const result: AdminUser[] = [];
+  const seen = new Set<number>();
+
+  const push = (user: AdminUser | undefined) => {
+    if (!user || seen.has(user.id)) return;
+    if (mode === 'sk' && user.role !== 'SK') return;
+    if (mode !== 'sk' && user.role !== 'PO') return;
+    seen.add(user.id);
+    result.push(user);
+  };
+
+  if (!filtersActive) {
+    for (const user of assignedUsers) push(user);
+  }
+  for (const user of loadedUsers) push(user);
+  return result;
+}
+
+export function hasAssignmentUserFilters(input: {
+  districtId: number | null;
+  upazilaId: number | null;
+  searchQuery: string;
+}): boolean {
+  return (
+    input.districtId !== null ||
+    input.upazilaId !== null ||
+    input.searchQuery.trim().length > 0
+  );
 }
 
 export function baselineUpazilaNames(users: AdminUser[]): string[] {

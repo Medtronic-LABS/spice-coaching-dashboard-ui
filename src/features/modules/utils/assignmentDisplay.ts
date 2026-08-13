@@ -39,16 +39,25 @@ export function buildAssignedUserEntries(
   selectedUserIds: number[],
   allUsers: AdminUser[],
 ): AssignedUserEntry[] {
+  const selectedSet = new Set(selectedUserIds);
+
   switch (mode) {
     case 'po_sk': {
       return selectedUserIds.flatMap((userId) => {
-        const po = allUsers.find((user) => user.id === userId);
+        const po = allUsers.find(
+          (user) => user.id === userId && user.role === 'PO',
+        );
         if (!po) {
           return [];
         }
 
         const skUsers = allUsers
-          .filter((user) => user.role === 'SK' && user.parent_id === userId)
+          .filter(
+            (user) =>
+              user.role === 'SK' &&
+              user.parent_id === userId &&
+              selectedSet.has(user.id),
+          )
           .map((user) => ({ userId: user.id, name: user.name }));
 
         return [
@@ -109,6 +118,28 @@ export function buildGeographicalAssignedEntries(
     kind: 'geographical',
     name,
   }));
+}
+
+/** Flat PO/SK cards for the assignment success page (no mode grouping). */
+export function buildFlatAssignedUserEntries(
+  userIds: number[],
+  allUsers: AdminUser[],
+): AssignedIndividualUser[] {
+  const usersById = new Map(allUsers.map((user) => [user.id, user]));
+  return userIds.flatMap((userId) => {
+    const user = usersById.get(userId);
+    if (!user || (user.role !== 'PO' && user.role !== 'SK')) {
+      return [];
+    }
+    return [
+      {
+        kind: 'individual' as const,
+        userId: user.id,
+        role: user.role,
+        name: user.name,
+      },
+    ];
+  });
 }
 
 export function countAssignedUsers(entries: AssignedUserEntry[]): number {

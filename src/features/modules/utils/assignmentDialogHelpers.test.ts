@@ -4,10 +4,15 @@ import {
   ALL_DISTRICTS_OPTION,
   ALL_UPAZILAS_OPTION,
   baselineUpazilaNames,
+  buildAssignmentListUsers,
   buildNamedEntityComboboxOptions,
-  filterUserIdsForMode,
+  buildReplaceAssignmentUserIds,
+  childSkIdsForPo,
   getUserLevelEmptyMessage,
+  hasAssignmentUserFilters,
   hierarchyRoleForMode,
+  idsToAddWhenSelectingPo,
+  idsToRemoveWhenClearingPo,
   isPoSelectionMode,
   resolveNamedEntitySelection,
 } from './assignmentDialogHelpers';
@@ -120,13 +125,74 @@ describe('assignment mode helpers', () => {
     expect(isPoSelectionMode('sk')).toBe(false);
   });
 
-  it('filters user ids for po modes and sk mode', () => {
+  it('builds explicit replace ids without mode filtering', () => {
+    expect(buildReplaceAssignmentUserIds([20, 21, 20, 30])).toEqual([
+      20, 21, 30,
+    ]);
+  });
+
+  it('expands PO selection to child SKs only in po_sk mode', () => {
+    expect(childSkIdsForPo(20, usersById)).toEqual([21]);
+    expect(idsToAddWhenSelectingPo(20, usersById, 'po_sk')).toEqual([20, 21]);
+    expect(idsToAddWhenSelectingPo(20, usersById, 'po')).toEqual([20]);
+    expect(idsToRemoveWhenClearingPo(20, usersById, 'po_sk')).toEqual([20, 21]);
+  });
+
+  it('puts already-assigned POs first when filters are clear', () => {
+    const loadedOnly = [independentSk, po];
+    const assigned = [po, skUnderPo];
+    const list = buildAssignmentListUsers('po_sk', loadedOnly, assigned, false);
+    expect(list.map((user) => user.id)).toEqual([20]);
+    expect(list.every((user) => user.role === 'PO')).toBe(true);
+  });
+
+  it('shows only filtered loaded users when filters are active', () => {
+    const filteredPo = {
+      ...po,
+      id: 99,
+      name: 'Filtered PO',
+    };
+    const list = buildAssignmentListUsers(
+      'po_sk',
+      [filteredPo],
+      [po, skUnderPo],
+      true,
+    );
+    expect(list.map((user) => user.id)).toEqual([99]);
+  });
+
+  it('lists assigned SKs on the SK only tab when filters are clear', () => {
+    const list = buildAssignmentListUsers(
+      'sk',
+      [independentSk],
+      [skUnderPo],
+      false,
+    );
+    expect(list.map((user) => user.id)).toEqual([21, 30]);
+  });
+
+  it('detects active assignment user filters', () => {
     expect(
-      filterUserIdsForMode([20, 21, 30], usersById, new Set(), 'po'),
-    ).toEqual([20]);
+      hasAssignmentUserFilters({
+        districtId: null,
+        upazilaId: null,
+        searchQuery: '',
+      }),
+    ).toBe(false);
     expect(
-      filterUserIdsForMode([20, 21, 30], usersById, new Set([20]), 'sk'),
-    ).toEqual([30]);
+      hasAssignmentUserFilters({
+        districtId: 10,
+        upazilaId: null,
+        searchQuery: '',
+      }),
+    ).toBe(true);
+    expect(
+      hasAssignmentUserFilters({
+        districtId: null,
+        upazilaId: null,
+        searchQuery: 'ab',
+      }),
+    ).toBe(true);
   });
 
   it('returns mode-specific empty messages', () => {
