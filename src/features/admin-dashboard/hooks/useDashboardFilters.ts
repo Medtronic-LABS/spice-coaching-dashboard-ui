@@ -9,6 +9,7 @@ import type {
 import {
   isDashboardDateRangeValid,
   resolveDashboardDateRange,
+  seedCustomRangeFromPreset,
 } from '@/features/admin-dashboard/utils/dateRange';
 
 export const EMPTY_DASHBOARD_GEOGRAPHY: DashboardGeographyFilters = {
@@ -26,9 +27,8 @@ export const DEFAULT_DASHBOARD_FILTERS: DashboardFiltersState = {
 };
 
 export function useDashboardFilters() {
-  const [durationPreset, setDurationPreset] = useState<DashboardDurationPreset>(
-    DEFAULT_DASHBOARD_FILTERS.durationPreset,
-  );
+  const [durationPreset, setDurationPresetState] =
+    useState<DashboardDurationPreset>(DEFAULT_DASHBOARD_FILTERS.durationPreset);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [status, setStatus] = useState<DashboardStatusFilter>('all');
@@ -53,8 +53,21 @@ export function useDashboardFilters() {
 
   const isDateRangeValid = isDashboardDateRangeValid(dateRange);
 
+  const setDurationPreset = (preset: DashboardDurationPreset) => {
+    if (preset === 'custom') {
+      const seeded = seedCustomRangeFromPreset({
+        durationPreset,
+        customFrom,
+        customTo,
+      });
+      setCustomFrom(seeded.fromDate);
+      setCustomTo(seeded.toDate);
+    }
+    setDurationPresetState(preset);
+  };
+
   const clearCustomDateRange = () => {
-    setDurationPreset(DEFAULT_DASHBOARD_FILTERS.durationPreset);
+    setDurationPresetState(DEFAULT_DASHBOARD_FILTERS.durationPreset);
     setCustomFrom('');
     setCustomTo('');
   };

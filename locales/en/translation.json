@@ -148,7 +148,7 @@
   },
   "adminDashboard": {
     "title": "Admin Dashboard",
-    "description": "Program-wide training activity, module demand, and knowledge usage.",
+    "description": "BRAC Health Programme · Bangladesh",
     "insightsTitle": "Training Insights",
     "widgetError": {
       "title": "Couldn't load this section",
@@ -158,10 +158,15 @@
     },
     "kpis": {
       "active": "SKs active now",
+      "activeTooltip": "SKs with at least one activity in the selected period",
       "inactive": "Inactive SKs",
+      "inactiveTooltip": "SKs with no activity in the selected period",
       "finishedModules": "SKs finished all modules",
+      "finishedModulesTooltip": "SKs who completed all assigned modules in the selected period",
       "chatbotEngaged": "Chatbot engaged",
-      "totalModules": "Total modules created"
+      "chatbotEngagedTooltip": "SKs who used the chatbot in the selected period",
+      "totalModules": "Total modules created",
+      "totalModulesTooltip": "Total number of training modules published to date"
     },
     "filters": {
       "button": "Filters",
@@ -204,7 +209,11 @@
       "allUpazilas": "All upazilas"
     },
     "hierarchy": {
-      "description": "Tap a person to focus document analytics on their subtree. Use \"View POs\" / \"View SKs\" to expand.",
+      "description": {
+        "am": "Tap \"View POs\" to expand and see program officers and SKs",
+        "po": "Tap \"View SKs\" to expand and see SKs under this program officer",
+        "sk": "Tap a row to see full SK detail"
+      },
       "emptyChildren": "No direct reports in this range.",
       "searchPlaceholder": "Search area managers...",
       "searchPlaceholderPo": "Search program officers...",

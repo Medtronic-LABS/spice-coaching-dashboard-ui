@@ -1,5 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { BookIcon, ClipboardIcon, KnowledgeIcon } from '@/assets/icon';
+import {
+  AlertCircleIcon,
+  BookIcon,
+  CalendarIcon,
+  ChatIcon,
+  UsersIcon,
+} from '@/assets/icon';
 import { StatCard } from '@/components/ui';
 import {
   useFetchPublishedModuleCompletionsQuery,
@@ -13,6 +19,9 @@ interface DashboardKpiRowProps {
   fromDate: string;
   toDate: string;
 }
+
+const iconClassName = 'h-4 w-4';
+const iconProps = { className: iconClassName, strokeWidth: 2 } as const;
 
 export const DashboardKpiRow = ({ fromDate, toDate }: DashboardKpiRowProps) => {
   const { t } = useTranslation();
@@ -49,9 +58,6 @@ export const DashboardKpiRow = ({ fromDate, toDate }: DashboardKpiRowProps) => {
 
   const summary = teamQuery.data?.summary;
   const totalUsers = summary?.total_users ?? 0;
-  const fraction = (value: number) =>
-    totalUsers > 0 ? `${value}/${totalUsers}` : String(value);
-
   const totalModulesValue = modulesUi.showLoading
     ? '…'
     : modulesUi.showError
@@ -63,34 +69,43 @@ export const DashboardKpiRow = ({ fromDate, toDate }: DashboardKpiRowProps) => {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <StatCard
-        icon={<ClipboardIcon className="h-4 w-4" />}
+        tone="pink"
+        icon={<UsersIcon {...iconProps} />}
         label={t('adminDashboard.kpis.active')}
-        value={fraction(summary?.active_users ?? 0)}
-        valueClassName="text-spice-brand-primary"
+        value={summary?.active_users ?? 0}
+        outOf={totalUsers > 0 ? totalUsers : undefined}
+        tooltip={t('adminDashboard.kpis.activeTooltip')}
       />
       <StatCard
-        icon={<ClipboardIcon className="h-4 w-4" />}
+        tone="amber"
+        icon={<AlertCircleIcon {...iconProps} />}
         label={t('adminDashboard.kpis.inactive')}
-        value={fraction(summary?.non_active_users ?? 0)}
-        valueClassName="text-spice-semantic-warning"
+        value={summary?.non_active_users ?? 0}
+        outOf={totalUsers > 0 ? totalUsers : undefined}
+        tooltip={t('adminDashboard.kpis.inactiveTooltip')}
       />
       <StatCard
-        icon={<BookIcon className="h-4 w-4" />}
+        tone="blue"
+        icon={<BookIcon {...iconProps} />}
         label={t('adminDashboard.kpis.finishedModules')}
-        value={fraction(summary?.users_completed_module ?? 0)}
-        valueClassName="text-spice-semantic-info"
+        value={summary?.users_completed_module ?? 0}
+        outOf={totalUsers > 0 ? totalUsers : undefined}
+        tooltip={t('adminDashboard.kpis.finishedModulesTooltip')}
       />
       <StatCard
-        icon={<KnowledgeIcon className="h-4 w-4" />}
+        tone="violet"
+        icon={<ChatIcon {...iconProps} />}
         label={t('adminDashboard.kpis.chatbotEngaged')}
-        value={fraction(summary?.users_chatbot_engaged ?? 0)}
-        valueClassName="text-spice-brand-primary"
+        value={summary?.users_chatbot_engaged ?? 0}
+        outOf={totalUsers > 0 ? totalUsers : undefined}
+        tooltip={t('adminDashboard.kpis.chatbotEngagedTooltip')}
       />
       <StatCard
-        icon={<BookIcon className="h-4 w-4" />}
+        tone="purple"
+        icon={<CalendarIcon {...iconProps} />}
         label={t('adminDashboard.kpis.totalModules')}
         value={totalModulesValue}
-        valueClassName="text-spice-brand-primary"
+        tooltip={t('adminDashboard.kpis.totalModulesTooltip')}
       />
     </div>
   );

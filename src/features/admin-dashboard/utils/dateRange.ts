@@ -64,6 +64,30 @@ export function isDashboardDateRangeValid(range: DashboardDateRange): boolean {
   return from <= to;
 }
 
+/** Seeds Custom range inputs from the currently active preset range. */
+export function seedCustomRangeFromPreset(
+  filters: Pick<
+    DashboardFiltersState,
+    'durationPreset' | 'customFrom' | 'customTo'
+  >,
+): DashboardDateRange {
+  if (filters.durationPreset === 'custom') {
+    const current = resolveDashboardDateRange(filters);
+    if (isDashboardDateRangeValid(current)) {
+      return current;
+    }
+  }
+
+  return resolveDashboardDateRange({
+    durationPreset:
+      filters.durationPreset === 'custom'
+        ? 'this_month'
+        : filters.durationPreset,
+    customFrom: '',
+    customTo: '',
+  });
+}
+
 export function dashboardDurationLabel(
   preset: DashboardDurationPreset,
   t: (key: string) => string,

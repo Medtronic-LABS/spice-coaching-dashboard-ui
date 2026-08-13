@@ -47,6 +47,13 @@ describe('ui components', () => {
         />
         <ListItem title="Row2" />
         <StatCard label="Stat" value="42" change={5} supportingText="Helper" />
+        <StatCard
+          tone="pink"
+          label="Active"
+          value={127}
+          outOf={155}
+          tooltip="Active SKs"
+        />
         <Loader label="Loading..." />
         <EmptyState
           title="Empty"
@@ -84,6 +91,10 @@ describe('ui components', () => {
     expect(screen.getByText('Stat')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('Helper')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('127')).toBeInTheDocument();
+    expect(screen.getByText('/155')).toBeInTheDocument();
+    expect(screen.getByLabelText('Active')).toBeInTheDocument();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.getByText('Empty')).toBeInTheDocument();
     expect(screen.getByText('Nothing here')).toBeInTheDocument();

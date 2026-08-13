@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageTitle } from '@/components/common/PageTitle';
-import { Button, ErrorState } from '@/components/ui';
+import { Banner, Button } from '@/components/ui';
 import { getCurrentRole } from '@/constants/role';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
@@ -144,28 +144,6 @@ export const AdminDashboardPage = () => {
     />
   );
 
-  if (!isDateRangeValid) {
-    return (
-      <div className="space-y-4">
-        <DashboardPageHeader
-          title={t('adminDashboard.title')}
-          description={t('adminDashboard.description')}
-        >
-          {filterControls}
-        </DashboardPageHeader>
-        <ErrorState
-          title={t('adminDashboard.filters.invalidRangeTitle')}
-          description={t('adminDashboard.filters.invalidRangeDescription')}
-          action={
-            <Button variant="secondary" onClick={clearCustomDateRange}>
-              {t('adminDashboard.filters.clearCustomRange')}
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <DashboardPageHeader
@@ -175,111 +153,131 @@ export const AdminDashboardPage = () => {
         {filterControls}
       </DashboardPageHeader>
 
-      <DashboardKpiRow
-        fromDate={dateRange.fromDate}
-        toDate={dateRange.toDate}
-      />
+      {!isDateRangeValid ? (
+        <Banner tone="warning">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-semibold">
+                {t('adminDashboard.filters.invalidRangeTitle')}
+              </p>
+              <p>{t('adminDashboard.filters.invalidRangeDescription')}</p>
+            </div>
+            <Button variant="secondary" onClick={clearCustomDateRange}>
+              {t('adminDashboard.filters.clearCustomRange')}
+            </Button>
+          </div>
+        </Banner>
+      ) : (
+        <>
+          <DashboardKpiRow
+            fromDate={dateRange.fromDate}
+            toDate={dateRange.toDate}
+          />
 
-      <TeamHierarchySection
-        fromDate={dateRange.fromDate}
-        toDate={dateRange.toDate}
-        status={filters.status}
-        sortKey={hierarchySort}
-        onSortChange={setHierarchySort}
-        focusUserId={hierarchyFocus?.userId ?? null}
-        onFocusChange={setHierarchyFocus}
-      />
+          <TeamHierarchySection
+            fromDate={dateRange.fromDate}
+            toDate={dateRange.toDate}
+            status={filters.status}
+            sortKey={hierarchySort}
+            onSortChange={setHierarchySort}
+            focusUserId={hierarchyFocus?.userId ?? null}
+            onFocusChange={setHierarchyFocus}
+          />
 
-      <TrainingModulesSection
-        fromDate={dateRange.fromDate}
-        toDate={dateRange.toDate}
-      />
+          <TrainingModulesSection
+            fromDate={dateRange.fromDate}
+            toDate={dateRange.toDate}
+          />
 
-      <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
-          {t('adminDashboard.insightsTitle')}
-        </h2>
-        <ModulePerformanceSection
-          fromDate={dateRange.fromDate}
-          toDate={dateRange.toDate}
-        />
-        <DocumentUsageSection
-          fromDate={dateRange.fromDate}
-          toDate={dateRange.toDate}
-          geography={filters.geography}
-          userId={hierarchyFocus?.userId}
-          focusUserName={hierarchyFocus?.userName}
-          onClearFocus={() => setHierarchyFocus(null)}
-        />
-      </div>
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
+              {t('adminDashboard.insightsTitle')}
+            </h2>
+            <ModulePerformanceSection
+              fromDate={dateRange.fromDate}
+              toDate={dateRange.toDate}
+            />
+            <DocumentUsageSection
+              fromDate={dateRange.fromDate}
+              toDate={dateRange.toDate}
+              geography={filters.geography}
+              userId={hierarchyFocus?.userId}
+              focusUserName={hierarchyFocus?.userName}
+              onClearFocus={() => setHierarchyFocus(null)}
+            />
+          </div>
 
-      <div className="grid items-stretch gap-3 xl:grid-cols-2">
-        <TopModuleDemandWidget
-          title={t('adminDashboard.existingModules.title')}
-          description={t('adminDashboard.existingModules.description')}
-          rows={searchedRows}
-          showLoading={modulesUi.showLoading}
-          showError={modulesUi.showError}
-          onRetry={() => void modulesQuery.refetch()}
-          showActions={isAdmin}
-          footerNote={t('adminDashboard.existingModules.footer')}
-          emptyTitle={t('adminDashboard.existingModules.emptyTitle')}
-          emptyDescription={t(
-            'adminDashboard.existingModules.emptyDescription',
-          )}
-          onRowClick={(rowId) => {
-            const row = searchedRows.find((item) => item.id === rowId);
-            if (!row) return;
-            setDetailModule({
-              kind: 'searched',
-              moduleId: rowId,
-              title: row.title,
-            });
-          }}
-        />
-        <TopModuleDemandWidget
-          title={t('adminDashboard.suggestedModules.title')}
-          description={t('adminDashboard.suggestedModules.description')}
-          rows={suggestedRows}
-          showLoading={modulesUi.showLoading}
-          showError={modulesUi.showError}
-          onRetry={() => void modulesQuery.refetch()}
-          showActions={isAdmin}
-          footerNote={t('adminDashboard.suggestedModules.footer')}
-          emptyTitle={t('adminDashboard.suggestedModules.emptyTitle')}
-          emptyDescription={t(
-            'adminDashboard.suggestedModules.emptyDescription',
-          )}
-          onRowClick={(rowId) => {
-            const row = suggestedRows.find((item) => item.id === rowId);
-            if (!row) return;
-            setDetailModule({
-              kind: 'requested',
-              moduleId: rowId,
-              title: row.title,
-            });
-          }}
-        />
-      </div>
+          <div className="grid items-stretch gap-3 xl:grid-cols-2">
+            <TopModuleDemandWidget
+              title={t('adminDashboard.existingModules.title')}
+              description={t('adminDashboard.existingModules.description')}
+              rows={searchedRows}
+              showLoading={modulesUi.showLoading}
+              showError={modulesUi.showError}
+              onRetry={() => void modulesQuery.refetch()}
+              showActions={isAdmin}
+              footerNote={t('adminDashboard.existingModules.footer')}
+              emptyTitle={t('adminDashboard.existingModules.emptyTitle')}
+              emptyDescription={t(
+                'adminDashboard.existingModules.emptyDescription',
+              )}
+              onRowClick={(rowId) => {
+                const row = searchedRows.find((item) => item.id === rowId);
+                if (!row) return;
+                setDetailModule({
+                  kind: 'searched',
+                  moduleId: rowId,
+                  title: row.title,
+                });
+              }}
+            />
+            <TopModuleDemandWidget
+              title={t('adminDashboard.suggestedModules.title')}
+              description={t('adminDashboard.suggestedModules.description')}
+              rows={suggestedRows}
+              showLoading={modulesUi.showLoading}
+              showError={modulesUi.showError}
+              onRetry={() => void modulesQuery.refetch()}
+              showActions={isAdmin}
+              footerNote={t('adminDashboard.suggestedModules.footer')}
+              emptyTitle={t('adminDashboard.suggestedModules.emptyTitle')}
+              emptyDescription={t(
+                'adminDashboard.suggestedModules.emptyDescription',
+              )}
+              onRowClick={(rowId) => {
+                const row = suggestedRows.find((item) => item.id === rowId);
+                if (!row) return;
+                setDetailModule({
+                  kind: 'requested',
+                  moduleId: rowId,
+                  title: row.title,
+                });
+              }}
+            />
+          </div>
 
-      <ModuleDemandDetailDrawer
-        open={detailModule !== null}
-        mode={detailModule}
-        fromDate={dateRange.fromDate}
-        toDate={dateRange.toDate}
-        geography={filters.geography}
-        onClose={() => setDetailModule(null)}
-        onAssign={(moduleId, title) => setAssignmentTarget({ moduleId, title })}
-      />
+          <ModuleDemandDetailDrawer
+            open={detailModule !== null}
+            mode={detailModule}
+            fromDate={dateRange.fromDate}
+            toDate={dateRange.toDate}
+            geography={filters.geography}
+            onClose={() => setDetailModule(null)}
+            onAssign={(moduleId, title) =>
+              setAssignmentTarget({ moduleId, title })
+            }
+          />
 
-      {assignmentTarget ? (
-        <ModuleAssignmentDialog
-          open
-          moduleId={assignmentTarget.moduleId}
-          moduleTitle={assignmentTarget.title}
-          onClose={() => setAssignmentTarget(null)}
-        />
-      ) : null}
+          {assignmentTarget ? (
+            <ModuleAssignmentDialog
+              open
+              moduleId={assignmentTarget.moduleId}
+              moduleTitle={assignmentTarget.title}
+              onClose={() => setAssignmentTarget(null)}
+            />
+          ) : null}
+        </>
+      )}
     </div>
   );
 };

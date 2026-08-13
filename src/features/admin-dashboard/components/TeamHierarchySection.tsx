@@ -381,7 +381,7 @@ export const TeamHierarchySection = ({
   return (
     <DashboardWidgetShell
       title={t(`adminDashboard.hierarchy.tabs.${roleTab}`)}
-      description={t('adminDashboard.hierarchy.description')}
+      description={t(`adminDashboard.hierarchy.description.${roleTab}`)}
       flush
       size="lg"
       actions={

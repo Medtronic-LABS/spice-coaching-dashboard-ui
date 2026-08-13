@@ -1,6 +1,9 @@
+export { AlertCircleIcon, type AlertCircleIconProps } from './AlertCircleIcon';
 export { ArrowRightIcon, type ArrowRightIconProps } from './ArrowRightIcon';
 export { AwardIcon, type AwardIconProps } from './AwardIcon';
 export { BookIcon, type BookIconProps } from './BookIcon';
+export { CalendarIcon, type CalendarIconProps } from './CalendarIcon';
+export { ChatIcon, type ChatIconProps } from './ChatIcon';
 export { ChevronIcon, type ChevronIconProps } from './ChevronIcon';
 export { ClipboardIcon, type ClipboardIconProps } from './ClipboardIcon';
 export { CloseIcon, type CloseIconProps } from './CloseIcon';

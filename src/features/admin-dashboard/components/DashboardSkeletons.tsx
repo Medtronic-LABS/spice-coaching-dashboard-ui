@@ -15,9 +15,10 @@ export function DashboardKpiSkeleton() {
       {Array.from({ length: 5 }, (_, index) => (
         <div
           key={index}
-          className="min-w-[160px] flex-1 space-y-3 rounded-md border border-spice-border bg-spice-bg-surface px-5 py-4 shadow-spiceKpi"
+          className="relative min-w-[160px] flex-1 space-y-3 overflow-hidden rounded-xl border border-t-4 border-spice-border bg-spice-bg-surface p-4 shadow-sm"
         >
-          <SkeletonBlock className="h-3 w-24" />
+          <SkeletonBlock className="h-8 w-8 rounded-lg" />
+          <SkeletonBlock className="h-3 w-28" />
           <SkeletonBlock className="h-7 w-16" />
         </div>
       ))}
