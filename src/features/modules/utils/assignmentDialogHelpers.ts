@@ -69,21 +69,6 @@ export function resolveNamedEntitySelection(
   return { id, name: match?.name ?? '' };
 }
 
-export function getUserLevelHint(
-  mode: AssignmentUserLevelMode,
-  noun: string,
-): string {
-  const selectLoadedNote =
-    'Select loaded applies only to users currently shown.';
-  if (mode === 'po_sk') {
-    return `Assign this ${noun} to selected POs. Their SKs are included automatically. ${selectLoadedNote}`;
-  }
-  if (mode === 'po') {
-    return `Assign this ${noun} to selected POs only (SKs are not included). ${selectLoadedNote}`;
-  }
-  return `Assign this ${noun} to selected SK users. ${selectLoadedNote}`;
-}
-
 export function getUserLevelEmptyMessage(
   mode: AssignmentUserLevelMode,
 ): string {

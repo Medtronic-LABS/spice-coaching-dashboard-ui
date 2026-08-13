@@ -79,11 +79,6 @@ describe('KnowledgeLibraryTable', () => {
     expect(
       await screen.findByRole('heading', { name: 'Assign document' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Assign this document to selected POs. Their SKs are included automatically. Select loaded applies only to users currently shown.',
-      ),
-    ).toBeInTheDocument();
   });
 
   it('uses Module Library-style 0-based pagination controls', async () => {

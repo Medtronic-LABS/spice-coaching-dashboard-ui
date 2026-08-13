@@ -61,6 +61,7 @@ import type { AdminModulesListItem } from '@/features/modules/api/adminModulesAp
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const BADGE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
@@ -81,7 +82,6 @@ const BADGE_MAX_SEQUENCE_QUERY: AdminBadgeListQuery = {
   offset: 0,
 };
 const SEARCH_DEBOUNCE_MS = 300;
-const FEEDBACK_DISMISS_MS = 10_000;
 const SEQUENCE_EDIT_INFO =
   'Enabling Rearrange Milestone clears search and filters, disables them, and loads all milestones for drag reordering. Use Reset to restore the initial order, or Back to list to discard changes and return to the table.';
 const PAGE_SUBTITLE =
@@ -424,13 +424,7 @@ export const BadgeManagementPage = () => {
     );
   }, [sequenceBaseline, sequenceDraft]);
 
-  useEffect(() => {
-    if (!feedback) return undefined;
-    const timer = window.setTimeout(() => {
-      setFeedback(null);
-    }, FEEDBACK_DISMISS_MS);
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
+  useAutoDismissFeedback(feedback, () => setFeedback(null));
 
   const resetForm = useCallback(() => {
     setForm(emptyForm());

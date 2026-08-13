@@ -293,6 +293,7 @@ export const ModuleAssignedPage = () => {
                 onClick={() =>
                   navigate(paths.moduleLibrary, {
                     state: {
+                      tab: 'published',
                       openAssignment: { moduleId, moduleTitle: moduleName },
                     },
                   })

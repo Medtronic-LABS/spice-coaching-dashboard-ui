@@ -15,6 +15,7 @@ import {
   parseConfigDurationDays,
 } from '@/features/admin-configs/utils/configDuration';
 import { cn } from '@/utils';
+import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 
 type FeedbackState =
   | { tone: 'success'; message: string }
@@ -79,6 +80,8 @@ export const ConfigsPage = () => {
 
   const isDirty = assignmentDurationDays !== savedDuration;
   const isValid = parseConfigDurationDays(assignmentDurationDays) !== null;
+
+  useAutoDismissFeedback(feedback, () => setFeedback(null));
 
   const handleSave = async () => {
     if (!config) return;
