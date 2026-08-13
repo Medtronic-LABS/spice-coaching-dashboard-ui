@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
 import { paths } from '@/constants/routes';
 import { persistAdminModuleDraft } from '@/features/modules/utils/persistAdminModuleDraft';
+import { AdminModuleDraftValidationError } from '@/features/modules/utils/validateAdminModuleDraftContent';
+
+const filledCardBody = [
+  {
+    type: 'paragraph' as const,
+    content: [{ type: 'text' as const, text: 'Card body' }],
+  },
+];
 
 const working: AdminModuleDetailResponse = {
   id: 'mod-1',
@@ -20,10 +28,10 @@ const working: AdminModuleDetailResponse = {
   created_at: '2026-01-01T00:00:00Z',
   quality_flags: null,
   module_json: {
-    cards: [{ id: 'c1', title: { bn: 'Card' }, body: { bn: [] } }],
+    cards: [{ id: 'c1', title: { bn: 'Card' }, body: { bn: filledCardBody } }],
     quiz: [],
   },
-  cards: [{ id: 'c1', title: { bn: 'Card' }, body: { bn: [] } }],
+  cards: [{ id: 'c1', title: { bn: 'Card' }, body: { bn: filledCardBody } }],
   quiz: [],
 };
 
@@ -171,5 +179,23 @@ describe('persistAdminModuleDraft', () => {
         module_json: { cards: working.cards, quiz: [] },
       }),
     );
+  });
+
+  it('rejects blank cards before calling the edit API', async () => {
+    const editModule = vi.fn();
+    await expect(
+      persistAdminModuleDraft({
+        working: {
+          ...working,
+          cards: [{ id: 'c1', title: { bn: '' }, body: { bn: [] } }],
+        },
+        editModule,
+        navigate: vi.fn(),
+        pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+        refetchModule: vi.fn(),
+        onSaved: vi.fn(),
+      }),
+    ).rejects.toBeInstanceOf(AdminModuleDraftValidationError);
+    expect(editModule).not.toHaveBeenCalled();
   });
 });

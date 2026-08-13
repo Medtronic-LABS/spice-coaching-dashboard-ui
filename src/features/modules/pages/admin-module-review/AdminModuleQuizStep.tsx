@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRightIcon,
   CopyIcon,
@@ -9,10 +9,12 @@ import {
 import { Banner, Button, Card, EmptyState, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
+import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import {
   ReorderableList,
   ReorderDragHandle,
 } from '@/features/modules/components/ReorderableList';
+import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -21,6 +23,11 @@ import {
   setQuiz,
   clearExplanationReviewAcknowledgement,
 } from '@/features/modules/store/adminModuleReviewSlice';
+import {
+  navigateToAdminModuleDraftIssue,
+  type AdminModuleDraftFocusLocationState,
+} from '@/features/modules/utils/adminModuleDraftIssueNavigation';
+import { focusAdminModuleDraftIssue } from '@/features/modules/utils/focusAdminModuleDraftIssue';
 import {
   addQuizItem,
   clampCorrectIndex,
@@ -31,6 +38,7 @@ import {
   sortQuizItems,
   updateQuizItem,
 } from '@/features/modules/utils/adminModuleQuizUtils';
+import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import { useAppDispatch } from '@/store/hooks';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
@@ -47,6 +55,7 @@ import {
 
 export const AdminModuleQuizStep = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
   const {
@@ -61,18 +70,50 @@ export const AdminModuleQuizStep = () => {
     isDirty,
   } = useAdminModuleReviewEditor(moduleId);
 
-  const [actionError, setActionError] = useState('');
   const [focusedQuizIndex, setFocusedQuizIndex] = useState(0);
   const scrollToQuestionIdRef = useRef<string | null>(null);
+  const pendingFocusIssueRef = useRef<AdminModuleDraftIssue | null>(null);
   const isReadonly = useAdminModuleReviewReadonly();
   const { registerEditorContext } = useModulePreview();
   const { pendingIds, validateBeforeProceed, acknowledgeReview } =
     useQuizExplanationReview(moduleId);
   const pendingReviewSet = useMemo(() => new Set(pendingIds), [pendingIds]);
+  const {
+    actionError,
+    draftIssues,
+    draftValidationOpen,
+    clearSaveFeedback,
+    captureSaveError,
+    closeDraftValidation,
+  } = useAdminModuleDraftSaveFeedback(formatError);
 
   const sortedQuiz = useMemo(
     () => (working ? sortQuizItems(working.quiz) : []),
     [working],
+  );
+
+  const reviewDraftIssue = useCallback(
+    (issue: AdminModuleDraftIssue) => {
+      if (issue.kind !== 'quiz') {
+        navigateToAdminModuleDraftIssue({
+          navigate,
+          moduleId,
+          issue,
+          onBeforeNavigate: closeDraftValidation,
+        });
+        return;
+      }
+      closeDraftValidation();
+      const byId = sortedQuiz.findIndex((item) => item.id === issue.itemId);
+      setFocusedQuizIndex(byId >= 0 ? byId : issue.index);
+      scrollToQuestionIdRef.current = issue.itemId;
+      pendingFocusIssueRef.current = issue;
+      window.setTimeout(() => {
+        focusAdminModuleDraftIssue(issue);
+        pendingFocusIssueRef.current = null;
+      }, 80);
+    },
+    [closeDraftValidation, moduleId, navigate, sortedQuiz],
   );
 
   useEffect(() => {
@@ -96,8 +137,24 @@ export const AdminModuleQuizStep = () => {
     if (node instanceof HTMLElement) {
       node.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     }
+    const pending = pendingFocusIssueRef.current;
+    if (pending) {
+      window.setTimeout(() => focusAdminModuleDraftIssue(pending), 50);
+      pendingFocusIssueRef.current = null;
+    }
     scrollToQuestionIdRef.current = null;
   }, [sortedQuiz]);
+
+  useEffect(() => {
+    const state = location.state as AdminModuleDraftFocusLocationState | null;
+    const issue = state?.focusDraftIssue;
+    if (!issue || issue.kind !== 'quiz') return;
+    const byId = sortedQuiz.findIndex((item) => item.id === issue.itemId);
+    setFocusedQuizIndex(byId >= 0 ? byId : issue.index);
+    scrollToQuestionIdRef.current = issue.itemId;
+    pendingFocusIssueRef.current = issue;
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate, sortedQuiz]);
 
   const applyQuiz = (nextQuiz: AdminModuleQuizItem[]) => {
     dispatch(setQuiz(nextQuiz));
@@ -161,6 +218,12 @@ export const AdminModuleQuizStep = () => {
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
       {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
+      <AdminModuleDraftValidationDialog
+        open={draftValidationOpen}
+        issues={draftIssues}
+        onClose={closeDraftValidation}
+        onReviewIssue={reviewDraftIssue}
+      />
 
       <Card variant="elevated" className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -262,6 +325,7 @@ export const AdminModuleQuizStep = () => {
                             Question
                           </span>
                           <input
+                            data-quiz-field="question"
                             className="w-full rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
                             value={
                               isReadonly
@@ -324,6 +388,7 @@ export const AdminModuleQuizStep = () => {
                                   }
                                 />
                                 <input
+                                  data-quiz-field="options"
                                   className="w-full bg-transparent outline-none"
                                   value={option}
                                   disabled={busy || isReadonly}
@@ -492,11 +557,11 @@ export const AdminModuleQuizStep = () => {
               className="inline-flex h-9 items-center gap-1.5 text-xs"
               disabled={busy}
               onClick={async () => {
-                setActionError('');
+                clearSaveFeedback();
                 try {
                   await save();
                 } catch (err) {
-                  setActionError(formatError(err));
+                  captureSaveError(err);
                 }
               }}
             >
@@ -509,7 +574,7 @@ export const AdminModuleQuizStep = () => {
             disabled={busy}
             onClick={() =>
               validateBeforeProceed(async () => {
-                setActionError('');
+                clearSaveFeedback();
                 try {
                   const moduleIdForNav = isDirty
                     ? (await save()).id
@@ -521,7 +586,7 @@ export const AdminModuleQuizStep = () => {
                     ),
                   );
                 } catch (err) {
-                  setActionError(formatError(err));
+                  captureSaveError(err);
                 }
               })
             }

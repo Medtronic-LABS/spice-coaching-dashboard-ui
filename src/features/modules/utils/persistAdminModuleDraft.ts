@@ -6,6 +6,7 @@ import type {
 } from '@/features/modules/api/adminModulesApi';
 import { applyEditModuleAndSyncRoute } from '@/features/modules/utils/applyEditModuleAndSyncRoute';
 import { prepareModuleJsonForSave } from '@/features/modules/utils/prepareModuleJsonForSave';
+import { validateAdminModuleDraftContent } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import type { NavigateFunction } from 'react-router-dom';
 
 type EditModuleTrigger = (args: {
@@ -40,6 +41,10 @@ export async function persistAdminModuleDraft(options: {
   onSaved: (data: AdminModuleDetailResponse) => void;
 }): Promise<AdminModuleDetailResponse> {
   const { working } = options;
+  validateAdminModuleDraftContent({
+    cards: working.cards,
+    quiz: working.quiz,
+  });
   const { cards, quiz } = prepareModuleJsonForSave(working.cards, working.quiz);
 
   const response = await applyEditModuleAndSyncRoute({
