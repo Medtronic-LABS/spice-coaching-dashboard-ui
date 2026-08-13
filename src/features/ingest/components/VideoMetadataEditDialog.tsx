@@ -5,6 +5,7 @@ import {
   useUpdateSourceDocumentThumbnailMutation,
   type SourceDocumentSummary,
 } from '@/features/modules/api/adminSourceDocumentsApi';
+import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import {
   VIDEO_THUMBNAIL_ACCEPT,
   formatVideoThumbnailRejectionError,
@@ -28,9 +29,9 @@ export const VideoMetadataEditDialog = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(
-    null,
-  );
+  const [localThumbnailPreviewUrl, setLocalThumbnailPreviewUrl] = useState<
+    string | null
+  >(null);
   const [fieldError, setFieldError] = useState('');
   const [actionError, setActionError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,20 +43,31 @@ export const VideoMetadataEditDialog = ({
 
   const isSaving = isSavingMetadata || isSavingThumbnail;
 
+  const existingStoragePath =
+    open && document && !thumbnailFile ? document.thumbnail_storage_path : null;
+  const { url: existingThumbnailUrl, isLoading: isLoadingExistingThumbnail } =
+    usePresignedFileUrl(existingStoragePath);
+
+  const thumbnailPreviewUrl =
+    localThumbnailPreviewUrl ?? existingThumbnailUrl ?? null;
+
   useEffect(() => {
     if (!open || !document) return;
     setTitle(document.title);
     setDescription(document.description ?? '');
     setThumbnailFile(null);
-    setThumbnailPreviewUrl(document.thumbnail_presigned_url ?? null);
+    setLocalThumbnailPreviewUrl(null);
     setFieldError('');
     setActionError('');
   }, [open, document]);
 
   useEffect(() => {
-    if (!thumbnailFile) return;
+    if (!thumbnailFile) {
+      setLocalThumbnailPreviewUrl(null);
+      return;
+    }
     const url = URL.createObjectURL(thumbnailFile);
-    setThumbnailPreviewUrl(url);
+    setLocalThumbnailPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [thumbnailFile]);
 
@@ -215,6 +227,15 @@ export const VideoMetadataEditDialog = ({
                 alt="Video thumbnail preview"
                 className="aspect-video w-full object-cover"
               />
+            </div>
+          ) : isLoadingExistingThumbnail ? (
+            <div
+              className="flex aspect-video w-full animate-pulse items-center justify-center rounded-lg border border-spice-border bg-spice-bg-tint"
+              aria-label="Loading thumbnail"
+            >
+              <span className="text-[11px] font-medium text-spice-text-muted">
+                Loading thumbnail…
+              </span>
             </div>
           ) : (
             <button
