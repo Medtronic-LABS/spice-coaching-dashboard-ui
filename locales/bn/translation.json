@@ -110,7 +110,7 @@
         "quizReattemptAllowedMeta": "অ্যাসাইনমেন্ট তারিখ থেকে {{count}} দিন",
         "quizReattemptAllowedMetaLoading": "পুনরায় চেষ্টার সময়সীমা লোড হচ্ছে…",
         "quizReattemptAllowedMetaUnavailable": "পুনরায় চেষ্টার সময়সীমা উপলব্ধ নয়",
-        "assignedTo": "অ্যাসাইনড টু — {{count}} জন ব্যবহারকারী",
+        "assignedTo": "অ্যাসাইনড টু",
         "assignedToIndividual": "অ্যাসাইনড টু — ব্যক্তি",
         "assignedToPoSk": "অ্যাসাইনড টু — PO + SK",
         "assignedToPo": "অ্যাসাইনড টু — PO",

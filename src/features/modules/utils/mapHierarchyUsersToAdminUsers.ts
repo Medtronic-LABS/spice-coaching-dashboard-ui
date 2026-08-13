@@ -124,9 +124,22 @@ export function mapHierarchyUserToAdminUser(
     districtFromLookup ??
     (resolvedDistrictId > 0 ? `District #${resolvedDistrictId}` : '');
 
-  if (!district) return null;
-
   const upazilas = parseUpazilaNames(record);
+
+  if (!district) {
+    // Assignment payloads sometimes omit district; still map the user so
+    // already-assigned rows can be selected in the modal.
+    return {
+      id,
+      name,
+      role,
+      district: '—',
+      district_id: resolvedDistrictId,
+      upazila: upazilas[0] ?? null,
+      upazilas,
+      parent_id: typeof parentId === 'number' ? parentId : null,
+    };
+  }
 
   return {
     id,

@@ -15,11 +15,11 @@ import {
   type AssignmentSummaryType,
 } from '@/features/modules/api/adminAssignmentApi';
 import { AssignedUsersSummary } from '@/features/modules/components/AssignedUsersSummary';
-import type { AssignedUserEntry } from '@/features/modules/utils/assignmentDisplay';
 import {
-  buildEntriesFromAssignedUsers,
+  buildFlatAssignedUserEntries,
   countAssignedUsers,
 } from '@/features/modules/utils/assignmentDisplay';
+import type { AssignedUserEntry } from '@/features/modules/utils/assignmentDisplay';
 import {
   formatAssignmentDeadlineLabel,
   getAssignmentDeadlineDate,
@@ -134,9 +134,10 @@ export const ModuleAssignedPage = () => {
       return state.assignedUsers ?? [];
     }
 
-    return buildEntriesFromAssignedUsers(
-      moduleAssignedUsers ?? [],
-      adminUsers ?? [],
+    const knownUsers = [...(moduleAssignedUsers ?? []), ...(adminUsers ?? [])];
+    return buildFlatAssignedUserEntries(
+      (moduleAssignedUsers ?? []).map((user) => user.id),
+      knownUsers,
     );
   }, [
     adminUsers,
@@ -154,30 +155,16 @@ export const ModuleAssignedPage = () => {
       : (state.assignedCount ?? countAssignedUsers(derivedAssignedUsers));
 
   const assignedUsersLabel = (() => {
-    if (showAllAssigned) {
-      return t('moduleLibrary.assigned.summary.assignedUsers');
+    if (
+      state.assignmentType === 'geographical' ||
+      state.assignmentType === 'group'
+    ) {
+      return state.assignmentType === 'group'
+        ? t('moduleLibrary.assigned.summary.assignedToOrganization')
+        : t('moduleLibrary.assigned.summary.assignedToUpazila');
     }
 
-    switch (state.assignmentType) {
-      case 'individual':
-        return t('moduleLibrary.assigned.summary.assignedToIndividual');
-      case 'po_sk':
-        return t('moduleLibrary.assigned.summary.assignedToPoSk');
-      case 'po':
-        return t('moduleLibrary.assigned.summary.assignedToPo');
-      case 'sk':
-        return t('moduleLibrary.assigned.summary.assignedToIndividual');
-      case 'geographical':
-        return t('moduleLibrary.assigned.summary.assignedToUpazila');
-      case 'group':
-        return t('moduleLibrary.assigned.summary.assignedToOrganization');
-      case undefined:
-        return t('moduleLibrary.assigned.summary.newlyAssignedUser');
-      default: {
-        const exhaustiveCheck: never = state.assignmentType;
-        return exhaustiveCheck;
-      }
-    }
+    return t('moduleLibrary.assigned.summary.assignedTo');
   })();
 
   return (
