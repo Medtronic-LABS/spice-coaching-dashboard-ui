@@ -15,6 +15,7 @@ import {
   idsToRemoveWhenClearingPo,
   isPoSelectionMode,
   resolveNamedEntitySelection,
+  toggleNamesInSelection,
 } from './assignmentDialogHelpers';
 
 const po: AdminUser = {
@@ -224,5 +225,23 @@ describe('baselineUpazilaNames', () => {
       'Hatibandha',
       'Ulipur',
     ]);
+  });
+});
+
+describe('toggleNamesInSelection', () => {
+  it('adds missing names when any are unselected', () => {
+    expect(
+      toggleNamesInSelection(['Hatibandha'], ['Hatibandha', 'Ulipur']),
+    ).toEqual(['Hatibandha', 'Ulipur']);
+  });
+
+  it('removes names when every name is already selected', () => {
+    expect(
+      toggleNamesInSelection(['Hatibandha', 'Ulipur'], ['Hatibandha']),
+    ).toEqual(['Ulipur']);
+  });
+
+  it('returns the current selection when names is empty', () => {
+    expect(toggleNamesInSelection(['Hatibandha'], [])).toEqual(['Hatibandha']);
   });
 });

@@ -215,11 +215,18 @@ describe('IngestDocumentPage', () => {
     });
   });
 
-  it('clears session storage when batch status is terminal failed', async () => {
+  it('keeps session storage after a terminal batch status until the page is left', async () => {
     writeActiveIngestSession({
       batch_id: 'batch-failed',
       source_document_id: 'doc-1',
       title: 'Hypertension Guide',
+      kept_existing_sources: [
+        {
+          source_document_id: 'doc-existing',
+          title: 'Existing Guide',
+          filename: 'existing.pdf',
+        },
+      ],
     });
     mocks.panelStatus.current = {
       batch_id: 'batch-failed',
@@ -240,37 +247,26 @@ describe('IngestDocumentPage', () => {
         },
       ],
     };
-    renderPage();
-
-    await waitFor(() => {
-      expect(readActiveIngestSession()).toBeNull();
-    });
-  });
-
-  it('clears session storage when leaving after a terminal batch status', async () => {
-    writeActiveIngestSession({
-      batch_id: 'batch-failed',
-      source_document_id: 'doc-1',
-      title: 'Hypertension Guide',
-    });
-    mocks.panelStatus.current = {
-      batch_id: 'batch-failed',
-      status: 'failed',
-      created_at: null,
-      completed_at: '2026-07-21T10:00:00Z',
-      error: 'Pipeline error',
-      sources: [],
-    };
     const view = renderPage();
 
     await waitFor(() => {
-      expect(readActiveIngestSession()).toBeNull();
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-failed',
+      );
     });
+    expect(readActiveIngestSession()).toEqual(
+      expect.objectContaining({
+        batch_id: 'batch-failed',
+        kept_existing_sources: [
+          {
+            source_document_id: 'doc-existing',
+            title: 'Existing Guide',
+            filename: 'existing.pdf',
+          },
+        ],
+      }),
+    );
 
-    writeActiveIngestSession({
-      batch_id: 'batch-failed',
-      source_document_id: 'doc-1',
-    });
     view.unmount();
 
     expect(readActiveIngestSession()).toBeNull();

@@ -25,17 +25,18 @@ import {
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 import {
   clearActiveIngestSession,
+  mergeKeptExistingIngestSources,
   readActiveIngestSession,
   writeActiveIngestSession,
+  type KeptExistingIngestSource,
 } from '@/features/ingest/utils/ingestSessionStorage';
 import { appendRecentIngestDocument } from '@/features/ingest/utils/recentIngestDocumentsStorage';
 import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDecisions';
 import {
   isIngestInProgress,
   isIngestSucceeded,
-  isTerminalIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
-import { sourceDocumentFromDuplicateConflict } from '@/features/ingest/utils/parseIngestDuplicateError';
+import { keptExistingSourcesFromConflicts } from '@/features/ingest/utils/parseIngestDuplicateError';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
 export const IngestDocumentPage = () => {
@@ -71,6 +72,9 @@ export const IngestDocumentPage = () => {
   const [actionError, setActionError] = useState('');
   const [statusData, setStatusData] =
     useState<AdminV3IngestBatchStatusResponse | null>(null);
+  const [keptExistingSources, setKeptExistingSources] = useState<
+    KeptExistingIngestSource[]
+  >(() => readActiveIngestSession()?.kept_existing_sources ?? []);
 
   const handleUploaded = useCallback((res: AdminV3IngestUploadResponse) => {
     const uploaded: SelectedIngestDocument[] = res.sources
@@ -145,44 +149,56 @@ export const IngestDocumentPage = () => {
   });
   const ingestionSucceeded =
     isIngestSucceeded(statusData?.status) && !pendingMergeDecisions;
-  const ingestionTerminal =
-    Boolean(batchId) &&
-    isTerminalIngestStatus(statusData?.status) &&
-    !pendingMergeDecisions;
 
   useClearIngestSessionOnTerminalLeave({
     batchId,
     status: statusData,
     onClear: () => {
       clearActiveIngestSession();
+      setKeptExistingSources([]);
     },
   });
 
   useEffect(() => {
-    if (ingestionTerminal) {
-      clearActiveIngestSession();
-      return;
-    }
-    if (!accepted?.batch_id) return;
-    const first = accepted.sources?.[0];
-    writeActiveIngestSession({
-      batch_id: accepted.batch_id,
-      source_document_id: first?.source_document_id,
-      title: first?.title,
-    });
-    setRestoredBatchId(accepted.batch_id);
-  }, [accepted, ingestionTerminal]);
+    if (!keptExistingIngestNotice?.length) return;
+    setKeptExistingSources((previous) =>
+      mergeKeptExistingIngestSources(
+        previous,
+        keptExistingSourcesFromConflicts(keptExistingIngestNotice),
+      ),
+    );
+  }, [keptExistingIngestNotice]);
 
   useEffect(() => {
-    if (ingestionTerminal || !restoredBatchId) return;
+    if (!accepted?.batch_id && !restoredBatchId) return;
+    const nextBatchId = accepted?.batch_id ?? restoredBatchId;
+    const first = accepted?.sources?.[0];
+    const session = readActiveIngestSession();
+    writeActiveIngestSession({
+      batch_id: nextBatchId,
+      source_document_id:
+        first?.source_document_id ?? session?.source_document_id,
+      title: first?.title ?? session?.title,
+      ...(keptExistingSources.length
+        ? { kept_existing_sources: keptExistingSources }
+        : {}),
+    });
+    setRestoredBatchId(nextBatchId);
+  }, [accepted, keptExistingSources, restoredBatchId]);
+
+  useEffect(() => {
+    if (!restoredBatchId) return;
     const session = readActiveIngestSession();
     if (session?.batch_id === restoredBatchId) return;
     writeActiveIngestSession({
       batch_id: restoredBatchId,
       source_document_id: session?.source_document_id,
       title: session?.title,
+      ...(keptExistingSources.length
+        ? { kept_existing_sources: keptExistingSources }
+        : {}),
     });
-  }, [ingestionTerminal, restoredBatchId]);
+  }, [keptExistingSources, restoredBatchId]);
 
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
@@ -190,6 +206,7 @@ export const IngestDocumentPage = () => {
 
   const selectionDisabled =
     isUploading || isStartingIngest || ingestionInProgress;
+  const selectionExpandDisabled = isUploading || isStartingIngest;
 
   const canStartIngest =
     selectedDocuments.length > 0 &&
@@ -215,14 +232,28 @@ export const IngestDocumentPage = () => {
     return undefined;
   }, [accepted?.sources, batchId, selectedDocuments]);
 
-  const keptExistingRows = useMemo(() => {
-    if (!keptExistingIngestNotice?.length) return [];
-    return keptExistingIngestNotice.flatMap((conflict) => {
-      const target = sourceDocumentFromDuplicateConflict(conflict);
-      if (!target) return [];
-      return [{ conflict, target }];
-    });
-  }, [keptExistingIngestNotice]);
+  const keptExistingRows = useMemo(
+    () =>
+      keptExistingSources.map((source) => ({
+        label:
+          source.filename?.trim() ||
+          source.title?.trim() ||
+          source.source_document_id,
+        target: {
+          sourceDocumentId: source.source_document_id,
+          title:
+            source.title?.trim() ||
+            source.filename?.trim() ||
+            source.source_document_id,
+        },
+      })),
+    [keptExistingSources],
+  );
+
+  const keptExistingSourceIds = useMemo(
+    () => keptExistingSources.map((source) => source.source_document_id),
+    [keptExistingSources],
+  );
 
   useEffect(() => {
     if (!statusData?.sources?.length) return;
@@ -282,6 +313,7 @@ export const IngestDocumentPage = () => {
     setAccepted(null);
     setActiveBatchId('');
     setRestoredBatchId('');
+    setKeptExistingSources([]);
     clearActiveIngestSession();
     await startIngest({
       source_document_ids: selectedDocuments.map((doc) => doc.id),
@@ -360,7 +392,7 @@ export const IngestDocumentPage = () => {
         </div>
       ) : null}
 
-      {keptExistingIngestNotice?.length ? (
+      {keptExistingSources.length ? (
         <div
           className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-medium"
           role="status"
@@ -368,8 +400,13 @@ export const IngestDocumentPage = () => {
           <span className="font-semibold text-spice-text-primary">
             Already ingested:
           </span>{' '}
-          {keptExistingIngestNotice
-            .map((conflict) => conflict.filename)
+          {keptExistingSources
+            .map(
+              (source) =>
+                source.filename?.trim() ||
+                source.title?.trim() ||
+                source.source_document_id,
+            )
             .join(', ')}
           . View existing modules below.
         </div>
@@ -397,7 +434,7 @@ export const IngestDocumentPage = () => {
           open={selectionPanelOpen}
           onOpenChange={setSelectionPanelOpen}
           collapsedSummary="Expand to select documents or upload new files"
-          disabled={selectionDisabled}
+          disabled={selectionExpandDisabled}
         >
           <DocumentSelectionPanel
             selectedDocuments={selectedDocuments}
@@ -410,6 +447,7 @@ export const IngestDocumentPage = () => {
             isUploading={isUploading}
             uploadClearSignal={uploadClearSignal}
             batchSources={statusData?.sources ?? []}
+            keptExistingSourceIds={keptExistingSourceIds}
           />
         </DocumentSelectionCollapsible>
         <p className="text-xs text-spice-text-muted" aria-live="polite">
@@ -423,14 +461,14 @@ export const IngestDocumentPage = () => {
             Existing sources
           </div>
           <div className="space-y-2">
-            {keptExistingRows.map(({ conflict, target }) => (
+            {keptExistingRows.map(({ label, target }) => (
               <div
-                key={`${target.sourceDocumentId}-${conflict.filename}`}
+                key={target.sourceDocumentId}
                 className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0 font-semibold text-spice-text-primary">
-                    {conflict.filename}
+                    {label}
                   </div>
                   <Button
                     className="h-8 shrink-0 px-3 text-xs"

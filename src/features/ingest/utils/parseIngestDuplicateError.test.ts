@@ -7,6 +7,7 @@ import {
   conflictsKeptExisting,
   findKeptExistingTargetForSource,
   isOverriddenUploadedSource,
+  keptExistingSourcesFromConflicts,
   normalizeUploadResponse,
   parseIngestDuplicateError,
   selectFilesForConflicts,
@@ -370,5 +371,17 @@ describe('isOverriddenUploadedSource', () => {
         conflicts,
       ),
     ).toBe(false);
+  });
+});
+
+describe('keptExistingSourcesFromConflicts', () => {
+  it('maps kept duplicate conflicts to session rows', () => {
+    expect(keptExistingSourcesFromConflicts(conflicts)).toEqual([
+      {
+        source_document_id: existingSource.source_document_id,
+        title: existingSource.title,
+        filename: conflicts[0]!.filename,
+      },
+    ]);
   });
 });

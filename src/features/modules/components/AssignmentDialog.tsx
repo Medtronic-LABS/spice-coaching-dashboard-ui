@@ -32,6 +32,7 @@ import {
   useLazyFetchDocumentAssignedUsersQuery,
   useReplaceDocumentAssignedUsersMutation,
 } from '@/features/ingest/api/adminDocumentAssignmentApi';
+import { AssignmentGeoDistrictHierarchy } from '@/features/modules/components/AssignmentGeoDistrictHierarchy';
 import {
   buildFlatAssignedUserEntries,
   buildGeographicalAssignedEntries,
@@ -54,6 +55,7 @@ import {
   idsToAddWhenSelectingPo,
   idsToRemoveWhenClearingPo,
   resolveNamedEntitySelection,
+  toggleNamesInSelection,
   type AssignmentUserLevelMode,
 } from '@/features/modules/utils/assignmentDialogHelpers';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -332,16 +334,12 @@ export const AssignmentDialog = ({
   const [poChildUsers, setPoChildUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersOffset, setUsersOffset] = useState(0);
-  const [loadedUpazilas, setLoadedUpazilas] = useState<AdminUpazila[]>([]);
-  const [upazilasTotal, setUpazilasTotal] = useState(0);
-  const [upazilasOffset, setUpazilasOffset] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
   const divisionsRequestSeqRef = useRef(0);
   const districtsRequestSeqRef = useRef(0);
   const filterUpazilasRequestSeqRef = useRef(0);
   const usersRequestSeqRef = useRef(0);
-  const upazilasRequestSeqRef = useRef(0);
 
   const usersFetchRole = hierarchyRoleForMode(userLevelMode);
   const usersListQueryKey = [
@@ -383,15 +381,6 @@ export const AssignmentDialog = ({
       isLoading: loadingFilterUpazilas,
       isError: filterUpazilasError,
       isFetching: fetchingFilterUpazilas,
-    },
-  ] = useLazyFetchAdminUpazilasPageQuery();
-
-  const [
-    triggerUpazilasPage,
-    {
-      isLoading: loadingUpazilas,
-      isError: upazilasError,
-      isFetching: fetchingUpazilas,
     },
   ] = useLazyFetchAdminUpazilasPageQuery();
 
@@ -489,7 +478,6 @@ export const AssignmentDialog = ({
   const districtsHasMore = loadedDistricts.length < districtsTotal;
   const filterUpazilasHasMore =
     filterLoadedUpazilas.length < filterUpazilasTotal;
-  const upazilasHasMore = loadedUpazilas.length < upazilasTotal;
 
   const loadDivisionsPage = useCallback(
     async (offset: number, append: boolean) => {
@@ -612,31 +600,6 @@ export const AssignmentDialog = ({
     ],
   );
 
-  const loadUpazilasPage = useCallback(
-    async (offset: number, append: boolean) => {
-      const requestSeq = append
-        ? upazilasRequestSeqRef.current
-        : ++upazilasRequestSeqRef.current;
-      const result = await triggerUpazilasPage({
-        limit: ASSIGNMENT_LIST_PAGE_SIZE,
-        offset,
-        ...(selectedDistrictId !== null
-          ? { districtId: selectedDistrictId }
-          : {}),
-      });
-      if (requestSeq !== upazilasRequestSeqRef.current) return;
-      if ('error' in result && result.error) return;
-      const page = result.data;
-      if (!page) return;
-      setUpazilasTotal(page.total);
-      setUpazilasOffset(page.offset + page.upazilas.length);
-      setLoadedUpazilas((prev) =>
-        append ? [...prev, ...page.upazilas] : page.upazilas,
-      );
-    },
-    [selectedDistrictId, triggerUpazilasPage],
-  );
-
   const resetFilterUpazilaState = () => {
     setSelectedUpazilaId(null);
     setSelectedUpazilaName('');
@@ -679,9 +642,6 @@ export const AssignmentDialog = ({
     setPoChildUsers([]);
     setUsersTotal(0);
     setUsersOffset(0);
-    setLoadedUpazilas([]);
-    setUpazilasTotal(0);
-    setUpazilasOffset(0);
     setBaselineUserIds([]);
     setDesiredUserIds([]);
     setBaselineUpazilas([]);
@@ -743,14 +703,6 @@ export const AssignmentDialog = ({
     void loadFilterUpazilasPage(0, false);
   }, [activeTab, loadFilterUpazilasPage, open, selectedDistrictId]);
 
-  useEffect(() => {
-    if (!open || activeTab !== 'geographical') return;
-    setLoadedUpazilas([]);
-    setUpazilasTotal(0);
-    setUpazilasOffset(0);
-    void loadUpazilasPage(0, false);
-  }, [activeTab, loadUpazilasPage, open, selectedDistrictId]);
-
   const userAssignmentStatus = useMemo(() => {
     const map = new Map<number, UserAssignmentStatus>();
 
@@ -788,13 +740,6 @@ export const AssignmentDialog = ({
     setFilterLoadedUpazilas([]);
     setFilterUpazilasOffset(0);
     void loadFilterUpazilasPage(0, false);
-  };
-
-  const retryDistrictsAndUpazilas = () => {
-    retryDistricts();
-    setLoadedUpazilas([]);
-    setUpazilasOffset(0);
-    void loadUpazilasPage(0, false);
   };
 
   const handleDivisionChange = (value: string) => {
@@ -938,23 +883,11 @@ export const AssignmentDialog = ({
   };
 
   const handleUpazilaCheckboxChange = (upazilaName: string) => {
-    setDesiredUpazilas((prev) =>
-      prev.includes(upazilaName)
-        ? prev.filter((name) => name !== upazilaName)
-        : [...prev, upazilaName],
-    );
+    setDesiredUpazilas((prev) => toggleNamesInSelection(prev, [upazilaName]));
   };
 
-  const handleSelectAllUpazilas = () => {
-    const names = loadedUpazilas.map((upazila) => upazila.name);
-    const allSelected = names.every((name) => desiredUpazilaSet.has(name));
-    if (allSelected) {
-      setDesiredUpazilas((prev) =>
-        prev.filter((name) => !names.includes(name)),
-      );
-      return;
-    }
-    setDesiredUpazilas((prev) => Array.from(new Set([...prev, ...names])));
+  const handleToggleUpazilaNames = (names: string[]) => {
+    setDesiredUpazilas((prev) => toggleNamesInSelection(prev, names));
   };
 
   const finishSuccess = (
@@ -1063,11 +996,6 @@ export const AssignmentDialog = ({
     (loadingDivisions && loadedDivisions.length === 0) ||
     (loadingDistricts && loadedDistricts.length === 0) ||
     (loadingFilterUpazilas && filterLoadedUpazilas.length === 0);
-  const geoLoading =
-    (loadingDivisions && loadedDivisions.length === 0) ||
-    (loadingDistricts && loadedDistricts.length === 0) ||
-    (loadingUpazilas && loadedUpazilas.length === 0);
-  const geoError = divisionsError || districtsError || upazilasError;
 
   const renderDivisionCombobox = (id: string) => (
     <Combobox
@@ -1344,108 +1272,13 @@ export const AssignmentDialog = ({
                 {renderDivisionCombobox('assignment-geo-division-combobox')}
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    District
-                  </span>
-                  {districtsError ? (
-                    <FetchRetryButton
-                      label="Retry loading districts"
-                      onRetry={retryDistricts}
-                      disabled={fetchingDistricts}
-                    />
-                  ) : null}
-                </div>
-                {renderDistrictCombobox('assignment-geo-district-combobox')}
-              </div>
-
-              <div className="overflow-hidden rounded-lg border border-spice-border">
-                <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
-                  <div className="flex items-center gap-1.5">
-                    <span>Upazila</span>
-                    {geoError ? (
-                      <FetchRetryButton
-                        label="Retry loading upazilas"
-                        onRetry={retryDistrictsAndUpazilas}
-                        disabled={fetchingUpazilas || fetchingDistricts}
-                      />
-                    ) : null}
-                  </div>
-                  {loadedUpazilas.length > 0 &&
-                  !loadedUpazilas.every((upazila) =>
-                    desiredUpazilaSet.has(upazila.name),
-                  ) ? (
-                    <button
-                      type="button"
-                      onClick={handleSelectAllUpazilas}
-                      className="text-spice-brand-primary hover:underline"
-                    >
-                      Select all
-                    </button>
-                  ) : null}
-                </div>
-
-                <InfiniteScrollContainer
-                  className="max-h-[20vh]"
-                  hasMore={!geoLoading && !geoError && upazilasHasMore}
-                  onLoadMore={() => {
-                    void loadUpazilasPage(upazilasOffset, true);
-                  }}
-                  loadedCount={loadedUpazilas.length}
-                  isLoadingMore={fetchingUpazilas && loadedUpazilas.length > 0}
-                  disabled={geoLoading || Boolean(geoError)}
-                >
-                  {geoLoading ? (
-                    <div className="p-4 text-center text-sm text-spice-text-muted">
-                      Loading upazilas…
-                    </div>
-                  ) : geoError ? (
-                    <div className="p-4 text-center text-sm text-spice-text-muted">
-                      Failed to load upazilas.
-                    </div>
-                  ) : loadedUpazilas.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-spice-text-muted">
-                      No upazilas found.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-spice-border">
-                      {loadedUpazilas.map((upazila) => {
-                        const isChecked = desiredUpazilaSet.has(upazila.name);
-                        const isAlreadyAssigned = baselineUpazilaSet.has(
-                          upazila.name,
-                        );
-
-                        return (
-                          <label
-                            key={upazila.id}
-                            className="flex cursor-pointer items-center justify-between px-3 py-2.5 hover:bg-spice-bg-tint/30"
-                          >
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-spice-text-primary">
-                                {upazila.name}
-                              </span>
-                              {isAlreadyAssigned ? (
-                                <span className="text-xs text-spice-text-muted">
-                                  Already assigned
-                                </span>
-                              ) : null}
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() =>
-                                handleUpazilaCheckboxChange(upazila.name)
-                              }
-                              className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
-                            />
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </InfiniteScrollContainer>
-              </div>
+              <AssignmentGeoDistrictHierarchy
+                divisionId={selectedDivisionId}
+                desiredUpazilaSet={desiredUpazilaSet}
+                baselineUpazilaSet={baselineUpazilaSet}
+                onToggleUpazila={handleUpazilaCheckboxChange}
+                onToggleUpazilaNames={handleToggleUpazilaNames}
+              />
             </>
           ) : null}
         </div>

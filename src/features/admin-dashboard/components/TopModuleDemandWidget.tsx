@@ -61,8 +61,8 @@ export const TopModuleDemandWidget = ({
   );
 
   const gridClass = showActions
-    ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_5rem_6.75rem]'
-    : 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_5rem]';
+    ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_7.5rem_6.75rem]'
+    : 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_7.5rem]';
 
   return (
     <DashboardWidgetShell

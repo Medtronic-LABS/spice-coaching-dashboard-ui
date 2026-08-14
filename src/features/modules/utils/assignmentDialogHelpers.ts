@@ -196,3 +196,28 @@ export function baselineUpazilaNames(users: AdminUser[]): string[] {
     ),
   ).sort((a, b) => a.localeCompare(b));
 }
+
+/**
+ * Add `names` to the selection unless every name is already selected,
+ * in which case remove them.
+ */
+export function toggleNamesInSelection(
+  current: string[],
+  names: string[],
+): string[] {
+  if (names.length === 0) return current;
+  const selected = new Set(current);
+  const allSelected = names.every((name) => selected.has(name));
+  if (allSelected) {
+    const remove = new Set(names);
+    return current.filter((name) => !remove.has(name));
+  }
+  const next = [...current];
+  for (const name of names) {
+    if (!selected.has(name)) {
+      next.push(name);
+      selected.add(name);
+    }
+  }
+  return next;
+}

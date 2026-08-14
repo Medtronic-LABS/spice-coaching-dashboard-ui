@@ -25,8 +25,9 @@ const mocks = vi.hoisted(() => {
       uploaded_date: '2026-07-21T09:00:00Z',
       ingested_at: '2026-07-21T09:00:00Z',
       updated_at: '2026-07-21T09:00:00Z',
-      uploaded_by: null,
+      uploaded_by: { id: 101, name: 'Alice Admin' },
       updated_by: null,
+      ingested_by: null,
       assigned: false,
       sync_published_visible: true,
     },
@@ -44,8 +45,9 @@ const mocks = vi.hoisted(() => {
       uploaded_date: '2026-07-20T09:00:00Z',
       ingested_at: '2026-07-20T09:30:00Z',
       updated_at: '2026-07-20T09:30:00Z',
-      uploaded_by: null,
+      uploaded_by: { id: 422, name: 'Mudassar Raza' },
       updated_by: null,
+      ingested_by: { id: 422, name: 'Mudassar Raza' },
       assigned: false,
       sync_published_visible: true,
     },
@@ -93,7 +95,11 @@ vi.mock(
   },
 );
 
-function ControlledPanel() {
+function ControlledPanel({
+  keptExistingSourceIds = [],
+}: {
+  keptExistingSourceIds?: string[];
+}) {
   const [selected, setSelected] = useState<SelectedIngestDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -134,6 +140,7 @@ function ControlledPanel() {
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         uploadFiles={uploadFiles}
+        keptExistingSourceIds={keptExistingSourceIds}
       />
       <div data-testid="selected-count">{selected.length}</div>
     </div>
@@ -228,6 +235,41 @@ describe('DocumentSelectionPanel', () => {
     });
   });
 
+  it('shows uploaded by and ingested by columns', () => {
+    renderWithProviders(<ControlledPanel />);
+
+    expect(screen.getByText('Uploaded by')).toBeInTheDocument();
+    expect(screen.getByText('Ingested by')).toBeInTheDocument();
+    expect(screen.getByText('Alice Admin')).toBeInTheDocument();
+    expect(screen.getAllByText('Mudassar Raza')).toHaveLength(2);
+  });
+
+  it('supports changing rows per page', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ControlledPanel />);
+
+    await user.selectOptions(
+      screen.getByRole('combobox', {
+        name: /document selection rows per page/i,
+      }),
+      '10',
+    );
+
+    await waitFor(() => {
+      expect(mocks.useFetchSourceDocumentsQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 10, offset: 0 }),
+      );
+    });
+  });
+
+  it('shows View modules for kept existing sources during an active ingest batch', () => {
+    renderWithProviders(<ControlledPanel keptExistingSourceIds={['doc-1']} />);
+
+    expect(
+      screen.getByRole('button', { name: /view modules/i }),
+    ).toBeInTheDocument();
+  });
+
   it('shows View modules for ingested docs and navigates with source filter', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ControlledPanel />);
@@ -237,7 +279,7 @@ describe('DocumentSelectionPanel', () => {
 
     expect(mocks.navigate).toHaveBeenCalledWith(paths.moduleLibrary, {
       state: {
-        tab: 'drafts',
+        tab: 'all',
         sourceDocumentId: 'doc-2',
         sourceDocumentTitle: 'Protocol Deck',
       },

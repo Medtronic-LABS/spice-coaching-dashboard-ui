@@ -365,6 +365,27 @@ export function sourceDocumentFromDuplicateConflict(
   };
 }
 
+/** Map duplicate conflicts the user kept as already ingested to session rows. */
+export function keptExistingSourcesFromConflicts(
+  conflicts: readonly IngestDuplicateConflict[],
+): Array<{
+  source_document_id: string;
+  title?: string;
+  filename?: string;
+}> {
+  return conflicts.flatMap((conflict) => {
+    const target = sourceDocumentFromDuplicateConflict(conflict);
+    if (!target) return [];
+    return [
+      {
+        source_document_id: target.sourceDocumentId,
+        title: target.title,
+        filename: conflict.filename,
+      },
+    ];
+  });
+}
+
 /** Resolve view-modules target when an uploaded source was kept as already ingested. */
 export function findKeptExistingTargetForSource(
   source: AdminV3IngestUploadedSource,

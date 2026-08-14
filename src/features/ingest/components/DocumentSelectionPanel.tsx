@@ -25,8 +25,9 @@ import type {
 } from '@/features/ingest/api/adminIngestApi';
 import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
 import {
-  DOCUMENT_SELECTION_PAGE_SIZE,
+  DOCUMENT_SELECTION_PAGE_SIZE_OPTIONS,
   DOCUMENT_SELECTION_SEARCH_DEBOUNCE_MS,
+  DEFAULT_DOCUMENT_SELECTION_PAGE_SIZE,
   INGESTABLE_KNOWLEDGE_SOURCE_TYPES,
   MAX_DOCUMENT_SELECTION,
 } from '@/features/ingest/constants/documentSelection';
@@ -42,6 +43,7 @@ import { formatIngestRunStatusDisplay } from '@/features/ingest/utils/ingestRunH
 import { readRecentIngestDocuments } from '@/features/ingest/utils/recentIngestDocumentsStorage';
 import { isIngestSucceeded } from '@/features/ingest/utils/ingestStatus';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
+import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
@@ -54,6 +56,8 @@ type DocumentSelectionRow = {
   sourceType: string;
   status: string;
   uploadedAt: string;
+  uploadedBy: string | null;
+  ingestedBy: string | null;
   selection: '';
   actions: '';
 };
@@ -74,6 +78,8 @@ export interface DocumentSelectionPanelProps {
   uploadClearSignal?: number;
   /** Live batch source rows used to overlay ingesting/completed statuses. */
   batchSources?: AdminV3IngestBatchSourceStatus[];
+  /** Existing sources kept during an active ingest batch (session-backed). */
+  keptExistingSourceIds?: readonly string[];
 }
 
 function documentStatusBadge(
@@ -155,10 +161,12 @@ function canOpenModulesForDocument(
   status: string,
   sourceDocumentId: string,
   recentlyIngestedIds: ReadonlySet<string>,
+  keptExistingSourceIds: ReadonlySet<string>,
 ): boolean {
   return (
     isIngestedDocumentStatus(status) ||
-    recentlyIngestedIds.has(sourceDocumentId)
+    recentlyIngestedIds.has(sourceDocumentId) ||
+    keptExistingSourceIds.has(sourceDocumentId)
   );
 }
 
@@ -173,8 +181,13 @@ export const DocumentSelectionPanel = ({
   isUploading = false,
   uploadClearSignal = 0,
   batchSources = [],
+  keptExistingSourceIds = [],
 }: DocumentSelectionPanelProps) => {
   const navigate = useNavigate();
+  const keptExistingIds = useMemo(
+    () => new Set(keptExistingSourceIds),
+    [keptExistingSourceIds],
+  );
   const recentlyIngestedIds = useMemo(
     () =>
       new Set(
@@ -190,6 +203,9 @@ export const DocumentSelectionPanel = ({
   );
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(
+    DEFAULT_DOCUMENT_SELECTION_PAGE_SIZE,
+  );
   const [pageInput, setPageInput] = useState('1');
   const [sortBy, setSortBy] = useState('uploaded_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -217,7 +233,7 @@ export const DocumentSelectionPanel = ({
 
   useEffect(() => {
     setPage(0);
-  }, [searchQ]);
+  }, [searchQ, pageSize]);
 
   const {
     data: catalog,
@@ -228,8 +244,8 @@ export const DocumentSelectionPanel = ({
   } = useFetchSourceDocumentsQuery({
     source_type: INGESTABLE_KNOWLEDGE_SOURCE_TYPES,
     ...(searchQ ? { q: searchQ } : {}),
-    limit: DOCUMENT_SELECTION_PAGE_SIZE,
-    offset: page * DOCUMENT_SELECTION_PAGE_SIZE,
+    limit: pageSize,
+    offset: page * pageSize,
     sort_by: sortBy,
     sort_dir: sortDir,
   });
@@ -248,6 +264,8 @@ export const DocumentSelectionPanel = ({
           recentlyIngestedIds,
         ),
         uploadedAt: doc.uploaded_date || doc.ingested_at,
+        uploadedBy: doc.uploaded_by?.name ?? null,
+        ingestedBy: doc.ingested_by?.name ?? null,
         selection: '',
         actions: '',
       })),
@@ -258,10 +276,8 @@ export const DocumentSelectionPanel = ({
   const totalPages = catalog?.total_pages ?? 0;
   const hasPrevPage = page > 0;
   const hasNextPage = totalPages > 0 && page + 1 < totalPages;
-  const rangeStart = rows.length ? page * DOCUMENT_SELECTION_PAGE_SIZE + 1 : 0;
-  const rangeEnd = rows.length
-    ? page * DOCUMENT_SELECTION_PAGE_SIZE + rows.length
-    : 0;
+  const rangeStart = rows.length ? page * pageSize + 1 : 0;
+  const rangeEnd = rows.length ? page * pageSize + rows.length : 0;
 
   useEffect(() => {
     setPageInput(String(page + 1));
@@ -468,12 +484,41 @@ export const DocumentSelectionPanel = ({
         ),
       },
       {
+        key: 'uploadedBy',
+        header: 'Uploaded by',
+        sortable: false,
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
+        render: (row) => (
+          <span className="text-xs text-spice-text-medium">
+            {formatHierarchyActorName(row.uploadedBy)}
+          </span>
+        ),
+      },
+      {
+        key: 'ingestedBy',
+        header: 'Ingested by',
+        sortable: false,
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
+        render: (row) => (
+          <span className="text-xs text-spice-text-medium">
+            {formatHierarchyActorName(row.ingestedBy)}
+          </span>
+        ),
+      },
+      {
         key: 'actions',
         header: 'Actions',
         sortable: false,
         render: (row) => {
           if (
-            canOpenModulesForDocument(row.status, row.id, recentlyIngestedIds)
+            canOpenModulesForDocument(
+              row.status,
+              row.id,
+              recentlyIngestedIds,
+              keptExistingIds,
+            )
           ) {
             return (
               <Button
@@ -494,6 +539,7 @@ export const DocumentSelectionPanel = ({
     [
       disabled,
       goToModulesForSource,
+      keptExistingIds,
       recentlyIngestedIds,
       selectedDocuments.length,
       selectedIds,
@@ -613,8 +659,8 @@ export const DocumentSelectionPanel = ({
 
       <TablePagination
         page={page}
-        pageSize={DOCUMENT_SELECTION_PAGE_SIZE}
-        pageSizeOptions={[DOCUMENT_SELECTION_PAGE_SIZE]}
+        pageSize={pageSize}
+        pageSizeOptions={DOCUMENT_SELECTION_PAGE_SIZE_OPTIONS}
         totalItems={total}
         totalPages={totalPages}
         rangeStart={rangeStart}
@@ -622,7 +668,10 @@ export const DocumentSelectionPanel = ({
         pageInput={pageInput}
         hasPrevPage={hasPrevPage}
         hasNextPage={hasNextPage}
-        onPageSizeChange={() => undefined}
+        onPageSizeChange={(next) => {
+          setPageSize(next);
+          setPage(0);
+        }}
         onPageInputChange={handlePageInputChange}
         onCommitPageInput={commitPageInput}
         onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
