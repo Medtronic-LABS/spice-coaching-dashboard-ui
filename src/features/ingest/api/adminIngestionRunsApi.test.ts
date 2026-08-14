@@ -108,6 +108,7 @@ describe('adminIngestionRunsApi', () => {
             generated_module_count: 1,
             generated_card_count: 4,
             generated_quiz_count: 4,
+            ingested_by: { id: 42, name: 'Ingest Admin' },
           },
         ],
         total_runs: 42,
@@ -135,6 +136,7 @@ describe('adminIngestionRunsApi', () => {
           generated_module_count: 1,
           generated_card_count: 4,
           generated_quiz_count: 4,
+          ingested_by: { id: 42, name: 'Ingest Admin' },
         },
       ],
       total_runs: 42,
@@ -174,6 +176,7 @@ describe('adminIngestionRunsApi', () => {
       generated_card_count: 0,
       generated_quiz_count: 0,
       error: null,
+      ingested_by: null,
     });
     expect(data?.has_next_page).toBe(false);
   });

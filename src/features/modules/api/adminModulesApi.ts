@@ -4,6 +4,10 @@ import {
   sortQuizItems,
 } from '@/features/modules/utils/adminModuleQuizUtils';
 import { normalizeAdminModuleCard } from '@/features/modules/utils/cardBody';
+import {
+  normalizeHierarchyActorRef,
+  type HierarchyActorRef,
+} from '@/features/modules/types/hierarchyActor';
 import { baseApi } from '@/store/apis/base';
 import type { LocalizedOptions, LocalizedString } from '@/types/localized';
 import {
@@ -12,6 +16,7 @@ import {
 } from '@/features/modules/utils/localizedWire';
 
 export type { AdminModuleCard };
+export type ModuleActorRef = HierarchyActorRef;
 
 export type AdminModuleLifecycleStatus =
   | 'draft'
@@ -38,9 +43,19 @@ export interface AdminModulesListItem {
   estimated_minutes: number;
   published_at: string | null;
   created_at: string;
+  updated_at: string;
+  activated_at?: string | null;
+  deactivated_at?: string | null;
+  /** @deprecated Prefer `activated_at` from the modules API. */
   first_activated_at?: string | null;
+  /** @deprecated Prefer `deactivated_at` from the modules API. */
   last_deactivated_at?: string | null;
+  /** @deprecated Prefer `activated_at` from the modules API. */
   last_reactivated_at?: string | null;
+  created_by?: ModuleActorRef | null;
+  published_by?: ModuleActorRef | null;
+  activated_by?: ModuleActorRef | null;
+  deactivated_by?: ModuleActorRef | null;
   quality_flags?: { flags: string[] } | null;
   quiz_count: number;
   search_metadata?: Record<string, unknown> | null;
@@ -196,18 +211,46 @@ function normalizeModuleSummary(
     published_at:
       typeof item.published_at === 'string' ? item.published_at : null,
     created_at: typeof item.created_at === 'string' ? item.created_at : '',
+    updated_at:
+      typeof item.updated_at === 'string'
+        ? item.updated_at
+        : typeof item.created_at === 'string'
+          ? item.created_at
+          : '',
+    activated_at:
+      typeof item.activated_at === 'string'
+        ? item.activated_at
+        : typeof item.last_reactivated_at === 'string'
+          ? item.last_reactivated_at
+          : typeof item.first_activated_at === 'string'
+            ? item.first_activated_at
+            : null,
+    deactivated_at:
+      typeof item.deactivated_at === 'string'
+        ? item.deactivated_at
+        : typeof item.last_deactivated_at === 'string'
+          ? item.last_deactivated_at
+          : null,
     first_activated_at:
       typeof item.first_activated_at === 'string'
         ? item.first_activated_at
-        : null,
+        : typeof item.activated_at === 'string'
+          ? item.activated_at
+          : null,
     last_deactivated_at:
       typeof item.last_deactivated_at === 'string'
         ? item.last_deactivated_at
-        : null,
+        : typeof item.deactivated_at === 'string'
+          ? item.deactivated_at
+          : null,
     last_reactivated_at:
       typeof item.last_reactivated_at === 'string'
         ? item.last_reactivated_at
         : null,
+    created_by: normalizeHierarchyActorRef(item.created_by),
+    published_by: normalizeHierarchyActorRef(item.published_by),
+    activated_by: normalizeHierarchyActorRef(item.activated_by),
+    deactivated_by: normalizeHierarchyActorRef(item.deactivated_by),
     quality_flags:
       item.quality_flags && typeof item.quality_flags === 'object'
         ? (item.quality_flags as { flags: string[] })

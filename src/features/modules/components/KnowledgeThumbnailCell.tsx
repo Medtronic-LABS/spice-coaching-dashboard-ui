@@ -105,6 +105,7 @@ export function KnowledgeThumbnailCell({
       <img
         src={url}
         alt=""
+        draggable={false}
         loading="lazy"
         decoding="async"
         onLoad={() => setImageStatus('loaded')}

@@ -2,15 +2,18 @@ import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Banner, Button, Card, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
 import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
+import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { useQuizExplanationReview } from '@/features/modules/hooks/useQuizExplanationReview';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
+import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
 import {
   countMediaTagsFromCards,
   mapAdminCardsToLessonRows,
@@ -18,6 +21,10 @@ import {
 } from '@/features/modules/utils/moduleReviewPublishMappers';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { sourceDocumentLabel } from '@/features/modules/utils/sourceDocument';
+import {
+  isAdminModuleDraftValidationError,
+  type AdminModuleDraftIssue,
+} from '@/features/modules/utils/validateAdminModuleDraftContent';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -41,11 +48,30 @@ export const AdminModulePublishStep = () => {
     usePublishModuleMutation();
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [publishError, setPublishError] = useState('');
-  const [saveError, setSaveError] = useState('');
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
   const isReadonly = useAdminModuleReviewReadonly();
   const { registerEditorContext } = useModulePreview();
   const { validateBeforeProceed } = useQuizExplanationReview(moduleId);
+  const {
+    actionError: saveError,
+    draftIssues,
+    draftValidationOpen,
+    clearSaveFeedback,
+    captureSaveError,
+    closeDraftValidation,
+  } = useAdminModuleDraftSaveFeedback(formatError);
+
+  const reviewDraftIssue = useCallback(
+    (issue: AdminModuleDraftIssue) => {
+      navigateToAdminModuleDraftIssue({
+        navigate,
+        moduleId,
+        issue,
+        onBeforeNavigate: closeDraftValidation,
+      });
+    },
+    [closeDraftValidation, moduleId, navigate],
+  );
 
   useEffect(() => {
     registerEditorContext({ phase: 'card', index: 0 });
@@ -117,6 +143,12 @@ export const AdminModulePublishStep = () => {
         />
       ) : null}
       {saveError ? <Banner tone="critical">{saveError}</Banner> : null}
+      <AdminModuleDraftValidationDialog
+        open={draftValidationOpen}
+        issues={draftIssues}
+        onClose={closeDraftValidation}
+        onReviewIssue={reviewDraftIssue}
+      />
       <div
         className={
           showSourcePanel
@@ -170,11 +202,11 @@ export const AdminModulePublishStep = () => {
             isReadonly
               ? undefined
               : async () => {
-                  setSaveError('');
+                  clearSaveFeedback();
                   try {
                     await save();
                   } catch (err) {
-                    setSaveError(formatError(err));
+                    captureSaveError(err);
                   }
                 }
           }
@@ -182,6 +214,7 @@ export const AdminModulePublishStep = () => {
             validateBeforeProceed(async () => {
               if (isReadonly) return;
               setPublishError('');
+              clearSaveFeedback();
               try {
                 const moduleIdForPublish = isDirty
                   ? (await save()).id
@@ -192,6 +225,10 @@ export const AdminModulePublishStep = () => {
                 await refetch();
                 setPublishSuccessOpen(true);
               } catch (err) {
+                if (isAdminModuleDraftValidationError(err)) {
+                  captureSaveError(err);
+                  return;
+                }
                 setPublishError(formatError(err));
               }
             })

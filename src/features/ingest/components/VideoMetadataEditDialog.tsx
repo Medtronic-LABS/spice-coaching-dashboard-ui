@@ -225,6 +225,7 @@ export const VideoMetadataEditDialog = ({
               <img
                 src={thumbnailPreviewUrl}
                 alt="Video thumbnail preview"
+                draggable={false}
                 className="max-h-[200px] max-w-full object-contain"
               />
             </div>

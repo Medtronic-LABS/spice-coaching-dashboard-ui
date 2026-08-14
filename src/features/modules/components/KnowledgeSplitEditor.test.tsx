@@ -43,6 +43,10 @@ describe('KnowledgeSplitEditor', () => {
     expect(screen.getByText(/end page/i)).toHaveTextContent('End page *');
     expect(screen.getByText(/^Thumbnail/)).not.toHaveTextContent('*');
     expect(
+      screen.getByRole('button', { name: 'Delete Split 1' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+    expect(
       screen.queryByText(/provide title and page range/i),
     ).not.toBeInTheDocument();
   });

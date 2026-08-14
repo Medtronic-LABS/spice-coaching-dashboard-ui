@@ -228,10 +228,25 @@ describe('ImagePicker', () => {
       />,
     );
 
-    expect(screen.getByAltText('Selected image')).toHaveAttribute(
-      'src',
-      'https://example.com/thumb.png',
-    );
+    const preview = screen.getByAltText('Selected image');
+    expect(preview).toHaveAttribute('src', 'https://example.com/thumb.png');
+    expect(preview).toHaveAttribute('draggable', 'false');
     expect(screen.getByText('Change thumbnail')).toBeInTheDocument();
+  });
+
+  it('disables native drag on compact preview image', () => {
+    render(
+      <ImagePicker
+        variant="compact"
+        value="https://example.com/thumb.png"
+        onChange={vi.fn()}
+        previewAlt="Knowledge thumbnail"
+      />,
+    );
+
+    expect(screen.getByAltText('Knowledge thumbnail')).toHaveAttribute(
+      'draggable',
+      'false',
+    );
   });
 });

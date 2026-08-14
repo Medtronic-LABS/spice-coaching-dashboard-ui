@@ -134,7 +134,7 @@ export const DiscardedTabTable = ({
         key: 'discardedAt',
         header: 'Discarded At',
         sortable: true,
-        sortKey: 'last_deactivated_at',
+        sortKey: 'deactivated_at',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.discardedAt}

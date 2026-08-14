@@ -71,6 +71,7 @@ describe('BadgeImageThumb', () => {
 
     expect(screen.getByTestId('badge-image-skeleton')).toBeInTheDocument();
     const img = screen.getByRole('img', { name: 'Safe milestone' });
+    expect(img).toHaveAttribute('draggable', 'false');
     expect(img).toHaveClass('invisible');
 
     fireEvent.load(img);

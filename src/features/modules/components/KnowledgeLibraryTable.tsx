@@ -601,7 +601,6 @@ export const KnowledgeLibraryTable = () => {
           data={assets}
           columns={columns}
           keyExtractor={(row) => row.id}
-          containerClassName="min-h-[12rem]"
           emptyMessage="No results"
           sortBy={sortBy}
           sortDir={sortOrder}

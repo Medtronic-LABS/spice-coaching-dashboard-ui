@@ -54,6 +54,7 @@ describe('adminSourceDocumentsApi', () => {
       updated_at: '2026-04-08T09:00:00Z',
       uploaded_by: { id: 1, name: 'ingest-bot' },
       updated_by: null,
+      ingested_by: { id: 1, name: 'ingest-bot' },
       assigned: false,
       sync_published_visible: false,
     });
@@ -195,6 +196,7 @@ describe('mapSourceDocumentToKnowledgeItem', () => {
       updated_at: '2026-07-11T08:15:00Z',
       uploaded_by: { id: 101, name: 'alice' },
       updated_by: { id: 101, name: 'alice' },
+      ingested_by: null,
       assigned: true,
       sync_published_visible: true,
     });

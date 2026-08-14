@@ -83,6 +83,7 @@ import {
   isAcceptedVideoThumbnailFile,
   titleFromVideoFilename,
 } from '@/features/ingest/utils/videoThumbnail';
+import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
@@ -108,6 +109,9 @@ type VideoRow = {
   title: string;
   description: string | null;
   uploadedAt: string;
+  uploadedBy: string | null;
+  ingestedAt: string;
+  ingestedBy: string | null;
   status: string;
   actions: string;
   sourceDocumentId?: string;
@@ -478,7 +482,10 @@ export const VideoUploadPage = () => {
           name: latest.original_filename || latest.title || latest.id,
           title: latest.title || latest.original_filename || latest.id,
           description: latest.description,
-          uploadedAt: latest.ingested_at,
+          uploadedAt: latest.uploaded_date || latest.ingested_at,
+          uploadedBy: latest.uploaded_by?.name ?? null,
+          ingestedAt: latest.ingested_at,
+          ingestedBy: latest.ingested_by?.name ?? null,
           status: serverStatusLabel(latest.status),
           actions: '',
           sourceDocumentId: latest.id,
@@ -868,12 +875,45 @@ export const VideoUploadPage = () => {
       },
       {
         key: 'uploadedAt',
-        header: 'Date/time',
+        header: 'Uploaded',
+        sortable: true,
+        sortKey: 'uploaded_date',
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
+        render: (row) => formatDisplayDateTime(row.uploadedAt),
+      },
+      {
+        key: 'uploadedBy',
+        header: 'Uploaded By',
+        sortable: false,
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
+        render: (row) => (
+          <span className="text-xs text-spice-text-medium">
+            {formatHierarchyActorName(row.uploadedBy)}
+          </span>
+        ),
+      },
+      {
+        key: 'ingestedAt',
+        header: 'Ingested Date',
         sortable: true,
         sortKey: 'ingested_at',
         className: 'whitespace-nowrap',
         headerClassName: 'whitespace-nowrap',
-        render: (row) => formatDisplayDateTime(row.uploadedAt),
+        render: (row) => formatDisplayDateTime(row.ingestedAt),
+      },
+      {
+        key: 'ingestedBy',
+        header: 'Ingested By',
+        sortable: false,
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
+        render: (row) => (
+          <span className="text-xs text-spice-text-medium">
+            {formatHierarchyActorName(row.ingestedBy)}
+          </span>
+        ),
       },
       {
         key: 'status',
@@ -1058,6 +1098,7 @@ export const VideoUploadPage = () => {
                           <img
                             src={item.thumbnailPreviewUrl}
                             alt=""
+                            draggable={false}
                             className="max-h-[160px] max-w-full object-contain"
                           />
                         ) : (
