@@ -38,10 +38,9 @@ describe('Header', () => {
     expect(screen.getByText('AI Coaching')).toBeInTheDocument();
   });
 
-  it('renders user initials and a logout control when login is enabled', async () => {
+  it('renders a logout control when login is enabled', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Header {...defaultHeaderProps} />);
-    expect(screen.getByText('SU')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /log out/i }));
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });

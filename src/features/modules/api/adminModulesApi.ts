@@ -148,6 +148,7 @@ export interface CreateAdminModuleRequestBody {
   description?: LocalizedString | null;
   domain: string;
   sub_domain?: string | null;
+  content_domain?: string | null;
   module_type?: AdminModuleRefresherType;
   estimated_minutes: number;
   difficulty_level?: string | null;

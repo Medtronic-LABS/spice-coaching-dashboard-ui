@@ -8,6 +8,7 @@ import {
   Loader,
   Modal,
   SearchInput,
+  Select,
   Tabs,
   Tooltip,
   TruncatedText,
@@ -75,6 +76,10 @@ import {
   appendRecentIngestDocument,
   readRecentIngestDocuments,
 } from '@/features/ingest/utils/recentIngestDocumentsStorage';
+import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
+import { CONTENT_DOMAIN_TYPE_TOOLTIP } from '@/features/ingest/constants/ingestConfigurationTooltips';
+import { INGEST_CONTENT_DOMAIN_OPTIONS } from '@/features/ingest/constants/ingestFormOptions';
+import type { IngestContentDomain } from '@/features/ingest/api/adminIngestApi';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 import {
@@ -93,7 +98,6 @@ import {
   formatEstimatedMinutesFieldValue,
   parseEstimatedMinutesInput,
 } from '@/features/modules/utils/estimatedMinutesValidation';
-import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
 
 const DIFFICULTY_LEVEL_OPTIONS = ['easy', 'moderate', 'hard'] as const;
 
@@ -114,6 +118,7 @@ type CreateModuleFormState = {
   title_bn: string;
   description_bn: string;
   domain: string;
+  content_domain: IngestContentDomain;
   module_type: string;
   estimated_minutes: number;
   difficulty_level: AdminModuleDifficultyLevel;
@@ -125,6 +130,7 @@ function createEmptyCreateForm(): CreateModuleFormState {
     title_bn: '',
     description_bn: '',
     domain: '',
+    content_domain: CREATE_MODULE_FORM_DEFAULTS.content_domain,
     module_type: 'refresher',
     estimated_minutes: CREATE_MODULE_FORM_DEFAULTS.estimated_minutes,
     difficulty_level: CREATE_MODULE_FORM_DEFAULTS.difficulty_level,
@@ -958,6 +964,28 @@ export const ModuleLibraryPage = () => {
                   }
                 />
                 <label className="block space-y-1 self-start">
+                  <span className="flex min-h-5 items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+                    Content domain type
+                    <Tooltip
+                      label="About Content domain type"
+                      content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                    />
+                  </span>
+                  <Select
+                    className="w-full rounded-lg"
+                    options={INGEST_CONTENT_DOMAIN_OPTIONS}
+                    value={createForm.content_domain}
+                    disabled={isCreating}
+                    aria-label="Content domain type"
+                    onChange={(value) =>
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        content_domain: value as IngestContentDomain,
+                      }))
+                    }
+                  />
+                </label>
+                <label className="block space-y-1 self-start">
                   <span className="text-xs font-semibold text-spice-text-primary">
                     Estimated minutes
                   </span>
@@ -1084,6 +1112,7 @@ export const ModuleLibraryPage = () => {
                         : {}),
                       domain,
                       sub_domain: null,
+                      content_domain: createForm.content_domain,
                       module_type: createForm.module_type,
                       estimated_minutes: Math.min(
                         MAX_ESTIMATED_MINUTES,
@@ -1217,7 +1246,7 @@ export const ModuleLibraryPage = () => {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
+          <h1 className="text-[28px] font-semibold leading-[34px] text-spice-text-primary">
             {isProgramManager ? 'Module Library' : t('moduleLibrary.title')}
           </h1>
         </div>
@@ -1227,6 +1256,7 @@ export const ModuleLibraryPage = () => {
               value={query}
               onChange={setQuery}
               placeholder="Search modules..."
+              className="h-[35px] rounded-lg pl-10 pr-4 text-base placeholder:text-spice-text-onSurfaceVariant"
             />
           </div>
           {isProgramManager ? (
@@ -1249,6 +1279,7 @@ export const ModuleLibraryPage = () => {
         <div className="flex items-center justify-between gap-3">
           {isProgramManager ? (
             <Tabs
+              variant="moduleLibrary"
               items={[
                 { label: 'Drafts', value: 'drafts' },
                 { label: 'Published', value: 'published' },
@@ -1342,6 +1373,7 @@ export const ModuleLibraryPage = () => {
           />
         ) : (
           <Table<ModuleLibraryItem>
+            density="comfortable"
             data={filtered}
             columns={columns}
             keyExtractor={(r) => r.id}

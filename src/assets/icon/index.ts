@@ -17,10 +17,12 @@ export {
 } from './FiltersSlidersIcon';
 export { HistoryIcon, type HistoryIconProps } from './HistoryIcon';
 export { KnowledgeIcon, type KnowledgeIconProps } from './KnowledgeIcon';
+export { LayersIcon, type LayersIconProps } from './LayersIcon';
 export { MenuIcon, type MenuIconProps } from './MenuIcon';
 export { RefreshIcon, type RefreshIconProps } from './RefreshIcon';
 export { SaveDraftIcon, type SaveDraftIconProps } from './SaveDraftIcon';
 export { SearchIcon, type SearchIconProps } from './SearchIcon';
 export { SettingsIcon, type SettingsIconProps } from './SettingsIcon';
+export { SmileIcon, type SmileIconProps } from './SmileIcon';
 export { UsersIcon, type UsersIconProps } from './UsersIcon';
 export { VideoIcon, type VideoIconProps } from './VideoIcon';

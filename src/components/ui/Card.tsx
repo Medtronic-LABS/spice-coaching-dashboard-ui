@@ -31,7 +31,7 @@ export const Card = ({
   return (
     <section
       className={cn(
-        'rounded-xl p-4 md:p-6',
+        'rounded-xl border border-spice-border p-4 shadow-spiceCard md:p-6',
         variantClasses[variant],
         className,
       )}

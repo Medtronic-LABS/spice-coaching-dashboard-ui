@@ -23,6 +23,7 @@ import type {
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
 import { buildTeamActivityQueryArgs } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
+import { resolveModuleCompletionTone } from '@/features/admin-dashboard/utils/moduleCompletionTones';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import {
   filterMembersBySearch,
@@ -99,10 +100,8 @@ function moduleCompletionTone(
   total: number,
 ): string | undefined {
   if (total <= 0) return undefined;
-  const ratio = completed / total;
-  if (ratio >= 1) return 'text-spice-semantic-success';
-  if (ratio >= 0.5) return 'text-spice-semantic-info';
-  return 'text-spice-semantic-error';
+  const percent = (completed / total) * 100;
+  return resolveModuleCompletionTone(percent).textClassName;
 }
 
 function MetricCell({
@@ -222,7 +221,7 @@ const HierarchyMemberRow = ({
 
   const personBlock = (
     <>
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-spice-brand-primary/15 text-xs font-semibold text-spice-brand-primary">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-spice-palette-purpleLt text-xs font-semibold text-spice-palette-purple">
         {memberInitials(member.name)}
       </div>
       <div className="min-w-0">
@@ -245,107 +244,112 @@ const HierarchyMemberRow = ({
         isFocused && 'bg-spice-brand-primary/5',
       )}
     >
-      <div className="flex items-center gap-3 px-4 py-3">
-        {onFocusChange ? (
-          <button
-            type="button"
-            className={cn(
-              'flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary',
-              isFocused && 'ring-1 ring-spice-brand-primary/40',
-            )}
-            style={{ paddingLeft: `${depth * 24}px` }}
-            onClick={handleFocusToggle}
-            aria-pressed={isFocused}
-            title={
-              isFocused
-                ? t('adminDashboard.hierarchy.clearFocus')
-                : t('adminDashboard.hierarchy.focusForAnalytics')
-            }
-          >
-            {personBlock}
-          </button>
-        ) : (
-          <div
-            className="flex min-w-0 flex-1 items-center gap-3"
-            style={{ paddingLeft: `${depth * 24}px` }}
-          >
-            {personBlock}
-          </div>
-        )}
-
-        <div className="ml-auto flex shrink-0 items-center gap-6">
-          {isSkRow ? (
-            <>
-              <MetricCell
-                className="w-[6.5rem]"
-                value={`${modules.completed}/${modules.total}`}
-                label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
-                valueClassName={moduleCompletionTone(
-                  modules.completed,
-                  modules.total,
-                )}
-              />
-              <MetricCell
-                className="w-[5.5rem]"
-                value={member.chatbot_query_count}
-                label={t('adminDashboard.hierarchy.metrics.queriesLabel')}
-              />
-              <div className="flex w-[5.75rem] justify-end">
-                <StatusBadge
-                  status={atRisk ? 'critical' : 'success'}
-                  label={
-                    atRisk
-                      ? t('adminDashboard.filters.status.at_risk')
-                      : t('adminDashboard.filters.status.on_track')
-                  }
-                />
-              </div>
-            </>
+      <div className="overflow-x-auto">
+        <div className="flex min-w-[48rem] items-center gap-3 px-4 py-3">
+          {onFocusChange ? (
+            <button
+              type="button"
+              className={cn(
+                'flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary',
+                isFocused && 'ring-1 ring-spice-brand-primary/40',
+              )}
+              style={{ paddingLeft: `${depth * 24}px` }}
+              onClick={handleFocusToggle}
+              aria-pressed={isFocused}
+              title={
+                isFocused
+                  ? t('adminDashboard.hierarchy.clearFocus')
+                  : t('adminDashboard.hierarchy.focusForAnalytics')
+              }
+            >
+              {personBlock}
+            </button>
           ) : (
-            <>
-              <MetricCell
-                className="w-[4.5rem]"
-                value={peopleValue}
-                label={peopleLabel}
-              />
-              <MetricCell
-                className="w-[5.5rem]"
-                value={inactiveValue}
-                label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
-              />
-              <MetricCell
-                className="w-[6.5rem]"
-                value={`${modules.completed}/${modules.total}`}
-                label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
-              />
-
-              <div className="flex w-[5.75rem] justify-end">
-                <StatusBadge
-                  status={atRisk ? 'critical' : 'success'}
-                  label={
-                    atRisk
-                      ? t('adminDashboard.filters.status.at_risk')
-                      : t('adminDashboard.filters.status.on_track')
-                  }
-                />
-              </div>
-
-              <div className="flex w-[7.25rem] justify-end">
-                {canExpand ? (
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-spice-brand-primary/40 bg-spice-bg-surface px-2 text-xs font-semibold text-spice-brand-primary transition hover:bg-spice-brand-primary/5"
-                    onClick={() => setExpanded((value) => !value)}
-                  >
-                    {childrenActionLabel(member.role, expanded)}
-                    <ChevronIcon className="h-3.5 w-3.5" expanded={expanded} />
-                  </button>
-                ) : (
-                  <span className="invisible h-9 w-full" aria-hidden />
-                )}
-              </div>
-            </>
+            <div
+              className="flex min-w-0 flex-1 items-center gap-3"
+              style={{ paddingLeft: `${depth * 24}px` }}
+            >
+              {personBlock}
+            </div>
           )}
+
+          <div className="ml-auto flex shrink-0 items-center gap-6">
+            {isSkRow ? (
+              <>
+                <MetricCell
+                  className="w-[6.5rem]"
+                  value={`${modules.completed}/${modules.total}`}
+                  label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
+                  valueClassName={moduleCompletionTone(
+                    modules.completed,
+                    modules.total,
+                  )}
+                />
+                <MetricCell
+                  className="w-[5.5rem]"
+                  value={member.chatbot_query_count}
+                  label={t('adminDashboard.hierarchy.metrics.queriesLabel')}
+                />
+                <div className="flex w-[5.75rem] justify-end">
+                  <StatusBadge
+                    status={atRisk ? 'critical' : 'success'}
+                    label={
+                      atRisk
+                        ? t('adminDashboard.filters.status.at_risk')
+                        : t('adminDashboard.filters.status.on_track')
+                    }
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <MetricCell
+                  className="w-[4.5rem]"
+                  value={peopleValue}
+                  label={peopleLabel}
+                />
+                <MetricCell
+                  className="w-[5.5rem]"
+                  value={inactiveValue}
+                  label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
+                />
+                <MetricCell
+                  className="w-[6.5rem]"
+                  value={`${modules.completed}/${modules.total}`}
+                  label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
+                />
+
+                <div className="flex w-[5.75rem] justify-end">
+                  <StatusBadge
+                    status={atRisk ? 'critical' : 'success'}
+                    label={
+                      atRisk
+                        ? t('adminDashboard.filters.status.at_risk')
+                        : t('adminDashboard.filters.status.on_track')
+                    }
+                  />
+                </div>
+
+                <div className="flex w-[7.25rem] justify-end">
+                  {canExpand ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-spice-palette-purple/40 bg-spice-bg-surface px-2 text-xs font-semibold text-spice-palette-purple transition hover:bg-spice-palette-purpleLt"
+                      onClick={() => setExpanded((value) => !value)}
+                    >
+                      {childrenActionLabel(member.role, expanded)}
+                      <ChevronIcon
+                        className="h-3.5 w-3.5"
+                        expanded={expanded}
+                      />
+                    </button>
+                  ) : (
+                    <span className="invisible h-9 w-full" aria-hidden />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -494,7 +498,7 @@ export const TeamHierarchySection = ({
                 className={cn(
                   '-mb-px border-b-2 pb-2.5 text-sm font-medium transition',
                   isActive
-                    ? 'border-spice-brand-primary text-spice-brand-primary'
+                    ? 'border-spice-palette-purple text-spice-palette-purple'
                     : 'border-transparent text-spice-text-muted hover:text-spice-text-primary',
                 )}
                 onClick={() => setRoleTab(tab.value)}

@@ -24,11 +24,11 @@ const DashboardPageHeader = ({
   title: string;
   children: ReactNode;
 }) => (
-  <div className="flex flex-wrap items-start justify-between gap-4">
-    <div>
-      <PageTitle title={title} />
+  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <div className="min-w-0 shrink-0">
+      <PageTitle title={title} className="text-2xl xl:text-[30px]" />
     </div>
-    {children}
+    <div className="min-w-0 w-full xl:w-auto">{children}</div>
   </div>
 );
 
@@ -128,7 +128,7 @@ export const AdminDashboardPage = () => {
           />
 
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
               {t('adminDashboard.moduleDemand.sectionTitle')}
             </h2>
             <div className="grid items-stretch gap-3 xl:grid-cols-2">
@@ -158,7 +158,7 @@ export const AdminDashboardPage = () => {
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
               {t('adminDashboard.insightsTitle')}
             </h2>
             <DocumentUsageSection

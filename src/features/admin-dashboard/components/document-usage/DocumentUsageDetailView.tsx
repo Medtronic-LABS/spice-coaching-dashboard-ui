@@ -6,6 +6,10 @@ import { StatCard, TruncatedText } from '@/components/ui';
 import { WidgetSubheading } from '@/features/admin-dashboard/components/document-usage/DocumentUsageChrome';
 import type { DocumentUsageEventRow } from '@/features/admin-dashboard/types/dashboard.types';
 import { PAGE_SIZE_OPTIONS } from '@/features/admin-dashboard/utils/documentUsage';
+import {
+  DOC_TABLE_CELL,
+  DOCUMENT_USAGE_TABLE_PROPS,
+} from '@/features/admin-dashboard/utils/documentUsageTableLayout';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 type EventTableRow = DocumentUsageEventRow & { geography: string };
@@ -53,15 +57,16 @@ export const DocumentUsageDetailView = ({
     {
       key: 'user_name',
       header: t('adminDashboard.documentUsage.eventColumns.user'),
-      headerClassName: 'min-w-0',
-      className: 'min-w-0',
+      colClassName: 'w-[8rem]',
+      headerClassName: `max-w-[8rem] ${DOC_TABLE_CELL.compact}`,
+      className: `max-w-[8rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
       render: (row) => {
         const name =
           row.user_name ?? t('adminDashboard.documentUsage.unknownUser');
         return (
           <TruncatedText
             text={name}
-            className="font-medium text-spice-text-primary"
+            className="min-w-0 font-medium text-spice-text-primary"
           />
         );
       },
@@ -69,23 +74,28 @@ export const DocumentUsageDetailView = ({
     {
       key: 'user_role',
       header: t('adminDashboard.documentUsage.eventColumns.role'),
-      headerClassName: 'w-28',
-      className: 'w-28 whitespace-nowrap',
+      colClassName: 'w-20',
+      headerClassName: `w-20 ${DOC_TABLE_CELL.compact}`,
+      className: `w-20 ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
       render: (row) => row.user_role ?? '—',
     },
     {
       key: 'viewed_at',
       header: t('adminDashboard.documentUsage.eventColumns.viewedAt'),
-      headerClassName: 'w-40',
-      className: 'w-40 whitespace-nowrap',
+      colClassName: 'w-[7.25rem]',
+      headerClassName: `w-[7.25rem] ${DOC_TABLE_CELL.compact}`,
+      className: `w-[7.25rem] ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
       render: (row) => formatDisplayDateTime(row.viewed_at),
     },
     {
       key: 'geography',
       header: t('adminDashboard.documentUsage.eventColumns.geography'),
-      headerClassName: 'w-44',
-      className: 'w-44 min-w-0',
-      render: (row) => <TruncatedText text={row.geography} />,
+      colClassName: 'w-[7rem]',
+      headerClassName: `max-w-[7rem] ${DOC_TABLE_CELL.compact}`,
+      className: `max-w-[7rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
+      render: (row) => (
+        <TruncatedText text={row.geography} className="min-w-0" />
+      ),
     },
   ];
 
@@ -113,7 +123,7 @@ export const DocumentUsageDetailView = ({
       <Table<EventTableRow>
         data={eventRows}
         columns={eventColumns}
-        className="table-fixed"
+        {...DOCUMENT_USAGE_TABLE_PROPS}
         keyExtractor={(row) => row.event_id}
         caption={t('adminDashboard.documentUsage.opensTitle')}
         emptyMessage={t('common.noData')}

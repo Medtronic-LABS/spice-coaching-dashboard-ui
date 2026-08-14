@@ -26,6 +26,8 @@ export interface TabsProps {
   idBase?: string;
   /** Optional class overrides for the outer tabs container. */
   className?: string;
+  /** `default` is compact; `moduleLibrary` matches the violet Figma pill tabs. */
+  variant?: 'default' | 'moduleLibrary';
 }
 
 const toIdFragment = (value: string) =>
@@ -50,6 +52,7 @@ export const Tabs = ({
   onChange,
   idBase,
   className,
+  variant = 'default',
 }: TabsProps) => {
   const reactId = useId();
   const tabsIdBase = idBase ?? `tabs-${reactId.replaceAll(':', '')}`;
@@ -111,7 +114,10 @@ export const Tabs = ({
   return (
     <div
       className={cn(
-        'flex w-full overflow-x-auto rounded-lg bg-spice-bg-tint p-1',
+        'flex w-full overflow-x-auto',
+        variant === 'default'
+          ? 'gap-1 rounded-lg bg-spice-bg-tint p-1'
+          : 'gap-2',
         className,
       )}
       role="tablist"
@@ -135,10 +141,20 @@ export const Tabs = ({
             onClick={() => onChange(item.value)}
             onKeyDown={handleKeyDown}
             className={cn(
-              'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition',
-              isActive
-                ? 'bg-spice-bg-surface text-spice-text-primary shadow-sm'
-                : 'text-spice-text-muted hover:text-spice-text-primary',
+              'whitespace-nowrap transition',
+              variant === 'default'
+                ? cn(
+                    'rounded-md px-3 py-1.5 text-sm font-medium',
+                    isActive
+                      ? 'bg-spice-bg-surface text-spice-palette-violetDeep shadow-sm'
+                      : 'text-spice-text-muted hover:text-spice-palette-violetDeep',
+                  )
+                : cn(
+                    'rounded-full border px-4 py-2 text-base',
+                    isActive
+                      ? 'border-spice-palette-violet bg-spice-palette-violetLt font-semibold text-spice-palette-violetDeep'
+                      : 'border-spice-border font-normal text-spice-text-onSurfaceVariant hover:text-spice-palette-violetDeep',
+                  ),
             )}
           >
             {item.label}

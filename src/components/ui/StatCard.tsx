@@ -11,7 +11,7 @@ import { cn } from '@/utils';
  *
  * Usage:
  * <StatCard label="Completion Rate" value="68%" change={5} />
- * <StatCard tone="pink" label="SKs active now" value={127} outOf={155} tooltip="..." />
+ * <StatCard tone="pink" label="SKs active" value={127} outOf={155} tooltip="..." />
  */
 export type StatCardTone =
   | 'pink'
@@ -51,40 +51,40 @@ const TONE_STYLES: Record<
   { border: string; iconBg: string; iconFg: string; value: string }
 > = {
   pink: {
-    border: 'border-t-pink-500',
-    iconBg: 'bg-pink-500/10',
-    iconFg: 'text-pink-600',
-    value: 'text-pink-600',
+    border: 'border-t-spice-palette-pink',
+    iconBg: 'bg-spice-palette-pinkLt',
+    iconFg: 'text-spice-palette-pink',
+    value: 'text-spice-palette-pink',
   },
   amber: {
-    border: 'border-t-amber-500',
-    iconBg: 'bg-amber-500/10',
-    iconFg: 'text-amber-700',
-    value: 'text-amber-700',
+    border: 'border-t-spice-palette-amber',
+    iconBg: 'bg-spice-palette-amberLt',
+    iconFg: 'text-spice-palette-amber',
+    value: 'text-spice-palette-amber',
   },
   blue: {
-    border: 'border-t-blue-500',
-    iconBg: 'bg-blue-500/10',
-    iconFg: 'text-blue-700',
-    value: 'text-blue-700',
+    border: 'border-t-spice-palette-blue',
+    iconBg: 'bg-spice-palette-blueLt',
+    iconFg: 'text-spice-palette-blue',
+    value: 'text-spice-palette-blue',
   },
   green: {
-    border: 'border-t-green-600',
-    iconBg: 'bg-green-600/10',
-    iconFg: 'text-green-700',
-    value: 'text-green-700',
+    border: 'border-t-spice-palette-green',
+    iconBg: 'bg-spice-palette-greenLt',
+    iconFg: 'text-spice-palette-green',
+    value: 'text-spice-palette-green',
   },
   violet: {
-    border: 'border-t-violet-500',
-    iconBg: 'bg-violet-500/10',
-    iconFg: 'text-violet-700',
-    value: 'text-violet-700',
+    border: 'border-t-spice-palette-violet',
+    iconBg: 'bg-spice-palette-violetLt',
+    iconFg: 'text-spice-palette-violet',
+    value: 'text-spice-palette-violet',
   },
   purple: {
-    border: 'border-t-purple-500',
-    iconBg: 'bg-purple-500/10',
-    iconFg: 'text-purple-700',
-    value: 'text-purple-700',
+    border: 'border-t-spice-palette-purple',
+    iconBg: 'bg-spice-palette-purpleLt',
+    iconFg: 'text-spice-palette-purple',
+    value: 'text-spice-palette-purple',
   },
 };
 
@@ -109,7 +109,7 @@ export const StatCard = ({
   return (
     <section
       className={cn(
-        'relative min-w-[160px] flex-1 overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface p-4 shadow-sm transition-all hover:shadow-md',
+        'relative min-w-[160px] flex-1 overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi transition-all hover:shadow-md',
         toneStyles ? cn('border-t-4', toneStyles.border) : null,
       )}
     >
@@ -144,7 +144,7 @@ export const StatCard = ({
       {icon ? (
         <div
           className={cn(
-            'mb-3 flex h-8 w-8 items-center justify-center rounded-lg',
+            'mb-3 flex h-8 w-8 items-center justify-center rounded-full',
             toneStyles?.iconBg ?? 'bg-spice-bg-tint',
             toneStyles?.iconFg ?? 'text-spice-text-muted',
           )}
@@ -153,13 +153,13 @@ export const StatCard = ({
         </div>
       ) : null}
 
-      <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-spice-text-muted">
+      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
         {label}
       </p>
 
       <p
         className={cn(
-          'text-[28px] font-extrabold leading-none tracking-tight text-spice-text-primary',
+          'text-[30px] font-extrabold leading-none tracking-tight text-spice-text-primary',
           !hasOutOf && (valueClassName ?? toneStyles?.value),
         )}
       >

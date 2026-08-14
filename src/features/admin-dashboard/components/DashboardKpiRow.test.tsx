@@ -66,7 +66,7 @@ describe('DashboardKpiRow', () => {
       />,
     );
 
-    expect(screen.getByText('SKs active now')).toBeInTheDocument();
+    expect(screen.getByText('SKs active')).toBeInTheDocument();
     expect(screen.getByText('SKs completed a module')).toBeInTheDocument();
     expect(screen.getByText('Published training modules')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();

@@ -3,6 +3,7 @@ export const CREATE_MODULE_FORM_DEFAULTS = {
   estimated_minutes: 10,
   difficulty_level: 'moderate',
   chatbot_faqs_only: false,
+  content_domain: 'clinical',
 } as const;
 
 /** Placeholder hint for the domain field (not applied on submit). */

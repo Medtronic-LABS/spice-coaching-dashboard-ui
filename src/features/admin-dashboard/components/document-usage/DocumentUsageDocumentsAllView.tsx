@@ -4,6 +4,7 @@ import { TablePagination } from '@/components/common/TablePagination';
 import { SearchInput } from '@/components/ui';
 import type { DocumentUsageDocumentRow } from '@/features/admin-dashboard/types/dashboard.types';
 import { PAGE_SIZE_OPTIONS } from '@/features/admin-dashboard/utils/documentUsage';
+import { DOCUMENT_USAGE_TABLE_PROPS } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
 
 type DocumentTableRow = DocumentUsageDocumentRow & { actions: '' };
 
@@ -60,7 +61,7 @@ export const DocumentUsageDocumentsAllView = ({
       <Table<DocumentTableRow>
         data={documentRows}
         columns={documentColumns}
-        className="table-fixed"
+        {...DOCUMENT_USAGE_TABLE_PROPS}
         keyExtractor={(row) => row.document_id}
         caption={t('adminDashboard.documentUsage.tableTitle')}
         emptyMessage={t('common.noData')}

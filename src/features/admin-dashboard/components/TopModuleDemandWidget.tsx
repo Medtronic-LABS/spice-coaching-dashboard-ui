@@ -89,7 +89,7 @@ export const TopModuleDemandWidget = ({
           <div
             className={cn(
               'mb-2 grid items-center gap-2 border-b border-spice-border/60 pb-2',
-              'text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted',
+              'text-[11px] font-bold uppercase tracking-wide text-spice-palette-purple',
               gridClass,
             )}
           >
@@ -136,10 +136,10 @@ export const TopModuleDemandWidget = ({
                       <ProgressBar
                         value={barValue}
                         className="h-2"
-                        barClassName="bg-spice-brand-primary"
+                        barClassName="bg-spice-palette-purple"
                       />
                     </div>
-                    <span className="text-center text-sm font-semibold tabular-nums text-spice-brand-primary">
+                    <span className="text-center text-sm font-semibold tabular-nums text-spice-palette-purple">
                       {row.searchCount}
                     </span>
                     {showActions ? (
@@ -165,7 +165,7 @@ export const TopModuleDemandWidget = ({
                     <ProgressBar
                       value={barValue}
                       className="h-2"
-                      barClassName="bg-spice-brand-primary"
+                      barClassName="bg-spice-palette-purple"
                     />
                   </div>
                   {isExpanded ? (

@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import {
-  AlertCircleIcon,
   BookIcon,
-  CalendarIcon,
   ChatIcon,
+  LayersIcon,
+  SmileIcon,
   UsersIcon,
 } from '@/assets/icon';
 import { StatCard } from '@/components/ui';
@@ -77,7 +77,7 @@ export const DashboardKpiRow = ({
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <StatCard
-        tone="pink"
+        tone="purple"
         icon={<UsersIcon {...iconProps} />}
         label={t('adminDashboard.kpis.active')}
         value={summary?.active_users ?? 0}
@@ -86,7 +86,7 @@ export const DashboardKpiRow = ({
       />
       <StatCard
         tone="amber"
-        icon={<AlertCircleIcon {...iconProps} />}
+        icon={<SmileIcon {...iconProps} />}
         label={t('adminDashboard.kpis.inactive')}
         value={summary?.non_active_users ?? 0}
         outOf={totalUsers > 0 ? totalUsers : undefined}
@@ -109,8 +109,8 @@ export const DashboardKpiRow = ({
         tooltip={t('adminDashboard.kpis.chatbotEngagedTooltip')}
       />
       <StatCard
-        tone="purple"
-        icon={<CalendarIcon {...iconProps} />}
+        tone="violet"
+        icon={<LayersIcon {...iconProps} />}
         label={t('adminDashboard.kpis.totalModules')}
         value={totalModulesValue}
         tooltip={t('adminDashboard.kpis.totalModulesTooltip')}

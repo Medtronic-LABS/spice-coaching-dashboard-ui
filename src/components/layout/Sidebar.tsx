@@ -42,26 +42,26 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
     : t('layout.header.userInitials');
   const roleLabel = authSession?.role ?? t('layout.sidebar.userFallback');
   const sectionTitleClassName =
-    'px-3 pt-2 text-[10px] font-semibold tracking-wider text-spice-text-onDark-lo';
+    'px-4 pt-6 text-[11px] font-semibold uppercase leading-[13px] text-spice-palette-violet first:pt-0';
   const linkClassName = ({ isActive }: { isActive: boolean }) =>
-    `group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+    cn(
+      'group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-3 text-sm transition',
       isActive
-        ? 'bg-spice-brand-pm/20 text-spice-text-onDark-hi'
-        : 'text-spice-text-onDark-mid hover:bg-white/10 hover:text-spice-text-onDark-hi'
-    }`;
+        ? 'bg-spice-palette-violet font-semibold text-white'
+        : 'font-normal text-spice-palette-violetDeep hover:bg-white/50',
+    );
   const iconClassName = ({ isActive }: { isActive: boolean }) =>
-    `h-4 w-4 shrink-0 ${
-      isActive
-        ? 'text-spice-brand-pm'
-        : 'text-spice-text-onDark-mid group-hover:text-spice-text-onDark-hi'
-    }`;
+    cn(
+      'h-[18px] w-[18px] shrink-0',
+      isActive ? 'text-white' : 'text-spice-palette-violetDeep',
+    );
 
   return (
     <>
       <button
         type="button"
         className={cn(
-          'fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden',
+          'fixed inset-x-0 bottom-0 top-14 z-40 bg-black/40 transition-opacity lg:hidden',
           isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
         aria-label={t('layout.sidebar.closeOverlay')}
@@ -71,17 +71,11 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
       <aside
         id="app-sidebar"
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex h-screen w-[min(18rem,85vw)] shrink-0 flex-col border-r border-white/10 bg-spice-brand-navy transition-transform duration-200 ease-in-out lg:static lg:z-auto lg:w-64 lg:translate-x-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'fixed bottom-0 left-0 top-14 z-50 flex w-[min(260px,85vw)] shrink-0 flex-col bg-spice-palette-violetLt px-5 pb-6 pt-4 transition-transform duration-200 ease-in-out lg:static lg:top-auto lg:z-auto lg:h-full lg:w-[260px] lg:translate-x-0',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
-        <div className="px-5 pb-4 pt-5">
-          <div className="text-[10px] font-semibold tracking-wider text-spice-text-onDark-mid">
-            {t('layout.sidebar.brand')}
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
           <div className={sectionTitleClassName}>
             {t('layout.sidebar.sections.overview')}
           </div>
@@ -206,16 +200,16 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           </NavLink>
         </nav>
 
-        <div className="border-t border-white/10 px-4 py-4">
+        <div className="mt-auto border-t border-spice-palette-violet pt-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-brand-pm text-xs font-semibold text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-spice-palette-violet text-sm font-bold text-white">
               {userInitials}
             </div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-spice-text-onDark-hi">
+              <div className="truncate text-sm font-semibold leading-[17px] text-spice-text-sidebarName">
                 {displayName}
               </div>
-              <div className="truncate text-xs text-spice-text-onDark-mid">
+              <div className="truncate text-[11px] font-medium leading-[13px] text-spice-palette-violet">
                 {roleLabel}
               </div>
             </div>
