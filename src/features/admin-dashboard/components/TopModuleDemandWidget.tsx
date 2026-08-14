@@ -62,7 +62,7 @@ export const TopModuleDemandWidget = ({
   );
 
   const gridClass = showActions
-    ? 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem_4.5rem]'
+    ? 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem_6.75rem]'
     : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem]';
 
   return (
@@ -107,14 +107,14 @@ export const TopModuleDemandWidget = ({
             ) : null}
           </div>
 
-          <ol className="min-h-0 flex-1 divide-y divide-spice-border/60 overflow-y-auto pr-1">
+          <ol className="min-h-0 flex-1 divide-y divide-spice-border/60 overflow-y-auto overflow-x-hidden pr-1">
             {rows.map((row, index) => {
               const rank = row.rank ?? index + 1;
               const barValue = (row.searchCount / maxCount) * 100;
               const isExpanded = expandedRowId === row.id;
 
               return (
-                <li key={row.id} className="py-3 first:pt-0">
+                <li key={row.id} className="py-3">
                   <div className={cn('grid items-center gap-2', gridClass)}>
                     <span
                       className={cn(
@@ -126,8 +126,9 @@ export const TopModuleDemandWidget = ({
                     </span>
                     <button
                       type="button"
-                      className="flex min-w-0 items-center gap-1.5 text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
+                      className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
                       aria-expanded={isExpanded}
+                      title={row.title}
                       onClick={() =>
                         setExpandedRowId((current) =>
                           current === row.id ? null : row.id,
@@ -138,7 +139,9 @@ export const TopModuleDemandWidget = ({
                         expanded={isExpanded}
                         className="h-3.5 w-3.5 shrink-0 text-spice-text-muted"
                       />
-                      <span className="truncate">{row.title}</span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {row.title}
+                      </span>
                     </button>
                     <div className="hidden min-w-0 sm:block">
                       <ProgressBar
@@ -151,11 +154,11 @@ export const TopModuleDemandWidget = ({
                       {row.searchCount}
                     </span>
                     {showActions ? (
-                      <div className="flex justify-end">
+                      <div className="flex w-full justify-stretch">
                         {row.actionLabel && row.onAction ? (
                           <Button
                             variant="secondary"
-                            className="h-7 px-2 text-[10px]"
+                            className="h-7 w-full px-1.5 text-[10px] leading-none"
                             onClick={(event) => {
                               event.stopPropagation();
                               row.onAction?.();
@@ -164,7 +167,7 @@ export const TopModuleDemandWidget = ({
                             {row.actionLabel}
                           </Button>
                         ) : (
-                          <span className="h-7 w-12" aria-hidden />
+                          <span className="h-7 w-full" aria-hidden />
                         )}
                       </div>
                     ) : null}
