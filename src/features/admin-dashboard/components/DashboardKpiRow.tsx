@@ -13,28 +13,37 @@ import {
 } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardKpiSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
-import { buildPublishedModuleCompletionsQueryArgs } from '@/features/admin-dashboard/utils/publishedModuleCompletions';
+import type { DashboardGeographyFilters } from '@/features/admin-dashboard/types/dashboard.types';
+import {
+  buildPublishedModuleCompletionsQueryArgs,
+  buildTeamActivityQueryArgs,
+} from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 
 interface DashboardKpiRowProps {
   fromDate: string;
   toDate: string;
+  geography: DashboardGeographyFilters;
 }
 
 const iconClassName = 'h-4 w-4';
 const iconProps = { className: iconClassName, strokeWidth: 2 } as const;
 
-export const DashboardKpiRow = ({ fromDate, toDate }: DashboardKpiRowProps) => {
+export const DashboardKpiRow = ({
+  fromDate,
+  toDate,
+  geography,
+}: DashboardKpiRowProps) => {
   const { t } = useTranslation();
-  const teamQuery = useFetchTeamActivityQuery({
-    from_date: fromDate,
-    to_date: toDate,
-    // Summary is scope-wide; members are not needed for KPI cards.
-    limit: 1,
-    offset: 0,
-  });
+  const teamQuery = useFetchTeamActivityQuery(
+    buildTeamActivityQueryArgs(fromDate, toDate, geography, {
+      // Summary is scope-wide; members are not needed for KPI cards.
+      limit: 1,
+      offset: 0,
+    }),
+  );
   const modulesQuery = useFetchPublishedModuleCompletionsQuery(
-    buildPublishedModuleCompletionsQueryArgs(fromDate, toDate),
+    buildPublishedModuleCompletionsQueryArgs(fromDate, toDate, geography),
   );
 
   const teamUi = resolveDashboardQueryUiState(teamQuery);

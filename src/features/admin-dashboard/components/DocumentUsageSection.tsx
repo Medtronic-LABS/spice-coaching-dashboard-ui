@@ -16,6 +16,7 @@ import type {
   DashboardGeographyFilters,
   DocumentUsageDocumentRow,
 } from '@/features/admin-dashboard/types/dashboard.types';
+import { buildDocumentUsageDateGeoArgs } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 import {
   DEFAULT_PAGE_SIZE,
   buildDocumentUsageQueryArgs,
@@ -95,6 +96,7 @@ export const DocumentUsageSection = ({
   }, [
     fromDate,
     toDate,
+    geography.division,
     geography.district,
     geography.upazila,
     userId,
@@ -140,10 +142,7 @@ export const DocumentUsageSection = ({
 
   const query = useFetchDocumentUsageQuery(
     {
-      from: fromDate,
-      to: toDate,
-      district: geography.district || undefined,
-      upazila_id: geography.upazila || undefined,
+      ...buildDocumentUsageDateGeoArgs(fromDate, toDate, geography),
       user_id: userId,
       ...queryArgs,
     },

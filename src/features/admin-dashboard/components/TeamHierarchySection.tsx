@@ -16,11 +16,13 @@ import {
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 import type {
+  DashboardGeographyFilters,
   DashboardStatusFilter,
   HierarchyFocusSelection,
   TeamActivityMember,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
+import { buildTeamActivityQueryArgs } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import {
   filterMembersBySearch,
@@ -43,6 +45,7 @@ export type { HierarchyFocusSelection };
 interface TeamHierarchySectionProps {
   fromDate: string;
   toDate: string;
+  geography: DashboardGeographyFilters;
   status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   onSortChange: (sort: TeamHierarchySortKey) => void;
@@ -134,6 +137,7 @@ interface HierarchyMemberRowProps {
   member: TeamActivityMember;
   fromDate: string;
   toDate: string;
+  geography: DashboardGeographyFilters;
   status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   depth: number;
@@ -145,6 +149,7 @@ const HierarchyMemberRow = ({
   member,
   fromDate,
   toDate,
+  geography,
   status,
   sortKey,
   depth,
@@ -171,13 +176,11 @@ const HierarchyMemberRow = ({
   };
 
   const descendantsQuery = useFetchTeamActivityQuery(
-    {
-      from_date: fromDate,
-      to_date: toDate,
+    buildTeamActivityQueryArgs(fromDate, toDate, geography, {
       user_id: member.user_id,
       limit: 100,
       offset: 0,
-    },
+    }),
     { skip: !canExpand || !expanded },
   );
   const descendantsUi = resolveDashboardQueryUiState(descendantsQuery);
@@ -370,6 +373,7 @@ const HierarchyMemberRow = ({
                 member={child}
                 fromDate={fromDate}
                 toDate={toDate}
+                geography={geography}
                 status={status}
                 sortKey={sortKey}
                 depth={depth + 1}
@@ -387,6 +391,7 @@ const HierarchyMemberRow = ({
 export const TeamHierarchySection = ({
   fromDate,
   toDate,
+  geography,
   status,
   sortKey,
   onSortChange,
@@ -399,13 +404,13 @@ export const TeamHierarchySection = ({
   const [search, setSearch] = useState('');
 
   const depth = hierarchyTabDepth(roleTab);
-  const query = useFetchTeamActivityQuery({
-    from_date: fromDate,
-    to_date: toDate,
-    limit: 100,
-    offset: 0,
-    depth,
-  });
+  const query = useFetchTeamActivityQuery(
+    buildTeamActivityQueryArgs(fromDate, toDate, geography, {
+      limit: 100,
+      offset: 0,
+      depth,
+    }),
+  );
   const { data, refetch, isFetching } = query;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
 
@@ -525,6 +530,7 @@ export const TeamHierarchySection = ({
               member={member}
               fromDate={fromDate}
               toDate={toDate}
+              geography={geography}
               status={status}
               sortKey={sortKey}
               depth={0}

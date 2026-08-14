@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TrainingModulesSection } from '@/features/admin-dashboard/components/TrainingModulesSection';
+import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import {
   LONG_MODULE_TITLE,
   buildPublishedModuleCompletionsResponse,
@@ -43,7 +44,11 @@ describe('TrainingModulesSection', () => {
     });
 
     renderWithProviders(
-      <TrainingModulesSection fromDate="2026-01-01" toDate="2026-01-31" />,
+      <TrainingModulesSection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+      />,
     );
 
     expect(
@@ -95,7 +100,11 @@ describe('TrainingModulesSection', () => {
     });
 
     renderWithProviders(
-      <TrainingModulesSection fromDate="2026-01-01" toDate="2026-01-31" />,
+      <TrainingModulesSection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+      />,
     );
 
     expect(screen.getByText('No published modules')).toBeInTheDocument();
@@ -116,9 +125,39 @@ describe('TrainingModulesSection', () => {
     });
 
     const { container } = renderWithProviders(
-      <TrainingModulesSection fromDate="2026-01-01" toDate="2026-01-31" />,
+      <TrainingModulesSection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+      />,
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('forwards geography filters to the published modules query', () => {
+    mockPublishedModulesQuery({
+      data: buildPublishedModuleCompletionsResponse(0),
+      isLoading: false,
+      isFetching: false,
+      error: undefined,
+      refetch,
+    });
+
+    renderWithProviders(
+      <TrainingModulesSection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, district: 'Gazipur' }}
+      />,
+    );
+
+    expect(useFetchPublishedModuleCompletionsQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from_date: '2026-01-01',
+        to_date: '2026-01-31',
+        district: 'Gazipur',
+      }),
+    );
   });
 });

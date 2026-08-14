@@ -7,7 +7,8 @@ import { DashboardTableSkeleton } from '@/features/admin-dashboard/components/Da
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 import { resolveModuleCompletionTone } from '@/features/admin-dashboard/utils/moduleCompletionTones';
-import { buildPublishedModuleCompletionsQueryArgs } from '@/features/admin-dashboard/utils/publishedModuleCompletions';
+import type { DashboardGeographyFilters } from '@/features/admin-dashboard/types/dashboard.types';
+import { buildPublishedModuleCompletionsQueryArgs } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { cn } from '@/utils';
@@ -15,6 +16,7 @@ import { cn } from '@/utils';
 interface TrainingModulesSectionProps {
   fromDate: string;
   toDate: string;
+  geography: DashboardGeographyFilters;
 }
 
 function formatLaunchedDate(value: string): string {
@@ -30,10 +32,11 @@ function formatLaunchedDate(value: string): string {
 export const TrainingModulesSection = ({
   fromDate,
   toDate,
+  geography,
 }: TrainingModulesSectionProps) => {
   const { t } = useTranslation();
   const query = useFetchPublishedModuleCompletionsQuery(
-    buildPublishedModuleCompletionsQueryArgs(fromDate, toDate),
+    buildPublishedModuleCompletionsQueryArgs(fromDate, toDate, geography),
   );
   const { data, error, refetch, isFetching } = query;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);

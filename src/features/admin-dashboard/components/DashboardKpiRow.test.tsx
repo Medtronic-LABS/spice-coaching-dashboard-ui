@@ -1,39 +1,46 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
-import { PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT } from '@/features/admin-dashboard/utils/publishedModuleCompletions';
+import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
+import { PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 import { renderWithProviders } from '@/test-utils/render';
 
 const refetchTeam = vi.hoisted(() => vi.fn());
 const refetchModules = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
-  useFetchTeamActivityQuery: () => ({
-    data: {
-      summary: {
-        total_users: 3,
-        active_users: 3,
-        non_active_users: 0,
-        users_completed_module: 2,
-        users_chatbot_engaged: 1,
+  useFetchTeamActivityQuery: (args: Record<string, unknown>) => {
+    expect(args).toEqual({
+      from_date: '2026-01-01',
+      to_date: '2026-01-31',
+      limit: 1,
+      offset: 0,
+      district: 'Gazipur',
+    });
+
+    return {
+      data: {
+        summary: {
+          total_users: 3,
+          active_users: 3,
+          non_active_users: 0,
+          users_completed_module: 2,
+          users_chatbot_engaged: 1,
+        },
       },
-    },
-    isLoading: false,
-    isFetching: false,
-    error: undefined,
-    refetch: refetchTeam,
-  }),
-  useFetchPublishedModuleCompletionsQuery: (args: {
-    from_date: string;
-    to_date: string;
-    limit: number;
-    offset: number;
-  }) => {
+      isLoading: false,
+      isFetching: false,
+      error: undefined,
+      refetch: refetchTeam,
+    };
+  },
+  useFetchPublishedModuleCompletionsQuery: (args: Record<string, unknown>) => {
     expect(args).toEqual({
       from_date: '2026-01-01',
       to_date: '2026-01-31',
       limit: PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
       offset: 0,
+      district: 'Gazipur',
     });
 
     return {
@@ -50,9 +57,13 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
 }));
 
 describe('DashboardKpiRow', () => {
-  it('renders team summary KPIs with aligned module count labels', () => {
+  it('refetches KPI queries with date and geography params', () => {
     renderWithProviders(
-      <DashboardKpiRow fromDate="2026-01-01" toDate="2026-01-31" />,
+      <DashboardKpiRow
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, district: 'Gazipur' }}
+      />,
     );
 
     expect(screen.getByText('SKs active now')).toBeInTheDocument();

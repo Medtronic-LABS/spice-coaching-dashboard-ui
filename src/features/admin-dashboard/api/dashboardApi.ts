@@ -5,9 +5,11 @@ import {
   normalizeSuggestionDetailResponse,
   normalizeSuggestionListResponse,
 } from '@/features/admin-dashboard/api/dashboardResponseNormalizers';
+import { buildDashboardGeoParams } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 import { baseApi } from '@/store/apis/base';
 import type {
   DashboardGeographyFilters,
+  DashboardGeoQueryParams,
   DigitalHelpModuleQuestionsResponse,
   DigitalHelpModuleRequestsResponse,
   DigitalHelpModuleUsageResponse,
@@ -25,17 +27,8 @@ export interface DashboardDateParams {
 
 export type DashboardStatusQueryParam = 'all' | 'on_track' | 'at_risk';
 
-export function buildDashboardGeoParams(
-  geography: DashboardGeographyFilters,
-): Record<string, string> {
-  const params: Record<string, string> = {};
-  if (geography.division.trim()) params.division = geography.division.trim();
-  if (geography.district.trim()) params.district = geography.district.trim();
-  if (geography.upazila.trim()) params.upazila_id = geography.upazila.trim();
-  return params;
-}
-
-export interface TeamActivityQuery extends DashboardDateParams {
+export interface TeamActivityQuery
+  extends DashboardDateParams, DashboardGeoQueryParams {
   limit?: number;
   offset?: number;
   user_id?: number;
@@ -48,8 +41,6 @@ export interface TeamActivityQuery extends DashboardDateParams {
   sort_dir?: 'asc' | 'desc';
   /** Pending BE: hierarchy status filter. */
   status?: DashboardStatusQueryParam;
-  district?: string;
-  upazila_id?: string;
 }
 
 export interface DigitalHelpModulesQuery extends DashboardDateParams {
@@ -58,7 +49,8 @@ export interface DigitalHelpModulesQuery extends DashboardDateParams {
   geography: DashboardGeographyFilters;
 }
 
-export interface PublishedModuleCompletionsQuery extends DashboardDateParams {
+export interface PublishedModuleCompletionsQuery
+  extends DashboardDateParams, DashboardGeoQueryParams {
   limit?: number;
   offset?: number;
 }
@@ -81,15 +73,9 @@ export interface ModuleCreationSuggestionDetailQuery {
   geography: DashboardGeographyFilters;
 }
 
-export interface DocumentUsageQuery {
+export interface DocumentUsageQuery extends DashboardGeoQueryParams {
   from: string;
   to: string;
-  district?: string;
-  /**
-   * Today BE matches this by upazila **name** (param name is historical).
-   * FE sends the display name until BE documents numeric admin id support.
-   */
-  upazila_id?: string;
   user_id?: number;
   document_id?: string;
   top_limit?: number;
@@ -105,7 +91,15 @@ export const dashboardApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     fetchTeamActivity: builder.query<TeamActivityResponse, TeamActivityQuery>({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ from_date, to_date, limit, offset, user_id, depth }) => ({
+      query: ({
+        from_date,
+        to_date,
+        limit,
+        offset,
+        user_id,
+        depth,
+        ...geo
+      }) => ({
         url: '/dashboard/team-activity',
         params: {
           from_date,
@@ -114,6 +108,7 @@ export const dashboardApi = baseApi.injectEndpoints({
           offset,
           user_id,
           depth,
+          ...geo,
         },
       }),
     }),
@@ -176,13 +171,14 @@ export const dashboardApi = baseApi.injectEndpoints({
       PublishedModuleCompletionsQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ from_date, to_date, limit, offset }) => ({
+      query: ({ from_date, to_date, limit, offset, ...geo }) => ({
         url: '/dashboard/published-module-completions',
         params: {
           from_date,
           to_date,
           limit,
           offset,
+          ...geo,
         },
       }),
     }),
@@ -231,8 +227,6 @@ export const dashboardApi = baseApi.injectEndpoints({
       query: ({
         from,
         to,
-        district,
-        upazila_id,
         user_id,
         document_id,
         top_limit,
@@ -240,13 +234,12 @@ export const dashboardApi = baseApi.injectEndpoints({
         documents_offset,
         events_limit,
         events_offset,
+        ...geo
       }) => ({
         url: '/dashboard/document-usage',
         params: {
           from,
           to,
-          district,
-          upazila_id,
           user_id,
           document_id,
           top_limit,
@@ -254,6 +247,7 @@ export const dashboardApi = baseApi.injectEndpoints({
           documents_offset,
           events_limit,
           events_offset,
+          ...geo,
         },
       }),
     }),

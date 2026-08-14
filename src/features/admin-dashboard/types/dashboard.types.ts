@@ -28,6 +28,16 @@ export interface DashboardGeographyFilters {
   upazila: string;
 }
 
+/** Normalized geography params sent to dashboard API endpoints. */
+export interface DashboardGeoQueryParams {
+  division?: string;
+  district?: string;
+  /**
+   * Upazila display name. Param name is historical; BE resolves by name today.
+   */
+  upazila_id?: string;
+}
+
 export interface DashboardDateRange {
   fromDate: string;
   toDate: string;

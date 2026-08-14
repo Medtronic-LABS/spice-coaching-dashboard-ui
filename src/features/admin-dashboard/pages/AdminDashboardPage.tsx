@@ -116,11 +116,13 @@ export const AdminDashboardPage = () => {
           <DashboardKpiRow
             fromDate={dateRange.fromDate}
             toDate={dateRange.toDate}
+            geography={filters.geography}
           />
 
           <TeamHierarchySection
             fromDate={dateRange.fromDate}
             toDate={dateRange.toDate}
+            geography={filters.geography}
             status={filters.status}
             sortKey={hierarchySort}
             onSortChange={setHierarchySort}
@@ -131,6 +133,7 @@ export const AdminDashboardPage = () => {
           <TrainingModulesSection
             fromDate={dateRange.fromDate}
             toDate={dateRange.toDate}
+            geography={filters.geography}
           />
 
           <div className="space-y-3">

@@ -176,7 +176,7 @@
       "panelLabel": "Dashboard filters",
       "statusLabel": "Team view",
       "durationLabel": "Duration:",
-      "scopeNote": "Team view filters the hierarchy list on this page only (not a server metric). District and upazila apply to Document & knowledge views. Duration updates every widget.",
+      "scopeNote": "Team view filters the hierarchy list on this page only (not a server metric). Division, district, and upazila refetch all dashboard widgets. Duration updates every widget.",
       "clearCustomRange": "Clear custom date range",
       "invalidRangeTitle": "Invalid date range",
       "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
