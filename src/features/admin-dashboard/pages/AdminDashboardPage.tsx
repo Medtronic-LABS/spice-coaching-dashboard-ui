@@ -129,10 +129,16 @@ export const AdminDashboardPage = () => {
             onFocusChange={setHierarchyFocus}
           />
 
-          <TrainingModulesSection
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-          />
+          <div className="grid items-stretch gap-3 xl:grid-cols-2">
+            <TrainingModulesSection
+              fromDate={dateRange.fromDate}
+              toDate={dateRange.toDate}
+            />
+            <ModulePerformanceSection
+              fromDate={dateRange.fromDate}
+              toDate={dateRange.toDate}
+            />
+          </div>
 
           <div className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
@@ -168,10 +174,6 @@ export const AdminDashboardPage = () => {
             <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
               {t('adminDashboard.insightsTitle')}
             </h2>
-            <ModulePerformanceSection
-              fromDate={dateRange.fromDate}
-              toDate={dateRange.toDate}
-            />
             <DocumentUsageSection
               fromDate={dateRange.fromDate}
               toDate={dateRange.toDate}

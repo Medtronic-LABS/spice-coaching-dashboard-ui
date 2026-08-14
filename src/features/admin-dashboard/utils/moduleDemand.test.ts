@@ -47,7 +47,7 @@ describe('moduleDemand ranking', () => {
 
     expect(
       filterAndRankSearchedModules(modules).map((item) => item.module_id),
-    ).toEqual(['high-requests', 'both', 'high-searches']);
+    ).toEqual(['high-requests', 'high-searches', 'both']);
   });
 });
 

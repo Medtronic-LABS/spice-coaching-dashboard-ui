@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookIcon, ChevronIcon } from '@/assets/icon';
 import { type ColumnDef } from '@/components/common/Table';
-import { Button, EmptyState } from '@/components/ui';
+import { Button, EmptyState, TruncatedText } from '@/components/ui';
 import { useFetchDocumentUsageQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
@@ -223,36 +223,54 @@ export const DocumentUsageSection = ({
       {
         key: 'document_title',
         header: t('adminDashboard.documentUsage.columns.title'),
-        render: (row) => (
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-spice-bg-tint text-spice-text-muted">
-              <BookIcon className="h-3.5 w-3.5" />
+        headerClassName: 'min-w-0',
+        className: 'min-w-0',
+        render: (row) => {
+          const title = row.document_title ?? row.document_id;
+          return (
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-spice-bg-tint text-spice-text-muted">
+                <BookIcon className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <TruncatedText
+                  text={title}
+                  className="font-medium text-spice-text-primary"
+                />
+              </div>
             </span>
-            <span className="max-w-[16rem] truncate font-medium text-spice-text-primary">
-              {row.document_title ?? row.document_id}
-            </span>
-          </span>
-        ),
+          );
+        },
       },
       {
         key: 'total_views',
         header: t('adminDashboard.documentUsage.columns.views'),
-        className: 'tabular-nums',
+        headerClassName: 'w-20',
+        className: 'w-20 tabular-nums',
       },
       {
         key: 'unique_users',
         header: t('adminDashboard.documentUsage.columns.users'),
-        className: 'tabular-nums',
+        headerClassName: 'w-20',
+        className: 'w-20 tabular-nums',
       },
       {
         key: 'last_viewed_at',
         header: t('adminDashboard.documentUsage.columns.lastViewed'),
+        headerClassName: 'w-40',
+        className: 'w-40 whitespace-nowrap',
         render: (row) => formatDisplayDateTime(row.last_viewed_at),
       },
       {
         key: 'last_viewed_by_user_name',
         header: t('adminDashboard.documentUsage.columns.lastViewedBy'),
-        render: (row) => row.last_viewed_by_user_name ?? '—',
+        headerClassName: 'w-36',
+        className: 'w-36 min-w-0',
+        render: (row) => {
+          const name = row.last_viewed_by_user_name;
+          if (!name) return '—';
+          return <TruncatedText text={name} />;
+        },
       },
       {
         key: 'actions',

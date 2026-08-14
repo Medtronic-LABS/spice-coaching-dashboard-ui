@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { BookIcon, EyeIcon, UsersIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { EmptyState, StatCard } from '@/components/ui';
+import { EmptyState, StatCard, TruncatedText } from '@/components/ui';
 import {
   TextLink,
   WidgetSubheading,
@@ -96,9 +96,12 @@ export const DocumentUsageOverview = ({
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-spice-bg-tint text-[10px] font-semibold tabular-nums text-spice-text-muted">
                     {doc.rank}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-medium text-spice-text-primary">
-                    {doc.title}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <TruncatedText
+                      text={doc.title}
+                      className="font-medium text-spice-text-primary"
+                    />
+                  </div>
                   <span className="shrink-0 tabular-nums text-spice-text-muted">
                     {t('adminDashboard.documentUsage.viewsCount', {
                       count: doc.views,
@@ -123,6 +126,7 @@ export const DocumentUsageOverview = ({
         <Table<DocumentTableRow>
           data={documentRows}
           columns={documentColumns}
+          className="table-fixed"
           keyExtractor={(row) => row.document_id}
           caption={t('adminDashboard.documentUsage.tableTitle')}
           emptyMessage={t('common.noData')}

@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, TruncatedText } from '@/components/ui';
 import { useFetchPublishedModuleCompletionsQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import type { PublishedModuleCompletionItem } from '@/features/admin-dashboard/types/dashboard.types';
 import { DashboardTableSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
+import { resolveModuleCompletionTone } from '@/features/admin-dashboard/utils/moduleCompletionTones';
+import { buildPublishedModuleCompletionsQueryArgs } from '@/features/admin-dashboard/utils/publishedModuleCompletions';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { cn } from '@/utils';
@@ -13,13 +15,6 @@ interface TrainingModulesSectionProps {
   fromDate: string;
   toDate: string;
 }
-
-const COMPLETION_TONES = [
-  'text-spice-brand-primary',
-  'text-spice-semantic-info',
-  'text-spice-semantic-success',
-  'text-spice-semantic-warning',
-] as const;
 
 function formatLaunchedDate(value: string): string {
   const date = new Date(value);
@@ -31,23 +26,14 @@ function formatLaunchedDate(value: string): string {
   }).format(date);
 }
 
-function completionTone(index: number): string {
-  return (
-    COMPLETION_TONES[index % COMPLETION_TONES.length] ?? COMPLETION_TONES[0]
-  );
-}
-
 export const TrainingModulesSection = ({
   fromDate,
   toDate,
 }: TrainingModulesSectionProps) => {
   const { t } = useTranslation();
-  const query = useFetchPublishedModuleCompletionsQuery({
-    from_date: fromDate,
-    to_date: toDate,
-    limit: 50,
-    offset: 0,
-  });
+  const query = useFetchPublishedModuleCompletionsQuery(
+    buildPublishedModuleCompletionsQueryArgs(fromDate, toDate),
+  );
   const { data, error, refetch, isFetching } = query;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
 
@@ -86,42 +72,48 @@ export const TrainingModulesSection = ({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table className="w-full table-fixed text-left text-sm">
             <thead className="bg-spice-brand-primary/10 text-[11px] font-semibold uppercase tracking-wide text-spice-brand-primary">
               <tr>
-                <th className="px-4 py-2.5">
+                <th className="min-w-0 px-4 py-2.5">
                   {t('adminDashboard.trainingModules.columns.name')}
                 </th>
-                <th className="px-4 py-2.5">
+                <th className="w-28 whitespace-nowrap px-4 py-2.5">
                   {t('adminDashboard.trainingModules.columns.launched')}
                 </th>
-                <th className="px-4 py-2.5">
+                <th className="w-32 whitespace-nowrap px-4 py-2.5">
                   {t('adminDashboard.trainingModules.columns.completed')}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {modules.map((row: PublishedModuleCompletionItem, index) => (
-                <tr
-                  key={row.module_id}
-                  className="border-t border-spice-border"
-                >
-                  <td className="px-4 py-2.5 font-medium text-spice-text-primary">
-                    {resolveDisplayText(row.title)}
-                  </td>
-                  <td className="px-4 py-2.5 text-spice-text-muted">
-                    {formatLaunchedDate(row.published_at)}
-                  </td>
-                  <td
-                    className={cn(
-                      'px-4 py-2.5 font-semibold',
-                      completionTone(index),
-                    )}
+              {modules.map((row: PublishedModuleCompletionItem, index) => {
+                const title = resolveDisplayText(row.title);
+                return (
+                  <tr
+                    key={row.module_id}
+                    className="border-t border-spice-border"
                   >
-                    {`${row.completed_sk_count}/${row.total_descendant_sk_count}`}
-                  </td>
-                </tr>
-              ))}
+                    <td className="min-w-0 px-4 py-2.5">
+                      <TruncatedText
+                        text={title}
+                        className="font-medium text-spice-text-primary"
+                      />
+                    </td>
+                    <td className="w-28 whitespace-nowrap px-4 py-2.5 text-spice-text-muted">
+                      {formatLaunchedDate(row.published_at)}
+                    </td>
+                    <td
+                      className={cn(
+                        'w-32 whitespace-nowrap px-4 py-2.5 font-semibold',
+                        resolveModuleCompletionTone(index).textClassName,
+                      )}
+                    >
+                      {`${row.completed_sk_count}/${row.total_descendant_sk_count}`}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

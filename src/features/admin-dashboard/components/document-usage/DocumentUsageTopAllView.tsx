@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { Table, type ColumnDef } from '@/components/common/Table';
+import { TruncatedText } from '@/components/ui';
 import type { DocumentUsageTopCard } from '@/features/admin-dashboard/utils/documentUsage';
 
 type TopDocumentTableRow = {
@@ -34,24 +35,30 @@ export const DocumentUsageTopAllView = ({
     {
       key: 'rank',
       header: t('adminDashboard.documentUsage.columns.rank'),
-      className: 'tabular-nums text-spice-text-muted',
+      headerClassName: 'w-14',
+      className: 'w-14 tabular-nums text-spice-text-muted',
     },
     {
       key: 'document_title',
       header: t('adminDashboard.documentUsage.columns.title'),
+      headerClassName: 'min-w-0',
+      className: 'min-w-0',
       render: (row) => (
-        <span className="max-w-[16rem] truncate font-medium text-spice-text-primary">
-          {row.document_title}
-        </span>
+        <TruncatedText
+          text={row.document_title}
+          className="font-medium text-spice-text-primary"
+        />
       ),
     },
     {
       key: 'trend',
       header: t('adminDashboard.documentUsage.columns.trend'),
+      headerClassName: 'w-36',
+      className: 'w-36',
       render: (row) => (
         <ProgressBar
           value={row.trend}
-          className="h-2 min-w-[6rem]"
+          className="h-2 w-full"
           barClassName="bg-spice-brand-primary"
         />
       ),
@@ -59,12 +66,14 @@ export const DocumentUsageTopAllView = ({
     {
       key: 'total_views',
       header: t('adminDashboard.documentUsage.columns.views'),
-      className: 'tabular-nums',
+      headerClassName: 'w-20',
+      className: 'w-20 tabular-nums',
     },
     {
       key: 'unique_users',
       header: t('adminDashboard.documentUsage.columns.users'),
-      className: 'tabular-nums',
+      headerClassName: 'w-20',
+      className: 'w-20 tabular-nums',
       render: (row) => row.unique_users ?? '—',
     },
   ];
@@ -74,6 +83,7 @@ export const DocumentUsageTopAllView = ({
       <Table<TopDocumentTableRow>
         data={rows}
         columns={columns}
+        className="table-fixed"
         keyExtractor={(row) => row.document_id}
         caption={t('adminDashboard.documentUsage.topAllTitle')}
         emptyMessage={t('adminDashboard.documentUsage.emptyTitle')}

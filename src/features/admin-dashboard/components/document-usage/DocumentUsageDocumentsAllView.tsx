@@ -60,6 +60,7 @@ export const DocumentUsageDocumentsAllView = ({
       <Table<DocumentTableRow>
         data={documentRows}
         columns={documentColumns}
+        className="table-fixed"
         keyExtractor={(row) => row.document_id}
         caption={t('adminDashboard.documentUsage.tableTitle')}
         emptyMessage={t('common.noData')}
