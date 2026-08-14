@@ -7,9 +7,7 @@ import { buildPath, paths } from '@/constants/routes';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
 import { DocumentUsageSection } from '@/features/admin-dashboard/components/DocumentUsageSection';
-import { ModuleDemandDetailDrawer } from '@/features/admin-dashboard/components/ModuleDemandDetailDrawer';
 import { ModulePerformanceSection } from '@/features/admin-dashboard/components/ModulePerformanceSection';
-import { SuggestionDetailDrawer } from '@/features/admin-dashboard/components/SuggestionDetailDrawer';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/TopSearchedModulesWidget';
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
@@ -56,14 +54,6 @@ export const AdminDashboardPage = () => {
     clearCustomDateRange,
   } = useDashboardFilters();
 
-  const [detailModule, setDetailModule] = useState<{
-    kind: 'searched';
-    moduleId: string;
-    title: string;
-  } | null>(null);
-  const [selectedSuggestionId, setSelectedSuggestionId] = useState<
-    string | null
-  >(null);
   const [assignmentTarget, setAssignmentTarget] = useState<{
     moduleId: string;
     title: string;
@@ -81,8 +71,9 @@ export const AdminDashboardPage = () => {
 
   const handleCreate = (topic: string) => {
     const state: ModuleLibraryLocationState = {
-      openCreate: true,
-      prefillTitle: topic,
+      openCreateModule: {
+        title_bn: topic,
+      },
     };
     navigate(paths.moduleLibrary, { state });
   };
@@ -157,13 +148,7 @@ export const AdminDashboardPage = () => {
                 onAssign={(moduleId, title) =>
                   setAssignmentTarget({ moduleId, title })
                 }
-                onSelectModule={(moduleId, title) =>
-                  setDetailModule({
-                    kind: 'searched',
-                    moduleId,
-                    title,
-                  })
-                }
+                hideSkName={hierarchyFocus?.userId != null}
               />
               <TopSuggestedModulesWidget
                 fromDate={dateRange.fromDate}
@@ -174,7 +159,7 @@ export const AdminDashboardPage = () => {
                 createLabel={createLabel}
                 onPublish={handlePublish}
                 onCreate={handleCreate}
-                onSelectSuggestion={setSelectedSuggestionId}
+                hideSkName={hierarchyFocus?.userId != null}
               />
             </div>
           </div>
@@ -196,29 +181,6 @@ export const AdminDashboardPage = () => {
               onClearFocus={() => setHierarchyFocus(null)}
             />
           </div>
-
-          <ModuleDemandDetailDrawer
-            open={detailModule !== null}
-            mode={detailModule}
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-            geography={filters.geography}
-            focusUserId={hierarchyFocus?.userId}
-            onClose={() => setDetailModule(null)}
-            onAssign={(moduleId, title) =>
-              setAssignmentTarget({ moduleId, title })
-            }
-          />
-
-          <SuggestionDetailDrawer
-            open={selectedSuggestionId !== null}
-            suggestionId={selectedSuggestionId}
-            focusUserId={hierarchyFocus?.userId}
-            geography={filters.geography}
-            onClose={() => setSelectedSuggestionId(null)}
-            onPublish={handlePublish}
-            onCreate={handleCreate}
-          />
 
           {assignmentTarget ? (
             <ModuleAssignmentDialog

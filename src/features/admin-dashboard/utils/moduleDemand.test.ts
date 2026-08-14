@@ -68,10 +68,41 @@ describe('moduleDemand drill-down mappers', () => {
       timestamp: '2026-07-29T14:22:10Z',
       skId: 10042,
       skName: 'SK Name',
+      division: 'Rangpur',
       district: 'Lalmonirhat',
       upazila: 'Lalmonirhat Sadar',
       interactionType: 'chatbot_served',
     });
+    expect(rows[0]?.users).toHaveLength(1);
+  });
+
+  it('groups repeated questions into one row with multiple users', () => {
+    const rows = mapDigitalHelpQuestionsToRows([
+      {
+        question: 'What are neonatal danger signs?',
+        occurrence_count: 1,
+        last_asked_at: '2026-08-12T19:55:50Z',
+        asked_by: userSummary,
+      },
+      {
+        question: 'What are neonatal danger signs?',
+        occurrence_count: 1,
+        last_asked_at: '2026-08-11T10:12:00Z',
+        asked_by: {
+          ...userSummary,
+          user_id: 101,
+          user_name: 'Mst. Hosneyara Begum',
+          upazila: 'Hatibandha',
+        },
+      },
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.occurrenceCount).toBe(2);
+    expect(rows[0]?.users.map((user) => user.skName)).toEqual([
+      'SK Name',
+      'Mst. Hosneyara Begum',
+    ]);
   });
 
   it('maps assignment requests with requested_by metadata and fallback text', () => {
@@ -114,6 +145,7 @@ describe('moduleDemand drill-down mappers', () => {
     expect(rows[0]).toMatchObject({
       skId: 10042,
       skName: 'SK Name',
+      division: 'Rangpur',
       district: 'Lalmonirhat',
       upazila: 'Lalmonirhat Sadar',
       reason: 'Draft module exists',

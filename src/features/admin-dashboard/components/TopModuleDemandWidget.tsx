@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
@@ -27,14 +27,13 @@ interface TopModuleDemandWidgetProps {
   onRetry: () => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
-  onRowClick: (rowId: string) => void;
   showActions: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
   hasMore?: boolean;
   onSeeMore?: () => void;
   isLoadingMore?: boolean;
-  defaultExpanded?: boolean;
+  renderExpandedContent: (rowId: string) => ReactNode;
 }
 
 export const TopModuleDemandWidget = ({
@@ -47,53 +46,34 @@ export const TopModuleDemandWidget = ({
   onRetry,
   onRefresh,
   isRefreshing = false,
-  onRowClick,
   showActions,
   emptyTitle,
   emptyDescription,
   hasMore = false,
   onSeeMore,
   isLoadingMore = false,
-  defaultExpanded = true,
+  renderExpandedContent,
 }: TopModuleDemandWidgetProps) => {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const maxCount = useMemo(
     () => Math.max(...rows.map((row) => row.searchCount), 1),
     [rows],
   );
 
-  const collapseSummary =
-    rows.length > 0
-      ? t('adminDashboard.moduleDemand.collapsedSummary', {
-          count: rows.length,
-        })
-      : undefined;
+  const gridClass = showActions
+    ? 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem_4.5rem]'
+    : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem]';
 
   return (
     <DashboardWidgetShell
       title={title}
-      description={expanded ? description : collapseSummary}
-      compact={!expanded}
+      description={description}
+      size="lg"
       onRefresh={onRefresh}
       isRefreshing={isRefreshing}
-      actions={
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-spice-text-muted transition-colors hover:bg-spice-bg-tint hover:text-spice-text-primary"
-          aria-expanded={expanded}
-          aria-label={
-            expanded
-              ? t('adminDashboard.moduleDemand.collapse')
-              : t('adminDashboard.moduleDemand.expand')
-          }
-          onClick={() => setExpanded((value) => !value)}
-        >
-          <ChevronIcon expanded={expanded} className="h-4 w-4" />
-        </button>
-      }
     >
-      {!expanded ? null : showLoading ? (
+      {showLoading ? (
         <DashboardListSkeleton rows={5} />
       ) : showError ? (
         <DashboardWidgetErrorState onRetry={onRetry} />
@@ -111,9 +91,7 @@ export const TopModuleDemandWidget = ({
             className={cn(
               'mb-2 grid items-center gap-2 border-b border-spice-border/60 pb-2',
               'text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted',
-              showActions
-                ? 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem_4.5rem]'
-                : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem]',
+              gridClass,
             )}
           >
             <span aria-hidden>#</span>
@@ -129,21 +107,15 @@ export const TopModuleDemandWidget = ({
             ) : null}
           </div>
 
-          <ol className="min-h-0 max-h-72 flex-1 divide-y divide-spice-border/60 overflow-y-auto pr-1">
+          <ol className="min-h-0 flex-1 divide-y divide-spice-border/60 overflow-y-auto pr-1">
             {rows.map((row, index) => {
               const rank = row.rank ?? index + 1;
               const barValue = (row.searchCount / maxCount) * 100;
+              const isExpanded = expandedRowId === row.id;
 
               return (
                 <li key={row.id} className="py-3 first:pt-0">
-                  <div
-                    className={cn(
-                      'grid items-center gap-2',
-                      showActions
-                        ? 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem_4.5rem]'
-                        : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem]',
-                    )}
-                  >
+                  <div className={cn('grid items-center gap-2', gridClass)}>
                     <span
                       className={cn(
                         'flex h-6 w-6 items-center justify-center rounded-full',
@@ -154,10 +126,19 @@ export const TopModuleDemandWidget = ({
                     </span>
                     <button
                       type="button"
-                      className="min-w-0 truncate text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary hover:underline"
-                      onClick={() => onRowClick(row.id)}
+                      className="flex min-w-0 items-center gap-1.5 text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
+                      aria-expanded={isExpanded}
+                      onClick={() =>
+                        setExpandedRowId((current) =>
+                          current === row.id ? null : row.id,
+                        )
+                      }
                     >
-                      {row.title}
+                      <ChevronIcon
+                        expanded={isExpanded}
+                        className="h-3.5 w-3.5 shrink-0 text-spice-text-muted"
+                      />
+                      <span className="truncate">{row.title}</span>
                     </button>
                     <div className="hidden min-w-0 sm:block">
                       <ProgressBar
@@ -195,6 +176,11 @@ export const TopModuleDemandWidget = ({
                       barClassName="bg-spice-brand-primary"
                     />
                   </div>
+                  {isExpanded ? (
+                    <div className="mt-3 rounded-lg border border-spice-border/70 bg-spice-bg-tint/40 p-3 pl-3 sm:ml-8">
+                      {renderExpandedContent(row.id)}
+                    </div>
+                  ) : null}
                 </li>
               );
             })}

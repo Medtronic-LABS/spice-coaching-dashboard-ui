@@ -5,6 +5,7 @@ import type {
   DigitalHelpModuleUsageItem,
   ModuleCreationSuggestionEvidenceItem,
   ModuleDemandQueryRow,
+  ModuleDemandUserEntry,
 } from '@/features/admin-dashboard/types/dashboard.types';
 
 export const TOP_MODULE_DEMAND_LIMIT = 10;
@@ -35,38 +36,98 @@ function userSummaryToRowFields(user: DashboardUserSummary) {
   return {
     skId: user.user_id,
     skName: user.user_name,
+    division: user.division,
     district: user.district,
     upazila: user.upazila,
+  };
+}
+
+function toUserEntry(
+  user: DashboardUserSummary,
+  timestamp: string | null,
+): ModuleDemandUserEntry {
+  return {
+    ...userSummaryToRowFields(user),
+    timestamp,
+  };
+}
+
+function groupDemandRows(rows: ModuleDemandQueryRow[]): ModuleDemandQueryRow[] {
+  const grouped = new Map<string, ModuleDemandQueryRow>();
+
+  for (const row of rows) {
+    const key = `${row.interactionType}|${row.primaryText}`;
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, {
+        ...row,
+        users: row.users.length > 0 ? [...row.users] : [rowToUserEntry(row)],
+      });
+      continue;
+    }
+
+    existing.occurrenceCount += row.occurrenceCount;
+    existing.users.push(
+      ...(row.users.length > 0 ? row.users : [rowToUserEntry(row)]),
+    );
+    if (
+      row.timestamp &&
+      (!existing.timestamp || row.timestamp > existing.timestamp)
+    ) {
+      existing.timestamp = row.timestamp;
+    }
+  }
+
+  return [...grouped.values()];
+}
+
+function rowToUserEntry(row: ModuleDemandQueryRow): ModuleDemandUserEntry {
+  return {
+    skId: row.skId,
+    skName: row.skName,
+    division: row.division,
+    district: row.district,
+    upazila: row.upazila,
+    timestamp: row.timestamp,
   };
 }
 
 export function mapDigitalHelpQuestionsToRows(
   questions: DigitalHelpModuleQuestionItem[],
 ): ModuleDemandQueryRow[] {
-  return questions.map((question, index) => ({
-    id: `question-${index}-${question.question}`,
-    primaryText: question.question,
-    occurrenceCount: question.occurrence_count,
-    timestamp: question.last_asked_at,
-    ...userSummaryToRowFields(question.asked_by),
-    interactionType: 'chatbot_served',
-    reason: null,
-  }));
+  return groupDemandRows(
+    questions.map((question, index) => ({
+      id: `question-${index}-${question.question}`,
+      primaryText: question.question,
+      occurrenceCount: question.occurrence_count,
+      timestamp: question.last_asked_at,
+      ...userSummaryToRowFields(question.asked_by),
+      interactionType: 'chatbot_served' as const,
+      reason: null,
+      users: [toUserEntry(question.asked_by, question.last_asked_at)],
+    })),
+  );
 }
 
 export function mapDigitalHelpRequestsToRows(
   requests: DigitalHelpModuleRequestItem[],
   requestFallback: string,
 ): ModuleDemandQueryRow[] {
-  return requests.map((request, index) => ({
-    id: `request-${index}-${request.requested_at}`,
-    primaryText: request.reason?.trim() || requestFallback,
-    occurrenceCount: 1,
-    timestamp: request.requested_at,
-    ...userSummaryToRowFields(request.requested_by),
-    interactionType: 'assignment_requested',
-    reason: null,
-  }));
+  return groupDemandRows(
+    requests.map((request, index) => {
+      const primaryText = request.reason?.trim() || requestFallback;
+      return {
+        id: `request-${index}-${request.requested_at}`,
+        primaryText,
+        occurrenceCount: 1,
+        timestamp: request.requested_at,
+        ...userSummaryToRowFields(request.requested_by),
+        interactionType: 'assignment_requested' as const,
+        reason: null,
+        users: [toUserEntry(request.requested_by, request.requested_at)],
+      };
+    }),
+  );
 }
 
 interface SuggestionReasonInput {
@@ -109,18 +170,21 @@ export function mapSuggestionEvidenceToRows(
   prefix: string,
   reason: string | null,
 ): ModuleDemandQueryRow[] {
-  return items.map((item, index) => ({
-    id: `${prefix}-${index}-${item.text}`,
-    primaryText: item.text,
-    occurrenceCount: item.occurrence_count,
-    timestamp: item.last_seen_at,
-    ...userSummaryToRowFields(item.prompted_by),
-    interactionType:
-      item.source === 'module_requested'
-        ? 'assignment_requested'
-        : 'chatbot_served',
-    reason,
-  }));
+  return groupDemandRows(
+    items.map((item, index) => ({
+      id: `${prefix}-${index}-${item.text}`,
+      primaryText: item.text,
+      occurrenceCount: item.occurrence_count,
+      timestamp: item.last_seen_at,
+      ...userSummaryToRowFields(item.prompted_by),
+      interactionType:
+        item.source === 'module_requested'
+          ? ('assignment_requested' as const)
+          : ('chatbot_served' as const),
+      reason,
+      users: [toUserEntry(item.prompted_by, item.last_seen_at)],
+    })),
+  );
 }
 
 export function sortDemandRowsByTimestamp(

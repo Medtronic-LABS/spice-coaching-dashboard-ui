@@ -5,6 +5,7 @@ import {
   TopModuleDemandWidget,
   type TopModuleDemandRow,
 } from '@/features/admin-dashboard/components/TopModuleDemandWidget';
+import { ExistingModuleInlineEvidence } from '@/features/admin-dashboard/components/ModuleDemandInlineEvidence';
 import type {
   DashboardGeographyFilters,
   DigitalHelpModuleUsageItem,
@@ -24,7 +25,7 @@ interface TopSearchedModulesWidgetProps {
   showActions: boolean;
   assignLabel: string;
   onAssign: (moduleId: string, title: string) => void;
-  onSelectModule: (moduleId: string, title: string) => void;
+  hideSkName?: boolean;
 }
 
 function mapModulesToRows(
@@ -58,7 +59,7 @@ export const TopSearchedModulesWidget = ({
   showActions,
   assignLabel,
   onAssign,
-  onSelectModule,
+  hideSkName = false,
 }: TopSearchedModulesWidgetProps) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
@@ -146,11 +147,15 @@ export const TopSearchedModulesWidget = ({
       hasMore={hasMore}
       onSeeMore={handleSeeMore}
       isLoadingMore={isLoadingMore}
-      onRowClick={(rowId) => {
-        const row = rows.find((item) => item.id === rowId);
-        if (!row) return;
-        onSelectModule(rowId, row.title);
-      }}
+      renderExpandedContent={(rowId) => (
+        <ExistingModuleInlineEvidence
+          moduleId={rowId}
+          fromDate={fromDate}
+          toDate={toDate}
+          geography={geography}
+          hideSkName={hideSkName}
+        />
+      )}
     />
   );
 };

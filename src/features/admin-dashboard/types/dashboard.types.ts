@@ -278,6 +278,15 @@ export type ModuleDemandInteractionType =
   | 'chatbot_served'
   | 'assignment_requested';
 
+export interface ModuleDemandUserEntry {
+  skId: number | null;
+  skName: string | null;
+  division: string | null;
+  district: string | null;
+  upazila: string | null;
+  timestamp: string | null;
+}
+
 export interface ModuleDemandQueryRow {
   id: string;
   primaryText: string;
@@ -285,8 +294,10 @@ export interface ModuleDemandQueryRow {
   timestamp: string | null;
   skId: number | null;
   skName: string | null;
+  division: string | null;
   district: string | null;
   upazila: string | null;
   interactionType: ModuleDemandInteractionType;
   reason: string | null;
+  users: ModuleDemandUserEntry[];
 }

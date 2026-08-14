@@ -9,6 +9,7 @@ import type {
   DashboardGeographyFilters,
   ModuleCreationSuggestionListItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
+import { SuggestedModuleInlineEvidence } from '@/features/admin-dashboard/components/ModuleDemandInlineEvidence';
 import { TOP_MODULE_DEMAND_LIMIT } from '@/features/admin-dashboard/utils/moduleDemand';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 
@@ -22,7 +23,7 @@ interface TopSuggestedModulesWidgetProps {
   createLabel: string;
   onPublish: (moduleId: string) => void;
   onCreate: (topic: string) => void;
-  onSelectSuggestion: (suggestionId: string) => void;
+  hideSkName?: boolean;
 }
 
 function mapSuggestionsToRows(
@@ -73,7 +74,7 @@ export const TopSuggestedModulesWidget = ({
   createLabel,
   onPublish,
   onCreate,
-  onSelectSuggestion,
+  hideSkName = false,
 }: TopSuggestedModulesWidgetProps) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
@@ -176,7 +177,13 @@ export const TopSuggestedModulesWidget = ({
       hasMore={hasMore}
       onSeeMore={handleSeeMore}
       isLoadingMore={isLoadingMore}
-      onRowClick={onSelectSuggestion}
+      renderExpandedContent={(rowId) => (
+        <SuggestedModuleInlineEvidence
+          suggestionId={rowId}
+          geography={geography}
+          hideSkName={hideSkName}
+        />
+      )}
     />
   );
 };

@@ -335,6 +335,8 @@
       "requestFallback": "Training access requested",
       "detailDescription": "Queries and requests associated with this module or topic.",
       "occurrences": "{{count}} occurrences",
+      "usersHeading": "Users who raised this question",
+      "userCount": "{{count}} users",
       "interaction": {
         "chatbotServed": "Served by chatbot",
         "assignmentRequested": "Requested for assignment"
@@ -344,6 +346,7 @@
         "skName": "SK name",
         "district": "District",
         "upazila": "Upazila",
+        "geography": "Geography",
         "interaction": "Interaction",
         "reason": "Reason"
       },
