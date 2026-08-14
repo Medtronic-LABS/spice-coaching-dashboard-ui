@@ -1,13 +1,7 @@
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { apiBaseUrl, useMockApi } from '@/config/apiClientConfig';
-import { isLoginEnabled } from '@/config/authConfig';
-import { paths } from '@/constants/routes';
-import {
-  clearAuthSession,
-  getAuthSession,
-} from '@/features/auth/services/authSession';
-import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
+import { getAuthSession } from '@/features/auth/services/authSession';
 import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
 import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
 
@@ -35,20 +29,6 @@ const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
     result = await realFetchBaseQuery(args, api, extraOptions);
   } else {
     result = await mockBaseQuery(args, api, extraOptions);
-  }
-
-  // Intercept HTTP 401 (Unauthorized): clear auth and send the user to re-auth.
-  if (result.error && result.error.status === 401) {
-    clearAuthSession();
-    if (typeof window !== 'undefined') {
-      if (isLoginEnabled()) {
-        if (window.location.pathname !== paths.login) {
-          window.location.assign(paths.login);
-        }
-      } else {
-        redirectToSpiceWeb();
-      }
-    }
   }
 
   return result;

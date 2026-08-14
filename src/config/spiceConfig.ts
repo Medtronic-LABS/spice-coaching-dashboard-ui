@@ -42,7 +42,7 @@ const DEFAULT_SPICE_WEB_LOGIN_URL = 'http://localhost:3000/';
 const DEFAULT_SPICE_ADMIN_API_URL = '/admin-service';
 const DEFAULT_SPICE_USER_API_URL = '/user-service';
 
-/** Spice web app used when cookie auth fails or coaching suite access is denied. */
+/** Spice web app used only when POST /user/profile returns HTTP 401. */
 export const spiceWebLoginUrl = normalizeUrl(
   readEnv('VITE_SPICE_WEB_LOGIN_URL') ?? DEFAULT_SPICE_WEB_LOGIN_URL,
 );

@@ -5,13 +5,9 @@ function readEnv(name: keyof ImportMetaEnv): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-/** Check whether login page flow is enabled (configurable via VITE_ENABLE_LOGIN). */
+/** Login page is retired; Spice cookie + profile API owns auth. */
 export function isLoginEnabled(): boolean {
-  const envVal = readEnv('VITE_ENABLE_LOGIN');
-  if (envVal === undefined) {
-    return true;
-  }
-  return envVal.toLowerCase() === 'true';
+  return false;
 }
 
 /**

@@ -3,11 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { paths, ROUTE_PREFIX } from '@/constants/routes';
 
-const LoginPage = lazy(() =>
-  import('@/features/auth/pages/LoginPage').then((module) => ({
-    default: module.LoginPage,
-  })),
-);
 const UnAuthorizedPage = lazy(() =>
   import('@/features/auth/pages/UnAuthorizedPage').then((module) => ({
     default: module.UnAuthorizedPage,
@@ -125,7 +120,10 @@ export const AppRoutes = () => {
         path={ROUTE_PREFIX}
         element={<Navigate to={paths.moduleLibrary} replace />}
       />
-      <Route path={paths.login} element={<LoginPage />} />
+      <Route
+        path={paths.login}
+        element={<Navigate to={paths.home} replace />}
+      />
       <Route path={paths.unauthorized} element={<UnAuthorizedPage />} />
       <Route element={<MainLayout />}>
         <Route

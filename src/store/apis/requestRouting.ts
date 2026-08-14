@@ -25,7 +25,10 @@ export function shouldUseRealFetchForRequest(
     url.startsWith('admin/') ||
     url.startsWith('dashboard/') ||
     url.startsWith('telemetry/') ||
-    isSpiceAdminServiceRequest(url) ||
-    isSpiceUserServiceRequest(url)
+    isSpiceServiceRequestUrl(url)
   );
+}
+
+function isSpiceServiceRequestUrl(url: string): boolean {
+  return isSpiceAdminServiceRequest(url) || isSpiceUserServiceRequest(url);
 }

@@ -1,5 +1,3 @@
-import { isLoginEnabled } from '@/config/authConfig';
-import { paths } from '@/constants/routes';
 import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
 import type { AuthUser } from '@/features/auth/types/auth.types';
 
@@ -51,12 +49,6 @@ export function clearAuthSession(): void {
 export function logout(): void {
   clearAuthSession();
   if (typeof window === 'undefined') return;
-
-  if (isLoginEnabled()) {
-    window.location.assign(paths.login);
-    return;
-  }
-
   redirectToSpiceWeb();
 }
 

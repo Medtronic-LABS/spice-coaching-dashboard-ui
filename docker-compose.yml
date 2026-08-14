@@ -7,16 +7,13 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://agent-qa.beehyv.com/medtronics-api}
-        VITE_ROUTE_PREFIX: ${VITE_ROUTE_PREFIX:-/medtronics-ui}
+        VITE_ROUTE_PREFIX: ${VITE_ROUTE_PREFIX:-/ai-coaching}
         VITE_DEPLOYMENT_PRIMARY_LOCALE: ${VITE_DEPLOYMENT_PRIMARY_LOCALE:-bn}
         VITE_USE_MOCK_API: ${VITE_USE_MOCK_API:-false}
         VITE_USE_MOCK_MODULE_PIPELINE: ${VITE_USE_MOCK_MODULE_PIPELINE:-false}
-        VITE_ENABLE_LOGIN: ${VITE_ENABLE_LOGIN:-true}
-        VITE_PASSWORD_HASH_KEY: ${VITE_PASSWORD_HASH_KEY:-spice_uat}
-        VITE_HMAC_SECRET_KEY: ${VITE_HMAC_SECRET_KEY:-spice_uat}
         VITE_SPICE_API_BASE_URL: ${VITE_SPICE_API_BASE_URL:-https://spice-dev-backend.uhis.labsplatform.com}
         VITE_SPICE_WEB_LOGIN_URL: ${VITE_SPICE_WEB_LOGIN_URL:-https://spice-dev.uhis.labsplatform.com/}
-        VITE_COACHING_SUITE_ACCESS: ${VITE_COACHING_SUITE_ACCESS:-admin}
+        VITE_COACHING_SUITE_ACCESS: ${VITE_COACHING_SUITE_ACCESS:-coaching}
         VITE_SPICE_ADMIN_API_URL: ${VITE_SPICE_ADMIN_API_URL:-/admin-service}
         VITE_SPICE_USER_API_URL: ${VITE_SPICE_USER_API_URL:-/user-service}
         VITE_ERROR_REPORTING_URL: ${VITE_ERROR_REPORTING_URL:-}

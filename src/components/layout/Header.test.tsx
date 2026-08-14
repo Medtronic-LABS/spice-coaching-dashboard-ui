@@ -4,12 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test-utils/render';
 import { Header } from './Header';
 
-const logoutMock = vi.fn();
-
-vi.mock('@/config/authConfig', () => ({
-  isLoginEnabled: () => true,
-}));
-
 vi.mock('@/features/auth/services/authSession', () => ({
   getAuthSession: () => ({
     tenantId: '2',
@@ -21,7 +15,6 @@ vi.mock('@/features/auth/services/authSession', () => ({
   }),
   getAuthDisplayName: () => 'Subhodeep User',
   getAuthInitials: () => 'SU',
-  logout: () => logoutMock(),
 }));
 
 const defaultHeaderProps = {
@@ -38,11 +31,12 @@ describe('Header', () => {
     expect(screen.getByText('AI Coaching')).toBeInTheDocument();
   });
 
-  it('renders a logout control when login is enabled', async () => {
-    const user = userEvent.setup();
+  it('renders a profile icon with user initials', () => {
     renderWithProviders(<Header {...defaultHeaderProps} />);
-    await user.click(screen.getByRole('button', { name: /log out/i }));
-    expect(logoutMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText(/subhodeep user/i)).toHaveTextContent('SU');
+    expect(
+      screen.queryByRole('button', { name: /log out/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not render a language selector', () => {
