@@ -18,6 +18,11 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import {
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
   type AdminV3IngestAcceptedResponse,
@@ -462,7 +467,8 @@ export const VideoUploadPage = () => {
 
   const {
     data: sourceDocumentList,
-    isFetching: isLoadingVideos,
+    isLoading: isLoadingVideos,
+    isFetching: isFetchingVideos,
     isError: isVideoListError,
     refetch: refetchSourceDocumentList,
   } = useFetchSourceDocumentsQuery({
@@ -880,14 +886,18 @@ export const VideoUploadPage = () => {
         header: 'Video',
         sortable: true,
         sortKey: 'title',
-        className: 'whitespace-normal',
+        headerClassName: TABLE_TITLE_COLUMN_CLASS,
+        className: TABLE_TITLE_COLUMN_CLASS,
         render: (row) => (
-          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
+          <div className="w-full min-w-0">
             <TruncatedText
               text={row.title}
+              maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-medium text-spice-text-primary"
-            />
+            >
+              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
+            </TruncatedText>
             {row.description ? (
               <p className="mt-0.5 line-clamp-2 text-[11px] text-spice-text-muted">
                 {row.description}
@@ -1307,6 +1317,11 @@ export const VideoUploadPage = () => {
               label="About uploaded videos"
               content="Previously ingested videos must be chosen again before they can be selected for re-ingestion."
             />
+            {isFetchingVideos && !isLoadingVideos ? (
+              <span className="text-xs font-normal text-spice-text-muted">
+                Updating…
+              </span>
+            ) : null}
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <SearchInput

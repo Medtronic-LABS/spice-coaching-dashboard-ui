@@ -1,4 +1,5 @@
 import { TruncatedText } from '@/components/ui';
+import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { BadgeImageThumb } from '@/features/badges/components/BadgeImageThumb';
 import type { AdminBadge } from '@/features/badges/types/badge.types';
 import { assignSequencesByOrder } from '@/features/badges/utils/badgeSequence';
@@ -60,14 +61,21 @@ export function BadgeSequenceReorderList({
                       alt={`${badge.name} milestone`}
                       className="shrink-0"
                     />
-                    <span className="truncate font-medium text-spice-text-primary">
-                      {badge.name}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <TruncatedText
+                        text={badge.name}
+                        maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                        focusable
+                        className="font-medium text-spice-text-primary"
+                      />
+                    </div>
                   </div>
                   <div className="min-w-0">
                     {titles.length ? (
                       <TruncatedText
                         text={label}
+                        maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                        focusable
                         className="text-sm text-spice-text-medium"
                       />
                     ) : (

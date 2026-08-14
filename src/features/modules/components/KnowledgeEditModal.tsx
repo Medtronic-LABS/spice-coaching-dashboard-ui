@@ -1,4 +1,11 @@
-import { Button, Card, ImagePicker, Modal } from '@/components/ui';
+import {
+  Button,
+  Card,
+  ImagePicker,
+  LimitedTextInput,
+  Modal,
+} from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
 
@@ -69,13 +76,13 @@ export function KnowledgeEditModal({
             >
               Title
             </label>
-            <input
+            <LimitedTextInput
               id="knowledge-edit-title-input"
-              type="text"
               value={title}
+              maxLength={FIELD_LIMITS.documentTitle}
               disabled={disabled}
-              onChange={(e) => onTitleChange(e.target.value)}
-              className="h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20"
+              onChange={onTitleChange}
+              inputClassName="h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20"
             />
           </div>
 

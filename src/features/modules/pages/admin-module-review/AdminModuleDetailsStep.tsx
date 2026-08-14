@@ -1,8 +1,16 @@
 import { useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
-import { Banner, Button, Card, ImagePicker, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  ImagePicker,
+  LimitedTextInput,
+  Loader,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
@@ -23,16 +31,8 @@ export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const {
-    working,
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-    isSaving,
-    save,
-    formatError,
-  } = useAdminModuleReviewEditor(moduleId);
+  const { working, isLoading, error, refetch, isSaving, save, formatError } =
+    useAdminModuleReviewEditor(moduleId);
 
   const isReadonly = useAdminModuleReviewReadonly();
   const { registerEditorContext } = useModulePreview();
@@ -81,12 +81,8 @@ export const AdminModuleDetailsStep = () => {
     );
   }
 
-  const busy = isFetching || isSaving || isUploading;
-  const busyLabel = isSaving
-    ? 'Saving module…'
-    : isUploading
-      ? 'Uploading image…'
-      : 'Refreshing module…';
+  const busy = isSaving || isUploading;
+  const busyLabel = isUploading ? 'Uploading image…' : 'Saving module…';
   const qualityFlagLabels: string[] = working.quality_flags?.flags ?? [];
 
   return (
@@ -242,22 +238,19 @@ export const AdminModuleDetailsStep = () => {
         <div className="grid gap-3">
           <label className="block space-y-1">
             <span className="text-xs text-spice-text-muted">Title (BN)</span>
-            <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+            <LimitedTextInput
+              id="admin-module-title-bn"
               value={
                 isReadonly
                   ? readLocaleText(working.title, 'bn')
                   : (working.title.bn ?? '')
               }
+              maxLength={FIELD_LIMITS.moduleTitle}
               disabled={busy || isReadonly}
-              onChange={(e) =>
+              onChange={(value) =>
                 dispatch(
                   updateDetails({
-                    title: patchLocaleField(
-                      working.title,
-                      'bn',
-                      e.target.value,
-                    ),
+                    title: patchLocaleField(working.title, 'bn', value),
                   }),
                 )
               }

@@ -9,6 +9,10 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/utils';
+import {
+  isDisplayTextTruncated,
+  truncateDisplayText,
+} from '@/utils/truncateDisplayText';
 
 const TOOLTIP_GAP_PX = 8;
 const TOOLTIP_MAX_WIDTH_PX = 320;
@@ -18,6 +22,8 @@ export interface TruncatedTextProps {
   children?: ReactNode;
   className?: string;
   focusable?: boolean;
+  /** Character cap before an ellipsis; tooltip shows the full `text` when exceeded. */
+  maxChars?: number;
 }
 
 export const TruncatedText = ({
@@ -25,6 +31,7 @@ export const TruncatedText = ({
   children,
   className,
   focusable = false,
+  maxChars,
 }: TruncatedTextProps) => {
   const tooltipId = useId();
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -33,6 +40,10 @@ export const TruncatedText = ({
   const focusedRef = useRef(false);
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<CSSProperties>();
+  const displayText =
+    maxChars != null ? truncateDisplayText(text, maxChars) : text;
+  const charTruncated =
+    maxChars != null && isDisplayTextTruncated(text, maxChars);
 
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
@@ -57,6 +68,11 @@ export const TruncatedText = ({
   }, []);
 
   const showIfTruncated = useCallback(() => {
+    if (charTruncated) {
+      updatePosition();
+      setVisible(true);
+      return;
+    }
     const content = contentRef.current;
     if (!content || content.scrollWidth <= content.clientWidth) {
       setVisible(false);
@@ -64,7 +80,7 @@ export const TruncatedText = ({
     }
     updatePosition();
     setVisible(true);
-  }, [updatePosition]);
+  }, [charTruncated, updatePosition]);
 
   const hideIfInactive = useCallback(() => {
     if (!hoveredRef.current && !focusedRef.current) {
@@ -110,7 +126,7 @@ export const TruncatedText = ({
         }}
       >
         <span ref={contentRef} className={cn('block truncate', className)}>
-          {children ?? text}
+          {children ?? displayText}
         </span>
       </span>
       {visible && position

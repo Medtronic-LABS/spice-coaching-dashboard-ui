@@ -1,4 +1,4 @@
-import { Button, Card, Modal } from '@/components/ui';
+import { Button, Card, Modal, QuotedDisplayLabel } from '@/components/ui';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
 
 export interface KnowledgeRetireModalProps {
@@ -48,9 +48,7 @@ export function KnowledgeRetireModal({
           >
             Are you sure you want to remove{' '}
             {asset ? (
-              <span className="font-medium text-spice-text-primary">
-                “{asset.title}”
-              </span>
+              <QuotedDisplayLabel text={asset.title} />
             ) : (
               'this knowledge document'
             )}

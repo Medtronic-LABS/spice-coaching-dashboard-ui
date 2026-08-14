@@ -170,29 +170,22 @@ export const ModuleAssignedPage = () => {
     });
   }, [assignmentDurationDays, isReattemptWindowLoading, t]);
 
-  const {
-    data: moduleAssignedUsers,
-    isLoading: isLoadingModuleAssignments,
-    isFetching: isFetchingModuleAssignments,
-  } = useFetchModuleAssignedUsersQuery(entityId ?? '', {
-    skip: !entityId || !showAllAssigned || !isModuleAssignment,
-  });
+  const { data: moduleAssignedUsers, isLoading: isLoadingModuleAssignments } =
+    useFetchModuleAssignedUsersQuery(entityId ?? '', {
+      skip: !entityId || !showAllAssigned || !isModuleAssignment,
+    });
 
   const {
     data: documentAssignedUsers,
     isLoading: isLoadingDocumentAssignments,
-    isFetching: isFetchingDocumentAssignments,
   } = useFetchDocumentAssignedUsersQuery(entityId ?? '', {
     skip: !entityId || !showAllAssigned || isModuleAssignment,
   });
 
-  const {
-    data: adminUsers,
-    isLoading: isLoadingUsers,
-    isFetching: isFetchingUsers,
-  } = useFetchAdminUsersQuery(undefined, {
-    skip: !entityId || !showAllAssigned || !isModuleAssignment,
-  });
+  const { data: adminUsers, isLoading: isLoadingUsers } =
+    useFetchAdminUsersQuery(undefined, {
+      skip: !entityId || !showAllAssigned || !isModuleAssignment,
+    });
 
   const derivedAssignedUsers = useMemo<AssignedUserEntry[]>(() => {
     if (!showAllAssigned || !entityId) {
@@ -246,11 +239,8 @@ export const ModuleAssignedPage = () => {
 
   const isLoadingAssignments =
     isLoadingModuleAssignments ||
-    isFetchingModuleAssignments ||
     isLoadingDocumentAssignments ||
-    isFetchingDocumentAssignments ||
-    isLoadingUsers ||
-    isFetchingUsers;
+    isLoadingUsers;
 
   const handleAssignMore = () => {
     if (!entityId) return;

@@ -61,7 +61,6 @@ export const AdminModuleQuizStep = () => {
   const {
     working,
     isLoading,
-    isFetching,
     error,
     refetch,
     isSaving,
@@ -211,8 +210,8 @@ export const AdminModuleQuizStep = () => {
     );
   }
 
-  const busy = isFetching || isSaving;
-  const busyLabel = isSaving ? 'Saving module…' : 'Refreshing module…';
+  const busy = isSaving;
+  const busyLabel = 'Saving module…';
 
   return (
     <section className="space-y-4">

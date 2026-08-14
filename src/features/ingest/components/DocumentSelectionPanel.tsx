@@ -12,6 +12,11 @@ import {
 } from '@/components/ui';
 import type { StatusBadgeProps } from '@/components/ui/StatusBadge';
 import { paths } from '@/constants/routes';
+import {
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import type {
   AdminV3IngestUploadPayload,
   AdminV3IngestUploadResponse,
@@ -411,14 +416,18 @@ export const DocumentSelectionPanel = ({
         header: 'Document',
         sortable: true,
         sortKey: 'title',
-        className: 'whitespace-normal',
+        headerClassName: TABLE_TITLE_COLUMN_CLASS,
+        className: TABLE_TITLE_COLUMN_CLASS,
         render: (row) => (
-          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
+          <div className="w-full min-w-0">
             <TruncatedText
               text={row.title}
+              maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-medium text-spice-text-primary"
-            />
+            >
+              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
+            </TruncatedText>
             {row.originalFilename && row.originalFilename !== row.title ? (
               <p className="mt-0.5 truncate text-[11px] text-spice-text-muted">
                 {row.originalFilename}

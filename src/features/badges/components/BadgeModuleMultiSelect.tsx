@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { InfiniteScrollContainer, SearchInput } from '@/components/ui';
+import {
+  InfiniteScrollContainer,
+  SearchInput,
+  TruncatedText,
+} from '@/components/ui';
+import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { cn } from '@/utils';
 
@@ -80,10 +85,13 @@ export const BadgeModuleMultiSelect = ({
                 disabled={disabled}
                 onChange={() => toggle(option.id)}
               />
-              <span className="min-w-0">
-                <span className="block font-medium text-spice-text-primary">
-                  {option.title}
-                </span>
+              <span className="min-w-0 flex-1">
+                <TruncatedText
+                  text={option.title}
+                  maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                  focusable
+                  className="font-medium text-spice-text-primary"
+                />
                 <span className="block text-xs text-spice-text-muted">
                   {formatModuleDomainLabel(option.domain)}
                 </span>

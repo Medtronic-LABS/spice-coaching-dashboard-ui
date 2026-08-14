@@ -1,6 +1,18 @@
 import { ArrowRightIcon, DeleteIcon, SaveDraftIcon } from '@/assets/icon';
-import { Banner, Button, Card, EmptyState, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  LimitedTextInput,
+  Loader,
+  TruncatedText,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
+import {
+  FIELD_LIMITS,
+  TABLE_CELL_LABEL_MAX_LENGTH,
+} from '@/constants/fieldLimits';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
 import {
@@ -78,16 +90,8 @@ export const AdminModuleLessonsStep = () => {
   const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
   const baseline = useAppSelector(selectAdminModuleBaseline);
-  const {
-    working,
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-    isSaving,
-    save,
-    formatError,
-  } = useAdminModuleReviewEditor(moduleId);
+  const { working, isLoading, error, refetch, isSaving, save, formatError } =
+    useAdminModuleReviewEditor(moduleId);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editorRevision, setEditorRevision] = useState(0);
@@ -235,8 +239,8 @@ export const AdminModuleLessonsStep = () => {
     );
   }
 
-  const busy = isFetching || isSaving;
-  const busyLabel = isSaving ? 'Saving module…' : 'Refreshing module…';
+  const busy = isSaving;
+  const busyLabel = 'Saving module…';
   const cardIsEdited =
     selectedCard && baselineCard
       ? !cardsEqual(selectedCard, baselineCard)
@@ -317,9 +321,12 @@ export const AdminModuleLessonsStep = () => {
                             : 'text-spice-text-medium'
                         }`}
                       >
-                        <div className="truncate font-semibold">
-                          {cardTitle(c)}
-                        </div>
+                        <TruncatedText
+                          text={cardTitle(c)}
+                          maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                          focusable
+                          className="font-semibold"
+                        />
                         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
                           <span>Card {idx + 1}</span>
                           {edited ? (
@@ -435,8 +442,8 @@ export const AdminModuleLessonsStep = () => {
                   <span className="text-xs font-semibold text-spice-text-primary">
                     Title (BN)
                   </span>
-                  <input
-                    className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  <LimitedTextInput
+                    id={`admin-module-card-title-${selectedCard.id}`}
                     value={
                       isReadonly
                         ? readLocaleText(
@@ -445,13 +452,14 @@ export const AdminModuleLessonsStep = () => {
                           )
                         : (selectedCard.title[DEPLOYMENT_PRIMARY_LOCALE] ?? '')
                     }
+                    maxLength={FIELD_LIMITS.cardTitle}
                     disabled={busy || isReadonly}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       updateSelectedCard({
                         title: patchLocaleField(
                           selectedCard.title,
                           DEPLOYMENT_PRIMARY_LOCALE,
-                          e.target.value,
+                          value,
                         ),
                       })
                     }

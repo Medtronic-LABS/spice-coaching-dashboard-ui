@@ -1,5 +1,13 @@
 import { useMemo } from 'react';
-import { Banner, Button, Card, Modal, Tooltip } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  LimitedTextInput,
+  Modal,
+  Tooltip,
+} from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { BadgeImageUploadField } from '@/features/badges/components/BadgeImageUploadField';
 import {
   BadgeModuleMultiSelect,
@@ -136,14 +144,14 @@ export function BadgeFormModal({
           <span className="text-xs font-semibold text-spice-text-primary">
             Milestone name <span className="text-spice-semantic-error">*</span>
           </span>
-          <input
-            className={FIELD_CLASS}
+          <LimitedTextInput
+            id="badge-form-name"
             value={form.name}
+            maxLength={FIELD_LIMITS.milestoneName}
             placeholder="e.g. Safe Motherhood Champion"
             disabled={isViewMode || isSaving}
-            onChange={(event) =>
-              onFormChange((prev) => ({ ...prev, name: event.target.value }))
-            }
+            inputClassName={FIELD_CLASS}
+            onChange={(name) => onFormChange((prev) => ({ ...prev, name }))}
           />
         </label>
 

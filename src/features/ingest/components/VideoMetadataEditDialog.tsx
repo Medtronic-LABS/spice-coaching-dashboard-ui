@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Banner, Button, Card, Loader, Modal } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  LimitedTextInput,
+  Loader,
+  Modal,
+} from '@/components/ui';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
 import {
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
@@ -98,6 +109,12 @@ export const VideoMetadataEditDialog = ({
       setFieldError('Title is required.');
       return;
     }
+    if (trimmedTitle.length > FIELD_LIMITS.documentTitle) {
+      setFieldError(
+        fieldLimitExceededMessage('Title', FIELD_LIMITS.documentTitle),
+      );
+      return;
+    }
 
     setFieldError('');
     setActionError('');
@@ -158,12 +175,13 @@ export const VideoMetadataEditDialog = ({
           <span className="text-xs font-semibold text-spice-text-primary">
             Title <span className="text-spice-semantic-error">*</span>
           </span>
-          <input
-            type="text"
+          <LimitedTextInput
+            id="video-metadata-title"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            maxLength={FIELD_LIMITS.documentTitle}
             disabled={isSaving}
-            className="w-full rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+            onChange={setTitle}
+            inputClassName="w-full rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
           />
         </label>
 

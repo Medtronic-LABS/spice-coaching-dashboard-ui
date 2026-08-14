@@ -57,7 +57,6 @@ export const ConfigsPage = () => {
     data: config,
     isLoading,
     isError,
-    isFetching,
     refetch,
   } = useFetchConfigByKeyQuery(MODULE_ASSIGNMENT_DURATION_KEY);
   const [updateConfig, { isLoading: isSaving }] = useUpdateConfigMutation();
@@ -139,10 +138,7 @@ export const ConfigsPage = () => {
 
   return (
     <section className="space-y-6">
-      <Loader
-        open={isSaving || isFetching}
-        label={isSaving ? 'Saving configuration…' : 'Refreshing configuration…'}
-      />
+      <Loader open={isSaving} label="Saving configuration…" />
 
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-spice-text-primary">
