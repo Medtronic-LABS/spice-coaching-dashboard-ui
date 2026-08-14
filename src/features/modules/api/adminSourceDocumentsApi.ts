@@ -1,4 +1,8 @@
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
+import {
+  normalizeHierarchyActorRef,
+  type HierarchyActorRef,
+} from '@/features/modules/types/hierarchyActor';
 import { baseApi } from '@/store/apis/base';
 
 export type SourceDocumentStatus =
@@ -15,11 +19,8 @@ export type SourceDocumentSourceType =
   | 'audio'
   | 'video';
 
-/** Hierarchy actor on source-document list/detail rows. */
-export interface SourceDocumentActorRef {
-  id: number;
-  name: string;
-}
+/** @deprecated Prefer `HierarchyActorRef` from `@/features/modules/types/hierarchyActor`. */
+export type SourceDocumentActorRef = HierarchyActorRef;
 
 export interface SourceDocumentSummary {
   id: string;
@@ -38,6 +39,7 @@ export interface SourceDocumentSummary {
   updated_at: string;
   uploaded_by: SourceDocumentActorRef | null;
   updated_by: SourceDocumentActorRef | null;
+  ingested_by: SourceDocumentActorRef | null;
   assigned: boolean;
   sync_published_visible?: boolean;
 }
@@ -85,22 +87,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** @deprecated Prefer `normalizeHierarchyActorRef`. */
 export function normalizeSourceDocumentActorRef(
   value: unknown,
 ): SourceDocumentActorRef | null {
-  if (!isPlainObject(value)) return null;
-  const id = value.id;
-  const name = value.name;
-  if (
-    typeof id !== 'number' ||
-    !Number.isFinite(id) ||
-    typeof name !== 'string'
-  ) {
-    return null;
-  }
-  const trimmed = name.trim();
-  if (!trimmed) return null;
-  return { id, name: trimmed };
+  return normalizeHierarchyActorRef(value);
 }
 
 function normalizeSourceDocumentSummary(
@@ -144,8 +135,9 @@ function normalizeSourceDocumentSummary(
           : typeof item.ingested_at === 'string'
             ? item.ingested_at
             : '',
-    uploaded_by: normalizeSourceDocumentActorRef(item.uploaded_by),
-    updated_by: normalizeSourceDocumentActorRef(item.updated_by),
+    uploaded_by: normalizeHierarchyActorRef(item.uploaded_by),
+    updated_by: normalizeHierarchyActorRef(item.updated_by),
+    ingested_by: normalizeHierarchyActorRef(item.ingested_by),
     assigned: item.assigned === true,
     sync_published_visible:
       typeof item.sync_published_visible === 'boolean'

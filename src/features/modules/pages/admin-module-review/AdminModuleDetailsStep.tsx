@@ -1,18 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
 import { Banner, Button, Card, ImagePicker, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
+import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { updateDetails } from '@/features/modules/store/adminModuleReviewSlice';
+import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
+import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import { useAppDispatch } from '@/store/hooks';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { patchLocaleField, readLocaleText } from '@/types/localized';
+import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
@@ -29,9 +33,28 @@ export const AdminModuleDetailsStep = () => {
     formatError,
   } = useAdminModuleReviewEditor(moduleId);
 
-  const [actionError, setActionError] = useState('');
   const isReadonly = useAdminModuleReviewReadonly();
   const { registerEditorContext } = useModulePreview();
+  const {
+    actionError,
+    draftIssues,
+    draftValidationOpen,
+    clearSaveFeedback,
+    captureSaveError,
+    closeDraftValidation,
+  } = useAdminModuleDraftSaveFeedback(formatError);
+
+  const reviewDraftIssue = useCallback(
+    (issue: AdminModuleDraftIssue) => {
+      navigateToAdminModuleDraftIssue({
+        navigate,
+        moduleId,
+        issue,
+        onBeforeNavigate: closeDraftValidation,
+      });
+    },
+    [closeDraftValidation, moduleId, navigate],
+  );
 
   useEffect(() => {
     registerEditorContext({ phase: 'card', index: 0 });
@@ -69,6 +92,12 @@ export const AdminModuleDetailsStep = () => {
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
       {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
+      <AdminModuleDraftValidationDialog
+        open={draftValidationOpen}
+        issues={draftIssues}
+        onClose={closeDraftValidation}
+        onReviewIssue={reviewDraftIssue}
+      />
 
       <Card variant="elevated" className="space-y-4 p-4">
         <div>
@@ -145,11 +174,12 @@ export const AdminModuleDetailsStep = () => {
 
               {isReadonly ? (
                 working.thumbnail_presigned_url ? (
-                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+                  <div className="relative flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
                     <img
                       src={working.thumbnail_presigned_url}
                       alt="Module thumbnail"
-                      className="h-full w-full object-cover"
+                      draggable={false}
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                 ) : (
@@ -160,7 +190,7 @@ export const AdminModuleDetailsStep = () => {
               ) : (
                 <ImagePicker
                   variant="tile"
-                  value={working.thumbnail_presigned_url}
+                  value={working.thumbnail_presigned_url ?? null}
                   onChange={(file) => {
                     if (file) void uploadThumbnailFile(file);
                   }}
@@ -168,6 +198,7 @@ export const AdminModuleDetailsStep = () => {
                   label="Add thumbnail"
                   labelWhenSelected="Change thumbnail"
                   previewAlt="Module thumbnail"
+                  previewObjectFit="contain"
                   accept="image/png,image/jpeg,image/jpg,image/webp"
                 />
               )}
@@ -272,11 +303,11 @@ export const AdminModuleDetailsStep = () => {
               className="inline-flex h-9 items-center gap-1.5 text-xs"
               disabled={busy}
               onClick={async () => {
-                setActionError('');
+                clearSaveFeedback();
                 try {
                   await save();
                 } catch (err) {
-                  setActionError(formatError(err));
+                  captureSaveError(err);
                 }
               }}
             >

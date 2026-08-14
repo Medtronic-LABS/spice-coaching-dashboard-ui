@@ -220,6 +220,7 @@ export const BadgeImageUploadField = ({
               key={displayPreviewUrl}
               src={displayPreviewUrl}
               alt="Milestone preview"
+              draggable={false}
               className="h-full w-full object-contain"
             />
           ) : (

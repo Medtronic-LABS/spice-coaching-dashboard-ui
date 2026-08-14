@@ -136,7 +136,8 @@ export const LoginPage = () => {
               <img
                 src={showPassword ? hidePassIcon : showPassIcon}
                 alt={showPassword ? 'Hide password' : 'Show password'}
-                className="h-5 w-5"
+                draggable={false}
+                className="h-5 w-5 select-none"
               />
             </button>
             <div className="min-h-6 pt-px text-[0.85rem] text-red-600">

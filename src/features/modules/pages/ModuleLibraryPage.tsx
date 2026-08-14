@@ -30,6 +30,7 @@ import {
   useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
+import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
@@ -57,14 +58,19 @@ import {
   EMPTY_MODULE_LIBRARY_FILTERS,
   formatModuleDomainLabel,
   getModuleActivatedAt,
+  getModuleDeactivatedAt,
+  getModuleListingActorColumns,
   getModuleListingDateColumns,
   getModuleListEmptyMessage,
   hasActiveModuleFilters,
   isAnyVisibleDateRangeInvalid,
-  moduleListingDateColumnHeader,
   type ModuleLibraryFilters as ModuleLibraryFilterState,
-  type ModuleListingDateColumn,
 } from '@/features/modules/utils/moduleListFilters';
+import {
+  listingActorColumnDef,
+  listingDateColumnDef,
+} from '@/features/modules/utils/moduleLibraryColumnDefs';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   appendRecentIngestDocument,
   readRecentIngestDocuments,
@@ -141,44 +147,6 @@ function isNeedsReviewStatus(status?: string): boolean {
   );
 }
 
-function listingDateColumnDef(
-  column: ModuleListingDateColumn,
-): ColumnDef<ModuleLibraryItem> {
-  const key =
-    column === 'published'
-      ? 'publishedAt'
-      : column === 'activated'
-        ? 'activatedAt'
-        : column === 'deactivated'
-          ? 'deactivatedAt'
-          : 'createdAt';
-  const sortKey =
-    column === 'published'
-      ? 'published_at'
-      : column === 'activated'
-        ? 'activated_at'
-        : column === 'deactivated'
-          ? 'last_deactivated_at'
-          : 'created_at';
-  return {
-    key,
-    header: moduleListingDateColumnHeader(column),
-    sortable: true,
-    sortKey,
-    render: (row) => (
-      <span className="text-xs text-spice-text-medium">
-        {column === 'published'
-          ? (row.publishedAt ?? '—')
-          : column === 'activated'
-            ? (row.activatedAt ?? '—')
-            : column === 'deactivated'
-              ? (row.deactivatedAt ?? '—')
-              : row.createdAt}
-      </span>
-    ),
-  };
-}
-
 export const ModuleLibraryPage = () => {
   const role = getCurrentRole();
   const isProgramManager = role === 'programManager';
@@ -243,6 +211,12 @@ export const ModuleLibraryPage = () => {
     useDeactivateModuleMutation();
   const [reactivateModule, { isLoading: isReactivating }] =
     useReactivateModuleMutation();
+  const [publishModule, { isLoading: isPublishing }] =
+    usePublishModuleMutation();
+  const [publishingModuleId, setPublishingModuleId] = useState<string | null>(
+    null,
+  );
+  const [publishError, setPublishError] = useState('');
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
 
@@ -545,9 +519,14 @@ export const ModuleLibraryPage = () => {
       durationLabel: `~${formatEstimatedMinutesDisplay(m.estimated_minutes)}`,
       status: (m.lifecycle_status as ModuleStatus) ?? 'draft',
       createdAt: formatDisplayDateTime(m.created_at),
+      lastUpdatedAt: formatDisplayDateTime(m.updated_at || m.created_at),
       publishedAt: formatDisplayDateTime(m.published_at),
       activatedAt: formatDisplayDateTime(getModuleActivatedAt(m)),
-      deactivatedAt: formatDisplayDateTime(m.last_deactivated_at),
+      deactivatedAt: formatDisplayDateTime(getModuleDeactivatedAt(m)),
+      generatedBy: m.created_by?.name ?? null,
+      publishedBy: m.published_by?.name ?? null,
+      activatedBy: m.activated_by?.name ?? null,
+      deactivatedBy: m.deactivated_by?.name ?? null,
       chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
     }));
     return rows;
@@ -555,6 +534,11 @@ export const ModuleLibraryPage = () => {
 
   const dateColumns = useMemo(
     () => getModuleListingDateColumns(tab, isProgramManager),
+    [isProgramManager, tab],
+  );
+
+  const actorColumns = useMemo(
+    () => getModuleListingActorColumns(tab, isProgramManager),
     [isProgramManager, tab],
   );
 
@@ -694,6 +678,7 @@ export const ModuleLibraryPage = () => {
         ),
       },
       ...dateColumns.map(listingDateColumnDef),
+      ...actorColumns.map(listingActorColumnDef),
       {
         key: 'id',
         header: 'Actions',
@@ -758,6 +743,52 @@ export const ModuleLibraryPage = () => {
           if (!isProgramManager) {
             return null;
           }
+          if (row.status === 'draft') {
+            const isPublishingRow =
+              isPublishing && publishingModuleId === row.id;
+            return (
+              <div className="flex justify-start gap-2">
+                <Button
+                  className="h-8 px-3 text-xs"
+                  onClick={() => {
+                    navigate(
+                      paths.adminModuleReviewDetails.replace(
+                        ':moduleId',
+                        encodeURIComponent(row.id),
+                      ),
+                    );
+                  }}
+                >
+                  Review
+                </Button>
+                <Button
+                  variant="primary"
+                  className="h-8 px-3 text-xs"
+                  disabled={isPublishing}
+                  onClick={async () => {
+                    setPublishError('');
+                    setPublishingModuleId(row.id);
+                    try {
+                      await publishModule({ moduleId: row.id }).unwrap();
+                      refreshModuleList();
+                    } catch (error) {
+                      setPublishError(
+                        formatRtkQueryError(
+                          error,
+                          'Failed to publish module. Please try again.',
+                        ),
+                      );
+                      refreshModuleList();
+                    } finally {
+                      setPublishingModuleId(null);
+                    }
+                  }}
+                >
+                  {isPublishingRow ? 'Publishing…' : 'Publish'}
+                </Button>
+              </div>
+            );
+          }
           return (
             <div className="flex justify-start gap-2">
               <Button
@@ -784,10 +815,14 @@ export const ModuleLibraryPage = () => {
       },
     ],
     [
+      actorColumns,
       dateColumns,
       isProgramManager,
+      isPublishing,
       isReactivating,
       navigate,
+      publishModule,
+      publishingModuleId,
       reactivateModule,
       refreshModuleList,
       setTab,
@@ -802,6 +837,7 @@ export const ModuleLibraryPage = () => {
           isCreating ||
           isDeactivating ||
           isReactivating ||
+          isPublishing ||
           (!dateRangeInvalid && isLoadingModules)
         }
         label={
@@ -811,9 +847,12 @@ export const ModuleLibraryPage = () => {
               ? 'Deactivating module…'
               : isReactivating
                 ? 'Activating module…'
-                : 'Loading modules…'
+                : isPublishing
+                  ? 'Publishing module…'
+                  : 'Loading modules…'
         }
       />
+      {publishError ? <Banner tone="critical">{publishError}</Banner> : null}
       {createOpen ? (
         <Modal
           open={createOpen}

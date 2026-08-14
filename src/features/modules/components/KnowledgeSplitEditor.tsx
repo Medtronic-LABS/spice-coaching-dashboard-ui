@@ -76,13 +76,13 @@ export const KnowledgeSplitEditor = ({
         </div>
         <Button
           variant="ghost"
-          className="h-8 gap-1 px-2 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+          className="h-8 w-8 shrink-0 px-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
           onClick={onRemove}
           disabled={disabled || !canRemove}
           aria-label={`Delete ${rowLabel}`}
+          title={`Delete ${rowLabel}`}
         >
           <TrashIcon />
-          <span>Delete</span>
         </Button>
       </div>
 

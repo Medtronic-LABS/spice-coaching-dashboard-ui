@@ -221,16 +221,17 @@ export const VideoMetadataEditDialog = ({
             onChange={handleThumbnailChange}
           />
           {thumbnailPreviewUrl ? (
-            <div className="overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+            <div className="flex max-h-[220px] min-h-[140px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint p-2">
               <img
                 src={thumbnailPreviewUrl}
                 alt="Video thumbnail preview"
-                className="aspect-video w-full object-cover"
+                draggable={false}
+                className="max-h-[200px] max-w-full object-contain"
               />
             </div>
           ) : isLoadingExistingThumbnail ? (
             <div
-              className="flex aspect-video w-full animate-pulse items-center justify-center rounded-lg border border-spice-border bg-spice-bg-tint"
+              className="flex min-h-[140px] w-full animate-pulse items-center justify-center rounded-lg border border-spice-border bg-spice-bg-tint"
               aria-label="Loading thumbnail"
             >
               <span className="text-[11px] font-medium text-spice-text-muted">
@@ -242,7 +243,7 @@ export const VideoMetadataEditDialog = ({
               type="button"
               disabled={isSaving}
               onClick={() => fileInputRef.current?.click()}
-              className="flex aspect-video w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-center transition-colors hover:bg-spice-bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-[140px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-center transition-colors hover:bg-spice-bg-surface disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="text-[11px] font-medium text-spice-text-muted">
                 Add thumbnail

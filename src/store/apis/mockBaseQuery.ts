@@ -760,58 +760,79 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     };
 
     const items = mockModuleLibrary.modules
-      .filter((m) => (status ? m.status === status : true))
+      .filter((m) => (status ? m.status === status : m.status !== 'retired'))
       .filter((m) =>
         chatbotFaqsOnlyFilter === null
           ? true
           : Boolean(m.chatbot_faqs_only) === chatbotFaqsOnlyFilter,
       )
-      .map((m, idx) => ({
-        id: m.id,
-        module_family_id: `family_${m.id}`,
-        version: 1,
-        title: { bn: m.title },
-        description: m.category ? { bn: m.category } : null,
-        domain: m.category,
-        module_type: 'initial_training',
-        lifecycle_status: m.status,
-        clinically_reviewed: false,
-        has_visibility_window: false,
-        card_count: m.lessons,
-        estimated_minutes: Math.max(
-          1,
-          Math.round(
-            Number.parseInt(m.durationLabel.replace(/\D/g, ''), 10) || 10,
-          ),
-        ),
-        published_at:
+      .map((m, idx) => {
+        const createdAt = new Date(Date.now() - idx * 86400000).toISOString();
+        const publishedAt =
           m.status === 'published' || m.status === 'deactivated'
-            ? new Date(Date.now() - idx * 86400000).toISOString()
-            : null,
-        created_at: new Date(Date.now() - idx * 86400000).toISOString(),
-        first_activated_at:
-          m.status === 'published' || m.status === 'deactivated'
-            ? new Date(Date.now() - idx * 86400000).toISOString()
-            : null,
-        last_deactivated_at:
+            ? createdAt
+            : null;
+        const deactivatedAt =
           m.status === 'deactivated'
-            ? (mockModuleDeactivatedAt.get(m.id) ?? null)
-            : null,
-        last_reactivated_at: null,
-        quality_flags: { flags: [] },
-        chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
-      }))
+            ? (mockModuleDeactivatedAt.get(m.id) ?? createdAt)
+            : null;
+        return {
+          id: m.id,
+          module_family_id: `family_${m.id}`,
+          version: 1,
+          title: { bn: m.title },
+          description: m.category ? { bn: m.category } : null,
+          domain: m.category,
+          module_type: 'initial_training',
+          lifecycle_status: m.status,
+          clinically_reviewed: false,
+          has_visibility_window: false,
+          card_count: m.lessons,
+          estimated_minutes: Math.max(
+            1,
+            Math.round(
+              Number.parseInt(m.durationLabel.replace(/\D/g, ''), 10) || 10,
+            ),
+          ),
+          published_at: publishedAt,
+          created_at: createdAt,
+          updated_at: createdAt,
+          activated_at: publishedAt,
+          deactivated_at: deactivatedAt,
+          first_activated_at: publishedAt,
+          last_deactivated_at: deactivatedAt,
+          last_reactivated_at: null,
+          created_by: { id: 101, name: 'Mock Content Admin' },
+          published_by:
+            m.status === 'published' || m.status === 'deactivated'
+              ? { id: 102, name: 'Mock Publisher' }
+              : null,
+          activated_by:
+            m.status === 'published' || m.status === 'deactivated'
+              ? { id: 102, name: 'Mock Publisher' }
+              : null,
+          deactivated_by:
+            m.status === 'deactivated'
+              ? { id: 103, name: 'Mock Deactivator' }
+              : null,
+          quality_flags: { flags: [] },
+          quiz_count: m.questions,
+          chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
+        };
+      })
       .filter((item) => (domain ? item.domain === domain : true))
       .filter((item) => {
         const activatedAt =
+          item.activated_at ??
           item.last_reactivated_at ??
           item.first_activated_at ??
           item.published_at;
+        const deactivatedAt = item.deactivated_at ?? item.last_deactivated_at;
         return (
           inRange(item.created_at, createdFrom, createdTo) &&
           inRange(item.published_at, publishedFrom, publishedTo) &&
           inRange(activatedAt, activatedFrom, activatedTo) &&
-          inRange(item.last_deactivated_at, deactivatedFrom, deactivatedTo)
+          inRange(deactivatedAt, deactivatedFrom, deactivatedTo)
         );
       });
 
@@ -840,6 +861,9 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         } else if (sortBy === 'created_at') {
           valA = a.created_at || '';
           valB = b.created_at || '';
+        } else if (sortBy === 'updated_at') {
+          valA = a.updated_at || a.created_at || '';
+          valB = b.updated_at || b.created_at || '';
         } else if (sortBy === 'published_at') {
           valA = a.published_at || '';
           valB = b.published_at || '';
@@ -847,14 +871,14 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           sortBy === 'first_activated_at' ||
           sortBy === 'activated_at'
         ) {
-          valA = a.first_activated_at || '';
-          valB = b.first_activated_at || '';
+          valA = a.activated_at || a.first_activated_at || '';
+          valB = b.activated_at || b.first_activated_at || '';
         } else if (
           sortBy === 'last_deactivated_at' ||
           sortBy === 'deactivated_at'
         ) {
-          valA = a.last_deactivated_at || '';
-          valB = b.last_deactivated_at || '';
+          valA = a.deactivated_at || a.last_deactivated_at || '';
+          valB = b.deactivated_at || b.last_deactivated_at || '';
         } else {
           const rawA = (a as Record<string, unknown>)[sortBy];
           const rawB = (b as Record<string, unknown>)[sortBy];
@@ -1342,6 +1366,28 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         },
       };
     }
+  }
+
+  if (
+    url.startsWith('admin/modules/') &&
+    url.endsWith('/publish') &&
+    method === 'POST'
+  ) {
+    const moduleId = decodeURIComponent(
+      url.slice('admin/modules/'.length, -'/publish'.length),
+    );
+    const module = mockModuleLibrary.modules.find((m) => m.id === moduleId);
+    if (module && module.status === 'draft') {
+      module.status = 'published';
+    }
+    return {
+      data: {
+        id: moduleId,
+        module_family_id: `family_${moduleId}`,
+        lifecycle_status: 'published',
+        activated_at: new Date().toISOString(),
+      },
+    };
   }
 
   if (
@@ -2329,6 +2375,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         updated_at: now,
         uploaded_by: { id: 99, name: 'admin' },
         updated_by: { id: 99, name: 'admin' },
+        ingested_by: { id: 99, name: 'admin' },
         assigned: false,
         sync_published_visible: true,
       });

@@ -87,10 +87,12 @@ describe('KnowledgeEditModal', () => {
     );
 
     expect(usePresignedFileUrlMock).toHaveBeenCalledWith('thumbnails/htn.png');
-    expect(screen.getByAltText('Knowledge thumbnail')).toHaveAttribute(
+    const thumbnail = screen.getByAltText('Knowledge thumbnail');
+    expect(thumbnail).toHaveAttribute(
       'src',
       'https://cdn.example.test/thumbnails%2Fhtn.png',
     );
+    expect(thumbnail).toHaveAttribute('draggable', 'false');
     expect(
       screen.getByText('Change thumbnail', { selector: 'label' }),
     ).toBeInTheDocument();
