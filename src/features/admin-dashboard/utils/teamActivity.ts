@@ -1,8 +1,36 @@
 import type {
   DashboardStatusFilter,
   TeamActivityMember,
+  TeamActivityResponse,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
+
+export function resolveMemberDescendantSkCount(
+  member: TeamActivityMember,
+  descendants:
+    | Pick<TeamActivityResponse, 'total_users' | 'summary'>
+    | null
+    | undefined,
+  loadedChildCount: number,
+): number | undefined {
+  if (member.summary != null) return member.summary.total_users;
+  if (descendants == null) return undefined;
+  return (
+    descendants.total_users ??
+    descendants.summary?.total_users ??
+    loadedChildCount
+  );
+}
+
+export function resolveMemberDescendantInactiveCount(
+  member: TeamActivityMember,
+  descendants: Pick<TeamActivityResponse, 'summary'> | null | undefined,
+  loadedInactiveChildCount: number,
+): number | undefined {
+  if (member.summary != null) return member.summary.non_active_users;
+  if (descendants == null) return undefined;
+  return descendants.summary?.non_active_users ?? loadedInactiveChildCount;
+}
 
 export type HierarchyRoleTab = 'am' | 'po' | 'sk';
 

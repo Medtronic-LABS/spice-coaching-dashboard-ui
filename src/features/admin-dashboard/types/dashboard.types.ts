@@ -78,6 +78,8 @@ export interface TeamActivityMember {
   chatbot_modules: TeamMemberChatbotModuleUsage[];
   refreshers_generated: number;
   refreshers_completed: number;
+  /** Descendant rollup for AM/PO rows; present without expanding the hierarchy. */
+  summary?: TeamActivitySummary;
 }
 
 export interface TeamActivityResponse {

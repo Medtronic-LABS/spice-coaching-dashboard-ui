@@ -161,12 +161,12 @@
       "activeTooltip": "SKs with at least one activity in the selected period",
       "inactive": "Inactive SKs",
       "inactiveTooltip": "SKs with no activity in the selected period",
-      "finishedModules": "SKs finished all modules",
-      "finishedModulesTooltip": "SKs who completed all assigned modules in the selected period",
+      "finishedModules": "SKs completed a module",
+      "finishedModulesTooltip": "SKs who completed at least one module in the selected period",
       "chatbotEngaged": "Chatbot engaged",
       "chatbotEngagedTooltip": "SKs who used the chatbot in the selected period",
-      "totalModules": "Total modules created",
-      "totalModulesTooltip": "Total number of training modules published to date"
+      "totalModules": "Published training modules",
+      "totalModulesTooltip": "Total number of published training modules in the catalog"
     },
     "filters": {
       "button": "Filters",
@@ -174,9 +174,9 @@
       "clearAll": "Clear all filters",
       "activeCount": "{{count}} filters applied",
       "panelLabel": "Dashboard filters",
-      "statusLabel": "Status",
+      "statusLabel": "Team view",
       "durationLabel": "Duration:",
-      "scopeNote": "Status filters the team hierarchy list only. Division, district, and upazila apply to module search widgets and Document & knowledge views. Duration updates every widget.",
+      "scopeNote": "Team view filters the hierarchy list on this page only (not a server metric). District and upazila apply to Document & knowledge views. Duration updates every widget.",
       "clearCustomRange": "Clear custom date range",
       "invalidRangeTitle": "Invalid date range",
       "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
@@ -211,6 +211,7 @@
       "allUpazilas": "All upazilas"
     },
     "hierarchy": {
+      "clientFilterNote": "Search and sort apply to loaded rows on this page.",
       "description": {
         "am": "Tap \"View POs\" to expand and see program officers and SKs",
         "po": "Tap \"View SKs\" to expand and see SKs under this program officer",

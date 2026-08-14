@@ -31,6 +31,8 @@ import {
   isMemberAtRisk,
   memberInitials,
   memberModuleStats,
+  resolveMemberDescendantInactiveCount,
+  resolveMemberDescendantSkCount,
   sortTeamMembers,
   type HierarchyRoleTab,
 } from '@/features/admin-dashboard/utils/teamActivity';
@@ -185,23 +187,32 @@ const HierarchyMemberRow = ({
     return sortTeamMembers(filterTeamMembersByStatus(base, status), sortKey);
   }, [descendantsQuery.data?.members, sortKey, status]);
 
-  const hasDescendantData = descendantsQuery.data != null;
+  const loadedInactiveChildCount = children.filter(
+    (child) => !child.is_active,
+  ).length;
+  const descendantSkCount = resolveMemberDescendantSkCount(
+    member,
+    descendantsQuery.data,
+    children.length,
+  );
+  const descendantInactiveCount = resolveMemberDescendantInactiveCount(
+    member,
+    descendantsQuery.data,
+    loadedInactiveChildCount,
+  );
   const peopleValue = !canExpand
     ? '—'
-    : descendantsUi.showLoading
-      ? '…'
-      : hasDescendantData
-        ? (descendantsQuery.data?.total_users ??
-          descendantsQuery.data?.summary?.total_users ??
-          children.length)
+    : descendantSkCount != null
+      ? descendantSkCount
+      : expanded && descendantsUi.showLoading
+        ? '…'
         : '—';
   const inactiveValue = !canExpand
     ? '—'
-    : descendantsUi.showLoading
-      ? '…'
-      : hasDescendantData
-        ? (descendantsQuery.data?.summary?.non_active_users ??
-          children.filter((child) => !child.is_active).length)
+    : descendantInactiveCount != null
+      ? descendantInactiveCount
+      : expanded && descendantsUi.showLoading
+        ? '…'
         : '—';
 
   const peopleLabel = t('adminDashboard.hierarchy.metrics.sksLabel');
@@ -466,6 +477,9 @@ export const TeamHierarchySection = ({
       }
     >
       <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4">
+        <p className="pt-3 text-xs text-spice-text-muted">
+          {t('adminDashboard.hierarchy.clientFilterNote')}
+        </p>
         <div className="flex gap-6" role="tablist">
           {ROLE_TABS.map((tab) => {
             const isActive = roleTab === tab.value;

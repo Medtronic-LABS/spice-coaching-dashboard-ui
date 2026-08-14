@@ -28,6 +28,7 @@ export const DashboardKpiRow = ({ fromDate, toDate }: DashboardKpiRowProps) => {
   const teamQuery = useFetchTeamActivityQuery({
     from_date: fromDate,
     to_date: toDate,
+    // Summary is scope-wide; members are not needed for KPI cards.
     limit: 1,
     offset: 0,
   });
