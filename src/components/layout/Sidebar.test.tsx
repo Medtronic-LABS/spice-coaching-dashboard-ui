@@ -39,6 +39,7 @@ describe('Sidebar', () => {
     expect(screen.getByText(/super user/i)).toBeInTheDocument();
     expect(screen.getByText('SUPER_USER')).toBeInTheDocument();
     expect(screen.getByText('SU')).toBeInTheDocument();
+    expect(screen.getByText('OVERVIEW')).toBeInTheDocument();
     expect(screen.getByText('LEARNING')).toBeInTheDocument();
     expect(screen.getByText('ADMINISTRATION')).toBeInTheDocument();
     expect(

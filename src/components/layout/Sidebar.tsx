@@ -83,6 +83,22 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
           <div className={sectionTitleClassName}>
+            {t('layout.sidebar.sections.overview')}
+          </div>
+          <NavLink
+            className={linkClassName}
+            to={paths.adminDashboard}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <DashboardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.dashboard')}
+              </>
+            )}
+          </NavLink>
+          <div className={sectionTitleClassName}>
             {t('layout.sidebar.sections.learning')}
           </div>
           <NavLink
@@ -175,19 +191,6 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <div className={sectionTitleClassName}>
             {t('layout.sidebar.sections.administration')}
           </div>
-          <NavLink
-            className={linkClassName}
-            to={paths.adminDashboard}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <DashboardIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.dashboard')}
-              </>
-            )}
-          </NavLink>
           <NavLink
             className={linkClassName}
             to={paths.configs}

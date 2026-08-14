@@ -56,6 +56,7 @@
       "suiteAccess": "Suite Access",
       "userFallback": "User",
       "sections": {
+        "overview": "OVERVIEW",
         "learning": "LEARNING",
         "administration": "ADMINISTRATION"
       },

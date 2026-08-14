@@ -57,6 +57,7 @@
       "suiteAccess": "স্যুইট অ্যাক্সেস",
       "userFallback": "ইউজার",
       "sections": {
+        "overview": "OVERVIEW",
         "learning": "LEARNING",
         "administration": "ADMINISTRATION"
       },
