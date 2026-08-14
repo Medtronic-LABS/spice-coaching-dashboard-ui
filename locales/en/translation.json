@@ -211,7 +211,6 @@
       "allUpazilas": "All upazilas"
     },
     "hierarchy": {
-      "clientFilterNote": "Search and sort apply to loaded rows on this page.",
       "description": {
         "am": "Tap \"View POs\" to expand and see program officers and SKs",
         "po": "Tap \"View SKs\" to expand and see SKs under this program officer",

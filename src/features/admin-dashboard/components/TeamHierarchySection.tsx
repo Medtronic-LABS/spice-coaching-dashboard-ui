@@ -481,10 +481,7 @@ export const TeamHierarchySection = ({
         </>
       }
     >
-      <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4">
-        <p className="pt-3 text-xs text-spice-text-muted">
-          {t('adminDashboard.hierarchy.clientFilterNote')}
-        </p>
+      <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4 pt-3">
         <div className="flex gap-6" role="tablist">
           {ROLE_TABS.map((tab) => {
             const isActive = roleTab === tab.value;
