@@ -13,6 +13,7 @@ import { DocumentSelectionPanel } from '@/features/ingest/components/DocumentSel
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
 import { IngestConfigurationPanel } from '@/features/ingest/components/IngestConfigurationPanel';
 import { IngestRunStatusPanel } from '@/features/ingest/components/IngestRunStatusPanel';
+import { useClearIngestSessionOnTerminalLeave } from '@/features/ingest/hooks/useClearIngestSessionOnTerminalLeave';
 import { useIngestWithDuplicateHandling } from '@/features/ingest/hooks/useIngestWithDuplicateHandling';
 import { MAX_DOCUMENT_SELECTION } from '@/features/ingest/constants/documentSelection';
 import {
@@ -32,6 +33,7 @@ import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDec
 import {
   isIngestInProgress,
   isIngestSucceeded,
+  isTerminalIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
 import { sourceDocumentFromDuplicateConflict } from '@/features/ingest/utils/parseIngestDuplicateError';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -143,9 +145,21 @@ export const IngestDocumentPage = () => {
   });
   const ingestionSucceeded =
     isIngestSucceeded(statusData?.status) && !pendingMergeDecisions;
+  const ingestionTerminal =
+    Boolean(batchId) &&
+    isTerminalIngestStatus(statusData?.status) &&
+    !pendingMergeDecisions;
+
+  useClearIngestSessionOnTerminalLeave({
+    batchId,
+    status: statusData,
+    onClear: () => {
+      clearActiveIngestSession();
+    },
+  });
 
   useEffect(() => {
-    if (ingestionSucceeded) {
+    if (ingestionTerminal) {
       clearActiveIngestSession();
       return;
     }
@@ -157,10 +171,10 @@ export const IngestDocumentPage = () => {
       title: first?.title,
     });
     setRestoredBatchId(accepted.batch_id);
-  }, [accepted, ingestionSucceeded]);
+  }, [accepted, ingestionTerminal]);
 
   useEffect(() => {
-    if (ingestionSucceeded || !restoredBatchId) return;
+    if (ingestionTerminal || !restoredBatchId) return;
     const session = readActiveIngestSession();
     if (session?.batch_id === restoredBatchId) return;
     writeActiveIngestSession({
@@ -168,7 +182,7 @@ export const IngestDocumentPage = () => {
       source_document_id: session?.source_document_id,
       title: session?.title,
     });
-  }, [ingestionSucceeded, restoredBatchId]);
+  }, [ingestionTerminal, restoredBatchId]);
 
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&

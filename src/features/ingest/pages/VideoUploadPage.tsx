@@ -55,6 +55,7 @@ import {
   formatVideoFileRejectionError,
   isAcceptedVideoFile,
 } from '@/features/ingest/constants/videoAcceptedFileTypes';
+import { useClearIngestSessionOnTerminalLeave } from '@/features/ingest/hooks/useClearIngestSessionOnTerminalLeave';
 import { useIngestWithDuplicateHandling } from '@/features/ingest/hooks/useIngestWithDuplicateHandling';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
@@ -776,6 +777,14 @@ export const VideoUploadPage = () => {
     },
     [],
   );
+
+  useClearIngestSessionOnTerminalLeave({
+    batchId: activeBatchId,
+    status: batchStatus,
+    onClear: (batchId, status) => {
+      pruneActiveVideoIngestBatch(batchId, status.status);
+    },
+  });
 
   const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
