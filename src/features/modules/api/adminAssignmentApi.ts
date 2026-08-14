@@ -15,6 +15,7 @@ import {
   mapHierarchyUserToAdminUser,
   mapHierarchyUsersToAdminUsers,
   parseDistrictListResponse,
+  parseDivisionListResponse,
   parseHierarchyUserListResponse,
   parseUpazilaListResponse,
 } from '@/features/modules/utils/mapHierarchyUsersToAdminUsers';
@@ -101,6 +102,11 @@ export interface AdminUpazila {
 }
 
 export interface AdminDistrict {
+  id: number;
+  name: string;
+}
+
+export interface AdminDivision {
   id: number;
   name: string;
 }
@@ -334,6 +340,32 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
         }
 
         return { data: allDistricts };
+      },
+    }),
+    fetchAdminDivisions: builder.query<AdminDivision[], void>({
+      async queryFn(_arg, _api, _extraOptions, baseQuery) {
+        const pageSize = getHierarchyPageSize();
+        const allDivisions: AdminDivision[] = [];
+        let offset = 0;
+        let total = Number.POSITIVE_INFINITY;
+
+        while (offset < total) {
+          const result = await baseQuery({
+            url: '/admin/divisions',
+            method: 'GET',
+            params: { limit: pageSize, offset },
+          });
+          if (result.error) {
+            return { error: result.error as FetchBaseQueryError };
+          }
+          const page = parseDivisionListResponse(result.data);
+          allDivisions.push(...page.divisions);
+          total = page.total;
+          if (page.divisions.length === 0) break;
+          offset += page.divisions.length;
+        }
+
+        return { data: allDivisions };
       },
     }),
     fetchAdminDistrictsPage: builder.query<
@@ -627,6 +659,7 @@ export const {
   useReplaceModuleAssignedUsersMutation,
   useFetchAdminDistrictsQuery,
   useLazyFetchAdminDistrictsQuery,
+  useFetchAdminDivisionsQuery,
   useFetchAdminDistrictsPageQuery,
   useLazyFetchAdminDistrictsPageQuery,
   useFetchHierarchyUsersPageQuery,

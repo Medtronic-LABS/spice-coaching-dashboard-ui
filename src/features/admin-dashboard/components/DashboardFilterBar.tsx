@@ -11,6 +11,7 @@ import type {
 import { dashboardDurationLabel } from '@/features/admin-dashboard/utils/dateRange';
 import {
   useFetchAdminDistrictsQuery,
+  useFetchAdminDivisionsQuery,
   useLazyFetchAdminUpazilasPageQuery,
 } from '@/features/modules/api/adminAssignmentApi';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
@@ -22,6 +23,7 @@ function countPanelFilters(
 ): number {
   let count = 0;
   if (status !== 'all') count += 1;
+  if (geography.division.trim()) count += 1;
   if (geography.district.trim()) count += 1;
   if (geography.upazila.trim()) count += 1;
   return count;
@@ -83,6 +85,7 @@ export const DashboardFilterBar = ({
     useState<DashboardGeographyFilters>(filters.geography);
   const filtersRef = useRef<HTMLDivElement>(null);
   const { data: districts = [] } = useFetchAdminDistrictsQuery();
+  const { data: divisions = [] } = useFetchAdminDivisionsQuery();
   const [fetchUpazilasPage] = useLazyFetchAdminUpazilasPageQuery();
   const [upazilaOptions, setUpazilaOptions] = useState<
     Array<{ label: string; value: string }>
@@ -117,8 +120,14 @@ export const DashboardFilterBar = ({
   );
 
   const divisionOptions = useMemo(
-    () => [{ label: t('adminDashboard.filters.allDivisions'), value: '' }],
-    [t],
+    () => [
+      { label: t('adminDashboard.filters.allDivisions'), value: '' },
+      ...divisions.map((division) => ({
+        label: division.name,
+        value: division.name,
+      })),
+    ],
+    [divisions, t],
   );
 
   const districtOptions = useMemo(
@@ -207,10 +216,7 @@ export const DashboardFilterBar = ({
 
   const handleApplyFilters = () => {
     onStatusChange(draftStatus);
-    onGeographyChange({
-      ...draftGeography,
-      division: '',
-    });
+    onGeographyChange(draftGeography);
     setFiltersOpen(false);
   };
 
@@ -274,18 +280,15 @@ export const DashboardFilterBar = ({
             <FilterField label={t('adminDashboard.filters.division')}>
               <Select
                 options={divisionOptions}
-                value=""
-                onChange={() => undefined}
-                className={cn(selectClassName, 'opacity-60')}
-                disabled
-                aria-describedby="dashboard-division-unavailable"
+                value={draftGeography.division}
+                onChange={(value) =>
+                  setDraftGeography({
+                    ...draftGeography,
+                    division: value,
+                  })
+                }
+                className={selectClassName}
               />
-              <span
-                id="dashboard-division-unavailable"
-                className="block text-[11px] text-spice-text-muted"
-              >
-                {t('adminDashboard.filters.divisionUnavailable')}
-              </span>
             </FilterField>
             <FilterField label={t('adminDashboard.filters.district')}>
               <Select
@@ -294,7 +297,6 @@ export const DashboardFilterBar = ({
                 onChange={(value) =>
                   setDraftGeography({
                     ...draftGeography,
-                    division: '',
                     district: value,
                     upazila: '',
                   })

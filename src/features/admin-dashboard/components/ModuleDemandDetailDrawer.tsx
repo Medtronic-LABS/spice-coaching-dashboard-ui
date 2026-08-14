@@ -17,15 +17,21 @@ import {
   useChwUserLookup,
 } from '@/features/admin-dashboard/hooks/useChwUserLookup';
 import {
+  canPerformDashboardAdminActions,
+  canViewDemandMetadataTimestamps,
+} from '@/features/admin-dashboard/utils/dashboardRoles';
+import {
   mapDigitalHelpQuestionsToRows,
-  matchesGeographyFilter,
+  mapDigitalHelpRequestsToRows,
+  sortDemandRowsByTimestamp,
 } from '@/features/admin-dashboard/utils/moduleDemand';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
-import { getCurrentRole } from '@/constants/role';
 
-type ModuleDemandDetailMode =
-  | { kind: 'searched'; moduleId: string; title: string }
-  | { kind: 'requested'; moduleId: string; title: string };
+type ModuleDemandDetailMode = {
+  kind: 'searched';
+  moduleId: string;
+  title: string;
+};
 
 interface ModuleDemandDetailDrawerProps {
   open: boolean;
@@ -33,8 +39,51 @@ interface ModuleDemandDetailDrawerProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
+  focusUserId?: number;
   onClose: () => void;
   onAssign?: (moduleId: string, title: string) => void;
+}
+
+function DrillDownPagination({
+  page,
+  totalPages,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  const { t } = useTranslation();
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-between border-t border-spice-border pt-3">
+      <Button
+        variant="secondary"
+        className="h-8 text-xs"
+        disabled={page === 0}
+        onClick={onPrevious}
+      >
+        {t('common.previous')}
+      </Button>
+      <span className="text-xs text-spice-text-muted">
+        {t('common.pageOf', {
+          page: page + 1,
+          total: totalPages,
+        })}
+      </span>
+      <Button
+        variant="secondary"
+        className="h-8 text-xs"
+        disabled={page + 1 >= totalPages}
+        onClick={onNext}
+      >
+        {t('common.next')}
+      </Button>
+    </div>
+  );
 }
 
 export const ModuleDemandDetailDrawer = ({
@@ -43,101 +92,99 @@ export const ModuleDemandDetailDrawer = ({
   fromDate,
   toDate,
   geography,
+  focusUserId,
   onClose,
   onAssign,
 }: ModuleDemandDetailDrawerProps) => {
   const { t } = useTranslation();
   const lookup = useChwUserLookup();
-  const isAdmin = getCurrentRole() === 'programManager';
-  const showTimestamp = isAdmin;
-  const [page, setPage] = useState(0);
+  const showAdminActions = canPerformDashboardAdminActions();
+  const showTimestamp = canViewDemandMetadataTimestamps();
+  const hideSkName = focusUserId != null;
+  const [questionsPage, setQuestionsPage] = useState(0);
+  const [requestsPage, setRequestsPage] = useState(0);
   const limit = 50;
 
-  const searchedQuery = useFetchDigitalHelpModuleQuestionsQuery(
+  const moduleId = mode?.moduleId ?? '';
+  const requestFallback = t('adminDashboard.moduleDemand.requestFallback');
+
+  const questionsQuery = useFetchDigitalHelpModuleQuestionsQuery(
     {
-      moduleId: mode?.kind === 'searched' ? mode.moduleId : '',
+      moduleId,
       from_date: fromDate,
       to_date: toDate,
       limit,
-      offset: page * limit,
+      offset: questionsPage * limit,
+      geography,
     },
     {
-      skip: !open || mode?.kind !== 'searched',
+      skip: !open || !moduleId,
     },
   );
 
-  const requestedQuery = useFetchDigitalHelpModuleRequestsQuery(
+  const requestsQuery = useFetchDigitalHelpModuleRequestsQuery(
     {
-      moduleId: mode?.kind === 'requested' ? mode.moduleId : '',
+      moduleId,
       from_date: fromDate,
       to_date: toDate,
+      limit,
+      offset: requestsPage * limit,
+      geography,
     },
     {
-      skip: !open || mode?.kind !== 'requested',
+      skip: !open || !moduleId,
     },
   );
 
   useEffect(() => {
-    if (!open) setPage(0);
-  }, [open, mode]);
-
-  const rows = useMemo(() => {
-    if (!mode) return [] as ModuleDemandQueryRow[];
-
-    let baseRows: ModuleDemandQueryRow[] = [];
-    if (mode.kind === 'searched' && searchedQuery.data) {
-      baseRows = mapDigitalHelpQuestionsToRows(searchedQuery.data.questions);
+    if (!open) {
+      setQuestionsPage(0);
+      setRequestsPage(0);
+      return;
     }
-    if (mode.kind === 'requested' && requestedQuery.data) {
-      baseRows = [
-        {
-          id: `requests-${mode.moduleId}`,
-          primaryText: t('adminDashboard.moduleDemand.requestSummary', {
-            count: requestedQuery.data.module_requested_count,
-          }),
-          occurrenceCount: requestedQuery.data.module_requested_count,
-          timestamp: null,
-          skId: null,
-          skName: null,
-          district: null,
-          upazila: null,
-          interactionType: 'assignment_requested',
-          reason: null,
-        },
-      ];
-    }
-
-    const enriched = enrichRowsWithUserLookup(baseRows, lookup);
-    return enriched.filter((row) =>
-      matchesGeographyFilter(row, geography.district, geography.upazila),
-    );
+    setQuestionsPage(0);
+    setRequestsPage(0);
   }, [
-    mode,
-    searchedQuery.data,
-    requestedQuery.data,
-    lookup,
+    open,
+    mode?.moduleId,
+    fromDate,
+    toDate,
+    geography.division,
     geography.district,
     geography.upazila,
-    t,
   ]);
 
-  const searchedUi = resolveDashboardQueryUiState(searchedQuery);
-  const requestedUi = resolveDashboardQueryUiState(requestedQuery);
+  const questionRows = useMemo(() => {
+    if (!questionsQuery.data) return [] as ModuleDemandQueryRow[];
+    const rows = mapDigitalHelpQuestionsToRows(questionsQuery.data.questions);
+    return sortDemandRowsByTimestamp(enrichRowsWithUserLookup(rows, lookup));
+  }, [lookup, questionsQuery.data]);
+
+  const requestRows = useMemo(() => {
+    if (!requestsQuery.data) return [] as ModuleDemandQueryRow[];
+    const rows = mapDigitalHelpRequestsToRows(
+      requestsQuery.data.requests,
+      requestFallback,
+    );
+    return sortDemandRowsByTimestamp(enrichRowsWithUserLookup(rows, lookup));
+  }, [lookup, requestFallback, requestsQuery.data]);
+
+  const questionsUi = resolveDashboardQueryUiState(questionsQuery);
+  const requestsUi = resolveDashboardQueryUiState(requestsQuery);
 
   const showLoading =
-    mode?.kind === 'searched'
-      ? searchedUi.showLoading || lookup.isLoading
-      : requestedUi.showLoading || lookup.isLoading;
-  const showError =
-    mode?.kind === 'searched' ? searchedUi.showError : requestedUi.showError;
-  const refetch =
-    mode?.kind === 'searched' ? searchedQuery.refetch : requestedQuery.refetch;
+    questionsUi.showLoading || requestsUi.showLoading || lookup.isLoading;
+  const showError = questionsUi.showError || requestsUi.showError;
+  const refetch = () => {
+    void questionsQuery.refetch();
+    void requestsQuery.refetch();
+  };
 
   const title = mode?.title ?? '';
   const titleId = 'module-demand-detail-title';
 
   const actionButton =
-    isAdmin && mode && onAssign ? (
+    showAdminActions && mode && onAssign ? (
       <Button
         className="h-9 text-xs"
         onClick={() => onAssign(mode.moduleId, mode.title)}
@@ -174,54 +221,73 @@ export const ModuleDemandDetailDrawer = ({
             </div>
           </div>
         </div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-5">
+        <div className="flex-1 space-y-6 overflow-y-auto p-5">
           {showLoading ? (
             <DashboardListSkeleton rows={6} />
           ) : showError ? (
-            <DashboardWidgetErrorState onRetry={() => void refetch()} />
-          ) : rows.length === 0 ? (
-            <p className="text-sm text-spice-text-muted">
-              {t('common.noData')}
-            </p>
+            <DashboardWidgetErrorState onRetry={refetch} />
           ) : (
-            rows.map((row) => (
-              <EvidenceQueryRow
-                key={row.id}
-                row={row}
-                showMetadata
-                showTimestamp={showTimestamp}
-              />
-            ))
+            <>
+              <section className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
+                  {t('adminDashboard.existingModules.queriesHeading')}
+                </h3>
+                {questionRows.length === 0 ? (
+                  <p className="text-sm text-spice-text-muted">
+                    {t('adminDashboard.existingModules.emptyQueries')}
+                  </p>
+                ) : (
+                  questionRows.map((row) => (
+                    <EvidenceQueryRow
+                      key={row.id}
+                      row={row}
+                      showMetadata
+                      showTimestamp={showTimestamp}
+                      hideSkName={hideSkName}
+                    />
+                  ))
+                )}
+                <DrillDownPagination
+                  page={questionsPage}
+                  totalPages={questionsQuery.data?.total_pages ?? 1}
+                  onPrevious={() =>
+                    setQuestionsPage((current) => Math.max(0, current - 1))
+                  }
+                  onNext={() => setQuestionsPage((current) => current + 1)}
+                />
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
+                  {t('adminDashboard.existingModules.requestsHeading')}
+                </h3>
+                {requestRows.length === 0 ? (
+                  <p className="text-sm text-spice-text-muted">
+                    {t('adminDashboard.existingModules.emptyRequests')}
+                  </p>
+                ) : (
+                  requestRows.map((row) => (
+                    <EvidenceQueryRow
+                      key={row.id}
+                      row={row}
+                      showMetadata
+                      showTimestamp={showTimestamp}
+                      hideSkName={hideSkName}
+                    />
+                  ))
+                )}
+                <DrillDownPagination
+                  page={requestsPage}
+                  totalPages={requestsQuery.data?.total_pages ?? 1}
+                  onPrevious={() =>
+                    setRequestsPage((current) => Math.max(0, current - 1))
+                  }
+                  onNext={() => setRequestsPage((current) => current + 1)}
+                />
+              </section>
+            </>
           )}
         </div>
-        {mode?.kind === 'searched' &&
-        searchedQuery.data &&
-        searchedQuery.data.total_pages > 1 ? (
-          <div className="flex items-center justify-between border-t border-spice-border px-5 py-3">
-            <Button
-              variant="secondary"
-              className="h-8 text-xs"
-              disabled={page === 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-            >
-              {t('common.previous')}
-            </Button>
-            <span className="text-xs text-spice-text-muted">
-              {t('common.pageOf', {
-                page: page + 1,
-                total: searchedQuery.data.total_pages,
-              })}
-            </span>
-            <Button
-              variant="secondary"
-              className="h-8 text-xs"
-              disabled={page + 1 >= searchedQuery.data.total_pages}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              {t('common.next')}
-            </Button>
-          </div>
-        ) : null}
       </div>
     </Drawer>
   );

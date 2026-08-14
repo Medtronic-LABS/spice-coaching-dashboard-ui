@@ -176,7 +176,7 @@
       "panelLabel": "Dashboard filters",
       "statusLabel": "Status",
       "durationLabel": "Duration:",
-      "scopeNote": "Status filters the team hierarchy list only. District and upazila apply to Document & knowledge views. Duration updates every widget.",
+      "scopeNote": "Status filters the team hierarchy list only. Division, district, and upazila apply to module search widgets and Document & knowledge views. Duration updates every widget.",
       "clearCustomRange": "Clear custom date range",
       "invalidRangeTitle": "Invalid date range",
       "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
@@ -280,20 +280,50 @@
       "description": "SK completion progress across published modules."
     },
     "existingModules": {
-      "title": "Top searched modules",
-      "description": "Modules field staff look up most via AI help.",
+      "title": "Top searched existing modules",
+      "description": "Top published modules where the chatbot served content or SKs requested assignment.",
       "footer": "High search volume signals where SKs need clearer module content or field support.",
       "emptyTitle": "No searched modules",
-      "emptyDescription": "No AI help lookups for published modules in this date range."
+      "emptyDescription": "No AI help lookups or assignment requests for published modules in this date range.",
+      "queriesHeading": "Chatbot queries",
+      "requestsHeading": "Assignment requests",
+      "emptyQueries": "No chatbot queries for this module in the selected period.",
+      "emptyRequests": "No assignment requests for this module in the selected period."
     },
     "suggestedModules": {
-      "title": "Top suggested modules",
-      "description": "Modules field staff request most for training access.",
+      "title": "Top searched suggested modules",
+      "description": "Topics where the chatbot could not fully respond — draft matches, metadata gaps, missing modules, or new training requests.",
+      "columns": {
+        "topic": "Suggested module / topic"
+      },
       "footer": "High request volume signals demand for assigning or refreshing a published module.",
-      "emptyTitle": "No requested modules",
-      "emptyDescription": "No training access requests for published modules in this date range."
+      "emptyTitle": "No suggested modules",
+      "emptyDescription": "No module creation suggestions in this date range.",
+      "detailFallback": "Suggested module",
+      "loadDetailError": "Could not load suggestion details.",
+      "queriesHeading": "Related chatbot queries",
+      "requestsHeading": "Related training requests",
+      "emptyQueries": "No related chatbot queries.",
+      "emptyRequests": "No related training requests.",
+      "showMetadata": "Show details",
+      "reasonHeading": "Reason",
+      "reasons": {
+        "draftModule": "Matching module exists in draft",
+        "insufficientMetadata": "Search failed due to insufficient metadata",
+        "noMatchingModule": "No matching module exists",
+        "newTopicRequest": "SK requested training on a new topic",
+        "unattributedDemand": "Unattributed chatbot demand"
+      },
+      "evidence": {
+        "interaction": "Interaction type",
+        "source": "Source",
+        "sourceRequested": "Training request",
+        "sourceChatbot": "Chatbot query",
+        "skId": "Sample SK ID"
+      }
     },
     "moduleDemand": {
+      "sectionTitle": "Module search demand",
       "columns": {
         "title": "Module Title",
         "searchCount": "Search Count",
@@ -302,6 +332,7 @@
       "emptyTitle": "No module demand",
       "emptyDescription": "No chatbot module activity in this date range.",
       "requestSummary": "{{count}} training access requests in this period",
+      "requestFallback": "Training access requested",
       "detailDescription": "Queries and requests associated with this module or topic.",
       "occurrences": "{{count}} occurrences",
       "interaction": {
@@ -320,7 +351,13 @@
         "assign": "Assign",
         "publish": "Publish",
         "create": "Create Module"
-      }
+      },
+      "seeMore": "See more",
+      "loadingMore": "Loading…",
+      "expand": "Expand widget",
+      "collapse": "Collapse widget",
+      "collapsedSummary": "{{count}} items loaded",
+      "showMetadata": "Show metadata"
     },
     "documentUsage": {
       "title": "Document & knowledge views",

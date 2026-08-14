@@ -204,6 +204,28 @@ export function parseDistrictListResponse(response: unknown): {
   return { districts, total };
 }
 
+export function parseDivisionListResponse(response: unknown): {
+  divisions: Array<{ id: number; name: string }>;
+  total: number;
+} {
+  if (!response || typeof response !== 'object') {
+    return { divisions: [], total: 0 };
+  }
+  const record = response as Record<string, unknown>;
+  const rawDivisions = Array.isArray(record.divisions) ? record.divisions : [];
+  const divisions = rawDivisions.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== 'number' || typeof row.name !== 'string') return [];
+    return [{ id: row.id, name: row.name }];
+  });
+  const total =
+    typeof record.total === 'number' && Number.isFinite(record.total)
+      ? record.total
+      : divisions.length;
+  return { divisions, total };
+}
+
 export interface UpazilaWire {
   id: number;
   name: string;

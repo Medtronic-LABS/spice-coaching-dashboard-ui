@@ -30,6 +30,8 @@ interface DashboardWidgetShellProps {
    * `xl` (~40rem) for denser multi-section widgets (e.g. document usage).
    */
   size?: DashboardWidgetShellSize;
+  /** Header-only layout without a growing scroll body (e.g. collapsed widgets). */
+  compact?: boolean;
   className?: string;
 }
 
@@ -54,6 +56,7 @@ export const DashboardWidgetShell = ({
   footer,
   flush = false,
   size = 'md',
+  compact = false,
   className,
 }: DashboardWidgetShellProps) => {
   const hasHeaderControls = Boolean(actions) || Boolean(onRefresh);
@@ -61,8 +64,9 @@ export const DashboardWidgetShell = ({
   return (
     <Card
       className={cn(
-        'flex h-full min-h-0 flex-col overflow-hidden',
-        SIZE_MAX_HEIGHT[size],
+        'flex min-h-0 flex-col overflow-hidden',
+        !compact && 'h-full',
+        !compact && SIZE_MAX_HEIGHT[size],
         // Explicitly override Card's default `p-4 md:p-6` at all breakpoints.
         flush ? 'p-0 md:p-0' : 'p-4 md:p-4',
         className,
@@ -96,7 +100,8 @@ export const DashboardWidgetShell = ({
       </div>
       <div
         className={cn(
-          'mt-3 min-h-0 flex-1 overflow-y-auto',
+          'mt-3 min-h-0 overflow-y-auto',
+          compact ? 'shrink-0' : 'flex-1',
           !flush && 'space-y-3',
         )}
       >

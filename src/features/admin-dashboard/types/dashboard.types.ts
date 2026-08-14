@@ -17,7 +17,7 @@ export type TeamHierarchySortKey =
   | 'name';
 
 export interface DashboardGeographyFilters {
-  /** Reserved; Division control is disabled until BE provides a divisions API. */
+  /** Division display name sent as dashboard `division` query param. */
   division: string;
   /** District display name (also the document-usage `district` query value). */
   district: string;
@@ -119,12 +119,34 @@ export interface DigitalHelpModuleUsageResponse {
   modules: DigitalHelpModuleUsageItem[];
 }
 
+export interface DashboardUserSummary {
+  user_id: number | null;
+  user_name: string | null;
+  user_role: string | null;
+  division: string | null;
+  district: string | null;
+  upazila: string | null;
+}
+
+export interface DigitalHelpModuleQuestionItem {
+  question: string;
+  occurrence_count: number;
+  last_asked_at: string;
+  asked_by: DashboardUserSummary;
+}
+
+export interface DigitalHelpModuleRequestItem {
+  requested_at: string;
+  reason: string | null;
+  requested_by: DashboardUserSummary;
+}
+
 export interface DigitalHelpModuleQuestionsResponse {
   module_id: string;
   title: LocalizedString | null;
   from_date: string;
   to_date: string;
-  questions: TeamMemberQuestionItem[];
+  questions: DigitalHelpModuleQuestionItem[];
   total_questions: number;
   total_pages: number;
   limit: number;
@@ -136,7 +158,11 @@ export interface DigitalHelpModuleRequestsResponse {
   title: LocalizedString | null;
   from_date: string;
   to_date: string;
-  module_requested_count: number;
+  requests: DigitalHelpModuleRequestItem[];
+  total_requests: number;
+  total_pages: number;
+  limit: number;
+  offset: number;
 }
 
 export interface PublishedModuleCompletionItem {
@@ -163,7 +189,7 @@ export interface ModuleCreationSuggestionEvidenceItem {
   text: string;
   occurrence_count: number;
   last_seen_at: string | null;
-  sample_chw_id: number | null;
+  prompted_by: DashboardUserSummary;
 }
 
 export interface ModuleCreationSuggestionListItem {
