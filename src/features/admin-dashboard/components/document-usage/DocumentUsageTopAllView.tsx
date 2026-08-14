@@ -3,6 +3,10 @@ import { ProgressBar } from '@/components/common/ProgressBar';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TruncatedText } from '@/components/ui';
 import type { DocumentUsageTopCard } from '@/features/admin-dashboard/utils/documentUsage';
+import {
+  DOC_TABLE_CELL,
+  DOCUMENT_USAGE_TABLE_PROPS,
+} from '@/features/admin-dashboard/utils/documentUsageTableLayout';
 
 type TopDocumentTableRow = {
   document_id: string;
@@ -35,30 +39,33 @@ export const DocumentUsageTopAllView = ({
     {
       key: 'rank',
       header: t('adminDashboard.documentUsage.columns.rank'),
-      headerClassName: 'w-14',
-      className: 'w-14 tabular-nums text-spice-text-muted',
+      colClassName: 'w-10',
+      headerClassName: `w-10 tabular-nums text-spice-text-muted ${DOC_TABLE_CELL.compact}`,
+      className: `w-10 tabular-nums text-spice-text-muted ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
     },
     {
       key: 'document_title',
       header: t('adminDashboard.documentUsage.columns.title'),
-      headerClassName: 'min-w-0',
-      className: 'min-w-0',
+      colClassName: 'w-[11rem]',
+      headerClassName: `max-w-[11rem] ${DOC_TABLE_CELL.compact}`,
+      className: `max-w-[11rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
       render: (row) => (
         <TruncatedText
           text={row.document_title}
-          className="font-medium text-spice-text-primary"
+          className="min-w-0 font-medium text-spice-text-primary"
         />
       ),
     },
     {
       key: 'trend',
       header: t('adminDashboard.documentUsage.columns.trend'),
-      headerClassName: 'w-36',
-      className: 'w-36',
+      colClassName: 'w-24',
+      headerClassName: `w-24 ${DOC_TABLE_CELL.compact}`,
+      className: `w-24 ${DOC_TABLE_CELL.compact}`,
       render: (row) => (
         <ProgressBar
           value={row.trend}
-          className="h-2 w-full"
+          className="h-2 w-full min-w-0"
           barClassName="bg-spice-brand-primary"
         />
       ),
@@ -66,14 +73,16 @@ export const DocumentUsageTopAllView = ({
     {
       key: 'total_views',
       header: t('adminDashboard.documentUsage.columns.views'),
-      headerClassName: 'w-20',
-      className: 'w-20 tabular-nums',
+      colClassName: 'w-14',
+      headerClassName: `w-14 text-right ${DOC_TABLE_CELL.compact}`,
+      className: `w-14 text-right tabular-nums ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
     },
     {
       key: 'unique_users',
       header: t('adminDashboard.documentUsage.columns.users'),
-      headerClassName: 'w-20',
-      className: 'w-20 tabular-nums',
+      colClassName: 'w-14',
+      headerClassName: `w-14 text-right ${DOC_TABLE_CELL.compact}`,
+      className: `w-14 text-right tabular-nums ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
       render: (row) => row.unique_users ?? '—',
     },
   ];
@@ -83,7 +92,7 @@ export const DocumentUsageTopAllView = ({
       <Table<TopDocumentTableRow>
         data={rows}
         columns={columns}
-        className="table-fixed"
+        {...DOCUMENT_USAGE_TABLE_PROPS}
         keyExtractor={(row) => row.document_id}
         caption={t('adminDashboard.documentUsage.topAllTitle')}
         emptyMessage={t('adminDashboard.documentUsage.emptyTitle')}

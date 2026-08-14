@@ -803,6 +803,9 @@ describe('ModuleLibraryPage', () => {
     expect(
       within(dialog).queryByText(/domain & settings/i),
     ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('combobox', { name: /content domain type/i }),
+    ).toHaveValue('clinical');
     expect(within(dialog).getByLabelText(/^difficulty level/i)).toHaveClass(
       'select-arrow',
     );

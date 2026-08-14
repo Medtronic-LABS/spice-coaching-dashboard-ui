@@ -64,7 +64,7 @@ export const DashboardWidgetShell = ({
   return (
     <Card
       className={cn(
-        'flex min-h-0 flex-col overflow-hidden',
+        'flex min-h-0 flex-col overflow-hidden border border-spice-border shadow-spiceCard',
         !compact && 'h-full',
         !compact && SIZE_MAX_HEIGHT[size],
         // Explicitly override Card's default `p-4 md:p-6` at all breakpoints.
@@ -79,15 +79,17 @@ export const DashboardWidgetShell = ({
         )}
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-spice-text-primary">
+          <h3 className="text-[13px] font-semibold text-spice-text-primary">
             {title}
           </h3>
           {description ? (
-            <p className="mt-1 text-xs text-spice-text-muted">{description}</p>
+            <p className="mt-1 text-[11px] font-normal text-spice-text-muted">
+              {description}
+            </p>
           ) : null}
         </div>
         {hasHeaderControls ? (
-          <div className="flex max-w-full shrink-0 items-center justify-end gap-2">
+          <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
             {actions}
             {onRefresh ? (
               <DashboardWidgetRefreshButton

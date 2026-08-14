@@ -170,7 +170,7 @@
       "retry": "Try again"
     },
     "kpis": {
-      "active": "SKs active now",
+      "active": "SKs active",
       "activeTooltip": "SKs with at least one activity in the selected period",
       "inactive": "Inactive SKs",
       "inactiveTooltip": "SKs with no activity in the selected period",

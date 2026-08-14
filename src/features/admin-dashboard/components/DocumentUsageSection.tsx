@@ -28,6 +28,7 @@ import {
   type DocumentUsageListView,
   type DocumentUsageView,
 } from '@/features/admin-dashboard/utils/documentUsage';
+import { DOC_TABLE_CELL } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
@@ -222,21 +223,20 @@ export const DocumentUsageSection = ({
       {
         key: 'document_title',
         header: t('adminDashboard.documentUsage.columns.title'),
-        headerClassName: 'min-w-0',
-        className: 'min-w-0',
+        colClassName: 'w-[9.5rem]',
+        headerClassName: `max-w-[9.5rem] ${DOC_TABLE_CELL.compact}`,
+        className: `max-w-[9.5rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
         render: (row) => {
           const title = row.document_title ?? row.document_id;
           return (
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-spice-bg-tint text-spice-text-muted">
-                <BookIcon className="h-3.5 w-3.5" />
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-spice-bg-tint text-spice-text-muted">
+                <BookIcon className="h-3 w-3" />
               </span>
-              <div className="min-w-0 flex-1">
-                <TruncatedText
-                  text={title}
-                  className="font-medium text-spice-text-primary"
-                />
-              </div>
+              <TruncatedText
+                text={title}
+                className="min-w-0 font-medium text-spice-text-primary"
+              />
             </span>
           );
         },
@@ -244,38 +244,43 @@ export const DocumentUsageSection = ({
       {
         key: 'total_views',
         header: t('adminDashboard.documentUsage.columns.views'),
-        headerClassName: 'w-20',
-        className: 'w-20 tabular-nums',
+        colClassName: 'w-14',
+        headerClassName: `w-14 text-right ${DOC_TABLE_CELL.compact}`,
+        className: `w-14 text-right tabular-nums ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
       },
       {
         key: 'unique_users',
         header: t('adminDashboard.documentUsage.columns.users'),
-        headerClassName: 'w-20',
-        className: 'w-20 tabular-nums',
+        colClassName: 'w-14',
+        headerClassName: `w-14 text-right ${DOC_TABLE_CELL.compact}`,
+        className: `w-14 text-right tabular-nums ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
       },
       {
         key: 'last_viewed_at',
         header: t('adminDashboard.documentUsage.columns.lastViewed'),
-        headerClassName: 'w-40',
-        className: 'w-40 whitespace-nowrap',
+        colClassName: 'w-[7.25rem]',
+        headerClassName: `w-[7.25rem] ${DOC_TABLE_CELL.compact}`,
+        className: `w-[7.25rem] ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
         render: (row) => formatDisplayDateTime(row.last_viewed_at),
       },
       {
         key: 'last_viewed_by_user_name',
         header: t('adminDashboard.documentUsage.columns.lastViewedBy'),
-        headerClassName: 'w-36',
-        className: 'w-36 min-w-0',
+        colClassName: 'w-[6.5rem]',
+        headerClassName: `max-w-[6.5rem] ${DOC_TABLE_CELL.compact}`,
+        className: `max-w-[6.5rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
         render: (row) => {
           const name = row.last_viewed_by_user_name;
           if (!name) return '—';
-          return <TruncatedText text={name} />;
+          return <TruncatedText text={name} className="min-w-0" />;
         },
       },
       {
         key: 'actions',
         header: '',
-        headerClassName: 'w-10',
-        className: 'w-10',
+        colClassName: 'w-10',
+        headerClassName: `w-10 ${DOC_TABLE_CELL.compact}`,
+        className: `w-10 ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
         render: (row) => (
           <Button
             variant="secondary"

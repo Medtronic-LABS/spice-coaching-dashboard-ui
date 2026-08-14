@@ -22,7 +22,7 @@ interface TrainingModulesSectionProps {
 function formatLaunchedDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -77,7 +77,7 @@ export const TrainingModulesSection = ({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full table-fixed text-left text-sm">
-            <thead className="bg-spice-brand-primary/10 text-[11px] font-semibold uppercase tracking-wide text-spice-brand-primary">
+            <thead className="bg-spice-palette-violetLt text-xs font-bold uppercase leading-[15px] text-spice-palette-violetDeep">
               <tr>
                 <th className="min-w-0 px-4 py-2.5">
                   {t('adminDashboard.trainingModules.columns.name')}
@@ -94,12 +94,12 @@ export const TrainingModulesSection = ({
               </tr>
             </thead>
             <tbody>
-              {modules.map((row: PublishedModuleCompletionItem, index) => {
+              {modules.map((row: PublishedModuleCompletionItem) => {
                 const title = resolveDisplayText(row.title);
                 const total = row.total_descendant_sk_count;
                 const completed = row.completed_sk_count;
-                const tone = resolveModuleCompletionTone(index);
                 const percent = total > 0 ? (completed / total) * 100 : 0;
+                const tone = resolveModuleCompletionTone(percent);
 
                 return (
                   <tr

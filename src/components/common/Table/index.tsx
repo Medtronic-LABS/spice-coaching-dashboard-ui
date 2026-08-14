@@ -4,6 +4,23 @@ import type { TableProps } from './Table.types';
 
 export type { ColumnDef, TableProps } from './Table.types';
 
+const DENSITY_STYLES = {
+  compact: {
+    table: 'text-sm text-spice-text-medium',
+    thead:
+      'bg-spice-bg-tint text-xs uppercase tracking-wider text-spice-text-medium',
+    th: 'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
+    td: 'px-3 py-1.5 sm:px-6 sm:py-2',
+  },
+  comfortable: {
+    table: 'text-base text-spice-text-onSurfaceVariant',
+    thead:
+      'bg-spice-palette-violetLt text-xs font-bold uppercase leading-[15px] text-spice-palette-violetDeep',
+    th: 'px-4 py-4 font-bold uppercase',
+    td: 'px-4 py-4',
+  },
+} as const;
+
 export function Table<T extends object>({
   data,
   columns,
@@ -17,8 +34,11 @@ export function Table<T extends object>({
   onSort,
   renderExpandedRow,
   getRowClassName,
+  density = 'compact',
   ...tableProps
 }: TableProps<T>) {
+  const styles = DENSITY_STYLES[density];
+
   return (
     <div
       className={cn(
@@ -27,14 +47,18 @@ export function Table<T extends object>({
       )}
     >
       <table
-        className={cn(
-          'w-full text-left text-sm text-spice-text-medium',
-          className,
-        )}
+        className={cn('w-full text-left', styles.table, className)}
         {...tableProps}
       >
         {caption ? <caption className="sr-only">{caption}</caption> : null}
-        <thead className="bg-spice-bg-tint text-xs uppercase text-spice-text-medium">
+        {columns.some((col) => col.colClassName) ? (
+          <colgroup>
+            {columns.map((col) => (
+              <col key={String(col.key)} className={col.colClassName} />
+            ))}
+          </colgroup>
+        ) : null}
+        <thead className={styles.thead}>
           <tr>
             {columns.map((col) => {
               const sortKey = col.sortKey ?? String(col.key);
@@ -54,7 +78,7 @@ export function Table<T extends object>({
                   key={String(col.key)}
                   scope="col"
                   className={cn(
-                    'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
+                    styles.th,
                     isSortable && onSort && 'cursor-pointer select-none group',
                     col.headerClassName,
                   )}
@@ -145,10 +169,7 @@ export function Table<T extends object>({
                     {columns.map((col) => (
                       <td
                         key={String(col.key)}
-                        className={cn(
-                          'px-3 py-1.5 whitespace-nowrap sm:px-6 sm:py-2',
-                          col.className,
-                        )}
+                        className={cn(styles.td, col.className)}
                       >
                         {col.render
                           ? col.render(row)

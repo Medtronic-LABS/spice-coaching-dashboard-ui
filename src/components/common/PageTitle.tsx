@@ -18,7 +18,7 @@ export function PageTitle({
   return (
     <Comp
       className={cn(
-        'text-2xl font-semibold text-spice-text-primary',
+        'text-[30px] font-extrabold tracking-[-0.3px] text-spice-text-primary',
         className,
       )}
       {...props}
