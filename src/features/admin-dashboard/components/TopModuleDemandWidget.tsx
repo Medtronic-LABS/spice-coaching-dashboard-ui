@@ -12,7 +12,6 @@ export interface TopModuleDemandRow {
   id: string;
   title: string;
   searchCount: number;
-  rank?: number;
   actionLabel?: string;
   onAction?: () => void;
 }
@@ -62,8 +61,8 @@ export const TopModuleDemandWidget = ({
   );
 
   const gridClass = showActions
-    ? 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem_6.75rem]'
-    : 'grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1.5fr)_3rem]';
+    ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_5rem_6.75rem]'
+    : 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_5rem]';
 
   return (
     <DashboardWidgetShell
@@ -94,36 +93,26 @@ export const TopModuleDemandWidget = ({
               gridClass,
             )}
           >
-            <span aria-hidden>#</span>
-            <span>{titleColumnLabel}</span>
+            <span className="text-left">{titleColumnLabel}</span>
             <span className="hidden sm:block" aria-hidden />
-            <span className="text-right">
+            <span className="text-left">
               {t('adminDashboard.moduleDemand.columns.searchCount')}
             </span>
             {showActions ? (
-              <span className="text-right">
+              <span className="text-left">
                 {t('adminDashboard.moduleDemand.columns.action')}
               </span>
             ) : null}
           </div>
 
           <ol className="min-h-0 flex-1 divide-y divide-spice-border/60 overflow-y-auto overflow-x-hidden pr-1">
-            {rows.map((row, index) => {
-              const rank = row.rank ?? index + 1;
+            {rows.map((row) => {
               const barValue = (row.searchCount / maxCount) * 100;
               const isExpanded = expandedRowId === row.id;
 
               return (
                 <li key={row.id} className="py-3">
                   <div className={cn('grid items-center gap-2', gridClass)}>
-                    <span
-                      className={cn(
-                        'flex h-6 w-6 items-center justify-center rounded-full',
-                        'bg-spice-brand-primary/10 text-xs font-semibold tabular-nums text-spice-brand-primary',
-                      )}
-                    >
-                      {rank}
-                    </span>
                     <button
                       type="button"
                       className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
@@ -150,7 +139,7 @@ export const TopModuleDemandWidget = ({
                         barClassName="bg-spice-brand-primary"
                       />
                     </div>
-                    <span className="text-right text-sm font-semibold tabular-nums text-spice-brand-primary">
+                    <span className="text-center text-sm font-semibold tabular-nums text-spice-brand-primary">
                       {row.searchCount}
                     </span>
                     {showActions ? (
@@ -172,7 +161,7 @@ export const TopModuleDemandWidget = ({
                       </div>
                     ) : null}
                   </div>
-                  <div className="mt-2 pl-8 sm:hidden">
+                  <div className="mt-2 pl-5 sm:hidden">
                     <ProgressBar
                       value={barValue}
                       className="h-2"
@@ -180,7 +169,7 @@ export const TopModuleDemandWidget = ({
                     />
                   </div>
                   {isExpanded ? (
-                    <div className="mt-3 rounded-lg border border-spice-border/70 bg-spice-bg-tint/40 p-3 pl-3 sm:ml-8">
+                    <div className="mt-3 rounded-lg border border-spice-border/70 bg-spice-bg-tint/40 p-3">
                       {renderExpandedContent(row.id)}
                     </div>
                   ) : null}

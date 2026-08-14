@@ -10,6 +10,10 @@ import type {
   ModuleCreationSuggestionListItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
 import { SuggestedModuleInlineEvidence } from '@/features/admin-dashboard/components/ModuleDemandInlineEvidence';
+import {
+  buildModuleDemandFilterKey,
+  useAccumulatedModuleDemandPages,
+} from '@/features/admin-dashboard/hooks/useTopModuleDemandPagination';
 import { TOP_MODULE_DEMAND_LIMIT } from '@/features/admin-dashboard/utils/moduleDemand';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 
@@ -34,7 +38,7 @@ function mapSuggestionsToRows(
   onPublish: (moduleId: string) => void,
   onCreate: (topic: string) => void,
 ): TopModuleDemandRow[] {
-  return suggestions.map((suggestion, index) => {
+  return suggestions.map((suggestion) => {
     const canPublish =
       suggestion.suggestion_kind === 'matched_draft' &&
       Boolean(suggestion.matched_module_id);
@@ -45,7 +49,6 @@ function mapSuggestionsToRows(
       id: suggestion.id,
       title: suggestion.display_title,
       searchCount: suggestion.evidence_count,
-      rank: suggestion.rank || index + 1,
       actionLabel: showActions
         ? canPublish
           ? publishLabel
@@ -78,10 +81,7 @@ export const TopSuggestedModulesWidget = ({
 }: TopSuggestedModulesWidgetProps) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
-  const [accumulatedSuggestions, setAccumulatedSuggestions] = useState<
-    ModuleCreationSuggestionListItem[]
-  >([]);
-  const filterKey = `${fromDate}|${toDate}|${geography.division}|${geography.district}|${geography.upazila}`;
+  const filterKey = buildModuleDemandFilterKey(fromDate, toDate, geography);
 
   const query = useFetchModuleCreationSuggestionsQuery(
     {
@@ -100,26 +100,24 @@ export const TopSuggestedModulesWidget = ({
 
   useEffect(() => {
     setOffset(0);
-    setAccumulatedSuggestions([]);
   }, [filterKey]);
 
-  useEffect(() => {
-    if (!pageData?.suggestions) return;
-    if (pageData.from_date !== fromDate || pageData.to_date !== toDate) return;
-
-    setAccumulatedSuggestions((prev) => {
-      if (pageData.offset === 0) {
-        return pageData.suggestions;
-      }
-      const existingIds = new Set(prev.map((suggestion) => suggestion.id));
-      return [
-        ...prev,
-        ...pageData.suggestions.filter(
-          (suggestion) => !existingIds.has(suggestion.id),
-        ),
-      ];
-    });
-  }, [fromDate, pageData, toDate]);
+  const accumulatedSuggestions = useAccumulatedModuleDemandPages({
+    filterKey,
+    fromDate,
+    toDate,
+    queryOffset: offset,
+    pageData: pageData
+      ? {
+          from_date: pageData.from_date,
+          to_date: pageData.to_date,
+          offset: pageData.offset,
+          items: pageData.suggestions,
+        }
+      : undefined,
+    getItemId: (suggestion) => suggestion.id,
+    fulfilledTimeStamp: query.fulfilledTimeStamp,
+  });
 
   const rows = useMemo(
     () =>
@@ -144,6 +142,8 @@ export const TopSuggestedModulesWidget = ({
   const hasMore =
     (pageData?.offset ?? offset) + TOP_MODULE_DEMAND_LIMIT < totalItems;
   const isLoadingMore = offset > 0 && query.isFetching;
+  const showLoading =
+    offset === 0 && rows.length === 0 && (ui.showLoading || query.isFetching);
 
   const handleSeeMore = useCallback(() => {
     if (!hasMore || query.isFetching) return;
@@ -153,10 +153,8 @@ export const TopSuggestedModulesWidget = ({
   const handleRefresh = useCallback(() => {
     if (offset !== 0) {
       setOffset(0);
-      setAccumulatedSuggestions([]);
       return;
     }
-    setAccumulatedSuggestions([]);
     void query.refetch();
   }, [offset, query]);
 
@@ -166,11 +164,11 @@ export const TopSuggestedModulesWidget = ({
       description={t('adminDashboard.suggestedModules.description')}
       titleColumnLabel={t('adminDashboard.suggestedModules.columns.topic')}
       rows={rows}
-      showLoading={ui.showLoading && offset === 0}
+      showLoading={showLoading}
       showError={ui.showError}
       onRetry={() => void query.refetch()}
       onRefresh={handleRefresh}
-      isRefreshing={query.isFetching && offset === 0}
+      isRefreshing={query.isFetching && offset === 0 && rows.length > 0}
       showActions={showActions}
       emptyTitle={t('adminDashboard.suggestedModules.emptyTitle')}
       emptyDescription={t('adminDashboard.suggestedModules.emptyDescription')}

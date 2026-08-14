@@ -148,8 +148,8 @@
     }
   },
   "adminDashboard": {
-    "title": "অ্যাডমিন ড্যাশবোর্ড",
-    "description": "প্রোগ্রাম-ব্যাপী প্রশিক্ষণ কার্যকলাপ, মডিউল চাহিদা এবং নলেজ ব্যবহার।",
+    "title": "ড্যাশবোর্ড",
+    "description": "BRAC Health Programme · Bangladesh",
     "insightsTitle": "প্রশিক্ষণ ইনসাইটস",
     "widgetError": {
       "title": "এই অংশ লোড করা যায়নি",

@@ -16,3 +16,12 @@ export type ModuleLibraryLocationState = {
     domain?: string;
   };
 };
+
+export function buildOpenCreateModuleNavigationState(
+  topic: string,
+): ModuleLibraryLocationState {
+  const title_bn = topic.trim();
+  return title_bn
+    ? { openCreateModule: { title_bn } }
+    : { openCreateModule: {} };
+}

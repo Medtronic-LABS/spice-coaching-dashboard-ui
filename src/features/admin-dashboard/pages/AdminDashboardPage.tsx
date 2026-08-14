@@ -15,21 +15,18 @@ import { useDashboardFilters } from '@/features/admin-dashboard/hooks/useDashboa
 import type { HierarchyFocusSelection } from '@/features/admin-dashboard/types/dashboard.types';
 import { canPerformDashboardAdminActions } from '@/features/admin-dashboard/utils/dashboardRoles';
 import { ModuleAssignmentDialog } from '@/features/modules/components/AssignmentDialog';
-import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
+import { buildOpenCreateModuleNavigationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
 const DashboardPageHeader = ({
   title,
-  description,
   children,
 }: {
   title: string;
-  description: string;
   children: ReactNode;
 }) => (
   <div className="flex flex-wrap items-start justify-between gap-4">
     <div>
       <PageTitle title={title} />
-      <p className="mt-1 text-sm text-spice-text-muted">{description}</p>
     </div>
     {children}
   </div>
@@ -69,12 +66,9 @@ export const AdminDashboardPage = () => {
   };
 
   const handleCreate = (topic: string) => {
-    const state: ModuleLibraryLocationState = {
-      openCreateModule: {
-        title_bn: topic,
-      },
-    };
-    navigate(paths.moduleLibrary, { state });
+    navigate(paths.moduleLibrary, {
+      state: buildOpenCreateModuleNavigationState(topic),
+    });
   };
 
   const filterControls = (
@@ -90,10 +84,7 @@ export const AdminDashboardPage = () => {
 
   return (
     <div className="space-y-4">
-      <DashboardPageHeader
-        title={t('adminDashboard.title')}
-        description={t('adminDashboard.description')}
-      >
+      <DashboardPageHeader title={t('adminDashboard.title')}>
         {filterControls}
       </DashboardPageHeader>
 

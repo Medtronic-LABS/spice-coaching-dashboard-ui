@@ -6,6 +6,10 @@ import {
   type TopModuleDemandRow,
 } from '@/features/admin-dashboard/components/TopModuleDemandWidget';
 import { ExistingModuleInlineEvidence } from '@/features/admin-dashboard/components/ModuleDemandInlineEvidence';
+import {
+  buildModuleDemandFilterKey,
+  useAccumulatedModuleDemandPages,
+} from '@/features/admin-dashboard/hooks/useTopModuleDemandPagination';
 import type {
   DashboardGeographyFilters,
   DigitalHelpModuleUsageItem,
@@ -36,13 +40,12 @@ function mapModulesToRows(
 ): TopModuleDemandRow[] {
   return modules
     .filter((module) => existingModuleSearchCount(module) > 0)
-    .map((module, index) => {
+    .map((module) => {
       const title = resolveDisplayText(module.title);
       return {
         id: module.module_id,
         title,
         searchCount: existingModuleSearchCount(module),
-        rank: index + 1,
         actionLabel: showActions ? assignLabel : undefined,
         onAction: showActions
           ? () => onAssign(module.module_id, title)
@@ -63,10 +66,7 @@ export const TopSearchedModulesWidget = ({
 }: TopSearchedModulesWidgetProps) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
-  const [accumulatedModules, setAccumulatedModules] = useState<
-    DigitalHelpModuleUsageItem[]
-  >([]);
-  const filterKey = `${fromDate}|${toDate}|${geography.division}|${geography.district}|${geography.upazila}`;
+  const filterKey = buildModuleDemandFilterKey(fromDate, toDate, geography);
 
   const query = useFetchDigitalHelpModulesQuery(
     {
@@ -84,26 +84,24 @@ export const TopSearchedModulesWidget = ({
 
   useEffect(() => {
     setOffset(0);
-    setAccumulatedModules([]);
   }, [filterKey]);
 
-  useEffect(() => {
-    if (!pageData?.modules) return;
-    if (pageData.from_date !== fromDate || pageData.to_date !== toDate) return;
-
-    setAccumulatedModules((prev) => {
-      if (pageData.offset === 0) {
-        return pageData.modules;
-      }
-      const existingIds = new Set(prev.map((module) => module.module_id));
-      return [
-        ...prev,
-        ...pageData.modules.filter(
-          (module) => !existingIds.has(module.module_id),
-        ),
-      ];
-    });
-  }, [fromDate, pageData, toDate]);
+  const accumulatedModules = useAccumulatedModuleDemandPages({
+    filterKey,
+    fromDate,
+    toDate,
+    queryOffset: offset,
+    pageData: pageData
+      ? {
+          from_date: pageData.from_date,
+          to_date: pageData.to_date,
+          offset: pageData.offset,
+          items: pageData.modules,
+        }
+      : undefined,
+    getItemId: (module) => module.module_id,
+    fulfilledTimeStamp: query.fulfilledTimeStamp,
+  });
 
   const rows = useMemo(
     () =>
@@ -114,6 +112,8 @@ export const TopSearchedModulesWidget = ({
   const hasMore =
     (pageData?.offset ?? offset) + TOP_MODULE_DEMAND_LIMIT < totalItems;
   const isLoadingMore = offset > 0 && query.isFetching;
+  const showLoading =
+    offset === 0 && rows.length === 0 && (ui.showLoading || query.isFetching);
 
   const handleSeeMore = useCallback(() => {
     if (!hasMore || query.isFetching) return;
@@ -123,10 +123,8 @@ export const TopSearchedModulesWidget = ({
   const handleRefresh = useCallback(() => {
     if (offset !== 0) {
       setOffset(0);
-      setAccumulatedModules([]);
       return;
     }
-    setAccumulatedModules([]);
     void query.refetch();
   }, [offset, query]);
 
@@ -136,11 +134,11 @@ export const TopSearchedModulesWidget = ({
       description={t('adminDashboard.existingModules.description')}
       titleColumnLabel={t('adminDashboard.moduleDemand.columns.title')}
       rows={rows}
-      showLoading={ui.showLoading && offset === 0}
+      showLoading={showLoading}
       showError={ui.showError}
       onRetry={() => void query.refetch()}
       onRefresh={handleRefresh}
-      isRefreshing={query.isFetching && offset === 0}
+      isRefreshing={query.isFetching && offset === 0 && rows.length > 0}
       showActions={showActions}
       emptyTitle={t('adminDashboard.existingModules.emptyTitle')}
       emptyDescription={t('adminDashboard.existingModules.emptyDescription')}
