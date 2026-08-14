@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MODULE_PERFORMANCE_DISPLAY_LIMIT,
   PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
   buildPublishedModuleCompletionsQueryArgs,
 } from '@/features/admin-dashboard/utils/publishedModuleCompletions';
 
 describe('publishedModuleCompletions', () => {
-  it('builds shared query args for paired dashboard widgets', () => {
+  it('builds shared query args for dashboard widgets', () => {
     expect(
       buildPublishedModuleCompletionsQueryArgs('2026-01-01', '2026-01-31'),
     ).toEqual({
@@ -17,9 +16,7 @@ describe('publishedModuleCompletions', () => {
     });
   });
 
-  it('keeps the performance widget display cap below the shared fetch limit', () => {
-    expect(MODULE_PERFORMANCE_DISPLAY_LIMIT).toBeLessThan(
-      PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
-    );
+  it('uses one fetch limit so KPI and training modules share cache', () => {
+    expect(PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT).toBe(50);
   });
 });

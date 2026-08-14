@@ -18,15 +18,6 @@ vi.mock('@/features/admin-dashboard/components/TrainingModulesSection', () => ({
 }));
 
 vi.mock(
-  '@/features/admin-dashboard/components/ModulePerformanceSection',
-  () => ({
-    ModulePerformanceSection: () => (
-      <div data-testid="module-performance-section">Module Performance</div>
-    ),
-  }),
-);
-
-vi.mock(
   '@/features/admin-dashboard/components/TopSearchedModulesWidget',
   () => ({
     TopSearchedModulesWidget: () => (
@@ -53,13 +44,38 @@ vi.mock('@/features/admin-dashboard/components/DashboardFilterBar', () => ({
 }));
 
 describe('AdminDashboardPage', () => {
-  it('places training modules and module performance widgets in one row', () => {
+  it('renders one training modules widget outside the module-demand grid', () => {
     renderWithProviders(<AdminDashboardPage />);
 
     const training = screen.getByTestId('training-modules-section');
-    const performance = screen.getByTestId('module-performance-section');
+    const moduleDemandGrid = screen
+      .getByTestId('top-searched-modules-widget')
+      .closest('.xl\\:grid-cols-2');
 
-    expect(training.parentElement).toBe(performance.parentElement);
-    expect(training.parentElement).toHaveClass('xl:grid-cols-2');
+    expect(training).toBeInTheDocument();
+    expect(training.closest('.xl\\:grid-cols-2')).toBeNull();
+    expect(moduleDemandGrid).not.toBeNull();
+  });
+
+  it('orders dashboard sections from KPIs through document usage', () => {
+    renderWithProviders(<AdminDashboardPage />);
+
+    const sectionIds = [
+      'dashboard-kpi-row',
+      'team-hierarchy-section',
+      'training-modules-section',
+      'top-searched-modules-widget',
+      'top-suggested-modules-widget',
+      'document-usage-section',
+    ].map((testId) => screen.getByTestId(testId));
+
+    for (let index = 0; index < sectionIds.length - 1; index += 1) {
+      const current = sectionIds[index]!;
+      const next = sectionIds[index + 1]!;
+      expect(
+        current.compareDocumentPosition(next) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
   });
 });

@@ -268,18 +268,15 @@
     },
     "trainingModules": {
       "title": "প্রশিক্ষণ মডিউল",
-      "description": "সম্পন্নতা বর্তমান ভিউয়ের SK-দের প্রতিফলিত করে।",
+      "description": "বর্তমান ভিউতে প্রকাশিত মডিউল ও SK সম্পন্নতার অগ্রগতি।",
       "emptyTitle": "কোনো প্রকাশিত মডিউল নেই",
       "emptyDescription": "এই তারিখের রেঞ্জে কোনো মডিউল প্রকাশিত হয়নি।",
       "columns": {
         "name": "মডিউল নাম",
         "launched": "লঞ্চ করা",
+        "progress": "অগ্রগতি",
         "completed": "SK সম্পন্ন"
       }
-    },
-    "modulePerformance": {
-      "title": "মডিউল পারফরম্যান্স",
-      "description": "প্রকাশিত মডিউল জুড়ে SK সম্পন্নতার অগ্রগতি।"
     },
     "existingModules": {
       "title": "টপ সার্চ করা বিদ্যমান মডিউল",

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { ProgressBar } from '@/components/common/ProgressBar';
 import { EmptyState, TruncatedText } from '@/components/ui';
 import { useFetchPublishedModuleCompletionsQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import type { PublishedModuleCompletionItem } from '@/features/admin-dashboard/types/dashboard.types';
@@ -58,7 +59,7 @@ export const TrainingModulesSection = ({
       isRefreshing={isFetching}
     >
       {showLoading ? (
-        <DashboardTableSkeleton rows={5} columns={3} />
+        <DashboardTableSkeleton rows={5} columns={4} />
       ) : showError ? (
         <div className="px-4 pb-4">
           <DashboardWidgetErrorState onRetry={() => void refetch()} />
@@ -81,6 +82,9 @@ export const TrainingModulesSection = ({
                 <th className="w-28 whitespace-nowrap px-4 py-2.5">
                   {t('adminDashboard.trainingModules.columns.launched')}
                 </th>
+                <th className="min-w-[8rem] px-4 py-2.5">
+                  {t('adminDashboard.trainingModules.columns.progress')}
+                </th>
                 <th className="w-32 whitespace-nowrap px-4 py-2.5">
                   {t('adminDashboard.trainingModules.columns.completed')}
                 </th>
@@ -89,6 +93,11 @@ export const TrainingModulesSection = ({
             <tbody>
               {modules.map((row: PublishedModuleCompletionItem, index) => {
                 const title = resolveDisplayText(row.title);
+                const total = row.total_descendant_sk_count;
+                const completed = row.completed_sk_count;
+                const tone = resolveModuleCompletionTone(index);
+                const percent = total > 0 ? (completed / total) * 100 : 0;
+
                 return (
                   <tr
                     key={row.module_id}
@@ -103,13 +112,21 @@ export const TrainingModulesSection = ({
                     <td className="w-28 whitespace-nowrap px-4 py-2.5 text-spice-text-muted">
                       {formatLaunchedDate(row.published_at)}
                     </td>
+                    <td className="min-w-[8rem] px-4 py-2.5">
+                      <ProgressBar
+                        value={percent}
+                        className="h-2 w-full min-w-[6rem]"
+                        barClassName={tone.barClassName}
+                      />
+                    </td>
                     <td
                       className={cn(
-                        'w-32 whitespace-nowrap px-4 py-2.5 font-semibold',
-                        resolveModuleCompletionTone(index).textClassName,
+                        'w-32 whitespace-nowrap px-4 py-2.5 font-semibold tabular-nums',
+                        tone.textClassName,
                       )}
                     >
-                      {`${row.completed_sk_count}/${row.total_descendant_sk_count}`}
+                      {completed}
+                      <span className="text-spice-text-muted">/{total}</span>
                     </td>
                   </tr>
                 );

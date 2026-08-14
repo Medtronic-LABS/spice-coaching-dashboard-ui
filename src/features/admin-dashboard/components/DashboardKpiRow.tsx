@@ -13,6 +13,7 @@ import {
 } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardKpiSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
+import { buildPublishedModuleCompletionsQueryArgs } from '@/features/admin-dashboard/utils/publishedModuleCompletions';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 
 interface DashboardKpiRowProps {
@@ -32,12 +33,9 @@ export const DashboardKpiRow = ({ fromDate, toDate }: DashboardKpiRowProps) => {
     limit: 1,
     offset: 0,
   });
-  const modulesQuery = useFetchPublishedModuleCompletionsQuery({
-    from_date: fromDate,
-    to_date: toDate,
-    limit: 1,
-    offset: 0,
-  });
+  const modulesQuery = useFetchPublishedModuleCompletionsQuery(
+    buildPublishedModuleCompletionsQueryArgs(fromDate, toDate),
+  );
 
   const teamUi = resolveDashboardQueryUiState(teamQuery);
   const modulesUi = resolveDashboardQueryUiState(modulesQuery);

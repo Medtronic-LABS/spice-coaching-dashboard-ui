@@ -7,7 +7,6 @@ import { buildPath, paths } from '@/constants/routes';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
 import { DocumentUsageSection } from '@/features/admin-dashboard/components/DocumentUsageSection';
-import { ModulePerformanceSection } from '@/features/admin-dashboard/components/ModulePerformanceSection';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/TopSearchedModulesWidget';
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
@@ -129,16 +128,10 @@ export const AdminDashboardPage = () => {
             onFocusChange={setHierarchyFocus}
           />
 
-          <div className="grid items-stretch gap-3 xl:grid-cols-2">
-            <TrainingModulesSection
-              fromDate={dateRange.fromDate}
-              toDate={dateRange.toDate}
-            />
-            <ModulePerformanceSection
-              fromDate={dateRange.fromDate}
-              toDate={dateRange.toDate}
-            />
-          </div>
+          <TrainingModulesSection
+            fromDate={dateRange.fromDate}
+            toDate={dateRange.toDate}
+          />
 
           <div className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">

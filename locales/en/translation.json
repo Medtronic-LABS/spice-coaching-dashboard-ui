@@ -267,18 +267,15 @@
     },
     "trainingModules": {
       "title": "Training Modules",
-      "description": "Completion reflects SKs in the current view.",
+      "description": "Published modules with SK completion progress in the current view.",
       "emptyTitle": "No published modules",
       "emptyDescription": "No modules were published in this date range.",
       "columns": {
         "name": "Module Name",
         "launched": "Launched",
+        "progress": "Progress",
         "completed": "SKs Completed"
       }
-    },
-    "modulePerformance": {
-      "title": "Module Performance",
-      "description": "SK completion progress across published modules."
     },
     "existingModules": {
       "title": "Top searched existing modules",
