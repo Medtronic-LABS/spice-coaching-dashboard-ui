@@ -30,6 +30,7 @@ import {
   useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
+import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
@@ -69,6 +70,7 @@ import {
   listingActorColumnDef,
   listingDateColumnDef,
 } from '@/features/modules/utils/moduleLibraryColumnDefs';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   appendRecentIngestDocument,
   readRecentIngestDocuments,
@@ -209,6 +211,12 @@ export const ModuleLibraryPage = () => {
     useDeactivateModuleMutation();
   const [reactivateModule, { isLoading: isReactivating }] =
     useReactivateModuleMutation();
+  const [publishModule, { isLoading: isPublishing }] =
+    usePublishModuleMutation();
+  const [publishingModuleId, setPublishingModuleId] = useState<string | null>(
+    null,
+  );
+  const [publishError, setPublishError] = useState('');
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
 
@@ -736,6 +744,8 @@ export const ModuleLibraryPage = () => {
             return null;
           }
           if (row.status === 'draft') {
+            const isPublishingRow =
+              isPublishing && publishingModuleId === row.id;
             return (
               <div className="flex justify-start gap-2">
                 <Button
@@ -750,6 +760,29 @@ export const ModuleLibraryPage = () => {
                   }}
                 >
                   Review
+                </Button>
+                <Button
+                  variant="primary"
+                  className="h-8 px-3 text-xs"
+                  disabled={isPublishing}
+                  onClick={async () => {
+                    setPublishError('');
+                    setPublishingModuleId(row.id);
+                    try {
+                      await publishModule({ moduleId: row.id }).unwrap();
+                      refreshModuleList();
+                    } catch (error) {
+                      setPublishError(
+                        formatRtkQueryError(error) ||
+                          'Failed to publish module. Please try again.',
+                      );
+                      refreshModuleList();
+                    } finally {
+                      setPublishingModuleId(null);
+                    }
+                  }}
+                >
+                  {isPublishingRow ? 'Publishing…' : 'Publish'}
                 </Button>
               </div>
             );
@@ -783,8 +816,11 @@ export const ModuleLibraryPage = () => {
       actorColumns,
       dateColumns,
       isProgramManager,
+      isPublishing,
       isReactivating,
       navigate,
+      publishModule,
+      publishingModuleId,
       reactivateModule,
       refreshModuleList,
       setTab,
@@ -799,6 +835,7 @@ export const ModuleLibraryPage = () => {
           isCreating ||
           isDeactivating ||
           isReactivating ||
+          isPublishing ||
           (!dateRangeInvalid && isLoadingModules)
         }
         label={
@@ -808,9 +845,12 @@ export const ModuleLibraryPage = () => {
               ? 'Deactivating module…'
               : isReactivating
                 ? 'Activating module…'
-                : 'Loading modules…'
+                : isPublishing
+                  ? 'Publishing module…'
+                  : 'Loading modules…'
         }
       />
+      {publishError ? <Banner tone="critical">{publishError}</Banner> : null}
       {createOpen ? (
         <Modal
           open={createOpen}
