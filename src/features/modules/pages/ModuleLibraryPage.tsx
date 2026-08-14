@@ -5,8 +5,10 @@ import {
   Banner,
   Button,
   Card,
+  LimitedTextInput,
   Loader,
   Modal,
+  QuotedDisplayLabel,
   SearchInput,
   Select,
   Tabs,
@@ -21,6 +23,13 @@ import {
 } from '@/components/common/SettingsFilterDrawer';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { paths } from '@/constants/routes';
+import {
+  FIELD_LIMITS,
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import { getCurrentRole } from '@/constants/role';
 import {
   useCreateModuleMutation,
@@ -611,38 +620,48 @@ export const ModuleLibraryPage = () => {
       {
         key: 'title',
         header: 'Module',
-        headerClassName: 'w-[20rem] min-w-[20rem] max-w-[20rem]',
-        className: 'w-[20rem] min-w-[20rem] max-w-[20rem] whitespace-normal',
+        headerClassName: TABLE_TITLE_COLUMN_CLASS,
+        className: TABLE_TITLE_COLUMN_CLASS,
         sortable: true,
         sortKey: 'title',
-        render: (row) => (
-          <div className="w-full min-w-0">
-            <TruncatedText text={row.title}>
-              {isNeedsReviewStatus(row.status) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExpandedReviewModuleId(row.id);
-                    setTab('needs_review');
-                  }}
-                  className="font-semibold text-spice-brand-primary hover:underline text-left"
-                >
-                  {row.title}
-                </button>
-              ) : (
-                <Link
-                  to={paths.adminModuleReviewDetails.replace(
-                    ':moduleId',
-                    encodeURIComponent(row.id),
-                  )}
-                  className="font-semibold text-spice-brand-primary hover:underline"
-                >
-                  {row.title}
-                </Link>
-              )}
-            </TruncatedText>
-          </div>
-        ),
+        render: (row) => {
+          const displayTitle = truncateDisplayText(
+            row.title,
+            TABLE_CELL_LABEL_MAX_LENGTH,
+          );
+          return (
+            <div className="w-full min-w-0">
+              <TruncatedText
+                text={row.title}
+                maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                focusable
+              >
+                {isNeedsReviewStatus(row.status) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpandedReviewModuleId(row.id);
+                      setTab('needs_review');
+                    }}
+                    className="block w-full truncate text-left font-semibold text-spice-brand-primary hover:underline"
+                  >
+                    {displayTitle}
+                  </button>
+                ) : (
+                  <Link
+                    to={paths.adminModuleReviewDetails.replace(
+                      ':moduleId',
+                      encodeURIComponent(row.id),
+                    )}
+                    className="block truncate font-semibold text-spice-brand-primary hover:underline"
+                  >
+                    {displayTitle}
+                  </Link>
+                )}
+              </TruncatedText>
+            </div>
+          );
+        },
       },
       {
         key: 'lessons',
@@ -915,17 +934,18 @@ export const ModuleLibraryPage = () => {
                       *
                     </span>
                   </span>
-                  <input
-                    className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  <LimitedTextInput
+                    id="create-module-title-bn"
                     value={createForm.title_bn}
+                    maxLength={FIELD_LIMITS.moduleTitle}
                     disabled={isCreating}
-                    onChange={(e) =>
+                    placeholder="বাংলা শিরোনাম…"
+                    onChange={(title_bn) =>
                       setCreateForm((prev) => ({
                         ...prev,
-                        title_bn: e.target.value,
+                        title_bn,
                       }))
                     }
-                    placeholder="বাংলা শিরোনাম…"
                   />
                 </label>
                 <label className="block w-full space-y-1">
@@ -1096,12 +1116,22 @@ export const ModuleLibraryPage = () => {
                     setCreateError('Domain is required.');
                     return;
                   }
+                  const titleBn = createForm.title_bn.trim();
+                  if (titleBn.length > FIELD_LIMITS.moduleTitle) {
+                    setCreateError(
+                      fieldLimitExceededMessage(
+                        'Title',
+                        FIELD_LIMITS.moduleTitle,
+                      ),
+                    );
+                    return;
+                  }
                   try {
                     const domain = normalizeModuleTaxonomyLabel(domainRaw);
                     const descriptionBn = createForm.description_bn.trim();
                     const created = await createModule({
                       title: {
-                        bn: createForm.title_bn.trim(),
+                        bn: titleBn,
                       },
                       ...(descriptionBn
                         ? {
@@ -1191,12 +1221,10 @@ export const ModuleLibraryPage = () => {
                 </h2>
                 <p className="mt-2 text-sm text-spice-text-medium">
                   You are deactivating{' '}
-                  <span className="font-semibold text-spice-text-primary">
-                    {deactivateModuleData.title}
-                  </span>
-                  . Once deactivated, this module will no longer be visible to
-                  users for new assignments or training workflows. Do you want
-                  to proceed?
+                  <QuotedDisplayLabel text={deactivateModuleData.title} />. Once
+                  deactivated, this module will no longer be visible to users
+                  for new assignments or training workflows. Do you want to
+                  proceed?
                 </p>
               </div>
 

@@ -19,6 +19,8 @@ export { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer
 export type { InfiniteScrollContainerProps } from '@/components/ui/InfiniteScrollContainer';
 export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
+export { LimitedTextInput } from '@/components/ui/LimitedTextInput';
+export type { LimitedTextInputProps } from '@/components/ui/LimitedTextInput';
 export { ListItem } from '@/components/ui/ListItem';
 export { Loader } from '@/components/ui/Loader';
 export type { LoaderProps } from '@/components/ui/Loader';
@@ -26,6 +28,8 @@ export { Drawer } from '@/components/ui/Drawer';
 export type { DrawerProps } from '@/components/ui/Drawer';
 export { Modal } from '@/components/ui/Modal';
 export type { ModalProps } from '@/components/ui/Modal';
+export { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
+export type { QuotedDisplayLabelProps } from '@/components/ui/QuotedDisplayLabel';
 export { SearchInput } from '@/components/ui/SearchInput';
 export { SectionHeader } from '@/components/ui/SectionHeader';
 export { Select } from '@/components/ui/Select';

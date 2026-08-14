@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { type ColumnDef, Table } from '@/components/common/Table';
 import {
@@ -33,6 +39,7 @@ import {
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { useLazyGetAdminFilePresignedUrlQuery } from '@/features/modules/api/adminFilesApi';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import {
   knowledgeDownloadFilename,
   downloadFileAs,
@@ -333,6 +340,12 @@ export const KnowledgeLibraryTable = () => {
       setEditError('Title is required.');
       return;
     }
+    if (editTitle.trim().length > FIELD_LIMITS.documentTitle) {
+      setEditError(
+        fieldLimitExceededMessage('Title', FIELD_LIMITS.documentTitle),
+      );
+      return;
+    }
     setEditError('');
     void (async () => {
       try {
@@ -383,10 +396,17 @@ export const KnowledgeLibraryTable = () => {
         header: 'File Title',
         sortable: true,
         sortKey: 'title',
+        headerClassName: TABLE_TITLE_COLUMN_CLASS,
+        className: TABLE_TITLE_COLUMN_CLASS,
         render: (row) => (
-          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
-            <TruncatedText text={row.title} className="font-semibold">
-              {row.title}
+          <div className="w-full min-w-0">
+            <TruncatedText
+              text={row.title}
+              maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+              focusable
+              className="font-semibold"
+            >
+              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
             </TruncatedText>
             {row.originalFilename ? (
               <div className="mt-0.5 truncate text-xs text-spice-text-muted">
@@ -543,10 +563,7 @@ export const KnowledgeLibraryTable = () => {
 
   return (
     <div className="space-y-4">
-      <Loader
-        open={isLoading || isFetching}
-        label="Loading knowledge assets…"
-      />
+      <Loader open={isLoading} label="Loading knowledge assets…" />
 
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -558,6 +575,9 @@ export const KnowledgeLibraryTable = () => {
               {total
                 ? `${total} knowledge asset${total === 1 ? '' : 's'}`
                 : 'No knowledge assets match your filters.'}
+              {isFetching && !isLoading ? (
+                <span className="ml-2">Updating…</span>
+              ) : null}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">

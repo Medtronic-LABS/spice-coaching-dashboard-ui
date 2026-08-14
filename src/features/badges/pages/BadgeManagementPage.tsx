@@ -7,6 +7,7 @@ import {
   ErrorState,
   Loader,
   Modal,
+  QuotedDisplayLabel,
   SearchInput,
   Tooltip,
   TruncatedText,
@@ -60,6 +61,13 @@ import {
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { resolveDisplayText } from '@/config/deploymentLocale';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_MILESTONE_NAME_COLUMN_CLASS,
+  TABLE_MODULE_LIST_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
@@ -482,6 +490,12 @@ export const BadgeManagementPage = () => {
 
   const validateForm = (): string | null => {
     if (!form.name.trim()) return 'Milestone name is required.';
+    if (form.name.trim().length > FIELD_LIMITS.milestoneName) {
+      return fieldLimitExceededMessage(
+        'Milestone name',
+        FIELD_LIMITS.milestoneName,
+      );
+    }
     if (formMode === 'create' && !form.imageChanged) {
       return 'Upload a milestone image before adding.';
     }
@@ -722,7 +736,8 @@ export const BadgeManagementPage = () => {
       {
         key: 'name',
         header: 'Milestone',
-        className: 'min-w-[14rem]',
+        headerClassName: TABLE_MILESTONE_NAME_COLUMN_CLASS,
+        className: TABLE_MILESTONE_NAME_COLUMN_CLASS,
         render: (row) => (
           <div className="flex min-w-0 items-center gap-3">
             <BadgeImageThumb
@@ -730,16 +745,22 @@ export const BadgeManagementPage = () => {
               alt={`${row.name} milestone`}
               className="shrink-0"
             />
-            <span className="font-medium text-spice-text-primary">
-              {row.name}
-            </span>
+            <div className="min-w-0 flex-1">
+              <TruncatedText
+                text={row.name}
+                maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                focusable
+                className="font-medium text-spice-text-primary"
+              />
+            </div>
           </div>
         ),
       },
       {
         key: 'module_ids',
         header: 'Modules',
-        className: 'max-w-[16rem]',
+        headerClassName: TABLE_MODULE_LIST_COLUMN_CLASS,
+        className: TABLE_MODULE_LIST_COLUMN_CLASS,
         render: (row) => {
           const titles = (
             row.modules.length
@@ -754,9 +775,11 @@ export const BadgeManagementPage = () => {
           }
           const label = titles.join(', ');
           return (
-            <div className="w-full min-w-0 max-w-[16rem]">
+            <div className="w-full min-w-0">
               <TruncatedText
                 text={label}
+                maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                focusable
                 className="text-sm text-spice-text-medium"
               />
             </div>
@@ -1094,9 +1117,9 @@ export const BadgeManagementPage = () => {
             className="mt-2 text-sm text-spice-text-medium"
           >
             Are you sure you want to delete{' '}
-            <span className="font-medium text-spice-text-primary">
-              “{deleteTarget?.name}”
-            </span>
+            {deleteTarget ? (
+              <QuotedDisplayLabel text={deleteTarget.name} />
+            ) : null}
             ?
           </p>
           <p className="mt-3 text-sm text-spice-text-medium">

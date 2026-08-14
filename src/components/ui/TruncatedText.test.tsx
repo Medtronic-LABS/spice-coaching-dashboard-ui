@@ -40,6 +40,18 @@ describe('TruncatedText', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
+  it('reveals character-truncated text on hover without measuring overflow', () => {
+    const text = `${'A'.repeat(80)} milestone title`;
+    render(<TruncatedText text={text} maxChars={20} focusable />);
+
+    const content = screen.getByText(`${'A'.repeat(20)}…`);
+    const trigger = content.parentElement;
+    expect(trigger).not.toBeNull();
+
+    fireEvent.mouseEnter(trigger!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(text);
+  });
+
   it('does not show a tooltip when the text fits', () => {
     render(<TruncatedText text="Short title" focusable />);
 

@@ -30,7 +30,10 @@ import {
 } from '@/features/admin-dashboard/utils/documentUsage';
 import { DOC_TABLE_CELL } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  formatDisplayDateTime,
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+} from '@/utils/formatDisplayDateTime';
 
 interface DocumentUsageSectionProps {
   fromDate: string;
@@ -258,9 +261,9 @@ export const DocumentUsageSection = ({
       {
         key: 'last_viewed_at',
         header: t('adminDashboard.documentUsage.columns.lastViewed'),
-        colClassName: 'w-[7.25rem]',
-        headerClassName: `w-[7.25rem] ${DOC_TABLE_CELL.compact}`,
-        className: `w-[7.25rem] ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
+        colClassName: 'w-[13.5rem]',
+        headerClassName: `${DISPLAY_DATETIME_TABLE_COLUMN_CLASS} ${DOC_TABLE_CELL.compact}`,
+        className: `${DISPLAY_DATETIME_TABLE_COLUMN_CLASS} ${DOC_TABLE_CELL.compact}`,
         render: (row) => formatDisplayDateTime(row.last_viewed_at),
       },
       {

@@ -54,12 +54,18 @@ describe('KnowledgeLibraryTable', () => {
 
     // Instant typing keeps us inside the 300ms window — list is still unfiltered.
     expect(screen.getByText('Visit Workflow — Overview')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: /loading knowledge assets/i }),
+    ).not.toBeInTheDocument();
 
     await waitFor(
       () => {
         expect(screen.getByText('HTN Referral Guidelines')).toBeInTheDocument();
         expect(
           screen.queryByText('Visit Workflow — Overview'),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('status', { name: /loading knowledge assets/i }),
         ).not.toBeInTheDocument();
       },
       { timeout: 1500 },

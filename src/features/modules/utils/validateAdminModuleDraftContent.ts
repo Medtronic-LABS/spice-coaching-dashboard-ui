@@ -1,4 +1,8 @@
 import { DEPLOYMENT_PRIMARY_LOCALE } from '@/config/deploymentLocale';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import type { AdminModuleCard } from '@/features/modules/types/adminModule.types';
 import { sortQuizItems } from '@/features/modules/utils/adminModuleQuizUtils';
@@ -70,6 +74,14 @@ export function validateAdminModuleDraftContent(options: {
         itemId: card.id,
         field: 'title',
         message: `${label} needs a title.`,
+      });
+    } else if (title.length > FIELD_LIMITS.cardTitle) {
+      issues.push({
+        kind: 'card',
+        index,
+        itemId: card.id,
+        field: 'title',
+        message: `${label}: ${fieldLimitExceededMessage('Title', FIELD_LIMITS.cardTitle)}`,
       });
     }
     if (!cardBodyHasVisibleContent(body)) {

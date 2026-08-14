@@ -63,3 +63,10 @@ export function formatDisplayDateTime(
 
   return `${month} ${day} ${year} • ${time}`;
 }
+
+/** Reference string for sizing table columns: `Aug 14 2026 • 11:43:34 am`. */
+export const DISPLAY_DATETIME_SAMPLE = 'Aug 14 2026 • 11:43:34 am';
+
+/** Fixed min width for table cells that show `formatDisplayDateTime` values. */
+export const DISPLAY_DATETIME_TABLE_COLUMN_CLASS =
+  'min-w-[13.5rem] w-[13.5rem] max-w-[13.5rem] whitespace-nowrap tabular-nums';

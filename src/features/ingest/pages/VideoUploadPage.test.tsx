@@ -72,6 +72,7 @@ const mocks = vi.hoisted(() => {
         limit: 10,
         offset: 0,
       },
+      isLoading: false,
       isFetching: false,
       isError: false,
       refetch: mocks.refetchSourceDocuments,

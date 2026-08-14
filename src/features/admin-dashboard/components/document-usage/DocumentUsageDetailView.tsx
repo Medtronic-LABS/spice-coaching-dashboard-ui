@@ -10,7 +10,10 @@ import {
   DOC_TABLE_CELL,
   DOCUMENT_USAGE_TABLE_PROPS,
 } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  formatDisplayDateTime,
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+} from '@/utils/formatDisplayDateTime';
 
 type EventTableRow = DocumentUsageEventRow & { geography: string };
 
@@ -82,9 +85,9 @@ export const DocumentUsageDetailView = ({
     {
       key: 'viewed_at',
       header: t('adminDashboard.documentUsage.eventColumns.viewedAt'),
-      colClassName: 'w-[7.25rem]',
-      headerClassName: `w-[7.25rem] ${DOC_TABLE_CELL.compact}`,
-      className: `w-[7.25rem] ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
+      colClassName: 'w-[13.5rem]',
+      headerClassName: `${DISPLAY_DATETIME_TABLE_COLUMN_CLASS} ${DOC_TABLE_CELL.compact}`,
+      className: `${DISPLAY_DATETIME_TABLE_COLUMN_CLASS} ${DOC_TABLE_CELL.compact}`,
       render: (row) => formatDisplayDateTime(row.viewed_at),
     },
     {
