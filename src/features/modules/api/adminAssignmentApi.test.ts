@@ -222,6 +222,80 @@ describe('adminAssignmentApi assignment requests', () => {
     });
   });
 
+  it('sends division_id on districts page requests when provided', async () => {
+    mockBaseQuerySpy.mockResolvedValue({
+      data: {
+        districts: [{ id: 10, name: 'Lalmonirhat', division_id: 1 }],
+        total: 1,
+        total_pages: 1,
+        limit: 200,
+        offset: 0,
+      },
+    });
+    const { adminAssignmentApi, store } = await createAssignmentStore();
+
+    await store
+      .dispatch(
+        adminAssignmentApi.endpoints.fetchAdminDistrictsPage.initiate({
+          limit: 200,
+          offset: 0,
+          divisionId: 1,
+        }),
+      )
+      .unwrap();
+
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(request.url).toBe('/admin/districts');
+    expect(request.params).toEqual({
+      limit: 200,
+      offset: 0,
+      division_id: 1,
+    });
+  });
+
+  it('sends division_id on hierarchy users page requests when provided', async () => {
+    mockBaseQuerySpy
+      .mockResolvedValueOnce({
+        data: {
+          districts: [{ id: 10, name: 'Lalmonirhat' }],
+          total: 1,
+          total_pages: 1,
+          limit: 200,
+          offset: 0,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          users: [],
+          total: 0,
+          total_pages: 0,
+          limit: 200,
+          offset: 0,
+        },
+      });
+    const { adminAssignmentApi, store } = await createAssignmentStore();
+
+    await store
+      .dispatch(
+        adminAssignmentApi.endpoints.fetchHierarchyUsersPage.initiate({
+          limit: 200,
+          offset: 0,
+          divisionId: 1,
+          role: 'PO',
+        }),
+      )
+      .unwrap();
+
+    const usersRequest = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(usersRequest.url).toBe('/admin/hierarchy/users');
+    expect(usersRequest.params).toMatchObject({
+      limit: 200,
+      offset: 0,
+      division_id: 1,
+      role: 'PO',
+    });
+  });
+
   it('sends q and district_id on upazilas page requests when provided', async () => {
     mockBaseQuerySpy.mockResolvedValue({
       data: {

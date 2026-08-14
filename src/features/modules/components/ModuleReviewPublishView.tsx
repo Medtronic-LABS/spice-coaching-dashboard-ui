@@ -17,6 +17,7 @@ export interface ModuleReviewPublishQuizRow {
 export interface ModuleReviewPublishViewProps {
   title: string;
   topic: string;
+  contentDomainType?: string;
   description: string;
   lessons: ModuleReviewPublishLessonRow[];
   quizQuestions: ModuleReviewPublishQuizRow[];
@@ -86,6 +87,7 @@ const MediaTag = ({ label }: { label: string }) => (
 export const ModuleReviewPublishView = ({
   title,
   topic,
+  contentDomainType,
   description,
   lessons,
   quizQuestions,
@@ -156,6 +158,14 @@ export const ModuleReviewPublishView = ({
                   {topic}
                 </div>
               </div>
+              {contentDomainType ? (
+                <div>
+                  <SectionLabel>DOMAIN TYPE</SectionLabel>
+                  <div className="mt-1 text-sm text-spice-text-primary">
+                    {contentDomainType}
+                  </div>
+                </div>
+              ) : null}
               {description ? (
                 <p className="text-sm leading-relaxed text-spice-text-medium">
                   {description}

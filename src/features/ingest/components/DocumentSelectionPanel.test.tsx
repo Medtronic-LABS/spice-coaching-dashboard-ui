@@ -237,7 +237,7 @@ describe('DocumentSelectionPanel', () => {
 
     expect(mocks.navigate).toHaveBeenCalledWith(paths.moduleLibrary, {
       state: {
-        tab: 'all',
+        tab: 'drafts',
         sourceDocumentId: 'doc-2',
         sourceDocumentTitle: 'Protocol Deck',
       },

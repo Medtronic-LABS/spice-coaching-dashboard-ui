@@ -213,6 +213,54 @@ describe('IngestRunStatusPanel', () => {
     expect(screen.queryByText('Extract content')).not.toBeInTheDocument();
   });
 
+  it('hides skipped thumbnail steps from the expanded pipeline list', async () => {
+    const user = userEvent.setup();
+    mockQuery({
+      data: makeStatus({
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'running',
+            started_at: '2026-07-15T08:00:00Z',
+            completed_at: null,
+            error: null,
+            nodes: [
+              {
+                key: 'extract',
+                title: 'Extract content',
+                status: 'succeeded',
+                children: [],
+              },
+              {
+                key: 'thumbnail',
+                title: 'Generating thumbnail',
+                status: 'skipped',
+                children: [],
+              },
+              {
+                key: 'transcribe',
+                title: 'Transcribe',
+                status: 'running',
+                children: [],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    render(<IngestRunStatusPanel batchId="batch-1" />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expand pipeline for HTN' }),
+    );
+
+    expect(screen.getByText('Extract content')).toBeInTheDocument();
+    expect(screen.getByText('Transcribe')).toBeInTheDocument();
+    expect(screen.queryByText('Generating thumbnail')).not.toBeInTheDocument();
+  });
+
   it('renders Open Modules button on each completed document with modules', () => {
     const onGoToDrafts = vi.fn();
     mockQuery({
@@ -229,7 +277,7 @@ describe('IngestRunStatusPanel', () => {
             error: null,
             nodes: [
               {
-                key: 'generate',
+                key: 'card_draft',
                 title: 'Generate Module',
                 status: 'succeeded',
                 output_summary: { module_id: 'mod-1' },
@@ -243,7 +291,7 @@ describe('IngestRunStatusPanel', () => {
       <IngestRunStatusPanel batchId="batch-1" onGoToDrafts={onGoToDrafts} />,
     );
 
-    const btn = screen.getByRole('button', { name: 'Open Modules' });
+    const btn = screen.getByRole('button', { name: 'Open Modules (1)' });
     expect(btn).toBeInTheDocument();
     btn.click();
     expect(onGoToDrafts).toHaveBeenCalledWith('doc-1', 'HTN');
@@ -265,7 +313,7 @@ describe('IngestRunStatusPanel', () => {
             error: null,
             nodes: [
               {
-                key: 'generate',
+                key: 'card_draft',
                 title: 'Generate Review Module',
                 status: 'succeeded',
                 output_summary: {
@@ -307,7 +355,7 @@ describe('IngestRunStatusPanel', () => {
             error: null,
             nodes: [
               {
-                key: 'generate',
+                key: 'card_draft',
                 title: 'Generate Review Module',
                 status: 'succeeded',
                 published_module_merge: { was_merge: true },
@@ -343,7 +391,97 @@ describe('IngestRunStatusPanel', () => {
     expect(screen.getByText('No nodes yet.')).toBeInTheDocument();
   });
 
-  it('renders failed node status with a tooltip trigger instead of raw error JSON', async () => {
+  it('renders source-level error.message in the batch info tooltip when batch.error is null', () => {
+    mockQuery({
+      data: {
+        ...makeStatus({ status: 'failed', error: null }),
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'failed',
+            started_at: null,
+            completed_at: null,
+            error: {
+              message:
+                "We couldn't extract content from this file. Try re-exporting it from the original source.",
+              detail: 'Stage A: cannot count pages',
+            },
+            nodes: [],
+          },
+        ],
+      },
+    });
+    render(<IngestRunStatusPanel batchId="batch-1" />);
+
+    expect(
+      screen.getAllByRole('button', {
+        name: "We couldn't extract content from this file. Try re-exporting it from the original source.",
+      }).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.queryByText('Stage A: cannot count pages'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders top-level node error_message in an info tooltip', async () => {
+    const user = userEvent.setup();
+    mockQuery({
+      data: makeStatus({
+        status: 'failed',
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'failed',
+            started_at: null,
+            completed_at: null,
+            error: null,
+            nodes: [
+              {
+                key: 'extract',
+                title: 'Extracting content',
+                status: 'failed',
+                error: {
+                  type: 'TextExtractionError',
+                  detail: 'Stage A: cannot count pages',
+                  reason: 'extract_failed',
+                },
+                error_code: 'extract_failed',
+                error_message:
+                  "We couldn't extract content from this file. Try re-exporting it from the original source.",
+                children: [],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    render(<IngestRunStatusPanel batchId="batch-1" />);
+
+    expect(
+      screen.getAllByRole('button', {
+        name: "We couldn't extract content from this file. Try re-exporting it from the original source.",
+      }).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.queryByText('Stage A: cannot count pages'),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expand pipeline for HTN' }),
+    );
+
+    expect(
+      screen.getAllByRole('button', {
+        name: "We couldn't extract content from this file. Try re-exporting it from the original source.",
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('renders nested error.detail in the tooltip when error_message is missing', async () => {
     const user = userEvent.setup();
     mockQuery({
       data: makeStatus({
@@ -362,7 +500,7 @@ describe('IngestRunStatusPanel', () => {
                 key: 'transcribe',
                 title: 'Transcribe',
                 status: 'failed',
-                error: { message: 'boom' },
+                error: { detail: 'Connection reset by peer' },
                 children: [],
               },
             ],
@@ -372,13 +510,18 @@ describe('IngestRunStatusPanel', () => {
     });
     render(<IngestRunStatusPanel batchId="batch-1" />);
 
-    expect(screen.getAllByText('Failed').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', { name: 'Connection reset by peer' }),
+    ).toBeInTheDocument();
+
     await user.click(
       screen.getByRole('button', { name: 'Expand pipeline for HTN' }),
     );
 
-    expect(screen.getByRole('button', { name: 'boom' })).toBeInTheDocument();
-    expect(screen.queryByText(/"message": "boom"/)).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'Connection reset by peer' })
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows 100% progress and timeline for completed documents while remaining expandable', async () => {
@@ -397,7 +540,7 @@ describe('IngestRunStatusPanel', () => {
             error: null,
             nodes: [
               {
-                key: 'generate',
+                key: 'card_draft',
                 title: 'Generate Module',
                 status: 'succeeded',
                 output_summary: { module_id: 'mod-1' },

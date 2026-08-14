@@ -33,3 +33,10 @@ export function getIngestContentDomainLabel(
 ): string {
   return findIngestOptionLabel(INGEST_CONTENT_DOMAIN_OPTIONS, value);
 }
+
+export function formatModuleContentDomainLabel(
+  value: string | null | undefined,
+): string {
+  if (!value?.trim()) return '';
+  return getIngestContentDomainLabel(value.trim() as IngestContentDomain);
+}

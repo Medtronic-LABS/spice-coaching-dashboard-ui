@@ -22,6 +22,8 @@ export interface HierarchyUserWire {
   parent_id: number | null;
   district_id: number;
   district?: string;
+  division_id?: number;
+  division?: string;
   upazilas?: HierarchyUpazilaRef[] | unknown;
   upazila?: string | null;
 }
@@ -34,9 +36,15 @@ export interface HierarchyUserListWire {
   offset: number;
 }
 
+export interface DivisionWire {
+  id: number;
+  name: string;
+}
+
 export interface DistrictWire {
   id: number;
   name: string;
+  division_id?: number;
 }
 
 export interface DistrictListWire {
@@ -111,6 +119,16 @@ export function mapHierarchyUserToAdminUser(
       ? districtId
       : 0;
 
+  const divisionFromWire =
+    typeof record.division === 'string' && record.division.trim()
+      ? record.division.trim()
+      : null;
+  const resolvedDivisionId =
+    typeof record.division_id === 'number' &&
+    Number.isFinite(record.division_id)
+      ? record.division_id
+      : 0;
+
   const districtFromWire =
     typeof record.district === 'string' && record.district.trim()
       ? record.district.trim()
@@ -133,6 +151,8 @@ export function mapHierarchyUserToAdminUser(
       id,
       name,
       role,
+      division: divisionFromWire ?? '—',
+      division_id: resolvedDivisionId,
       district: '—',
       district_id: resolvedDistrictId,
       upazila: upazilas[0] ?? null,
@@ -145,6 +165,8 @@ export function mapHierarchyUserToAdminUser(
     id,
     name,
     role,
+    division: divisionFromWire ?? '—',
+    division_id: resolvedDivisionId,
     district,
     district_id: resolvedDistrictId,
     upazila: upazilas[0] ?? null,
@@ -195,13 +217,62 @@ export function parseDistrictListResponse(response: unknown): {
     if (!item || typeof item !== 'object') return [];
     const row = item as Record<string, unknown>;
     if (typeof row.id !== 'number' || typeof row.name !== 'string') return [];
-    return [{ id: row.id, name: row.name }];
+    const divisionId =
+      typeof row.division_id === 'number' && Number.isFinite(row.division_id)
+        ? row.division_id
+        : undefined;
+    return [{ id: row.id, name: row.name, division_id: divisionId }];
   });
   const total =
     typeof record.total === 'number' && Number.isFinite(record.total)
       ? record.total
       : districts.length;
   return { districts, total };
+}
+
+export function parseDivisionListResponse(response: unknown): {
+  divisions: DivisionWire[];
+  total: number;
+} {
+  if (!response || typeof response !== 'object') {
+    return { divisions: [], total: 0 };
+  }
+  const record = response as Record<string, unknown>;
+  const rawDivisions = Array.isArray(record.divisions) ? record.divisions : [];
+  const divisions = rawDivisions.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== 'number' || typeof row.name !== 'string') return [];
+    return [{ id: row.id, name: row.name }];
+  });
+  const total =
+    typeof record.total === 'number' && Number.isFinite(record.total)
+      ? record.total
+      : divisions.length;
+  return { divisions, total };
+}
+
+export function buildDivisionNameById(
+  divisions: DivisionWire[],
+): Map<number, string> {
+  return new Map(divisions.map((division) => [division.id, division.name]));
+}
+
+export function formatAssignmentUserLocation(
+  user: Pick<AdminUser, 'division' | 'district' | 'upazila' | 'upazilas'>,
+): string {
+  const parts: string[] = [];
+  if (user.division && user.division !== '—') {
+    parts.push(user.division);
+  }
+  if (user.district && user.district !== '—') {
+    parts.push(user.district);
+  }
+  const upazila = user.upazila ?? user.upazilas?.[0];
+  if (upazila) {
+    parts.push(upazila);
+  }
+  return parts.length > 0 ? parts.join(' · ') : '—';
 }
 
 export interface UpazilaWire {

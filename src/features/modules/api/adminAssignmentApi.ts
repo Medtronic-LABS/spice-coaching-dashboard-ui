@@ -15,6 +15,7 @@ import {
   mapHierarchyUserToAdminUser,
   mapHierarchyUsersToAdminUsers,
   parseDistrictListResponse,
+  parseDivisionListResponse,
   parseHierarchyUserListResponse,
   parseUpazilaListResponse,
 } from '@/features/modules/utils/mapHierarchyUsersToAdminUsers';
@@ -28,6 +29,8 @@ export interface AssignmentUser {
   id: number;
   name: string;
   role: AdminUserRole;
+  division: string;
+  division_id: number;
   district: string;
   district_id: number;
   upazila: string | null;
@@ -87,6 +90,8 @@ export interface AdminUser {
   id: number;
   name: string;
   role: AdminUserRole;
+  division: string;
+  division_id: number;
   district: string;
   district_id: number;
   upazila: string | null;
@@ -103,11 +108,18 @@ export interface AdminUpazila {
 export interface AdminDistrict {
   id: number;
   name: string;
+  division_id?: number;
+}
+
+export interface AdminDivision {
+  id: number;
+  name: string;
 }
 
 export interface HierarchyUsersPageParams {
   limit?: number;
   offset?: number;
+  divisionId?: number;
   districtId?: number;
   upazilaId?: number;
   /** Case-insensitive substring match on user name. */
@@ -119,6 +131,13 @@ export interface HierarchyUsersPageParams {
 
 export interface PaginatedAdminUsers {
   users: AdminUser[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PaginatedAdminDivisions {
+  divisions: AdminDivision[];
   total: number;
   limit: number;
   offset: number;
@@ -138,9 +157,17 @@ export interface PaginatedAdminUpazilas {
   offset: number;
 }
 
+export interface HierarchyDivisionsPageParams {
+  limit?: number;
+  offset?: number;
+  /** Case-insensitive substring match on division name. */
+  q?: string;
+}
+
 export interface HierarchyDistrictsPageParams {
   limit?: number;
   offset?: number;
+  divisionId?: number;
   /** Case-insensitive substring match on district name. */
   q?: string;
 }
@@ -342,12 +369,17 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
     >({
       async queryFn(arg, _api, _extraOptions, baseQuery) {
         const { limit, offset, nameQuery } = resolveHierarchyPageArgs(arg);
+        const divisionId =
+          arg && 'divisionId' in arg ? arg.divisionId : undefined;
         const result = await baseQuery({
           url: '/admin/districts',
           method: 'GET',
           params: {
             limit,
             offset,
+            ...(typeof divisionId === 'number'
+              ? { division_id: divisionId }
+              : {}),
             ...(nameQuery ? { q: nameQuery } : {}),
           },
         });
@@ -358,6 +390,35 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
         return {
           data: {
             districts: page.districts,
+            total: page.total,
+            limit,
+            offset,
+          },
+        };
+      },
+    }),
+    fetchAdminDivisionsPage: builder.query<
+      PaginatedAdminDivisions,
+      HierarchyDivisionsPageParams | void
+    >({
+      async queryFn(arg, _api, _extraOptions, baseQuery) {
+        const { limit, offset, nameQuery } = resolveHierarchyPageArgs(arg);
+        const result = await baseQuery({
+          url: '/admin/divisions',
+          method: 'GET',
+          params: {
+            limit,
+            offset,
+            ...(nameQuery ? { q: nameQuery } : {}),
+          },
+        });
+        if (result.error) {
+          return { error: result.error as FetchBaseQueryError };
+        }
+        const page = parseDivisionListResponse(result.data);
+        return {
+          data: {
+            divisions: page.divisions,
             total: page.total,
             limit,
             offset,
@@ -391,6 +452,9 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
           params: {
             limit,
             offset,
+            ...(typeof arg.divisionId === 'number'
+              ? { division_id: arg.divisionId }
+              : {}),
             ...(typeof arg.districtId === 'number'
               ? { district_id: arg.districtId }
               : {}),
@@ -629,6 +693,8 @@ export const {
   useLazyFetchAdminDistrictsQuery,
   useFetchAdminDistrictsPageQuery,
   useLazyFetchAdminDistrictsPageQuery,
+  useFetchAdminDivisionsPageQuery,
+  useLazyFetchAdminDivisionsPageQuery,
   useFetchHierarchyUsersPageQuery,
   useLazyFetchHierarchyUsersPageQuery,
   useFetchAdminUsersQuery,

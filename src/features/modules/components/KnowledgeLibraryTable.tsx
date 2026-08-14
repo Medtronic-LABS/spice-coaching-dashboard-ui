@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { type ColumnDef, Table } from '@/components/common/Table';
 import {
@@ -50,6 +51,7 @@ import {
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
 
 type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
@@ -75,6 +77,8 @@ const RefreshIcon = ({ className }: { className?: string }) => (
 );
 
 export const KnowledgeLibraryTable = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [statusTab, setStatusTab] = useState<KnowledgeLibraryStatusTab>(
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.status,
   );
@@ -191,6 +195,18 @@ export const KnowledgeLibraryTable = () => {
   } = useFetchSourceDocumentsQuery(queryArgs, {
     skip: drawerDateRangeInvalid,
   });
+
+  useEffect(() => {
+    const state = (location.state ?? {}) as OpenDocumentAssignmentState;
+    const open = state.openDocumentAssignment;
+    if (!open || open.noun !== 'document') return;
+
+    setAssignTarget({
+      id: open.sourceDocumentId,
+      title: open.title,
+    });
+    navigate(location.pathname, { replace: true, state: undefined });
+  }, [location.pathname, location.state, navigate]);
 
   const { data: uploadersData, isFetching: uploadersLoading } =
     useFetchKnowledgeUploadersQuery(undefined, {
@@ -717,10 +733,6 @@ export const KnowledgeLibraryTable = () => {
             id: assignTarget.id,
             title: assignTarget.title,
             noun: 'document',
-          }}
-          onAssigned={() => {
-            void refetch();
-            setAssignTarget(null);
           }}
         />
       ) : null}

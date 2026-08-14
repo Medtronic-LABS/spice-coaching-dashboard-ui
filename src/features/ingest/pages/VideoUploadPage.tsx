@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DeleteIcon } from '@/assets/icon';
 import {
   SettingsFilterDrawer,
@@ -57,6 +57,7 @@ import {
 } from '@/features/ingest/constants/videoAcceptedFileTypes';
 import { useIngestWithDuplicateHandling } from '@/features/ingest/hooks/useIngestWithDuplicateHandling';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
+import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
 import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDecisions';
 import {
   isIngestInProgress,
@@ -197,6 +198,7 @@ function isNeedsReviewStatus(status: string): boolean {
 
 export const VideoUploadPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [pendingItems, setPendingItems] = useState<PendingVideoItem[]>([]);
   const [pendingTitleErrorKeys, setPendingTitleErrorKeys] = useState<
     Set<string>
@@ -265,6 +267,18 @@ export const VideoUploadPage = () => {
     useUpdateSourceDocumentThumbnailMutation();
 
   pendingItemsRef.current = pendingItems;
+
+  useEffect(() => {
+    const state = (location.state ?? {}) as OpenDocumentAssignmentState;
+    const open = state.openDocumentAssignment;
+    if (!open || open.noun !== 'video') return;
+
+    setAssignTarget({
+      id: open.sourceDocumentId,
+      title: open.title,
+    });
+    navigate(location.pathname, { replace: true, state: undefined });
+  }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
     return () => {
@@ -763,10 +777,10 @@ export const VideoUploadPage = () => {
     [],
   );
 
-  const goToAllModulesForSource = useCallback(
+  const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'all',
+        tab: 'drafts',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -982,7 +996,7 @@ export const VideoUploadPage = () => {
                   variant="secondary"
                   className="h-8 shrink-0 px-3 text-xs"
                   onClick={() => {
-                    goToAllModulesForSource(
+                    goToDraftsForSource(
                       row.sourceDocumentId as string,
                       row.title,
                     );
@@ -999,7 +1013,7 @@ export const VideoUploadPage = () => {
       },
     ],
     [
-      goToAllModulesForSource,
+      goToDraftsForSource,
       goToNeedsReviewForSource,
       isUploading,
       selectedIds,
@@ -1405,7 +1419,7 @@ export const VideoUploadPage = () => {
           batchId={activeBatchId}
           initialPollDelayMs={5000}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={goToAllModulesForSource}
+          onGoToDrafts={goToDraftsForSource}
           onGoToNeedsReview={goToNeedsReviewForSource}
         />
       ) : null}
@@ -1433,10 +1447,6 @@ export const VideoUploadPage = () => {
             id: assignTarget.id,
             title: assignTarget.title,
             noun: 'video',
-          }}
-          onAssigned={() => {
-            setActionSuccess('Video assigned successfully.');
-            setAssignTarget(null);
           }}
         />
       ) : null}

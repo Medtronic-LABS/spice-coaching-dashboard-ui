@@ -90,6 +90,8 @@ export interface AdminV3IngestBatchNode {
   started_at?: string | null;
   completed_at?: string | null;
   error?: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
   activity?: unknown;
   candidate_id?: string | null;
   chunk_id?: string | null;
@@ -112,7 +114,13 @@ export interface AdminV3IngestBatchSourceStatus {
   started_at: string | null;
   completed_at: string | null;
   error: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
   nodes: AdminV3IngestBatchNode[];
+  /** When provided by batch poll, prefer over node-derived counts. */
+  generated_module_count?: number;
+  /** Modules awaiting merge/skip review for this source document. */
+  review_pending_module_count?: number;
 }
 
 export type IngestMergeDecisionChoice = 'accept_merge' | 'force_create';
@@ -152,6 +160,8 @@ export interface AdminV3IngestBatchStatusResponse {
   created_at: string | null;
   completed_at: string | null;
   error: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
   sources: AdminV3IngestBatchSourceStatus[];
   fusion?: unknown;
   retry_url?: string | null;

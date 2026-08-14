@@ -99,7 +99,12 @@ export const IngestDocumentPage = () => {
         setActiveBatchId(res.batch_id);
         setRestoredBatchId(res.batch_id);
       }
-      setSelectedDocuments([]);
+      const queuedIds = new Set(
+        (res.sources ?? []).map((source) => source.source_document_id),
+      );
+      setSelectedDocuments((previous) =>
+        previous.filter((document) => !queuedIds.has(document.id)),
+      );
       setSelectionPanelOpen(true);
     },
     [],
@@ -206,6 +211,18 @@ export const IngestDocumentPage = () => {
   }, [keptExistingIngestNotice]);
 
   useEffect(() => {
+    if (!statusData?.sources?.length) return;
+    for (const source of statusData.sources) {
+      if (!isIngestSucceeded(source.status)) continue;
+      appendRecentIngestDocument({
+        source_document_id: source.source_document_id,
+        title: source.document_label,
+        ingested_at: source.completed_at ?? new Date().toISOString(),
+      });
+    }
+  }, [statusData?.sources]);
+
+  useEffect(() => {
     if (!ingestionSucceeded || !primarySourceDocumentId) return;
     appendRecentIngestDocument({
       source_document_id: primarySourceDocumentId,
@@ -219,10 +236,10 @@ export const IngestDocumentPage = () => {
     statusData?.completed_at,
   ]);
 
-  const goToAllModulesForSource = useCallback(
+  const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'all',
+        tab: 'drafts',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -243,7 +260,7 @@ export const IngestDocumentPage = () => {
     [navigate],
   );
 
-  const goToModulesForSource = goToAllModulesForSource;
+  const goToModulesForSource = goToDraftsForSource;
 
   const runStartIngest = useCallback(async () => {
     if (!selectedDocuments.length) return;
@@ -378,6 +395,7 @@ export const IngestDocumentPage = () => {
             uploadFiles={uploadFiles}
             isUploading={isUploading}
             uploadClearSignal={uploadClearSignal}
+            batchSources={statusData?.sources ?? []}
           />
         </DocumentSelectionCollapsible>
         <p className="text-xs text-spice-text-muted" aria-live="polite">
@@ -448,7 +466,7 @@ export const IngestDocumentPage = () => {
           uploadLabel="Uploading document…"
           initialPollDelayMs={activeBatchId ? 5000 : 0}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={goToAllModulesForSource}
+          onGoToDrafts={goToDraftsForSource}
           onGoToNeedsReview={goToNeedsReviewForSource}
         />
       ) : null}

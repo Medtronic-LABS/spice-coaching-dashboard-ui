@@ -5,6 +5,7 @@ import {
   type AdminV3IngestBatchStatusResponse,
 } from '@/features/ingest/api/adminIngestApi';
 import { IngestDocumentProgressCard } from '@/features/ingest/components/IngestDocumentProgressCard';
+import { Tooltip } from '@/components/ui/Tooltip';
 import {
   canCompleteIngestFlow,
   isIngestInProgress,
@@ -17,6 +18,7 @@ import {
   ingestRunStatusTone,
 } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { extractIngestBatchFailureTooltipMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
 
 export interface IngestRunStatusPanelProps {
   batchId: string;
@@ -95,6 +97,8 @@ export const IngestRunStatusPanel = ({
   const ingestionInProgress = isIngestInProgress(batchId, statusData?.status);
   const ingestionSucceeded = canCompleteIngestFlow(statusData?.status);
   const batchStatusTone = ingestRunStatusTone(statusData?.status);
+  const batchFailureMessage =
+    extractIngestBatchFailureTooltipMessage(statusData);
   const sources = statusData?.sources ?? [];
 
   const progressLabel = useMemo(() => {
@@ -135,6 +139,12 @@ export const IngestRunStatusPanel = ({
               >
                 {formatIngestRunStatusDisplay(statusData.status)}
               </span>
+            ) : null}
+            {batchFailureMessage ? (
+              <Tooltip
+                label={batchFailureMessage}
+                content={batchFailureMessage}
+              />
             ) : null}
             {isFetching && statusData ? (
               <span className="text-[10px] text-spice-text-muted">

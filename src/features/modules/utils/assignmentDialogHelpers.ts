@@ -8,6 +8,11 @@ export type AssignmentUserLevelMode = 'po_sk' | 'po' | 'sk';
 
 export const ASSIGNMENT_SEARCH_DEBOUNCE_MS = 300;
 
+export const ALL_DIVISIONS_OPTION: ComboboxOption = {
+  label: 'All divisions',
+  value: '',
+};
+
 export const ALL_DISTRICTS_OPTION: ComboboxOption = {
   label: 'All districts',
   value: '',
@@ -168,11 +173,13 @@ export function buildAssignmentListUsers(
 }
 
 export function hasAssignmentUserFilters(input: {
+  divisionId: number | null;
   districtId: number | null;
   upazilaId: number | null;
   searchQuery: string;
 }): boolean {
   return (
+    input.divisionId !== null ||
     input.districtId !== null ||
     input.upazilaId !== null ||
     input.searchQuery.trim().length > 0

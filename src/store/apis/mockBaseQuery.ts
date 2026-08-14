@@ -1887,7 +1887,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     return { data: updated };
   }
 
-  if (url === 'admin/districts' && method === 'GET') {
+  if (url === 'admin/divisions' && method === 'GET') {
     const query =
       typeof params === 'object' && params
         ? (params as { limit?: unknown; offset?: unknown; q?: unknown })
@@ -1898,10 +1898,64 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       typeof query.q === 'string' && query.q.trim()
         ? query.q.trim().toLowerCase()
         : null;
+    const divisions = [
+      {
+        id: 1,
+        name: 'Rangpur',
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+      {
+        id: 2,
+        name: 'Rajshahi',
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
+    ].filter((division) =>
+      nameQuery ? division.name.toLowerCase().includes(nameQuery) : true,
+    );
+    return {
+      data: {
+        divisions: divisions.slice(offset, offset + limit),
+        total: divisions.length,
+        total_pages: limit > 0 ? Math.ceil(divisions.length / limit) : 0,
+        limit,
+        offset,
+      },
+    };
+  }
+
+  if (url === 'admin/districts' && method === 'GET') {
+    const query =
+      typeof params === 'object' && params
+        ? (params as {
+            limit?: unknown;
+            offset?: unknown;
+            q?: unknown;
+            division_id?: unknown;
+          })
+        : {};
+    const limit = 'limit' in query ? Number(query.limit) : 50;
+    const offset = 'offset' in query ? Number(query.offset) : 0;
+    const divisionIdFilter =
+      query.division_id === undefined || query.division_id === null
+        ? null
+        : Number(query.division_id);
+    const nameQuery =
+      typeof query.q === 'string' && query.q.trim()
+        ? query.q.trim().toLowerCase()
+        : null;
     const districts = [
       {
         id: 10,
         name: 'Lalmonirhat',
+        division_id: 1,
         tenant_id: 1,
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
@@ -1911,15 +1965,23 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       {
         id: 11,
         name: 'Kurigram',
+        division_id: 1,
         tenant_id: 1,
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
         created_by: 'system',
         updated_by: 'system',
       },
-    ].filter((district) =>
-      nameQuery ? district.name.toLowerCase().includes(nameQuery) : true,
-    );
+    ].filter((district) => {
+      if (
+        divisionIdFilter !== null &&
+        Number.isFinite(divisionIdFilter) &&
+        district.division_id !== divisionIdFilter
+      ) {
+        return false;
+      }
+      return nameQuery ? district.name.toLowerCase().includes(nameQuery) : true;
+    });
     return {
       data: {
         districts: districts.slice(offset, offset + limit),
@@ -1938,6 +2000,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             limit?: unknown;
             offset?: unknown;
             district_id?: unknown;
+            division_id?: unknown;
             role?: unknown;
             parent_id?: unknown;
             upazila_id?: unknown;
@@ -1946,6 +2009,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         : {};
     const limit = 'limit' in query ? Number(query.limit) : 50;
     const offset = 'offset' in query ? Number(query.offset) : 0;
+    const divisionIdFilter =
+      query.division_id === undefined || query.division_id === null
+        ? null
+        : Number(query.division_id);
     const districtIdFilter =
       query.district_id === undefined || query.district_id === null
         ? null
@@ -1972,6 +2039,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         name: 'Area Manager',
         role: 'AREA_MANAGER',
         parent_id: null,
+        division_id: 1,
+        division: 'Rangpur',
         district_id: 10,
         upazilas: [],
         tenant_id: 1,
@@ -1985,6 +2054,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         name: 'Md Abdus Salam',
         role: 'PO',
         parent_id: 1723477249,
+        division_id: 1,
+        division: 'Rangpur',
         district_id: 10,
         upazilas: [{ id: 1, name: 'Lalmonirhat Sadar', district_id: 10 }],
         tenant_id: 1,
@@ -1998,6 +2069,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         name: 'Mst. Rabeya Khatun',
         role: 'PO',
         parent_id: 1723477249,
+        division_id: 1,
+        division: 'Rangpur',
         district_id: 10,
         upazilas: [{ id: 2, name: 'Hatibandha', district_id: 10 }],
         tenant_id: 1,
@@ -2011,6 +2084,8 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         name: 'Mst. Hosneyara Begum',
         role: 'SHASTIYA_KORMI',
         parent_id: 1708515793,
+        division_id: 1,
+        division: 'Rangpur',
         district_id: 10,
         upazilas: [{ id: 1, name: 'Lalmonirhat Sadar', district_id: 10 }],
         tenant_id: 1,
@@ -2020,6 +2095,13 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         updated_by: 'system',
       },
     ].filter((user) => {
+      if (
+        divisionIdFilter !== null &&
+        Number.isFinite(divisionIdFilter) &&
+        user.division_id !== divisionIdFilter
+      ) {
+        return false;
+      }
       if (
         districtIdFilter !== null &&
         Number.isFinite(districtIdFilter) &&
