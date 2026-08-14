@@ -112,7 +112,7 @@ export const DocumentUsageOverview = ({
                 <ProgressBar
                   value={doc.percent}
                   className="h-2"
-                  barClassName="bg-spice-brand-primary"
+                  barClassName="bg-spice-palette-purple"
                 />
               </li>
             ))}

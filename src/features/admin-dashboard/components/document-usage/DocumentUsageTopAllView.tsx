@@ -66,7 +66,7 @@ export const DocumentUsageTopAllView = ({
         <ProgressBar
           value={row.trend}
           className="h-2 w-full min-w-0"
-          barClassName="bg-spice-brand-primary"
+          barClassName="bg-spice-palette-purple"
         />
       ),
     },
