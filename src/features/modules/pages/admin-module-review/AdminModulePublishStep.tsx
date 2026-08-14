@@ -19,6 +19,7 @@ import {
   mapAdminCardsToLessonRows,
   mapAdminQuizToRows,
 } from '@/features/modules/utils/moduleReviewPublishMappers';
+import { formatModuleContentDomainLabel } from '@/features/ingest/constants/ingestFormOptions';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { sourceDocumentLabel } from '@/features/modules/utils/sourceDocument';
 import {
@@ -159,6 +160,9 @@ export const AdminModulePublishStep = () => {
         <ModuleReviewPublishView
           title={moduleDisplayTitle}
           topic={formatModuleDomainLabel(working.domain)}
+          contentDomainType={formatModuleContentDomainLabel(
+            working.content_domain,
+          )}
           description={readLocaleText(
             working.description,
             DEPLOYMENT_PRIMARY_LOCALE,

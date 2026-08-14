@@ -2,16 +2,19 @@ import { useEffect, useId, useRef } from 'react';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { Button } from '@/components/ui';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { AdminV3IngestBatchSourceStatus } from '@/features/ingest/api/adminIngestApi';
 import { IngestFlowStatusLabel } from '@/features/ingest/components/IngestFlowStatusLabel';
 import {
   countGeneratedModulesFromSource,
-  flattenIngestBatchNodes,
+  countReviewPendingModulesFromSource,
+  getVisibleIngestBatchNodes,
   formatIngestDocumentProgressStatus,
   getIngestSourceStepLabel,
   getLatestIngestSourceStep,
   hasSimilarityDetectedInSource,
 } from '@/features/ingest/utils/ingestSourceProgress';
+import { extractFirstIngestFailureTooltipMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
 import {
   formatIngestRunStatusDisplay,
   ingestRunStatusBadgeClassName,
@@ -38,7 +41,7 @@ export const IngestDocumentProgressCard = ({
   const reactId = useId();
   const panelId = `${reactId}-panel`;
   const headingId = `${reactId}-heading`;
-  const nodes = flattenIngestBatchNodes(source.nodes ?? []);
+  const nodes = getVisibleIngestBatchNodes(source.nodes ?? []);
   const processingStatus = formatIngestDocumentProgressStatus(source.status);
   const documentStatusTone = ingestRunStatusTone(source.status);
   const isCompleted = processingStatus === 'Completed';
@@ -49,7 +52,16 @@ export const IngestDocumentProgressCard = ({
   const latestStepPath = latestStep?.path ?? null;
   const latestStepRef = useRef<HTMLDivElement | null>(null);
   const generatedModuleCount = countGeneratedModulesFromSource(source);
+  const reviewPendingModuleCount = countReviewPendingModulesFromSource(source);
   const similarityDetected = hasSimilarityDetectedInSource(source);
+  const reviewModuleCount =
+    reviewPendingModuleCount > 0
+      ? reviewPendingModuleCount
+      : generatedModuleCount;
+  const failureTooltipMessage =
+    processingStatus === 'Failed'
+      ? extractFirstIngestFailureTooltipMessage([source, ...nodes])
+      : null;
 
   useEffect(() => {
     if (!expanded || !latestStepPath) return;
@@ -71,7 +83,7 @@ export const IngestDocumentProgressCard = ({
             onGoToNeedsReview?.(source.source_document_id, documentName)
           }
         >
-          Review Modules ({generatedModuleCount})
+          Review Modules ({reviewModuleCount})
         </Button>
       ) : (
         <Button
@@ -80,7 +92,7 @@ export const IngestDocumentProgressCard = ({
             onGoToDrafts?.(source.source_document_id, documentName)
           }
         >
-          Open Modules
+          Open Modules ({generatedModuleCount})
         </Button>
       )
     ) : null;
@@ -103,6 +115,12 @@ export const IngestDocumentProgressCard = ({
               >
                 {formatIngestRunStatusDisplay(source.status)}
               </span>
+              {failureTooltipMessage ? (
+                <Tooltip
+                  label={failureTooltipMessage}
+                  content={failureTooltipMessage}
+                />
+              ) : null}
               {moduleAction}
             </div>
           </div>
@@ -188,7 +206,7 @@ export const IngestDocumentProgressCard = ({
                     </div>
                     <IngestFlowStatusLabel
                       status={node.status}
-                      error={node.error}
+                      failureContext={node}
                     />
                   </div>
                   <div className="mt-1 text-xs text-spice-text-muted">

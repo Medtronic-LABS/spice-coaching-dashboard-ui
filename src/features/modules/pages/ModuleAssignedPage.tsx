@@ -9,10 +9,10 @@ import {
   useFetchConfigByKeyQuery,
 } from '@/features/admin-configs/api/adminConfigsApi';
 import { parseConfigDurationDays } from '@/features/admin-configs/utils/configDuration';
+import { useFetchDocumentAssignedUsersQuery } from '@/features/ingest/api/adminDocumentAssignmentApi';
 import {
   useFetchAdminUsersQuery,
   useFetchModuleAssignedUsersQuery,
-  type AssignmentSummaryType,
 } from '@/features/modules/api/adminAssignmentApi';
 import { AssignedUsersSummary } from '@/features/modules/components/AssignedUsersSummary';
 import {
@@ -24,34 +24,91 @@ import {
   formatAssignmentDeadlineLabel,
   getAssignmentDeadlineDate,
 } from '@/features/modules/utils/assignmentDeadline';
+import {
+  resolveAssignmentSuccessEntityId,
+  resolveAssignmentSuccessEntityKind,
+  resolveAssignmentSuccessEntityName,
+  type AssignmentSuccessEntityKind,
+  type AssignmentSuccessLocationState,
+} from '@/features/modules/types/assignmentSuccessNavigation.types';
 
-type ModuleAssignedState = {
-  moduleId?: string;
-  moduleName?: string;
-  assignedAt?: string;
-  assignedCount?: number;
-  assignedUsers?: AssignedUserEntry[];
-  removedUsers?: AssignedUserEntry[];
-  /** Includes legacy summary labels used by older navigation state. */
-  assignmentType?: AssignmentSummaryType | 'individual' | 'group';
-};
+function entityCopy(
+  entityKind: AssignmentSuccessEntityKind,
+  t: (key: string) => string,
+): {
+  title: string;
+  subtitle: string;
+  entityLabel: string;
+  entityMeta: string;
+  backToLibrary: string;
+  assignMore: string;
+} {
+  switch (entityKind) {
+    case 'document':
+      return {
+        title: t('moduleLibrary.assigned.titleDocument'),
+        subtitle: t('moduleLibrary.assigned.subtitleDocument'),
+        entityLabel: t('moduleLibrary.assigned.summary.document'),
+        entityMeta: t('moduleLibrary.assigned.summary.documentMeta'),
+        backToLibrary: t('moduleLibrary.assigned.next.backToKnowledgeLibrary'),
+        assignMore: t('moduleLibrary.assigned.next.assignMoreDocument'),
+      };
+    case 'video':
+      return {
+        title: t('moduleLibrary.assigned.titleVideo'),
+        subtitle: t('moduleLibrary.assigned.subtitleVideo'),
+        entityLabel: t('moduleLibrary.assigned.summary.video'),
+        entityMeta: t('moduleLibrary.assigned.summary.videoMeta'),
+        backToLibrary: t('moduleLibrary.assigned.next.backToVideoLibrary'),
+        assignMore: t('moduleLibrary.assigned.next.assignMoreVideo'),
+      };
+    default:
+      return {
+        title: t('moduleLibrary.assigned.title'),
+        subtitle: t('moduleLibrary.assigned.subtitle'),
+        entityLabel: t('moduleLibrary.assigned.summary.module'),
+        entityMeta: t('moduleLibrary.assigned.summary.moduleMeta'),
+        backToLibrary: t('moduleLibrary.assigned.next.backToLibrary'),
+        assignMore: t('moduleLibrary.assigned.next.assignMore'),
+      };
+  }
+}
+
+function libraryPathForEntity(entityKind: AssignmentSuccessEntityKind): string {
+  switch (entityKind) {
+    case 'document':
+      return paths.uploadKnowledge;
+    case 'video':
+      return paths.videoUpload;
+    default:
+      return paths.moduleLibrary;
+  }
+}
 
 export const ModuleAssignedPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state ?? {}) as ModuleAssignedState;
+  const state = (location.state ?? {}) as AssignmentSuccessLocationState;
 
-  const moduleId = state.moduleId;
-  const moduleName =
-    state.moduleName ?? t('moduleLibrary.assigned.sample.module');
+  const entityKind = resolveAssignmentSuccessEntityKind(state);
+  const entityId = resolveAssignmentSuccessEntityId(state);
+  const entityName = resolveAssignmentSuccessEntityName(
+    state,
+    t('moduleLibrary.assigned.sample.module'),
+  );
+  const copy = entityCopy(entityKind, t);
+  const isModuleAssignment = entityKind === 'module';
+
   const [showAllAssigned, setShowAllAssigned] = useState(false);
 
   const {
     data: assignmentDurationConfig,
     isLoading: isLoadingDeadlineConfig,
     isFetching: isFetchingDeadlineConfig,
-  } = useFetchConfigByKeyQuery(MODULE_ASSIGNMENT_DURATION_KEY);
+  } = useFetchConfigByKeyQuery(MODULE_ASSIGNMENT_DURATION_KEY, {
+    skip: !isModuleAssignment,
+  });
 
   const assignmentDate = useMemo(() => {
     if (!state.assignedAt) {
@@ -77,7 +134,7 @@ export const ModuleAssignedPage = () => {
   );
 
   const isReattemptWindowLoading =
-    isLoadingDeadlineConfig || isFetchingDeadlineConfig;
+    isModuleAssignment && (isLoadingDeadlineConfig || isFetchingDeadlineConfig);
 
   const quizReattemptUntilLabel = useMemo(() => {
     if (isReattemptWindowLoading) {
@@ -115,10 +172,18 @@ export const ModuleAssignedPage = () => {
 
   const {
     data: moduleAssignedUsers,
-    isLoading: isLoadingAssignments,
-    isFetching: isFetchingAssignments,
-  } = useFetchModuleAssignedUsersQuery(moduleId ?? '', {
-    skip: !moduleId || !showAllAssigned,
+    isLoading: isLoadingModuleAssignments,
+    isFetching: isFetchingModuleAssignments,
+  } = useFetchModuleAssignedUsersQuery(entityId ?? '', {
+    skip: !entityId || !showAllAssigned || !isModuleAssignment,
+  });
+
+  const {
+    data: documentAssignedUsers,
+    isLoading: isLoadingDocumentAssignments,
+    isFetching: isFetchingDocumentAssignments,
+  } = useFetchDocumentAssignedUsersQuery(entityId ?? '', {
+    skip: !entityId || !showAllAssigned || isModuleAssignment,
   });
 
   const {
@@ -126,23 +191,35 @@ export const ModuleAssignedPage = () => {
     isLoading: isLoadingUsers,
     isFetching: isFetchingUsers,
   } = useFetchAdminUsersQuery(undefined, {
-    skip: !moduleId || !showAllAssigned,
+    skip: !entityId || !showAllAssigned || !isModuleAssignment,
   });
 
   const derivedAssignedUsers = useMemo<AssignedUserEntry[]>(() => {
-    if (!showAllAssigned || !moduleId) {
+    if (!showAllAssigned || !entityId) {
       return state.assignedUsers ?? [];
     }
 
-    const knownUsers = [...(moduleAssignedUsers ?? []), ...(adminUsers ?? [])];
+    if (isModuleAssignment) {
+      const knownUsers = [
+        ...(moduleAssignedUsers ?? []),
+        ...(adminUsers ?? []),
+      ];
+      return buildFlatAssignedUserEntries(
+        (moduleAssignedUsers ?? []).map((user) => user.id),
+        knownUsers,
+      );
+    }
+
     return buildFlatAssignedUserEntries(
-      (moduleAssignedUsers ?? []).map((user) => user.id),
-      knownUsers,
+      (documentAssignedUsers ?? []).map((user) => user.id),
+      documentAssignedUsers ?? [],
     );
   }, [
     adminUsers,
+    documentAssignedUsers,
+    entityId,
+    isModuleAssignment,
     moduleAssignedUsers,
-    moduleId,
     showAllAssigned,
     state.assignedUsers,
   ]);
@@ -150,7 +227,7 @@ export const ModuleAssignedPage = () => {
   const assignedUsers = derivedAssignedUsers;
   const removedUsers = state.removedUsers ?? [];
   const assignedCount =
-    showAllAssigned && moduleId
+    showAllAssigned && entityId
       ? countAssignedUsers(derivedAssignedUsers)
       : (state.assignedCount ?? countAssignedUsers(derivedAssignedUsers));
 
@@ -167,17 +244,42 @@ export const ModuleAssignedPage = () => {
     return t('moduleLibrary.assigned.summary.assignedTo');
   })();
 
+  const isLoadingAssignments =
+    isLoadingModuleAssignments ||
+    isFetchingModuleAssignments ||
+    isLoadingDocumentAssignments ||
+    isFetchingDocumentAssignments ||
+    isLoadingUsers ||
+    isFetchingUsers;
+
+  const handleAssignMore = () => {
+    if (!entityId) return;
+
+    if (entityKind === 'module') {
+      navigate(paths.moduleLibrary, {
+        state: {
+          tab: 'published',
+          openAssignment: { moduleId: entityId, moduleTitle: entityName },
+        },
+      });
+      return;
+    }
+
+    navigate(libraryPathForEntity(entityKind), {
+      state: {
+        openDocumentAssignment: {
+          sourceDocumentId: entityId,
+          title: entityName,
+          noun: entityKind === 'video' ? 'video' : 'document',
+        },
+      },
+    });
+  };
+
   return (
     <div className="flex h-[85vh] items-center justify-center px-4 py-6">
       <Loader
-        open={
-          showAllAssigned &&
-          Boolean(moduleId) &&
-          (isLoadingAssignments ||
-            isFetchingAssignments ||
-            isLoadingUsers ||
-            isFetchingUsers)
-        }
+        open={showAllAssigned && Boolean(entityId) && isLoadingAssignments}
         label={t('moduleLibrary.assigned.summary.loadingAssignedUsers')}
       />
       <Card
@@ -192,35 +294,44 @@ export const ModuleAssignedPage = () => {
             {t('moduleLibrary.assigned.badge')}
           </Badge>
           <h1 className="mt-2 text-lg font-semibold text-spice-text-primary sm:text-xl">
-            {t('moduleLibrary.assigned.title')}
+            {copy.title}
           </h1>
+          <p className="mt-1 text-sm text-spice-text-muted">{copy.subtitle}</p>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <div className="grid gap-3 text-left">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div
+              className={
+                isModuleAssignment
+                  ? 'grid grid-cols-1 gap-3 sm:grid-cols-2'
+                  : 'grid grid-cols-1 gap-3'
+              }
+            >
               <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
                 <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                  {t('moduleLibrary.assigned.summary.module')}
+                  {copy.entityLabel}
                 </div>
                 <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-                  {moduleName}
+                  {entityName}
                 </div>
                 <div className="text-xs text-spice-text-muted">
-                  {t('moduleLibrary.assigned.summary.moduleMeta')}
+                  {copy.entityMeta}
                 </div>
               </div>
-              <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
-                <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                  {t('moduleLibrary.assigned.summary.quizReattemptAllowed')}
+              {isModuleAssignment ? (
+                <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
+                  <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
+                    {t('moduleLibrary.assigned.summary.quizReattemptAllowed')}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-spice-text-primary">
+                    {quizReattemptUntilLabel}
+                  </div>
+                  <div className="text-xs text-spice-text-muted">
+                    {quizReattemptAllowedMeta}
+                  </div>
                 </div>
-                <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-                  {quizReattemptUntilLabel}
-                </div>
-                <div className="text-xs text-spice-text-muted">
-                  {quizReattemptAllowedMeta}
-                </div>
-              </div>
+              ) : null}
             </div>
 
             <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
@@ -229,7 +340,7 @@ export const ModuleAssignedPage = () => {
                   {assignedUsersLabel}
                 </div>
                 <div className="flex items-center gap-2">
-                  {moduleId && !showAllAssigned ? (
+                  {entityId && !showAllAssigned ? (
                     <button
                       type="button"
                       onClick={() => setShowAllAssigned(true)}
@@ -273,30 +384,23 @@ export const ModuleAssignedPage = () => {
 
         <div className="shrink-0 border-t border-spice-border bg-spice-bg-surface px-6 py-4">
           <div className="flex flex-col gap-2 sm:flex-row">
-            {moduleId ? (
+            {entityId ? (
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() =>
-                  navigate(paths.moduleLibrary, {
-                    state: {
-                      tab: 'published',
-                      openAssignment: { moduleId, moduleTitle: moduleName },
-                    },
-                  })
-                }
+                onClick={handleAssignMore}
                 className="flex-1"
               >
-                {t('moduleLibrary.assigned.next.assignMore')}
+                {copy.assignMore}
               </Button>
             ) : null}
             <Button
               type="button"
               variant="primary"
-              onClick={() => navigate(paths.moduleLibrary)}
+              onClick={() => navigate(libraryPathForEntity(entityKind))}
               className="flex-1"
             >
-              {t('moduleLibrary.assigned.next.backToLibrary')}
+              {copy.backToLibrary}
             </Button>
           </div>
         </div>

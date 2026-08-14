@@ -21,6 +21,8 @@ const po: AdminUser = {
   id: 20,
   name: 'Sobita Rani',
   role: 'PO',
+  division: 'Rangpur',
+  division_id: 1,
   district: 'Lalmonirhat',
   district_id: 10,
   upazila: 'Hatibandha',
@@ -32,6 +34,8 @@ const skUnderPo: AdminUser = {
   id: 21,
   name: 'Md Abdus Salam',
   role: 'SK',
+  division: 'Rangpur',
+  division_id: 1,
   district: 'Lalmonirhat',
   district_id: 10,
   upazila: 'Hatibandha',
@@ -43,6 +47,8 @@ const independentSk: AdminUser = {
   id: 30,
   name: 'Independent SK',
   role: 'SK',
+  division: 'Rangpur',
+  division_id: 1,
   district: 'Kurigram',
   district_id: 11,
   upazila: 'Ulipur',
@@ -174,6 +180,7 @@ describe('assignment mode helpers', () => {
   it('detects active assignment user filters', () => {
     expect(
       hasAssignmentUserFilters({
+        divisionId: null,
         districtId: null,
         upazilaId: null,
         searchQuery: '',
@@ -181,6 +188,15 @@ describe('assignment mode helpers', () => {
     ).toBe(false);
     expect(
       hasAssignmentUserFilters({
+        divisionId: 1,
+        districtId: null,
+        upazilaId: null,
+        searchQuery: '',
+      }),
+    ).toBe(true);
+    expect(
+      hasAssignmentUserFilters({
+        divisionId: null,
         districtId: 10,
         upazilaId: null,
         searchQuery: '',
@@ -188,6 +204,7 @@ describe('assignment mode helpers', () => {
     ).toBe(true);
     expect(
       hasAssignmentUserFilters({
+        divisionId: null,
         districtId: null,
         upazilaId: null,
         searchQuery: 'ab',

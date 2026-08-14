@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDistrictNameById,
+  formatAssignmentUserLocation,
   mapHierarchyRole,
   mapHierarchyUserToAdminUser,
   mapHierarchyUsersToAdminUsers,
   parseDistrictListResponse,
+  parseDivisionListResponse,
   parseHierarchyUserListResponse,
   parseUpazilaListResponse,
   userMatchesUpazila,
@@ -44,12 +46,37 @@ describe('mapHierarchyUserToAdminUser', () => {
       id: 21,
       name: 'SK User',
       role: 'SK',
+      division: '—',
+      division_id: 0,
       district: 'Lalmonirhat',
       district_id: 10,
       upazila: 'Hatibandha',
       upazilas: ['Hatibandha', 'Lalmonirhat Sadar'],
       parent_id: 20,
     });
+  });
+
+  it('maps division fields from wire payload', () => {
+    const mapped = mapHierarchyUserToAdminUser(
+      {
+        id: 22,
+        name: 'PO User',
+        role: 'PO',
+        parent_id: 1,
+        division_id: 1,
+        division: 'Rangpur',
+        district_id: 10,
+        district: 'Lalmonirhat',
+        upazila: 'Hatibandha',
+      },
+      districts,
+    );
+
+    expect(mapped?.division).toBe('Rangpur');
+    expect(mapped?.division_id).toBe(1);
+    expect(formatAssignmentUserLocation(mapped!)).toBe(
+      'Rangpur · Lalmonirhat · Hatibandha',
+    );
   });
 
   it('falls back to District #id when name is missing', () => {
@@ -147,13 +174,28 @@ describe('parseHierarchyUserListResponse / parseDistrictListResponse', () => {
     expect(
       parseDistrictListResponse({
         districts: [
-          { id: 10, name: 'Lalmonirhat' },
+          { id: 10, name: 'Lalmonirhat', division_id: 1 },
           { id: 'x', name: 'bad' },
         ],
         total: 1,
       }),
     ).toEqual({
-      districts: [{ id: 10, name: 'Lalmonirhat' }],
+      districts: [{ id: 10, name: 'Lalmonirhat', division_id: 1 }],
+      total: 1,
+    });
+  });
+
+  it('parses division list envelope', () => {
+    expect(
+      parseDivisionListResponse({
+        divisions: [
+          { id: 1, name: 'Rangpur' },
+          { id: 'x', name: 'bad' },
+        ],
+        total: 1,
+      }),
+    ).toEqual({
+      divisions: [{ id: 1, name: 'Rangpur' }],
       total: 1,
     });
   });

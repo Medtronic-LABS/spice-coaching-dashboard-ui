@@ -5,7 +5,11 @@ import type {
 } from '@/features/ingest/api/adminIngestApi';
 import {
   computeIngestSourceProgressPercent,
+  countGeneratedModulesFromSource,
+  countReviewPendingModulesFromSource,
   flattenIngestBatchNodes,
+  getVisibleIngestBatchNodes,
+  shouldHideIngestBatchNodeFromStatus,
   formatIngestDocumentProgressStatus,
   getIngestSourceStepLabel,
   getLatestIngestSourceStep,
@@ -98,6 +102,37 @@ describe('ingestSourceProgress', () => {
     ).toBe(100);
   });
 
+  it('hides skipped thumbnail nodes from visible pipeline steps', () => {
+    const nodes: AdminV3IngestBatchNode[] = [
+      {
+        key: 'extract',
+        title: 'Extract content',
+        status: 'succeeded',
+        children: [],
+      },
+      {
+        key: 'thumbnail',
+        title: 'Generating thumbnail',
+        status: 'skipped',
+        children: [],
+      },
+      {
+        key: 'transcribe',
+        title: 'Transcribe',
+        status: 'running',
+        children: [],
+      },
+    ];
+
+    expect(getVisibleIngestBatchNodes(nodes).map((node) => node.key)).toEqual([
+      'extract',
+      'transcribe',
+    ]);
+    expect(shouldHideIngestBatchNodeFromStatus(nodes[1])).toBe(true);
+    expect(shouldHideIngestBatchNodeFromStatus(nodes[0])).toBe(false);
+    expect(computeIngestSourceProgressPercent(makeSource({ nodes }))).toBe(50);
+  });
+
   it('prefers the running step as the latest step', () => {
     const nodes = flattenIngestBatchNodes([
       {
@@ -140,5 +175,71 @@ describe('ingestSourceProgress', () => {
 
     const latest = getLatestIngestSourceStep(nodes);
     expect(getIngestSourceStepLabel(latest)).toBe('Transcribe');
+  });
+
+  it('counts only card_draft module ids for generated modules', () => {
+    const source = makeSource({
+      nodes: [
+        {
+          key: 'transcribe',
+          title: 'Transcribe',
+          status: 'succeeded',
+          output_summary: { module_id: 'mod-noise' },
+          children: [],
+        },
+        {
+          key: 'card_draft',
+          title: 'Draft A',
+          status: 'succeeded',
+          output_summary: { module_id: 'mod-a' },
+          children: [],
+        },
+        {
+          key: 'card_draft',
+          title: 'Draft B',
+          status: 'succeeded',
+          output_summary: { module_id: 'mod-b' },
+          children: [],
+        },
+      ],
+    });
+
+    expect(countGeneratedModulesFromSource(source)).toBe(2);
+  });
+
+  it('counts only review-pending card_draft modules', () => {
+    const source = makeSource({
+      nodes: [
+        {
+          key: 'card_draft',
+          title: 'Draft A',
+          status: 'succeeded',
+          output_summary: { module_id: 'mod-a' },
+          children: [],
+        },
+        {
+          key: 'card_draft',
+          title: 'Draft B',
+          status: 'succeeded',
+          output_summary: {
+            module_id: 'mod-b',
+            has_similarity: true,
+          },
+          children: [],
+        },
+        {
+          key: 'card_draft',
+          title: 'Draft C',
+          status: 'succeeded',
+          output_summary: {
+            module_id: 'mod-c',
+            matched_module_id: 'existing-1',
+          },
+          children: [],
+        },
+      ],
+    });
+
+    expect(countReviewPendingModulesFromSource(source)).toBe(2);
   });
 });

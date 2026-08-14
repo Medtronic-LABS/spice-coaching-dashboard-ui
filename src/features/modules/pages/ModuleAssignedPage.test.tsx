@@ -131,4 +131,60 @@ describe('ModuleAssignedPage', () => {
       'published',
     );
   });
+
+  it('renders document assignment success copy', () => {
+    renderAssignedPage({
+      entityKind: 'document',
+      entityId: 'doc-1',
+      entityName: 'HTN Guide',
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /document assigned successfully/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('HTN Guide')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/quiz reattempt allowed/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders video assignment success copy', () => {
+    renderAssignedPage({
+      entityKind: 'video',
+      entityId: 'vid-1',
+      entityName: 'Counselling clip',
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /video assigned successfully/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Counselling clip')).toBeInTheDocument();
+  });
+
+  it('navigates to knowledge library for document assignments', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <Routes>
+        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+        <Route
+          path={paths.uploadKnowledge}
+          element={<div data-testid="knowledge-library" />}
+        />
+      </Routes>,
+      {
+        route: paths.moduleAssigned,
+        routerState: {
+          entityKind: 'document',
+          entityId: 'doc-1',
+          entityName: 'HTN Guide',
+        },
+      },
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /knowledge library/i }),
+    );
+
+    expect(screen.getByTestId('knowledge-library')).toBeInTheDocument();
+  });
 });

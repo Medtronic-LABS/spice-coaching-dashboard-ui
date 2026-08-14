@@ -38,6 +38,34 @@ function normalizeStatus(status: string | undefined): string {
   return (status ?? '').toLowerCase().trim();
 }
 
+export function isIngestStepSkipped(status: string | undefined): boolean {
+  return normalizeStatus(status).includes('skip');
+}
+
+export function isThumbnailIngestBatchNode(
+  node: Pick<AdminV3IngestBatchNode, 'key' | 'title'>,
+): boolean {
+  const key = (node.key ?? '').trim().toLowerCase();
+  if (key === 'thumbnail') return true;
+  const title = (node.title ?? '').trim().toLowerCase();
+  return title.includes('thumbnail');
+}
+
+/** Skipped thumbnail steps are omitted from ingestion status UI. */
+export function shouldHideIngestBatchNodeFromStatus(
+  node: AdminV3IngestBatchNode,
+): boolean {
+  return isThumbnailIngestBatchNode(node) && isIngestStepSkipped(node.status);
+}
+
+export function getVisibleIngestBatchNodes(
+  nodes: AdminV3IngestBatchNode[],
+): FlattenedIngestBatchNode[] {
+  return flattenIngestBatchNodes(nodes).filter(
+    (node) => !shouldHideIngestBatchNodeFromStatus(node),
+  );
+}
+
 function parseInstantMs(value: string | null | undefined): number {
   const trimmed = (value ?? '').trim();
   if (!trimmed) return 0;
@@ -89,7 +117,7 @@ export function computeIngestSourceProgressPercent(
 ): number | null {
   if (isIngestSucceeded(source.status)) return 100;
 
-  const nodes = flattenIngestBatchNodes(source.nodes ?? []);
+  const nodes = getVisibleIngestBatchNodes(source.nodes ?? []);
   if (!nodes.length) return null;
 
   const finished = nodes.filter((node) =>
@@ -139,18 +167,89 @@ export function getIngestSourceStepLabel(
   return key || null;
 }
 
+function moduleIdFromCardDraftNode(
+  node: AdminV3IngestBatchNode,
+): string | null {
+  if (node.key !== 'card_draft') return null;
+  const summary = node.output_summary;
+  if (!summary || typeof summary !== 'object') return null;
+  const raw = (summary as Record<string, unknown>).module_id;
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function isReviewPendingCardDraftNode(node: AdminV3IngestBatchNode): boolean {
+  if (node.key !== 'card_draft') return false;
+  if (node.published_module_merge?.was_merge === true) return true;
+
+  const summary = node.output_summary;
+  if (!summary || typeof summary !== 'object') return false;
+  const record = summary as Record<string, unknown>;
+  if (
+    record.has_similarity === true ||
+    record.review_pending === true ||
+    record.similarity_detected === true ||
+    record.was_merge === true
+  ) {
+    return true;
+  }
+  const matchedModuleId = record.matched_module_id;
+  return (
+    typeof matchedModuleId === 'string' && matchedModuleId.trim().length > 0
+  );
+}
+
 export function countGeneratedModulesFromSource(
-  source: Pick<AdminV3IngestBatchSourceStatus, 'nodes'> | null | undefined,
+  source:
+    | Pick<AdminV3IngestBatchSourceStatus, 'nodes' | 'generated_module_count'>
+    | null
+    | undefined,
 ): number {
   if (!source) return 0;
+
+  const topLevel = source.generated_module_count;
+  if (
+    typeof topLevel === 'number' &&
+    Number.isFinite(topLevel) &&
+    topLevel >= 0
+  ) {
+    return Math.floor(topLevel);
+  }
+
   const seen = new Set<string>();
   for (const node of flattenIngestBatchNodes(source.nodes ?? [])) {
-    const summary = node.output_summary;
-    if (!summary || typeof summary !== 'object') continue;
-    const raw = summary.module_id;
-    if (typeof raw !== 'string') continue;
-    const trimmed = raw.trim();
-    if (trimmed) seen.add(trimmed);
+    const moduleId = moduleIdFromCardDraftNode(node);
+    if (moduleId) seen.add(moduleId);
+  }
+  return seen.size;
+}
+
+export function countReviewPendingModulesFromSource(
+  source:
+    | Pick<
+        AdminV3IngestBatchSourceStatus,
+        'nodes' | 'review_pending_module_count'
+      >
+    | null
+    | undefined,
+): number {
+  if (!source) return 0;
+
+  const topLevel = source.review_pending_module_count;
+  if (
+    typeof topLevel === 'number' &&
+    Number.isFinite(topLevel) &&
+    topLevel >= 0
+  ) {
+    return Math.floor(topLevel);
+  }
+
+  const seen = new Set<string>();
+  for (const node of flattenIngestBatchNodes(source.nodes ?? [])) {
+    if (!isReviewPendingCardDraftNode(node)) continue;
+    const moduleId = moduleIdFromCardDraftNode(node);
+    if (moduleId) seen.add(moduleId);
   }
   return seen.size;
 }

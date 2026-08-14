@@ -103,6 +103,7 @@ export interface AdminModuleDetailResponse {
   description: LocalizedString | null;
   domain: string;
   category?: string | null;
+  content_domain?: string | null;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
   clinically_reviewed: boolean;
@@ -377,6 +378,10 @@ function normalizeModuleDetail(
         : typeof response.domain === 'string'
           ? response.domain
           : null,
+    content_domain:
+      typeof response.content_domain === 'string'
+        ? response.content_domain
+        : null,
     module_type:
       typeof response.module_type === 'string' ? response.module_type : '',
     lifecycle_status:

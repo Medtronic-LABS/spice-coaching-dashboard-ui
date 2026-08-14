@@ -12,6 +12,7 @@ import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdmin
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { updateDetails } from '@/features/modules/store/adminModuleReviewSlice';
 import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
+import { formatModuleContentDomainLabel } from '@/features/ingest/constants/ingestFormOptions';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import { useAppDispatch } from '@/store/hooks';
@@ -116,6 +117,14 @@ export const AdminModuleDetailsStep = () => {
               <span className="text-spice-text-muted font-medium">Domain</span>
               <span className="font-semibold text-spice-text-primary">
                 {formatModuleDomainLabel(working.domain) || '—'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
+              <span className="text-spice-text-muted font-medium">
+                Domain Type
+              </span>
+              <span className="font-semibold text-spice-text-primary">
+                {formatModuleContentDomainLabel(working.content_domain) || '—'}
               </span>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">

@@ -15,6 +15,7 @@ import { paths } from '@/constants/routes';
 import type {
   AdminV3IngestUploadPayload,
   AdminV3IngestUploadResponse,
+  AdminV3IngestBatchSourceStatus,
   IngestContentDomain,
 } from '@/features/ingest/api/adminIngestApi';
 import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
@@ -33,6 +34,8 @@ import {
 import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 import { formatIngestRunStatusDisplay } from '@/features/ingest/utils/ingestRunHistoryUtils';
+import { readRecentIngestDocuments } from '@/features/ingest/utils/recentIngestDocumentsStorage';
+import { isIngestSucceeded } from '@/features/ingest/utils/ingestStatus';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -64,6 +67,8 @@ export interface DocumentSelectionPanelProps {
   isUploading?: boolean;
   /** Increments after successful upload (including duplicate-confirm reuse). */
   uploadClearSignal?: number;
+  /** Live batch source rows used to overlay ingesting/completed statuses. */
+  batchSources?: AdminV3IngestBatchSourceStatus[];
 }
 
 function documentStatusBadge(
@@ -97,7 +102,59 @@ function titleFromFilename(filename: string): string {
 /** Statuses that mean ingestion finished and modules can be opened. */
 function isIngestedDocumentStatus(status: string): boolean {
   const normalized = status.trim().toLowerCase();
-  return normalized === 'ingested' || normalized === 'succeeded';
+  return (
+    normalized === 'ingested' ||
+    normalized === 'succeeded' ||
+    normalized === 'partially_succeeded' ||
+    normalized === 'partially succeeded'
+  );
+}
+
+function resolveDocumentCatalogStatus(
+  catalogStatus: string,
+  sourceDocumentId: string,
+  batchSources: AdminV3IngestBatchSourceStatus[],
+  recentlyIngestedIds: ReadonlySet<string>,
+): string {
+  const batchSource = batchSources.find(
+    (source) => source.source_document_id === sourceDocumentId,
+  );
+  if (batchSource?.status) {
+    if (isIngestSucceeded(batchSource.status)) return 'ingested';
+    const normalized = batchSource.status.trim().toLowerCase();
+    if (
+      normalized.includes('fail') ||
+      normalized.includes('error') ||
+      normalized.includes('running') ||
+      normalized.includes('queue') ||
+      normalized.includes('ingest')
+    ) {
+      return batchSource.status;
+    }
+  }
+
+  if (
+    recentlyIngestedIds.has(sourceDocumentId) &&
+    !isIngestedDocumentStatus(catalogStatus)
+  ) {
+    const normalized = catalogStatus.trim().toLowerCase();
+    if (normalized !== 'ingesting' && normalized !== 'running') {
+      return 'ingested';
+    }
+  }
+
+  return catalogStatus;
+}
+
+function canOpenModulesForDocument(
+  status: string,
+  sourceDocumentId: string,
+  recentlyIngestedIds: ReadonlySet<string>,
+): boolean {
+  return (
+    isIngestedDocumentStatus(status) ||
+    recentlyIngestedIds.has(sourceDocumentId)
+  );
 }
 
 export const DocumentSelectionPanel = ({
@@ -110,8 +167,18 @@ export const DocumentSelectionPanel = ({
   uploadFiles,
   isUploading = false,
   uploadClearSignal = 0,
+  batchSources = [],
 }: DocumentSelectionPanelProps) => {
   const navigate = useNavigate();
+  const recentlyIngestedIds = useMemo(
+    () =>
+      new Set(
+        readRecentIngestDocuments().map(
+          (document) => document.source_document_id,
+        ),
+      ),
+    [uploadClearSignal, batchSources],
+  );
   const debouncedQuery = useDebouncedValue(
     searchQuery,
     DOCUMENT_SELECTION_SEARCH_DEBOUNCE_MS,
@@ -169,12 +236,17 @@ export const DocumentSelectionPanel = ({
         title: doc.title.trim() || doc.original_filename?.trim() || doc.id,
         originalFilename: doc.original_filename,
         sourceType: doc.source_type,
-        status: doc.status,
+        status: resolveDocumentCatalogStatus(
+          doc.status,
+          doc.id,
+          batchSources,
+          recentlyIngestedIds,
+        ),
         uploadedAt: doc.uploaded_date || doc.ingested_at,
         selection: '',
         actions: '',
       })),
-    [catalog?.source_documents],
+    [batchSources, catalog?.source_documents, recentlyIngestedIds],
   );
 
   const total = catalog?.total_source_documents ?? 0;
@@ -391,7 +463,9 @@ export const DocumentSelectionPanel = ({
         header: 'Actions',
         sortable: false,
         render: (row) => {
-          if (isIngestedDocumentStatus(row.status)) {
+          if (
+            canOpenModulesForDocument(row.status, row.id, recentlyIngestedIds)
+          ) {
             return (
               <Button
                 variant="secondary"
@@ -411,6 +485,7 @@ export const DocumentSelectionPanel = ({
     [
       disabled,
       goToModulesForSource,
+      recentlyIngestedIds,
       selectedDocuments.length,
       selectedIds,
       toggleDocument,

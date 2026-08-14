@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,8 +6,11 @@ import type {
   AdminV3IngestAcceptedResponse,
   AdminV3IngestBatchStatusResponse,
 } from '@/features/ingest/api/adminIngestApi';
+import {
+  readActiveIngestSession,
+  writeActiveIngestSession,
+} from '@/features/ingest/utils/ingestSessionStorage';
 import { IngestDocumentPage } from './IngestDocumentPage';
-import { render } from '@testing-library/react';
 
 type IngestAcceptedCallback = (
   response: AdminV3IngestAcceptedResponse,
@@ -49,6 +52,7 @@ const mocks = vi.hoisted(() => {
       conflicts: [],
     },
     onAcceptedRef: { current: null as IngestAcceptedCallback | null },
+    panelStatus: { current: null as AdminV3IngestBatchStatusResponse | null },
     sourceDocuments,
     useFetchSourceDocumentsQuery: vi.fn(() => ({
       data: {
@@ -109,17 +113,28 @@ vi.mock('@/features/ingest/hooks/useIngestWithDuplicateHandling', () => ({
   },
 }));
 
-vi.mock('@/features/ingest/components/IngestRunStatusPanel', () => ({
-  IngestRunStatusPanel: ({
-    batchId,
-  }: {
-    batchId: string;
-    onStatusChange?: (
-      batchId: string,
-      status: AdminV3IngestBatchStatusResponse | null,
-    ) => void;
-  }) => <div data-testid="ingest-status">Batch {batchId}</div>,
-}));
+vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
+  const { useEffect } = await import('react');
+  return {
+    IngestRunStatusPanel: ({
+      batchId,
+      onStatusChange,
+    }: {
+      batchId: string;
+      onStatusChange?: (
+        batchId: string,
+        status: AdminV3IngestBatchStatusResponse | null,
+      ) => void;
+    }) => {
+      useEffect(() => {
+        if (mocks.panelStatus.current) {
+          onStatusChange?.(batchId, mocks.panelStatus.current);
+        }
+      }, [batchId, onStatusChange]);
+      return <div data-testid="ingest-status">Batch {batchId}</div>;
+    },
+  };
+});
 
 function renderPage() {
   return render(
@@ -133,6 +148,7 @@ describe('IngestDocumentPage', () => {
   beforeEach(() => {
     mocks.startIngest.mockReset().mockResolvedValue(null);
     mocks.useFetchSourceDocumentsQuery.mockClear();
+    mocks.panelStatus.current = null;
     sessionStorage.clear();
   });
 
@@ -197,5 +213,66 @@ describe('IngestDocumentPage', () => {
         }),
       );
     });
+  });
+
+  it('clears session storage when batch status is terminal failed', async () => {
+    writeActiveIngestSession({
+      batch_id: 'batch-failed',
+      source_document_id: 'doc-1',
+      title: 'Hypertension Guide',
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-failed',
+      status: 'failed',
+      created_at: null,
+      completed_at: '2026-07-21T10:00:00Z',
+      error: 'Pipeline error',
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'failed',
+          started_at: null,
+          completed_at: null,
+          error: 'Pipeline error',
+          nodes: [],
+        },
+      ],
+    };
+    renderPage();
+
+    await waitFor(() => {
+      expect(readActiveIngestSession()).toBeNull();
+    });
+  });
+
+  it('clears session storage when leaving after a terminal batch status', async () => {
+    writeActiveIngestSession({
+      batch_id: 'batch-failed',
+      source_document_id: 'doc-1',
+      title: 'Hypertension Guide',
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-failed',
+      status: 'failed',
+      created_at: null,
+      completed_at: '2026-07-21T10:00:00Z',
+      error: 'Pipeline error',
+      sources: [],
+    };
+    const view = renderPage();
+
+    await waitFor(() => {
+      expect(readActiveIngestSession()).toBeNull();
+    });
+
+    writeActiveIngestSession({
+      batch_id: 'batch-failed',
+      source_document_id: 'doc-1',
+    });
+    view.unmount();
+
+    expect(readActiveIngestSession()).toBeNull();
   });
 });

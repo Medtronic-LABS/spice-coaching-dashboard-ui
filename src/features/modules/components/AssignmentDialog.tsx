@@ -17,10 +17,12 @@ import {
   ASSIGNMENT_LIST_PAGE_SIZE,
   ASSIGNMENT_USERS_PAGE_SIZE,
   type AdminDistrict,
+  type AdminDivision,
   type AdminUpazila,
   type AdminUser,
   type AssignmentSummaryType,
   useLazyFetchAdminDistrictsPageQuery,
+  useLazyFetchAdminDivisionsPageQuery,
   useLazyFetchAdminUpazilasPageQuery,
   useLazyFetchHierarchyUsersPageQuery,
   useLazyFetchModuleAssignedUsersQuery,
@@ -36,7 +38,9 @@ import {
   countAssignedUsers,
   type AssignedUserEntry,
 } from '@/features/modules/utils/assignmentDisplay';
+import { formatAssignmentUserLocation } from '@/features/modules/utils/mapHierarchyUsersToAdminUsers';
 import {
+  ALL_DIVISIONS_OPTION,
   ALL_DISTRICTS_OPTION,
   ALL_UPAZILAS_OPTION,
   ASSIGNMENT_SEARCH_DEBOUNCE_MS,
@@ -53,6 +57,7 @@ import {
   type AssignmentUserLevelMode,
 } from '@/features/modules/utils/assignmentDialogHelpers';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { buildAssignmentSuccessLocationState } from '@/features/modules/types/assignmentSuccessNavigation.types';
 
 type AssignmentTab = 'user' | 'geographical';
 
@@ -90,7 +95,6 @@ interface AssignmentDialogProps {
   open: boolean;
   onClose: () => void;
   target: AssignmentDialogTarget;
-  onAssigned?: () => void;
 }
 
 interface FetchRetryButtonProps {
@@ -222,9 +226,7 @@ function UserSelectionList({
             {users.map((user) => {
               const status = userAssignmentStatus.get(user.id);
               const isChecked = desiredUserIds.includes(user.id);
-              const locationLabel = user.upazila
-                ? `${user.district} · ${user.upazila}`
-                : user.district;
+              const locationLabel = formatAssignmentUserLocation(user);
 
               return (
                 <label
@@ -270,13 +272,25 @@ export const AssignmentDialog = ({
   open,
   onClose,
   target,
-  onAssigned,
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
   const noun = entityNoun(target);
   const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
   const [userLevelMode, setUserLevelMode] =
     useState<AssignmentUserLevelMode>('po_sk');
+  const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(
+    null,
+  );
+  const [selectedDivisionName, setSelectedDivisionName] = useState('');
+  const [divisionSearchQuery, setDivisionSearchQuery] = useState('');
+  const debouncedDivisionSearchQuery = useDebouncedValue(
+    divisionSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [loadedDivisions, setLoadedDivisions] = useState<AdminDivision[]>([]);
+  const [divisionsTotal, setDivisionsTotal] = useState(0);
+  const [divisionsOffset, setDivisionsOffset] = useState(0);
+
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
     null,
   );
@@ -323,6 +337,7 @@ export const AssignmentDialog = ({
   const [upazilasOffset, setUpazilasOffset] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const divisionsRequestSeqRef = useRef(0);
   const districtsRequestSeqRef = useRef(0);
   const filterUpazilasRequestSeqRef = useRef(0);
   const usersRequestSeqRef = useRef(0);
@@ -331,10 +346,20 @@ export const AssignmentDialog = ({
   const usersFetchRole = hierarchyRoleForMode(userLevelMode);
   const usersListQueryKey = [
     usersFetchRole,
+    selectedDivisionId ?? '',
     selectedDistrictId ?? '',
     selectedUpazilaId ?? '',
     debouncedUserSearchQuery.trim(),
   ].join('|');
+
+  const [
+    triggerDivisionsPage,
+    {
+      isLoading: loadingDivisions,
+      isError: divisionsError,
+      isFetching: fetchingDivisions,
+    },
+  ] = useLazyFetchAdminDivisionsPageQuery();
 
   const [
     triggerDistrictsPage,
@@ -409,6 +434,7 @@ export const AssignmentDialog = ({
   }, [assignedUsersForTarget, loadedUsers, poChildUsers]);
 
   const filtersActive = hasAssignmentUserFilters({
+    divisionId: selectedDivisionId,
     districtId: selectedDistrictId,
     upazilaId: selectedUpazilaId,
     searchQuery: debouncedUserSearchQuery,
@@ -423,6 +449,17 @@ export const AssignmentDialog = ({
         filtersActive,
       ),
     [assignedUsersForTarget, filtersActive, loadedUsers, userLevelMode],
+  );
+
+  const divisionComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_DIVISIONS_OPTION,
+        loadedDivisions,
+        selectedDivisionId,
+        selectedDivisionName,
+      ),
+    [loadedDivisions, selectedDivisionId, selectedDivisionName],
   );
 
   const districtComboboxOptions = useMemo(
@@ -448,10 +485,35 @@ export const AssignmentDialog = ({
   );
 
   const usersHasMore = loadedUsers.length < usersTotal;
+  const divisionsHasMore = loadedDivisions.length < divisionsTotal;
   const districtsHasMore = loadedDistricts.length < districtsTotal;
   const filterUpazilasHasMore =
     filterLoadedUpazilas.length < filterUpazilasTotal;
   const upazilasHasMore = loadedUpazilas.length < upazilasTotal;
+
+  const loadDivisionsPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? divisionsRequestSeqRef.current
+        : ++divisionsRequestSeqRef.current;
+      const nameQuery = debouncedDivisionSearchQuery.trim();
+      const result = await triggerDivisionsPage({
+        limit: ASSIGNMENT_LIST_PAGE_SIZE,
+        offset,
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if (requestSeq !== divisionsRequestSeqRef.current) return;
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setDivisionsTotal(page.total);
+      setDivisionsOffset(page.offset + page.divisions.length);
+      setLoadedDivisions((prev) =>
+        append ? [...prev, ...page.divisions] : page.divisions,
+      );
+    },
+    [debouncedDivisionSearchQuery, triggerDivisionsPage],
+  );
 
   const loadDistrictsPage = useCallback(
     async (offset: number, append: boolean) => {
@@ -462,6 +524,9 @@ export const AssignmentDialog = ({
       const result = await triggerDistrictsPage({
         limit: ASSIGNMENT_LIST_PAGE_SIZE,
         offset,
+        ...(selectedDivisionId !== null
+          ? { divisionId: selectedDivisionId }
+          : {}),
         ...(nameQuery ? { q: nameQuery } : {}),
       });
       if (requestSeq !== districtsRequestSeqRef.current) return;
@@ -474,7 +539,7 @@ export const AssignmentDialog = ({
         append ? [...prev, ...page.districts] : page.districts,
       );
     },
-    [debouncedDistrictSearchQuery, triggerDistrictsPage],
+    [debouncedDistrictSearchQuery, selectedDivisionId, triggerDistrictsPage],
   );
 
   const loadFilterUpazilasPage = useCallback(
@@ -518,6 +583,9 @@ export const AssignmentDialog = ({
         limit: ASSIGNMENT_USERS_PAGE_SIZE,
         offset,
         role: usersFetchRole,
+        ...(selectedDivisionId !== null
+          ? { divisionId: selectedDivisionId }
+          : {}),
         ...(selectedDistrictId !== null
           ? { districtId: selectedDistrictId }
           : {}),
@@ -536,6 +604,7 @@ export const AssignmentDialog = ({
     },
     [
       debouncedUserSearchQuery,
+      selectedDivisionId,
       selectedDistrictId,
       selectedUpazilaId,
       triggerUsersPage,
@@ -577,10 +646,26 @@ export const AssignmentDialog = ({
     setFilterUpazilasOffset(0);
   };
 
+  const resetDistrictAndBelow = () => {
+    setSelectedDistrictId(null);
+    setSelectedDistrictName('');
+    setDistrictSearchQuery('');
+    setLoadedDistricts([]);
+    setDistrictsTotal(0);
+    setDistrictsOffset(0);
+    resetFilterUpazilaState();
+  };
+
   useEffect(() => {
     if (!open) return;
     setActiveTab('user');
     setUserLevelMode('po_sk');
+    setSelectedDivisionId(null);
+    setSelectedDivisionName('');
+    setDivisionSearchQuery('');
+    setLoadedDivisions([]);
+    setDivisionsTotal(0);
+    setDivisionsOffset(0);
     setSelectedDistrictId(null);
     setSelectedDistrictName('');
     setDistrictSearchQuery('');
@@ -625,6 +710,14 @@ export const AssignmentDialog = ({
       });
     }
   }, [open, target, triggerDocumentAssignedUsers, triggerModuleAssignedUsers]);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoadedDivisions([]);
+    setDivisionsTotal(0);
+    setDivisionsOffset(0);
+    void loadDivisionsPage(0, false);
+  }, [loadDivisionsPage, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -679,6 +772,12 @@ export const AssignmentDialog = ({
     void loadUsersPage(0, false);
   };
 
+  const retryDivisions = () => {
+    setLoadedDivisions([]);
+    setDivisionsOffset(0);
+    void loadDivisionsPage(0, false);
+  };
+
   const retryDistricts = () => {
     setLoadedDistricts([]);
     setDistrictsOffset(0);
@@ -696,6 +795,18 @@ export const AssignmentDialog = ({
     setLoadedUpazilas([]);
     setUpazilasOffset(0);
     void loadUpazilasPage(0, false);
+  };
+
+  const handleDivisionChange = (value: string) => {
+    const next = resolveNamedEntitySelection(
+      value,
+      loadedDivisions,
+      selectedDivisionId,
+      selectedDivisionName,
+    );
+    setSelectedDivisionId(next.id);
+    setSelectedDivisionName(next.name);
+    resetDistrictAndBelow();
   };
 
   const handleDistrictChange = (value: string) => {
@@ -851,23 +962,16 @@ export const AssignmentDialog = ({
     assignedUsers: AssignedUserEntry[],
     removedUsers: AssignedUserEntry[],
   ) => {
-    if (target.kind === 'module') {
-      onClose();
-      navigate(paths.moduleAssigned, {
-        state: {
-          moduleId: target.id,
-          moduleName: target.title,
-          ...(assignmentType ? { assignmentType } : {}),
-          assignedCount: countAssignedUsers(assignedUsers),
-          assignedUsers,
-          removedUsers,
-          assignedAt: new Date().toISOString(),
-        },
-      });
-      return;
-    }
     onClose();
-    onAssigned?.();
+    navigate(paths.moduleAssigned, {
+      state: buildAssignmentSuccessLocationState(target, {
+        ...(assignmentType ? { assignmentType } : {}),
+        assignedCount: countAssignedUsers(assignedUsers),
+        assignedUsers,
+        removedUsers,
+        assignedAt: new Date().toISOString(),
+      }),
+    });
   };
 
   const handleAssign = async () => {
@@ -956,10 +1060,49 @@ export const AssignmentDialog = ({
   if (!open) return null;
 
   const catalogsLoading =
+    (loadingDivisions && loadedDivisions.length === 0) ||
     (loadingDistricts && loadedDistricts.length === 0) ||
     (loadingFilterUpazilas && filterLoadedUpazilas.length === 0);
-  const geoLoading = loadingUpazilas && loadedUpazilas.length === 0;
-  const geoError = districtsError || upazilasError;
+  const geoLoading =
+    (loadingDivisions && loadedDivisions.length === 0) ||
+    (loadingDistricts && loadedDistricts.length === 0) ||
+    (loadingUpazilas && loadedUpazilas.length === 0);
+  const geoError = divisionsError || districtsError || upazilasError;
+
+  const renderDivisionCombobox = (id: string) => (
+    <Combobox
+      id={id}
+      aria-label="Division"
+      value={selectedDivisionId === null ? '' : String(selectedDivisionId)}
+      selectedLabel={
+        selectedDivisionId === null
+          ? ALL_DIVISIONS_OPTION.label
+          : selectedDivisionName || ALL_DIVISIONS_OPTION.label
+      }
+      options={divisionComboboxOptions}
+      searchTerm={divisionSearchQuery}
+      onSearchTermChange={setDivisionSearchQuery}
+      onChange={handleDivisionChange}
+      isLoading={loadingDivisions && loadedDivisions.length === 0}
+      hint={
+        divisionsTotal > 0
+          ? `Showing ${loadedDivisions.length} of ${divisionsTotal}`
+          : undefined
+      }
+      placeholder="Type to search divisions…"
+      emptyMessage={
+        divisionsError ? 'Failed to load divisions.' : 'No divisions found.'
+      }
+      hasMore={divisionsHasMore}
+      onLoadMore={() => {
+        void loadDivisionsPage(divisionsOffset, true);
+      }}
+      isLoadingMore={fetchingDivisions && loadedDivisions.length > 0}
+      loadMoreError={divisionsError && loadedDivisions.length > 0}
+      onLoadMoreRetry={retryDivisions}
+      className="w-full"
+    />
+  );
 
   const renderDistrictCombobox = (id: string) => (
     <Combobox
@@ -1053,7 +1196,24 @@ export const AssignmentDialog = ({
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-spice-text-primary">
+                      Division
+                    </span>
+                    {divisionsError ? (
+                      <FetchRetryButton
+                        label="Retry loading divisions"
+                        onRetry={retryDivisions}
+                        disabled={fetchingDivisions}
+                      />
+                    ) : null}
+                  </div>
+                  {renderDivisionCombobox(
+                    'assignment-division-filter-combobox',
+                  )}
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-spice-text-primary">
@@ -1168,6 +1328,22 @@ export const AssignmentDialog = ({
 
           {activeTab === 'geographical' ? (
             <>
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-spice-text-primary">
+                    Division
+                  </span>
+                  {divisionsError ? (
+                    <FetchRetryButton
+                      label="Retry loading divisions"
+                      onRetry={retryDivisions}
+                      disabled={fetchingDivisions}
+                    />
+                  ) : null}
+                </div>
+                {renderDivisionCombobox('assignment-geo-division-combobox')}
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-spice-text-primary">

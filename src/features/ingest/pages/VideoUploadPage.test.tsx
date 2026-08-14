@@ -826,6 +826,51 @@ describe('VideoUploadPage', () => {
     });
   });
 
+  it('clears session storage when leaving after a terminal failed batch status', async () => {
+    writeActiveVideoIngestSessions([
+      {
+        batch_id: 'batch-1',
+        source_document_id: 'video-source-1',
+        title: 'existing.mp4',
+      },
+    ]);
+    mocks.panelStatus.current = {
+      batch_id: 'batch-1',
+      status: 'failed',
+      created_at: null,
+      completed_at: '2026-07-15T09:00:00Z',
+      error: 'Pipeline error',
+      sources: [
+        {
+          source_document_id: 'video-source-1',
+          run_id: 'run-1',
+          document_label: 'existing.mp4',
+          status: 'failed',
+          started_at: null,
+          completed_at: null,
+          error: 'Pipeline error',
+          nodes: [],
+        },
+      ],
+    };
+    const view = renderPage();
+
+    await waitFor(() => {
+      expect(readActiveVideoIngestSessions()).toEqual([]);
+    });
+
+    writeActiveVideoIngestSessions([
+      {
+        batch_id: 'batch-1',
+        source_document_id: 'video-source-1',
+        title: 'existing.mp4',
+      },
+    ]);
+    view.unmount();
+
+    expect(readActiveVideoIngestSessions()).toEqual([]);
+  });
+
   it('queues ingest after upload and stores batch session', async () => {
     const user = userEvent.setup();
     renderPage();

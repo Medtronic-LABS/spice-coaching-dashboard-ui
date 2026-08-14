@@ -40,6 +40,7 @@ export function baseAdminModuleDetail(
     title: { bn: 'Module BN', en: 'Module EN' },
     description: { bn: 'Description BN', en: 'Description EN' },
     domain: 'rmnch',
+    content_domain: 'clinical',
     module_type: 'refresher',
     lifecycle_status: 'draft',
     clinically_reviewed: false,

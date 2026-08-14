@@ -10,7 +10,6 @@ import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/In
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
-
 interface NeedsReviewTabProps {
   modules: AdminModulesListItem[];
   isLoading?: boolean;
@@ -133,11 +132,29 @@ function resolveExistingModule(primary: AdminModulesListItem): {
           | AdminModuleDetailResponse)
       : null;
 
+  const metadata = primary.search_metadata;
+  const metadataModuleId =
+    metadata && typeof metadata === 'object'
+      ? (
+          [
+            'matched_module_id',
+            'existing_module_id',
+            'merge_source_module_id',
+          ] as const
+        )
+          .map((key) => metadata[key])
+          .find(
+            (value): value is string =>
+              typeof value === 'string' && value.trim().length > 0,
+          )
+      : undefined;
+
   const existingModuleId =
     primary.merge_source_module_id ||
     (typeof primary.merge_source_module === 'string'
       ? primary.merge_source_module
       : null) ||
+    metadataModuleId ||
     existingModule?.id;
 
   return { existingModule, existingModuleId };
@@ -352,6 +369,7 @@ export const NeedsReviewTab = ({
 }: NeedsReviewTabProps) => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<'merge' | 'skip' | null>(null);
+  const [actionError, setActionError] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     if (initialExpandedId) {
@@ -397,6 +415,7 @@ export const NeedsReviewTab = ({
 
   const handleMergeClick = async (moduleId: string) => {
     try {
+      setActionError('');
       setSubmittingId(moduleId);
       setActionType('merge');
       await onMerge(moduleId);
@@ -408,6 +427,7 @@ export const NeedsReviewTab = ({
 
   const handleSkipClick = async (moduleId: string) => {
     try {
+      setActionError('');
       setSubmittingId(moduleId);
       setActionType('skip');
       await onSkip(moduleId);
@@ -599,6 +619,11 @@ export const NeedsReviewTab = ({
 
   return (
     <>
+      {actionError ? (
+        <div className="mb-3">
+          <ErrorState title={actionError} />
+        </div>
+      ) : null}
       <Table
         data={rows}
         columns={columns}

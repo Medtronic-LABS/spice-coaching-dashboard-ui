@@ -104,10 +104,18 @@
     "assigned": {
       "badge": "ASSIGNMENT COMPLETE",
       "title": "Module Assigned Successfully",
+      "titleDocument": "Document Assigned Successfully",
+      "titleVideo": "Video Assigned Successfully",
       "subtitle": "The module has been assigned. They will see it in their coaching screen immediately.",
+      "subtitleDocument": "The knowledge document has been assigned. They will see it in their coaching screen immediately.",
+      "subtitleVideo": "The video has been assigned. They will see it in their coaching screen immediately.",
       "summary": {
         "module": "MODULE",
+        "document": "DOCUMENT",
+        "video": "VIDEO",
         "moduleMeta": "4 lessons • 3 questions • ~18 min",
+        "documentMeta": "Knowledge document assignment",
+        "videoMeta": "Video assignment",
         "quizReattemptAllowed": "QUIZ REATTEMPT ALLOWED",
         "quizReattemptAllowedUntilLoading": "Loading…",
         "quizReattemptAllowedUntilUnavailable": "—",
@@ -130,8 +138,12 @@
       "next": {
         "title": "WHAT'S NEXT",
         "backToLibrary": "Module Library",
+        "backToKnowledgeLibrary": "Knowledge Library",
+        "backToVideoLibrary": "Video Library",
         "backToLibraryHint": "View or edit the assigned module",
         "assignMore": "Assign to more users",
+        "assignMoreDocument": "Assign document to more users",
+        "assignMoreVideo": "Assign video to more users",
         "assignMoreHint": "Add more users to this module",
         "goDashboard": "Go to Dashboard",
         "goDashboardHint": "Track progress in the Module Completion widget"

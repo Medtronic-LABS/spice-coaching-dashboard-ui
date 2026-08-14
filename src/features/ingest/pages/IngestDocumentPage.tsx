@@ -13,6 +13,7 @@ import { DocumentSelectionPanel } from '@/features/ingest/components/DocumentSel
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
 import { IngestConfigurationPanel } from '@/features/ingest/components/IngestConfigurationPanel';
 import { IngestRunStatusPanel } from '@/features/ingest/components/IngestRunStatusPanel';
+import { useClearIngestSessionOnTerminalLeave } from '@/features/ingest/hooks/useClearIngestSessionOnTerminalLeave';
 import { useIngestWithDuplicateHandling } from '@/features/ingest/hooks/useIngestWithDuplicateHandling';
 import { MAX_DOCUMENT_SELECTION } from '@/features/ingest/constants/documentSelection';
 import {
@@ -32,6 +33,7 @@ import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDec
 import {
   isIngestInProgress,
   isIngestSucceeded,
+  isTerminalIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
 import { sourceDocumentFromDuplicateConflict } from '@/features/ingest/utils/parseIngestDuplicateError';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -99,7 +101,12 @@ export const IngestDocumentPage = () => {
         setActiveBatchId(res.batch_id);
         setRestoredBatchId(res.batch_id);
       }
-      setSelectedDocuments([]);
+      const queuedIds = new Set(
+        (res.sources ?? []).map((source) => source.source_document_id),
+      );
+      setSelectedDocuments((previous) =>
+        previous.filter((document) => !queuedIds.has(document.id)),
+      );
       setSelectionPanelOpen(true);
     },
     [],
@@ -138,9 +145,21 @@ export const IngestDocumentPage = () => {
   });
   const ingestionSucceeded =
     isIngestSucceeded(statusData?.status) && !pendingMergeDecisions;
+  const ingestionTerminal =
+    Boolean(batchId) &&
+    isTerminalIngestStatus(statusData?.status) &&
+    !pendingMergeDecisions;
+
+  useClearIngestSessionOnTerminalLeave({
+    batchId,
+    status: statusData,
+    onClear: () => {
+      clearActiveIngestSession();
+    },
+  });
 
   useEffect(() => {
-    if (ingestionSucceeded) {
+    if (ingestionTerminal) {
       clearActiveIngestSession();
       return;
     }
@@ -152,10 +171,10 @@ export const IngestDocumentPage = () => {
       title: first?.title,
     });
     setRestoredBatchId(accepted.batch_id);
-  }, [accepted, ingestionSucceeded]);
+  }, [accepted, ingestionTerminal]);
 
   useEffect(() => {
-    if (ingestionSucceeded || !restoredBatchId) return;
+    if (ingestionTerminal || !restoredBatchId) return;
     const session = readActiveIngestSession();
     if (session?.batch_id === restoredBatchId) return;
     writeActiveIngestSession({
@@ -163,7 +182,7 @@ export const IngestDocumentPage = () => {
       source_document_id: session?.source_document_id,
       title: session?.title,
     });
-  }, [ingestionSucceeded, restoredBatchId]);
+  }, [ingestionTerminal, restoredBatchId]);
 
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
@@ -206,6 +225,18 @@ export const IngestDocumentPage = () => {
   }, [keptExistingIngestNotice]);
 
   useEffect(() => {
+    if (!statusData?.sources?.length) return;
+    for (const source of statusData.sources) {
+      if (!isIngestSucceeded(source.status)) continue;
+      appendRecentIngestDocument({
+        source_document_id: source.source_document_id,
+        title: source.document_label,
+        ingested_at: source.completed_at ?? new Date().toISOString(),
+      });
+    }
+  }, [statusData?.sources]);
+
+  useEffect(() => {
     if (!ingestionSucceeded || !primarySourceDocumentId) return;
     appendRecentIngestDocument({
       source_document_id: primarySourceDocumentId,
@@ -219,10 +250,10 @@ export const IngestDocumentPage = () => {
     statusData?.completed_at,
   ]);
 
-  const goToAllModulesForSource = useCallback(
+  const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'all',
+        tab: 'drafts',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -243,7 +274,7 @@ export const IngestDocumentPage = () => {
     [navigate],
   );
 
-  const goToModulesForSource = goToAllModulesForSource;
+  const goToModulesForSource = goToDraftsForSource;
 
   const runStartIngest = useCallback(async () => {
     if (!selectedDocuments.length) return;
@@ -378,6 +409,7 @@ export const IngestDocumentPage = () => {
             uploadFiles={uploadFiles}
             isUploading={isUploading}
             uploadClearSignal={uploadClearSignal}
+            batchSources={statusData?.sources ?? []}
           />
         </DocumentSelectionCollapsible>
         <p className="text-xs text-spice-text-muted" aria-live="polite">
@@ -448,7 +480,7 @@ export const IngestDocumentPage = () => {
           uploadLabel="Uploading document…"
           initialPollDelayMs={activeBatchId ? 5000 : 0}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={goToAllModulesForSource}
+          onGoToDrafts={goToDraftsForSource}
           onGoToNeedsReview={goToNeedsReviewForSource}
         />
       ) : null}
