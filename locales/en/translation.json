@@ -235,9 +235,7 @@
       "searchPlaceholderSk": "Search SKs...",
       "emptyTitle": "No team members",
       "emptyDescription": "No hierarchy rows match the current filters.",
-      "focusForAnalytics": "Focus document analytics on this person",
-      "clearFocus": "Clear focus",
-      "focusActive": "Focused",
+      "openSkDetail": "View SK detail",
       "roleLabels": {
         "am": "Area Manager",
         "po": "Program Officer",
@@ -276,6 +274,28 @@
         "chatbot": "Chatbot queries",
         "lastActive": "Last active"
       }
+    },
+    "skDrawer": {
+      "title": "My SK",
+      "description": "Activity and assigned modules for {{name}}",
+      "close": "Close SK detail",
+      "modulesLabel": "Modules",
+      "queriesLabel": "Queries",
+      "modulesHeading": "Modules",
+      "activityHeading": "Activity",
+      "topQueriesHeading": "Top Queries",
+      "pending": "Pending",
+      "completed": "Completed",
+      "lastChatbotUse": "Last chatbot use",
+      "lastModule": "Last module",
+      "never": "Never",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago",
+      "emptyModules": "No assigned modules in this range.",
+      "emptyQueriesTitle": "No queries",
+      "emptyQueriesDescription": "This SK has no chatbot questions in the selected date range."
     },
     "trainingModules": {
       "title": "Training Modules",
@@ -389,7 +409,6 @@
       "opensTitle": "Open events",
       "unknownUser": "Unknown user",
       "openDetail": "Drill down into opens for {{title}}",
-      "clearFocus": "Clear focus: {{name}}",
       "viewAll": "View all",
       "viewAllDocuments": "View all documents",
       "backToOverview": "Back to overview",

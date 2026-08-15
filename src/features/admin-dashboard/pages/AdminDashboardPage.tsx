@@ -12,7 +12,6 @@ import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
 import { TrainingModulesSection } from '@/features/admin-dashboard/components/TrainingModulesSection';
 import { useDashboardFilters } from '@/features/admin-dashboard/hooks/useDashboardFilters';
-import type { HierarchyFocusSelection } from '@/features/admin-dashboard/types/dashboard.types';
 import { canPerformDashboardAdminActions } from '@/features/admin-dashboard/utils/dashboardRoles';
 import { ModuleAssignmentDialog } from '@/features/modules/components/AssignmentDialog';
 import { buildOpenCreateModuleNavigationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -54,8 +53,6 @@ export const AdminDashboardPage = () => {
     moduleId: string;
     title: string;
   } | null>(null);
-  const [hierarchyFocus, setHierarchyFocus] =
-    useState<HierarchyFocusSelection | null>(null);
 
   const assignLabel = t('adminDashboard.moduleDemand.actions.assign');
   const publishLabel = t('adminDashboard.moduleDemand.actions.publish');
@@ -117,8 +114,6 @@ export const AdminDashboardPage = () => {
             status={filters.status}
             sortKey={hierarchySort}
             onSortChange={setHierarchySort}
-            focusUserId={hierarchyFocus?.userId ?? null}
-            onFocusChange={setHierarchyFocus}
           />
 
           <TrainingModulesSection
@@ -141,7 +136,6 @@ export const AdminDashboardPage = () => {
                 onAssign={(moduleId, title) =>
                   setAssignmentTarget({ moduleId, title })
                 }
-                hideSkName={hierarchyFocus?.userId != null}
               />
               <TopSuggestedModulesWidget
                 fromDate={dateRange.fromDate}
@@ -152,7 +146,6 @@ export const AdminDashboardPage = () => {
                 createLabel={createLabel}
                 onPublish={handlePublish}
                 onCreate={handleCreate}
-                hideSkName={hierarchyFocus?.userId != null}
               />
             </div>
           </div>
@@ -165,9 +158,6 @@ export const AdminDashboardPage = () => {
               fromDate={dateRange.fromDate}
               toDate={dateRange.toDate}
               geography={filters.geography}
-              userId={hierarchyFocus?.userId}
-              focusUserName={hierarchyFocus?.userName}
-              onClearFocus={() => setHierarchyFocus(null)}
             />
           </div>
 

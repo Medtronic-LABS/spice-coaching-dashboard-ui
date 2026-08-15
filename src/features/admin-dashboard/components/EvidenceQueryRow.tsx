@@ -14,7 +14,6 @@ export const MODULE_DEMAND_VISIBLE_ROWS = 5;
 interface EvidenceQueryRowProps {
   row: ModuleDemandQueryRow;
   showTimestamp: boolean;
-  hideSkName?: boolean;
 }
 
 function ScrollableRowList({
@@ -40,17 +39,15 @@ function ScrollableRowList({
 }
 
 function UserDetailRow({
-  hideSkName,
   user,
   showTimestamp,
   interactionLabel,
 }: {
-  hideSkName: boolean;
   user: ModuleDemandUserEntry;
   showTimestamp: boolean;
   interactionLabel: string;
 }) {
-  const name = !hideSkName && user.skName ? user.skName : null;
+  const name = user.skName ? user.skName : null;
   const timestamp =
     showTimestamp && user.timestamp
       ? formatDisplayDateTime(user.timestamp)
@@ -81,7 +78,6 @@ function UserDetailRow({
 export const EvidenceQueryRow = ({
   row,
   showTimestamp,
-  hideSkName = false,
 }: EvidenceQueryRowProps) => {
   const { t } = useTranslation();
   const [usersOpen, setUsersOpen] = useState(false);
@@ -168,7 +164,6 @@ export const EvidenceQueryRow = ({
             {users.map((user, index) => (
               <UserDetailRow
                 key={`${user.skId ?? 'user'}-${user.timestamp ?? index}`}
-                hideSkName={hideSkName}
                 user={user}
                 showTimestamp={showTimestamp}
                 interactionLabel={interactionLabel}
@@ -189,7 +184,6 @@ interface ModuleDemandEvidenceListProps {
   emptyQueries: string;
   emptyRequests: string;
   showTimestamp: boolean;
-  hideSkName?: boolean;
   reasonLabel?: string | null;
 }
 
@@ -198,13 +192,11 @@ function EvidenceSection({
   emptyMessage,
   rows,
   showTimestamp,
-  hideSkName,
 }: {
   heading: string;
   emptyMessage: string;
   rows: ModuleDemandQueryRow[];
   showTimestamp: boolean;
-  hideSkName: boolean;
 }) {
   return (
     <section className="space-y-2">
@@ -229,7 +221,6 @@ function EvidenceSection({
               key={row.id}
               row={row}
               showTimestamp={showTimestamp}
-              hideSkName={hideSkName}
             />
           ))}
         </ScrollableRowList>
@@ -246,7 +237,6 @@ export const ModuleDemandEvidenceList = ({
   emptyQueries,
   emptyRequests,
   showTimestamp,
-  hideSkName = false,
   reasonLabel,
 }: ModuleDemandEvidenceListProps) => {
   const { t } = useTranslation();
@@ -267,7 +257,6 @@ export const ModuleDemandEvidenceList = ({
         emptyMessage={emptyQueries}
         rows={questionRows}
         showTimestamp={showTimestamp}
-        hideSkName={hideSkName}
       />
 
       <EvidenceSection
@@ -275,7 +264,6 @@ export const ModuleDemandEvidenceList = ({
         emptyMessage={emptyRequests}
         rows={requestRows}
         showTimestamp={showTimestamp}
-        hideSkName={hideSkName}
       />
     </div>
   );

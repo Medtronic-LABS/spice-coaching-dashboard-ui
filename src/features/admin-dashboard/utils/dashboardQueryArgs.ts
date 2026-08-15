@@ -31,6 +31,23 @@ export function buildDashboardGeoParams(
   return params;
 }
 
+export function buildTeamMemberQuestionsQueryArgs(
+  fromDate: string,
+  toDate: string,
+  geography: DashboardGeographyFilters,
+  userId: number,
+  extra: { limit?: number; offset?: number } = {},
+) {
+  return {
+    userId,
+    from_date: fromDate,
+    to_date: toDate,
+    limit: extra.limit ?? 20,
+    offset: extra.offset ?? 0,
+    ...buildDashboardGeoParams(geography),
+  };
+}
+
 export function buildTeamActivityQueryArgs(
   fromDate: string,
   toDate: string,

@@ -39,9 +39,6 @@ interface DocumentUsageSectionProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
-  userId?: number;
-  focusUserName?: string | null;
-  onClearFocus?: () => void;
 }
 
 type DocumentTableRow = DocumentUsageDocumentRow & { actions: '' };
@@ -55,9 +52,6 @@ export const DocumentUsageSection = ({
   fromDate,
   toDate,
   geography,
-  userId,
-  focusUserName,
-  onClearFocus,
 }: DocumentUsageSectionProps) => {
   const { t } = useTranslation();
   const [view, setView] = useState<DocumentUsageView>('overview');
@@ -103,7 +97,6 @@ export const DocumentUsageSection = ({
     geography.division,
     geography.district,
     geography.upazila,
-    userId,
     resetDocumentsPage,
     resetEventsPage,
   ]);
@@ -147,7 +140,6 @@ export const DocumentUsageSection = ({
   const query = useFetchDocumentUsageQuery(
     {
       ...buildDocumentUsageDateGeoArgs(fromDate, toDate, geography),
-      user_id: userId,
       ...queryArgs,
     },
     { skip: view === 'documentDetail' && !detailDocument },
@@ -347,17 +339,6 @@ export const DocumentUsageSection = ({
           }}
         >
           {backLabel}
-        </Button>
-      ) : null}
-      {focusUserName && onClearFocus ? (
-        <Button
-          variant="secondary"
-          className="h-9 text-xs"
-          onClick={onClearFocus}
-        >
-          {t('adminDashboard.documentUsage.clearFocus', {
-            name: focusUserName,
-          })}
         </Button>
       ) : null}
     </>

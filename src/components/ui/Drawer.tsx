@@ -8,7 +8,8 @@ import {
 import { createPortal } from 'react-dom';
 import { cn } from '@/utils';
 
-const DRAWER_TRANSITION_MS = 280;
+const DRAWER_TRANSITION_MS = 420;
+const DRAWER_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 export interface DrawerProps {
   open: boolean;
@@ -40,10 +41,17 @@ export const Drawer = ({
     if (open) {
       closingRef.current = false;
       setMounted(true);
-      const frame = window.requestAnimationFrame(() => {
-        setEntered(true);
+      setEntered(false);
+      let enterFrame = 0;
+      const startFrame = window.requestAnimationFrame(() => {
+        enterFrame = window.requestAnimationFrame(() => {
+          setEntered(true);
+        });
       });
-      return () => window.cancelAnimationFrame(frame);
+      return () => {
+        window.cancelAnimationFrame(startFrame);
+        window.cancelAnimationFrame(enterFrame);
+      };
     }
 
     if (!mounted) return undefined;
@@ -95,10 +103,13 @@ export const Drawer = ({
     <div className={`fixed inset-0 ${zIndexClassName}`}>
       <div
         className={cn(
-          'absolute inset-0 bg-black/45 backdrop-blur-[2px] transition-opacity ease-out',
+          'absolute inset-0 bg-black/45 backdrop-blur-[2px] transition-opacity',
           entered ? 'opacity-100' : 'opacity-0',
         )}
-        style={{ transitionDuration: `${DRAWER_TRANSITION_MS}ms` }}
+        style={{
+          transitionDuration: `${DRAWER_TRANSITION_MS}ms`,
+          transitionTimingFunction: DRAWER_EASING,
+        }}
         onMouseDown={() => {
           onClose?.();
         }}
@@ -113,11 +124,14 @@ export const Drawer = ({
           'absolute inset-y-0 right-0 flex w-full max-w-lg flex-col',
           'border-l border-spice-border bg-spice-bg-surface shadow-2xl',
           'ring-1 ring-black/5',
-          'transform transition-transform ease-out',
+          'transform-gpu will-change-transform transition-transform',
           entered ? 'translate-x-0' : 'translate-x-full',
           panelClassName,
         )}
-        style={{ transitionDuration: `${DRAWER_TRANSITION_MS}ms` }}
+        style={{
+          transitionDuration: `${DRAWER_TRANSITION_MS}ms`,
+          transitionTimingFunction: DRAWER_EASING,
+        }}
         onMouseDown={(event) => event.stopPropagation()}
         onTransitionEnd={handlePanelTransitionEnd}
       >
