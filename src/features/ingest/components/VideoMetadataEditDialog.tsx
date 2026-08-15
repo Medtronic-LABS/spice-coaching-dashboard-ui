@@ -22,6 +22,7 @@ import {
   formatVideoThumbnailRejectionError,
   isAcceptedVideoThumbnailFile,
 } from '@/features/ingest/utils/videoThumbnail';
+import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 interface VideoMetadataEditDialogProps {
@@ -231,6 +232,9 @@ export const VideoMetadataEditDialog = ({
               </svg>
             </button>
           </div>
+          <p className="text-[10px] leading-snug text-spice-text-muted">
+            {THUMBNAIL_ACCEPT_SIZE_HINT}
+          </p>
           <input
             ref={fileInputRef}
             type="file"
@@ -265,9 +269,6 @@ export const VideoMetadataEditDialog = ({
             >
               <span className="text-[11px] font-medium text-spice-text-muted">
                 Add thumbnail
-              </span>
-              <span className="mt-0.5 text-[10px] text-spice-text-muted">
-                PNG, JPEG, or WebP · max 5 MB
               </span>
             </button>
           )}

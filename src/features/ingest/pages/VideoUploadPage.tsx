@@ -22,6 +22,7 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
+import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
 import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
@@ -1306,7 +1307,7 @@ export const VideoUploadPage = () => {
         </div>
 
         <p className="text-xs text-spice-text-muted">
-          {VIDEO_ACCEPTED_FILE_TYPES_LABEL}
+          {VIDEO_ACCEPTED_FILE_TYPES_LABEL} · {INGEST_MEDIA_MAX_UPLOAD_LABEL}
         </p>
 
         <IngestUploadProgress active={isUploading} label="Uploading videos…" />

@@ -55,7 +55,7 @@ describe('KnowledgeLibraryTable', () => {
     // Instant typing keeps us inside the 300ms window — list is still unfiltered.
     expect(screen.getByText('Visit Workflow — Overview')).toBeInTheDocument();
     expect(
-      screen.queryByRole('status', { name: /loading knowledge assets/i }),
+      screen.queryByRole('status', { name: /loading knowledge/i }),
     ).not.toBeInTheDocument();
 
     await waitFor(
@@ -65,7 +65,7 @@ describe('KnowledgeLibraryTable', () => {
           screen.queryByText('Visit Workflow — Overview'),
         ).not.toBeInTheDocument();
         expect(
-          screen.queryByRole('status', { name: /loading knowledge assets/i }),
+          screen.queryByRole('status', { name: /loading knowledge/i }),
         ).not.toBeInTheDocument();
       },
       { timeout: 1500 },
@@ -122,7 +122,7 @@ describe('KnowledgeLibraryTable', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
     expect(
-      await screen.findByRole('heading', { name: 'Edit Knowledge Asset' }),
+      await screen.findByRole('heading', { name: 'Edit Knowledge' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('KnowledgeLibraryTable', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => {
       expect(
-        screen.queryByRole('heading', { name: 'Edit Knowledge Asset' }),
+        screen.queryByRole('heading', { name: 'Edit Knowledge' }),
       ).not.toBeInTheDocument();
     });
 

@@ -614,7 +614,7 @@ export const DocumentSelectionPanel = ({
         />
 
         <p className="text-xs text-spice-text-muted">
-          {INGEST_ACCEPTED_FILE_TYPES_LABEL}
+          {INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100 MB
         </p>
 
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">

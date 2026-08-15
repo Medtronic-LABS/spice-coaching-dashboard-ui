@@ -575,7 +575,7 @@ export const KnowledgeLibraryTable = () => {
 
   return (
     <div className="space-y-4">
-      <Loader open={isLoading} label="Loading knowledge assets…" />
+      <Loader open={isLoading} label="Loading knowledge…" />
 
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -585,8 +585,8 @@ export const KnowledgeLibraryTable = () => {
             </div>
             <div className="text-xs text-spice-text-muted">
               {total
-                ? `${total} knowledge asset${total === 1 ? '' : 's'}`
-                : 'No knowledge assets match your filters.'}
+                ? `${total} knowledge document${total === 1 ? '' : 's'}`
+                : 'No knowledge documents match your filters.'}
               {isFetching && !isLoading ? (
                 <span className="ml-2">Updating…</span>
               ) : null}

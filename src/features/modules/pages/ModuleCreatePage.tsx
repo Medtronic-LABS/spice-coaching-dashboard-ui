@@ -164,7 +164,8 @@ export const ModuleCreatePage = () => {
               Upload document
             </div>
             <p className="mt-1 text-xs text-spice-text-muted">
-              Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL}
+              Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100
+              MB
             </p>
           </div>
 

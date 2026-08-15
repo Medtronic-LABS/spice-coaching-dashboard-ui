@@ -1,8 +1,10 @@
+import { THUMBNAIL_MAX_UPLOAD_BYTES } from '@/constants/uploadLimits';
+
 /** Thumbnail MIME types accepted by PUT .../thumbnail (PNG/JPEG/WebP, max 5 MB). */
 export const VIDEO_THUMBNAIL_ACCEPT =
   'image/png,image/jpeg,image/jpg,image/webp';
 
-export const VIDEO_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
+export const VIDEO_THUMBNAIL_MAX_BYTES = THUMBNAIL_MAX_UPLOAD_BYTES;
 
 const ACCEPTED_THUMBNAIL_TYPES = new Set([
   'image/png',

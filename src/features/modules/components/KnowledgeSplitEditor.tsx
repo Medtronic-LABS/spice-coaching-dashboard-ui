@@ -1,5 +1,6 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Button, ImagePicker } from '@/components/ui';
+import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
@@ -176,7 +177,7 @@ export const KnowledgeSplitEditor = ({
             </div>
           </div>
 
-          <div className="w-full shrink-0 space-y-2 sm:w-36">
+          <div className="w-full shrink-0 space-y-2 sm:w-44">
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
               Thumbnail{thumbnailStatus}
             </div>
@@ -200,11 +201,12 @@ export const KnowledgeSplitEditor = ({
               }}
               disabled={disabled}
               clearable={hasVisibleThumbnail}
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               label="Optional — leave blank for none"
               labelWhenSelected={
                 hasCustomThumbnail ? 'Change custom' : 'Replace with custom'
               }
+              hint={ADMIN_IMAGE_ACCEPT_SIZE_HINT}
               previewAlt={`${rowLabel} thumbnail`}
               frameClassName="aspect-square h-auto w-full"
               previewObjectFit="contain"

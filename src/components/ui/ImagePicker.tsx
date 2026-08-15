@@ -13,6 +13,8 @@ export interface ImagePickerProps {
   enableDragDrop?: boolean;
   label?: string;
   labelWhenSelected?: string;
+  /** Optional helper under the control (e.g. allowed formats / size). */
+  hint?: string;
   previewAlt?: string;
   className?: string;
   /** Classes for the tile preview / dropzone frame (tile variant only). */
@@ -53,6 +55,7 @@ export const ImagePicker = ({
   enableDragDrop = true,
   label = 'Choose image',
   labelWhenSelected = 'Change image',
+  hint,
   previewAlt = 'Selected image',
   className,
   frameClassName,
@@ -103,6 +106,10 @@ export const ImagePicker = ({
     />
   );
 
+  const hintNode = hint ? (
+    <p className="text-[10px] leading-snug text-spice-text-muted">{hint}</p>
+  ) : null;
+
   if (variant === 'compact') {
     return (
       <div className={cn('space-y-2', className)}>
@@ -125,6 +132,7 @@ export const ImagePicker = ({
           {input}
           {primaryLabel}
         </label>
+        {hintNode}
       </div>
     );
   }
@@ -146,7 +154,7 @@ export const ImagePicker = ({
 
   if (hasPreview) {
     return (
-      <div className={cn('relative', className)}>
+      <div className={cn('relative space-y-2', className)}>
         {clearable ? (
           <button
             type="button"
@@ -171,44 +179,47 @@ export const ImagePicker = ({
         </div>
         <label
           className={cn(
-            'mt-2 inline-flex cursor-pointer items-center justify-center rounded-md border border-spice-border bg-spice-bg-surface px-3 py-1.5 text-xs text-spice-text-medium hover:bg-spice-bg-tint',
+            'inline-flex cursor-pointer items-center justify-center rounded-md border border-spice-border bg-spice-bg-surface px-3 py-1.5 text-xs text-spice-text-medium hover:bg-spice-bg-tint',
             disabled && 'cursor-not-allowed opacity-60',
           )}
         >
           {input}
           {labelWhenSelected}
         </label>
+        {hintNode}
       </div>
     );
   }
 
   return (
-    <label
-      className={cn(
-        'flex h-[180px] w-full flex-col items-center justify-center rounded-lg border border-dashed p-2 text-center transition-colors',
-        tileStateClasses,
-        frameClassName,
-        className,
-      )}
-      onDragOver={(event: DragEvent<HTMLLabelElement>) => {
-        if (!enableDragDrop || disabled) return;
-        event.preventDefault();
-        setIsDragActive(true);
-      }}
-      onDragLeave={() => setIsDragActive(false)}
-      onDrop={(event: DragEvent<HTMLLabelElement>) => {
-        if (!enableDragDrop || disabled) return;
-        event.preventDefault();
-        setIsDragActive(false);
-        takeFile(event.dataTransfer.files?.[0]);
-      }}
-    >
-      {input}
-      <PlusIcon className="mx-auto h-6 w-6 text-spice-text-muted opacity-60" />
-      <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
-        {label}
-      </span>
-    </label>
+    <div className={cn('space-y-2', className)}>
+      <label
+        className={cn(
+          'flex h-[180px] w-full flex-col items-center justify-center rounded-lg border border-dashed p-2 text-center transition-colors',
+          tileStateClasses,
+          frameClassName,
+        )}
+        onDragOver={(event: DragEvent<HTMLLabelElement>) => {
+          if (!enableDragDrop || disabled) return;
+          event.preventDefault();
+          setIsDragActive(true);
+        }}
+        onDragLeave={() => setIsDragActive(false)}
+        onDrop={(event: DragEvent<HTMLLabelElement>) => {
+          if (!enableDragDrop || disabled) return;
+          event.preventDefault();
+          setIsDragActive(false);
+          takeFile(event.dataTransfer.files?.[0]);
+        }}
+      >
+        {input}
+        <PlusIcon className="mx-auto h-6 w-6 text-spice-text-muted opacity-60" />
+        <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
+          {label}
+        </span>
+      </label>
+      {hintNode}
+    </div>
   );
 };
 

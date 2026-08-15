@@ -61,7 +61,7 @@ describe('KnowledgeEditModal', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Edit Knowledge Asset' }),
+      screen.getByRole('heading', { name: 'Edit Knowledge' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
   });
@@ -169,5 +169,27 @@ describe('KnowledgeEditModal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the thumbnail size hint', () => {
+    render(
+      <KnowledgeEditModal
+        open
+        asset={sampleAsset}
+        title={sampleAsset.title}
+        thumbnailFile={null}
+        error=""
+        disabled={false}
+        isSaving={false}
+        onTitleChange={vi.fn()}
+        onThumbnailChange={vi.fn()}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText('PNG, JPEG, or WebP · max 5 MB'),
+    ).toBeInTheDocument();
   });
 });

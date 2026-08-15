@@ -11,6 +11,7 @@ import {
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
@@ -202,6 +203,7 @@ export const AdminModuleDetailsStep = () => {
                   disabled={busy}
                   label="Add thumbnail"
                   labelWhenSelected="Change thumbnail"
+                  hint={THUMBNAIL_ACCEPT_SIZE_HINT}
                   previewAlt="Module thumbnail"
                   previewObjectFit="contain"
                   accept="image/png,image/jpeg,image/jpg,image/webp"

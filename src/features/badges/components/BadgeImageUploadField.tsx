@@ -6,10 +6,14 @@ import {
   useUploadAdminFileMutation,
 } from '@/features/modules/api/adminFilesApi';
 import { getMutationErrorMessage } from '@/features/badges/utils/badgeForm';
+import {
+  THUMBNAIL_ACCEPT_SIZE_HINT,
+  THUMBNAIL_MAX_UPLOAD_BYTES,
+} from '@/constants/uploadLimits';
 import { cn } from '@/utils';
 
 const ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp';
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = THUMBNAIL_MAX_UPLOAD_BYTES;
 
 export interface BadgeImageUploadValue {
   storagePath: string;
@@ -272,6 +276,10 @@ export const BadgeImageUploadField = ({
       >
         {uploadLabel}
       </Button>
+
+      <p className="text-[10px] leading-snug text-spice-text-muted">
+        {THUMBNAIL_ACCEPT_SIZE_HINT}
+      </p>
 
       {pendingFile ? (
         <p className="break-all text-[10px] leading-snug text-spice-text-muted">

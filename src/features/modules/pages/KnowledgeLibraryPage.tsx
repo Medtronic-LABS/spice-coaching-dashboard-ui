@@ -10,6 +10,7 @@ import {
   type TabItem,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   useUploadKnowledgeDocumentMutation,
@@ -516,7 +517,7 @@ export const KnowledgeLibraryPage = () => {
                       />
                     </div>
 
-                    <div className="w-full shrink-0 space-y-2 sm:w-36">
+                    <div className="w-full shrink-0 space-y-2 sm:w-44">
                       <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
                         Thumbnail
                         {isOriginalThumbRendering &&
@@ -545,13 +546,14 @@ export const KnowledgeLibraryPage = () => {
                         }}
                         disabled={disableInputs}
                         clearable={Boolean(originalThumbnailValue)}
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
                         label="Optional — leave blank for none"
                         labelWhenSelected={
                           hasCustomOriginalThumbnail
                             ? 'Change custom'
                             : 'Replace with custom'
                         }
+                        hint={ADMIN_IMAGE_ACCEPT_SIZE_HINT}
                         previewAlt="Knowledge thumbnail"
                         frameClassName="aspect-square h-auto w-full"
                         previewObjectFit="contain"

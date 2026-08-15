@@ -6,6 +6,7 @@ import {
   Modal,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
 
@@ -60,7 +61,7 @@ export function KnowledgeEditModal({
             id="knowledge-edit-title"
             className="text-lg font-semibold text-spice-text-primary"
           >
-            Edit Knowledge Asset
+            Edit Knowledge
           </h2>
 
           {error ? (
@@ -95,9 +96,10 @@ export function KnowledgeEditModal({
               value={thumbnailValue}
               onChange={onThumbnailChange}
               disabled={disabled}
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               label="Choose thumbnail"
               labelWhenSelected="Change thumbnail"
+              hint={THUMBNAIL_ACCEPT_SIZE_HINT}
               previewAlt="Knowledge thumbnail"
               previewObjectFit="contain"
             />

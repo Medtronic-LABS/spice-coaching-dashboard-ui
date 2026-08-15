@@ -1,3 +1,4 @@
+import { CARD_MEDIA_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import {
   storedFileAttrsFromUpload,
   useUploadAdminFileMutation,
@@ -388,7 +389,7 @@ export const RichTextEditor = ({
                     onClick={() => mediaInputRef.current?.click()}
                     disabled={isUploading}
                     aria-label="Insert image or video"
-                    title="Insert image or video at cursor"
+                    title={`Upload image or video. ${CARD_MEDIA_ACCEPT_SIZE_HINT}`}
                   >
                     <span className="inline-flex items-center gap-1">
                       <svg
