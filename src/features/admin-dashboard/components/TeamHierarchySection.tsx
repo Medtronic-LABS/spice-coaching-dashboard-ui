@@ -390,13 +390,14 @@ export const TeamHierarchySection = ({
   const { t } = useTranslation();
   const { roleLabel } = useHierarchyLabels();
   const roleTabs = useMemo(() => visibleHierarchyRoleTabs(), []);
+  const viewerIsAreaManager = isLoggedInAreaManager();
   const [roleTab, setRoleTab] = useState<HierarchyRoleTab>(
     defaultHierarchyRoleTab,
   );
   const [search, setSearch] = useState('');
   const [selectedSk, setSelectedSk] = useState<TeamActivityMember | null>(null);
 
-  const depth = hierarchyTabDepth(roleTab);
+  const depth = hierarchyTabDepth(roleTab, { viewerIsAreaManager });
   const query = useFetchTeamActivityQuery(
     buildTeamActivityQueryArgs(fromDate, toDate, geography, {
       limit: 100,

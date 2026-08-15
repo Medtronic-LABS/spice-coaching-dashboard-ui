@@ -164,7 +164,6 @@ describe('IngestDocumentPage', () => {
     expect(
       screen.queryByRole('searchbox', { name: /search knowledge documents/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('0 documents selected')).toBeInTheDocument();
   });
 
   it('keeps the document list open after selection and only uses checkboxes', async () => {
@@ -179,14 +178,13 @@ describe('IngestDocumentPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('1 document selected')).toBeInTheDocument();
+      expect(
+        screen.getByText(/selected for ingestion \(1\)/i),
+      ).toBeInTheDocument();
     });
     expect(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     ).toBeChecked();
-    expect(
-      screen.queryByText('Selected for ingestion'),
-    ).not.toBeInTheDocument();
   });
 
   it('starts ingestion with selected source_document_ids without ingest upload', async () => {
@@ -261,7 +259,9 @@ describe('IngestDocumentPage', () => {
     await user.click(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     );
-    expect(screen.getByText('1 document selected')).toBeInTheDocument();
+    expect(
+      screen.getByText(/selected for ingestion \(1\)/i),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /start ingestion/i }));
 
@@ -270,7 +270,9 @@ describe('IngestDocumentPage', () => {
         'Batch batch-running',
       );
     });
-    expect(screen.getByText('1 document selected')).toBeInTheDocument();
+    expect(
+      screen.getByText(/selected for ingestion \(1\)/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     ).toBeChecked();
@@ -311,7 +313,9 @@ describe('IngestDocumentPage', () => {
 
     renderPage();
 
-    expect(screen.getByText('2 documents selected')).toBeInTheDocument();
+    expect(
+      screen.getByText(/selected for ingestion \(2\)/i),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByTestId('ingest-status')).toHaveTextContent(
         'Batch batch-running',

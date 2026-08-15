@@ -181,25 +181,42 @@ describe('DocumentSelectionPanel', () => {
     });
   });
 
-  it('toggles selection and keeps selected count', async () => {
+  it('toggles selection, locks available checkboxes, and shows selected table only when needed', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ControlledPanel />);
+
+    expect(screen.getByText(/available documents/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/selected for ingestion/i),
+    ).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     );
     expect(screen.getByTestId('selected-count')).toHaveTextContent('1');
     expect(
-      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
-    ).toBeChecked();
-    expect(
-      screen.queryByText('Selected for ingestion'),
-    ).not.toBeInTheDocument();
+      screen.getByText(/selected for ingestion \(1\)/i),
+    ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
-    );
+    // Available list keeps the row, but the checkbox is locked.
+    const availableCheckbox = screen.getByRole('checkbox', {
+      name: /hypertension guide selected/i,
+    });
+    expect(availableCheckbox).toBeChecked();
+    expect(availableCheckbox).toBeDisabled();
+
+    // Unselect from the selected table.
+    const selectedCheckbox = screen.getByRole('checkbox', {
+      name: /select hypertension guide/i,
+    });
+    expect(selectedCheckbox).toBeChecked();
+    expect(selectedCheckbox).toBeEnabled();
+    await user.click(selectedCheckbox);
+
     expect(screen.getByTestId('selected-count')).toHaveTextContent('0');
+    expect(
+      screen.queryByText(/selected for ingestion/i),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the dashed Select files picker above the table and uploads staged files', async () => {

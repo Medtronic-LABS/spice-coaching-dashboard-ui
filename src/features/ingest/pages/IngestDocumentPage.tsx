@@ -37,7 +37,10 @@ import {
   isIngestSucceeded,
 } from '@/features/ingest/utils/ingestStatus';
 import { keptExistingSourcesFromConflicts } from '@/features/ingest/utils/parseIngestDuplicateError';
-import { selectedDocumentsFromIngestSourceIds } from '@/features/ingest/utils/selectedDocumentsFromIngestSourceIds';
+import {
+  selectedDocumentsFromIngestSourceIds,
+  selectedDocumentsFromUploadResponse,
+} from '@/features/ingest/utils/selectedDocumentsFromIngestSourceIds';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
 function selectedDocumentsFromActiveSession(): SelectedIngestDocument[] {
@@ -86,22 +89,15 @@ export const IngestDocumentPage = () => {
   >(() => readActiveIngestSession()?.kept_existing_sources ?? []);
 
   const handleUploaded = useCallback((res: AdminV3IngestUploadResponse) => {
-    const uploaded: SelectedIngestDocument[] = res.sources
-      .filter((source) => source.source_document_id)
-      .map((source) => ({
-        id: source.source_document_id,
-        title: source.title.trim() || source.source_document_id,
-        originalFilename: source.title.trim() || null,
-        sourceType: source.source_type || 'pdf',
-        status: source.status || 'uploaded',
-      }));
+    const uploaded = selectedDocumentsFromUploadResponse(res);
 
     if (uploaded.length) {
       setSelectedDocuments((previous) => {
         const withoutDupes = previous.filter(
           (doc) => !uploaded.some((item) => item.id === doc.id),
         );
-        return [...withoutDupes, ...uploaded].slice(0, MAX_DOCUMENT_SELECTION);
+        // Newest / just-resolved uploads stay at the top of the selection.
+        return [...uploaded, ...withoutDupes].slice(0, MAX_DOCUMENT_SELECTION);
       });
     }
     setUploadClearSignal((current) => current + 1);
@@ -165,11 +161,15 @@ export const IngestDocumentPage = () => {
 
   useEffect(() => {
     if (!keptExistingIngestNotice?.length) return;
+    const kept = keptExistingSourcesFromConflicts(keptExistingIngestNotice);
     setKeptExistingSources((previous) =>
-      mergeKeptExistingIngestSources(
+      mergeKeptExistingIngestSources(previous, kept),
+    );
+    setSelectedDocuments((previous) =>
+      selectedDocumentsFromIngestSourceIds({
         previous,
-        keptExistingSourcesFromConflicts(keptExistingIngestNotice),
-      ),
+        keptExistingSources: kept,
+      }),
     );
   }, [keptExistingIngestNotice]);
 
@@ -353,11 +353,6 @@ export const IngestDocumentPage = () => {
     startIngest,
   ]);
 
-  const selectedCountLabel =
-    selectedDocuments.length === 1
-      ? '1 document selected'
-      : `${selectedDocuments.length} documents selected`;
-
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -447,32 +442,27 @@ export const IngestDocumentPage = () => {
         />
       </Card>
 
-      <div className="space-y-2">
-        <DocumentSelectionCollapsible
-          title="Document Selection"
-          open={selectionPanelOpen}
-          onOpenChange={setSelectionPanelOpen}
-          collapsedSummary="Expand to select documents or upload new files"
-          disabled={selectionExpandDisabled}
-        >
-          <DocumentSelectionPanel
-            selectedDocuments={selectedDocuments}
-            onSelectedDocumentsChange={setSelectedDocuments}
-            searchQuery={documentSearchQuery}
-            onSearchQueryChange={setDocumentSearchQuery}
-            contentDomain={contentDomain}
-            disabled={selectionDisabled}
-            uploadFiles={uploadFiles}
-            isUploading={isUploading}
-            uploadClearSignal={uploadClearSignal}
-            batchSources={statusData?.sources ?? []}
-            keptExistingSourceIds={keptExistingSourceIds}
-          />
-        </DocumentSelectionCollapsible>
-        <p className="text-xs text-spice-text-muted" aria-live="polite">
-          {selectedCountLabel}
-        </p>
-      </div>
+      <DocumentSelectionCollapsible
+        title="Document Selection"
+        open={selectionPanelOpen}
+        onOpenChange={setSelectionPanelOpen}
+        collapsedSummary="Expand to select documents or upload new files"
+        disabled={selectionExpandDisabled}
+      >
+        <DocumentSelectionPanel
+          selectedDocuments={selectedDocuments}
+          onSelectedDocumentsChange={setSelectedDocuments}
+          searchQuery={documentSearchQuery}
+          onSearchQueryChange={setDocumentSearchQuery}
+          contentDomain={contentDomain}
+          disabled={selectionDisabled}
+          uploadFiles={uploadFiles}
+          isUploading={isUploading}
+          uploadClearSignal={uploadClearSignal}
+          batchSources={statusData?.sources ?? []}
+          keptExistingSourceIds={keptExistingSourceIds}
+        />
+      </DocumentSelectionCollapsible>
 
       {keptExistingRows.length ? (
         <div className="space-y-2">

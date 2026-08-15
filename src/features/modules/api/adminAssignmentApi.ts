@@ -35,13 +35,16 @@ export interface AssignmentUser {
   district_id: number;
   upazila: string | null;
   upazilas: string[];
+  upazila_ids: number[];
   parent_id: number | null;
 }
 
 export interface CreateAssignmentRequest {
   module_id: string;
   user_ids?: number[];
-  upazilas?: string[];
+  upazila_ids?: number[];
+  district_ids?: number[];
+  division_ids?: number[];
   /** When true, PO ids also assign their direct SK children. Default false (PO only). */
   expand_po_assignees?: boolean;
 }
@@ -49,26 +52,40 @@ export interface CreateAssignmentRequest {
 export interface ReplaceAssignmentUsersRequest {
   moduleId: string;
   user_ids?: number[];
-  upazilas?: string[];
+  upazila_ids?: number[];
+  district_ids?: number[];
+  division_ids?: number[];
   /** When true, PO ids also assign their direct SK children. Default false (PO only). */
   expand_po_assignees?: boolean;
 }
 
 export interface AssignmentUsersMutationBody {
   user_ids?: number[];
-  upazilas?: string[];
+  upazila_ids?: number[];
+  district_ids?: number[];
+  division_ids?: number[];
   expand_po_assignees?: boolean;
 }
 
 /** Wire body for module/document assignment create/replace mutations. */
 export function buildAssignmentUsersMutationBody(input: {
   user_ids?: number[];
-  upazilas?: string[];
+  upazila_ids?: number[];
+  district_ids?: number[];
+  division_ids?: number[];
   expand_po_assignees?: boolean;
 }): AssignmentUsersMutationBody {
   return {
-    user_ids: input.user_ids,
-    upazilas: input.upazilas,
+    ...(input.user_ids !== undefined ? { user_ids: input.user_ids } : {}),
+    ...(input.upazila_ids !== undefined
+      ? { upazila_ids: input.upazila_ids }
+      : {}),
+    ...(input.district_ids !== undefined
+      ? { district_ids: input.district_ids }
+      : {}),
+    ...(input.division_ids !== undefined
+      ? { division_ids: input.division_ids }
+      : {}),
     ...(input.expand_po_assignees !== undefined
       ? { expand_po_assignees: input.expand_po_assignees }
       : {}),
@@ -96,6 +113,7 @@ export interface AdminUser {
   district_id: number;
   upazila: string | null;
   upazilas: string[];
+  upazila_ids: number[];
   parent_id: number | null;
 }
 
@@ -331,12 +349,21 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
       AssignmentUpdateResponse,
       ReplaceAssignmentUsersRequest
     >({
-      query: ({ moduleId, user_ids, upazilas, expand_po_assignees }) => ({
+      query: ({
+        moduleId,
+        user_ids,
+        upazila_ids,
+        district_ids,
+        division_ids,
+        expand_po_assignees,
+      }) => ({
         url: `/admin/assignments/${encodeURIComponent(moduleId)}/users`,
         method: 'PUT',
         body: buildAssignmentUsersMutationBody({
           user_ids,
-          upazilas,
+          upazila_ids,
+          district_ids,
+          division_ids,
           expand_po_assignees,
         }),
       }),

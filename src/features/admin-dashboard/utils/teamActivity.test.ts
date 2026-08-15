@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TeamActivityMember } from '@/features/admin-dashboard/types/dashboard.types';
 import {
+  hierarchyTabDepth,
   resolveMemberDescendantInactiveCount,
   resolveMemberDescendantSkCount,
 } from '@/features/admin-dashboard/utils/teamActivity';
@@ -25,6 +26,21 @@ function member(partial: Partial<TeamActivityMember>): TeamActivityMember {
     ...partial,
   };
 }
+
+describe('hierarchyTabDepth', () => {
+  it('uses admin-relative depths by default', () => {
+    expect(hierarchyTabDepth('am')).toBeUndefined();
+    expect(hierarchyTabDepth('po')).toBe(1);
+    expect(hierarchyTabDepth('sk')).toBe(2);
+  });
+
+  it('shifts depths for area manager viewers so PO is direct reports', () => {
+    expect(
+      hierarchyTabDepth('po', { viewerIsAreaManager: true }),
+    ).toBeUndefined();
+    expect(hierarchyTabDepth('sk', { viewerIsAreaManager: true })).toBe(1);
+  });
+});
 
 describe('resolveMemberDescendantSkCount', () => {
   it('prefers embedded member summary without requiring expand fetch', () => {

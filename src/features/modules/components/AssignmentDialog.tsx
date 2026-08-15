@@ -27,16 +27,17 @@ import {
   useLazyFetchAdminUpazilasPageQuery,
   useLazyFetchHierarchyUsersPageQuery,
   useLazyFetchModuleAssignedUsersQuery,
+  useCreateAssignmentMutation,
   useReplaceModuleAssignedUsersMutation,
 } from '@/features/modules/api/adminAssignmentApi';
 import {
   useLazyFetchDocumentAssignedUsersQuery,
+  useCreateDocumentAssignmentMutation,
   useReplaceDocumentAssignedUsersMutation,
 } from '@/features/ingest/api/adminDocumentAssignmentApi';
 import { AssignmentGeoDistrictHierarchy } from '@/features/modules/components/AssignmentGeoDistrictHierarchy';
 import {
   buildFlatAssignedUserEntries,
-  buildGeographicalAssignedEntries,
   countAssignedUsers,
   type AssignedUserEntry,
 } from '@/features/modules/utils/assignmentDisplay';
@@ -46,7 +47,6 @@ import {
   ALL_DISTRICTS_OPTION,
   ALL_UPAZILAS_OPTION,
   ASSIGNMENT_SEARCH_DEBOUNCE_MS,
-  baselineUpazilaNames,
   buildAssignmentListUsers,
   buildNamedEntityComboboxOptions,
   buildReplaceAssignmentUserIds,
@@ -56,7 +56,6 @@ import {
   idsToAddWhenSelectingPo,
   idsToRemoveWhenClearingPo,
   resolveNamedEntitySelection,
-  toggleNamesInSelection,
   type AssignmentUserLevelMode,
 } from '@/features/modules/utils/assignmentDialogHelpers';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -329,10 +328,9 @@ export const AssignmentDialog = ({
   );
   const [desiredUserIds, setDesiredUserIds] = useState<number[]>([]);
   const [baselineUserIds, setBaselineUserIds] = useState<number[]>([]);
-  const [desiredUpazilas, setDesiredUpazilas] = useState<string[]>([]);
-  const [baselineUpazilas, setBaselineUpazilas] = useState<string[]>([]);
   const [loadedUsers, setLoadedUsers] = useState<AdminUser[]>([]);
   const [poChildUsers, setPoChildUsers] = useState<AdminUser[]>([]);
+  const [geoKnownUsers, setGeoKnownUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersOffset, setUsersOffset] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
@@ -387,27 +385,27 @@ export const AssignmentDialog = ({
 
   const [triggerModuleAssignedUsers, { data: moduleAssignedUsers }] =
     useLazyFetchModuleAssignedUsersQuery();
-  const [replaceModuleUsers, { isLoading: isSavingModule }] =
+  const [createModuleAssignment, { isLoading: isCreatingModule }] =
+    useCreateAssignmentMutation();
+  const [replaceModuleUsers, { isLoading: isReplacingModule }] =
     useReplaceModuleAssignedUsersMutation();
 
   const [triggerDocumentAssignedUsers, { data: documentAssignedUsers }] =
     useLazyFetchDocumentAssignedUsersQuery();
-  const [replaceDocumentUsers, { isLoading: isSavingDocument }] =
+  const [createDocumentAssignment, { isLoading: isCreatingDocument }] =
+    useCreateDocumentAssignmentMutation();
+  const [replaceDocumentUsers, { isLoading: isReplacingDocument }] =
     useReplaceDocumentAssignedUsersMutation();
 
-  const isSubmitting = isSavingModule || isSavingDocument;
+  const isSubmitting =
+    isCreatingModule ||
+    isReplacingModule ||
+    isCreatingDocument ||
+    isReplacingDocument;
   const desiredSet = useMemo(() => new Set(desiredUserIds), [desiredUserIds]);
   const baselineSet = useMemo(
     () => new Set(baselineUserIds),
     [baselineUserIds],
-  );
-  const desiredUpazilaSet = useMemo(
-    () => new Set(desiredUpazilas),
-    [desiredUpazilas],
-  );
-  const baselineUpazilaSet = useMemo(
-    () => new Set(baselineUpazilas),
-    [baselineUpazilas],
   );
 
   const assignedUsersForTarget = useMemo(() => {
@@ -420,8 +418,9 @@ export const AssignmentDialog = ({
     for (const user of assignedUsersForTarget) map.set(user.id, user);
     for (const user of loadedUsers) map.set(user.id, user);
     for (const user of poChildUsers) map.set(user.id, user);
+    for (const user of geoKnownUsers) map.set(user.id, user);
     return map;
-  }, [assignedUsersForTarget, loadedUsers, poChildUsers]);
+  }, [assignedUsersForTarget, geoKnownUsers, loadedUsers, poChildUsers]);
 
   const filtersActive = hasAssignmentUserFilters({
     divisionId: selectedDivisionId,
@@ -645,16 +644,13 @@ export const AssignmentDialog = ({
     setUsersOffset(0);
     setBaselineUserIds([]);
     setDesiredUserIds([]);
-    setBaselineUpazilas([]);
-    setDesiredUpazilas([]);
+    setGeoKnownUsers([]);
 
     const applyAssignedUsers = (users: AdminUser[]) => {
       const ids = users.map((user) => user.id);
-      const upazilas = baselineUpazilaNames(users);
       setBaselineUserIds(ids);
       setDesiredUserIds(ids);
-      setBaselineUpazilas(upazilas);
-      setDesiredUpazilas(upazilas);
+      setGeoKnownUsers(users);
     };
 
     if (target.kind === 'module') {
@@ -796,6 +792,24 @@ export const AssignmentDialog = ({
     });
   };
 
+  const mergeGeoKnownUsers = (users: AdminUser[]) => {
+    if (users.length === 0) return;
+    setGeoKnownUsers((prev) => {
+      const map = new Map(prev.map((user) => [user.id, user]));
+      for (const user of users) map.set(user.id, user);
+      return Array.from(map.values());
+    });
+  };
+
+  const handleGeoAddUserIds = (userIds: number[], users: AdminUser[]) => {
+    mergeGeoKnownUsers(users);
+    addUsersToDesired(userIds);
+  };
+
+  const handleGeoRemoveUserIds = (userIds: number[]) => {
+    removeUsersFromDesired(userIds);
+  };
+
   const loadChildSksForPo = async (poId: number): Promise<number[]> => {
     const collected: AdminUser[] = [];
     let offset = 0;
@@ -883,14 +897,6 @@ export const AssignmentDialog = ({
     }
   };
 
-  const handleUpazilaCheckboxChange = (upazilaName: string) => {
-    setDesiredUpazilas((prev) => toggleNamesInSelection(prev, [upazilaName]));
-  };
-
-  const handleToggleUpazilaNames = (names: string[]) => {
-    setDesiredUpazilas((prev) => toggleNamesInSelection(prev, names));
-  };
-
   const finishSuccess = (
     assignmentType: AssignmentSummaryType | undefined,
     assignedUsers: AssignedUserEntry[],
@@ -912,21 +918,25 @@ export const AssignmentDialog = ({
     setErrorMsg('');
 
     try {
-      if (activeTab === 'geographical') {
-        const addedUpazilas = desiredUpazilas.filter(
-          (name) => !baselineUpazilaSet.has(name),
-        );
-        const removedUpazilas = baselineUpazilas.filter(
-          (name) => !desiredUpazilaSet.has(name),
-        );
-        if (addedUpazilas.length === 0 && removedUpazilas.length === 0) {
-          setErrorMsg(
-            'Please select at least one upazila or change assignments.',
-          );
-          return;
-        }
+      const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
+      const addedIds = nextIds.filter((id) => !baselineSet.has(id));
+      const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
 
-        const payload = { upazilas: desiredUpazilas };
+      if (addedIds.length === 0 && removedIds.length === 0) {
+        setErrorMsg(
+          activeTab === 'geographical'
+            ? 'Please select at least one geography or change assignments.'
+            : 'Please select at least one user or change assignments.',
+        );
+        return;
+      }
+
+      if (removedIds.length > 0) {
+        // Removals require full replace; POST create is additive only.
+        const payload = {
+          user_ids: nextIds,
+          expand_po_assignees: false,
+        };
         if (target.kind === 'module') {
           await replaceModuleUsers({
             moduleId: target.id,
@@ -938,45 +948,24 @@ export const AssignmentDialog = ({
             ...payload,
           }).unwrap();
         }
-
-        finishSuccess(
-          'geographical',
-          buildGeographicalAssignedEntries(addedUpazilas),
-          buildGeographicalAssignedEntries(removedUpazilas),
-        );
-        return;
-      }
-
-      const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
-      const addedIds = nextIds.filter((id) => !baselineSet.has(id));
-      const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
-
-      if (addedIds.length === 0 && removedIds.length === 0) {
-        setErrorMsg('Please select at least one user or change assignments.');
-        return;
-      }
-
-      const payload = {
-        user_ids: nextIds,
-        expand_po_assignees: false,
-      };
-
-      if (target.kind === 'module') {
-        await replaceModuleUsers({
-          moduleId: target.id,
-          ...payload,
+      } else if (target.kind === 'module') {
+        await createModuleAssignment({
+          module_id: target.id,
+          user_ids: addedIds,
+          expand_po_assignees: false,
         }).unwrap();
       } else {
-        await replaceDocumentUsers({
-          sourceDocumentId: target.id,
-          ...payload,
+        await createDocumentAssignment({
+          source_document_id: target.id,
+          user_ids: addedIds,
+          expand_po_assignees: false,
         }).unwrap();
       }
 
       const knownList = Array.from(knownUsersById.values());
       finishSuccess(
         undefined,
-        buildFlatAssignedUserEntries(nextIds, knownList),
+        buildFlatAssignedUserEntries(addedIds, knownList),
         buildFlatAssignedUserEntries(removedIds, knownList),
       );
     } catch (err: unknown) {
@@ -1280,10 +1269,10 @@ export const AssignmentDialog = ({
 
               <AssignmentGeoDistrictHierarchy
                 divisionId={selectedDivisionId}
-                desiredUpazilaSet={desiredUpazilaSet}
-                baselineUpazilaSet={baselineUpazilaSet}
-                onToggleUpazila={handleUpazilaCheckboxChange}
-                onToggleUpazilaNames={handleToggleUpazilaNames}
+                desiredUserIds={desiredSet}
+                baselineUserIds={baselineSet}
+                onAddUserIds={handleGeoAddUserIds}
+                onRemoveUserIds={handleGeoRemoveUserIds}
               />
             </>
           ) : null}

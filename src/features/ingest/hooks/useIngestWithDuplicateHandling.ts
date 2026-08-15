@@ -213,8 +213,17 @@ export function useIngestWithDuplicateHandling({
 
       setIsConfirmingDuplicate(true);
       try {
-        // No overrides: reuse every existing duplicate source.
-        if (selectedSet.size === 0) {
+        // Upload non-duplicates always; re-upload only selected duplicates.
+        // Unselected duplicates reuse the existing source (no re-upload).
+        const indexesToUpload = pendingUploadPayload.files
+          .map((file, index) => ({ file, index }))
+          .filter(
+            ({ file }) =>
+              selectedSet.has(file.name) || !conflictNames.has(file.name),
+          );
+
+        // Every file was an unselected duplicate — reuse existing sources only.
+        if (indexesToUpload.length === 0) {
           const reused = uploadResponseFromDuplicateConflicts(
             pendingUploadPayload,
             conflicts,
@@ -224,14 +233,6 @@ export function useIngestWithDuplicateHandling({
           setDuplicateDialog(closedDialogState);
           return;
         }
-
-        // Re-upload selected duplicates (override=true) plus any non-conflict files.
-        const indexesToUpload = pendingUploadPayload.files
-          .map((file, index) => ({ file, index }))
-          .filter(
-            ({ file }) =>
-              selectedSet.has(file.name) || !conflictNames.has(file.name),
-          );
 
         const filesToUpload = indexesToUpload.map(({ file }) => file);
         const selectedConflicts = conflicts.filter((conflict) =>

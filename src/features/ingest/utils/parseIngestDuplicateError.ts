@@ -7,6 +7,7 @@ import type {
   IngestDuplicateErrorDetail,
   IngestSourceType,
 } from '@/features/ingest/api/adminIngestApi';
+import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -117,11 +118,61 @@ export function uploadedSourceFromConflict(
   return {
     source_document_id: existing.source_document_id,
     title: existing.title || conflict.title,
-    source_type: inferSourceType(conflict.filename),
+    source_type: inferSourceType(
+      existing.original_filename || conflict.filename,
+    ),
     stored_path: '',
     content_domain: contentDomain ?? null,
     status: existing.status || 'uploaded',
   };
+}
+
+/**
+ * Build selection rows from an upload response, enriching reused duplicates
+ * with title / filename / status / timestamp from conflict payloads.
+ */
+export function selectedIngestDocumentsFromUploadResponse(
+  response: AdminV3IngestUploadResponse,
+): SelectedIngestDocument[] {
+  const conflictBySourceId = new Map<string, IngestDuplicateConflict>();
+  for (const conflict of response.skipped_duplicates ?? []) {
+    for (const existing of conflict.existing_source_documents) {
+      if (existing.source_document_id) {
+        conflictBySourceId.set(existing.source_document_id, conflict);
+      }
+    }
+  }
+
+  return response.sources
+    .filter((source) => Boolean(source.source_document_id))
+    .map((source) => {
+      const conflict = conflictBySourceId.get(source.source_document_id);
+      const existing = conflict?.existing_source_documents[0];
+      const originalFilename =
+        existing?.original_filename?.trim() ||
+        conflict?.filename?.trim() ||
+        null;
+      const title =
+        existing?.title?.trim() ||
+        source.title.trim() ||
+        conflict?.title?.trim() ||
+        originalFilename ||
+        source.source_document_id;
+      const uploadedAt = existing?.ingested_at?.trim() || undefined;
+
+      return {
+        id: source.source_document_id,
+        title,
+        originalFilename,
+        sourceType:
+          source.source_type ||
+          (conflict
+            ? inferSourceType(originalFilename || conflict.filename)
+            : 'pdf'),
+        status: existing?.status?.trim() || source.status || 'uploaded',
+        ...(uploadedAt ? { uploadedAt } : {}),
+      };
+    });
 }
 
 function titleFromFilename(filename: string): string {
@@ -374,13 +425,17 @@ export function keptExistingSourcesFromConflicts(
   filename?: string;
 }> {
   return conflicts.flatMap((conflict) => {
-    const target = sourceDocumentFromDuplicateConflict(conflict);
-    if (!target) return [];
+    const existing = conflict.existing_source_documents[0];
+    if (!existing?.source_document_id) return [];
     return [
       {
-        source_document_id: target.sourceDocumentId,
-        title: target.title,
-        filename: conflict.filename,
+        source_document_id: existing.source_document_id,
+        title:
+          existing.title?.trim() || conflict.title?.trim() || conflict.filename,
+        filename:
+          existing.original_filename?.trim() ||
+          conflict.filename?.trim() ||
+          undefined,
       },
     ];
   });

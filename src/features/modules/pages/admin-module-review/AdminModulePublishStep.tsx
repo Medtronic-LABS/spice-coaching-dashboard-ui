@@ -51,7 +51,11 @@ export const AdminModulePublishStep = () => {
   const [publishError, setPublishError] = useState('');
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
   const isReadonly = useAdminModuleReviewReadonly();
-  const { registerEditorContext } = useModulePreview();
+  const {
+    registerEditorContext,
+    isOpen: isPreviewOpen,
+    closePreview,
+  } = useModulePreview();
   const { validateBeforeProceed } = useQuizExplanationReview(moduleId);
   const {
     actionError: saveError,
@@ -77,6 +81,13 @@ export const AdminModulePublishStep = () => {
   useEffect(() => {
     registerEditorContext({ phase: 'card', index: 0 });
   }, [registerEditorContext]);
+
+  // Preview and source side panels both take horizontal space — only one at a time.
+  useEffect(() => {
+    if (isPreviewOpen) {
+      setSourceDocOpen(false);
+    }
+  }, [isPreviewOpen]);
 
   const goToModuleLibrary = useCallback(() => {
     setPublishSuccessOpen(false);
@@ -175,7 +186,12 @@ export const AdminModulePublishStep = () => {
           estimateMinutes={working.estimated_minutes}
           sourceFileName={sourceFileName}
           onPreviewSource={
-            sourceDocuments.length ? () => setSourceDocOpen(true) : undefined
+            sourceDocuments.length
+              ? () => {
+                  closePreview();
+                  setSourceDocOpen(true);
+                }
+              : undefined
           }
           isAlreadyPublished={isAlreadyPublished}
           isPublishing={isPublishing}

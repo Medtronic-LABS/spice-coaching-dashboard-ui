@@ -10,7 +10,9 @@ import {
 export interface CreateDocumentAssignmentRequest {
   source_document_id: string;
   user_ids?: number[];
-  upazilas?: string[];
+  upazila_ids?: number[];
+  district_ids?: number[];
+  division_ids?: number[];
   /** When true, PO ids also assign their direct SK children. Default false (PO only). */
   expand_po_assignees?: boolean;
 }
@@ -18,7 +20,9 @@ export interface CreateDocumentAssignmentRequest {
 export interface ReplaceDocumentAssignedUsersRequest {
   sourceDocumentId: string;
   user_ids?: number[];
-  upazilas?: string[];
+  upazila_ids?: number[];
+  district_ids?: number[];
+  division_ids?: number[];
   /** When true, PO ids also assign their direct SK children. Default false (PO only). */
   expand_po_assignees?: boolean;
 }
@@ -50,14 +54,18 @@ export const adminDocumentAssignmentApi = baseApi.injectEndpoints({
       query: ({
         sourceDocumentId,
         user_ids,
-        upazilas,
+        upazila_ids,
+        district_ids,
+        division_ids,
         expand_po_assignees,
       }) => ({
         url: `/admin/document-assignments/${encodeURIComponent(sourceDocumentId)}/users`,
         method: 'PUT',
         body: buildAssignmentUsersMutationBody({
           user_ids,
-          upazilas,
+          upazila_ids,
+          district_ids,
+          division_ids,
           expand_po_assignees,
         }),
       }),

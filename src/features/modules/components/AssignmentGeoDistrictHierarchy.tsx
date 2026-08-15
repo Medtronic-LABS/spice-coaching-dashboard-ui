@@ -3,10 +3,13 @@ import { ChevronIcon } from '@/assets/icon';
 import { InfiniteScrollContainer } from '@/components/ui';
 import {
   ASSIGNMENT_LIST_PAGE_SIZE,
+  ASSIGNMENT_USERS_PAGE_SIZE,
   type AdminDistrict,
   type AdminUpazila,
+  type AdminUser,
   useLazyFetchAdminDistrictsPageQuery,
   useLazyFetchAdminUpazilasPageQuery,
+  useLazyFetchHierarchyUsersPageQuery,
 } from '@/features/modules/api/adminAssignmentApi';
 import { cn } from '@/utils';
 
@@ -21,10 +24,10 @@ interface DistrictUpazilaPage {
 
 interface AssignmentGeoDistrictHierarchyProps {
   divisionId: number | null;
-  desiredUpazilaSet: ReadonlySet<string>;
-  baselineUpazilaSet: ReadonlySet<string>;
-  onToggleUpazila: (upazilaName: string) => void;
-  onToggleUpazilaNames: (upazilaNames: string[]) => void;
+  desiredUserIds: ReadonlySet<number>;
+  baselineUserIds: ReadonlySet<number>;
+  onAddUserIds: (userIds: number[], users: AdminUser[]) => void;
+  onRemoveUserIds: (userIds: number[]) => void;
 }
 
 const emptyUpazilaPage = (): DistrictUpazilaPage => ({
@@ -36,12 +39,42 @@ const emptyUpazilaPage = (): DistrictUpazilaPage => ({
   isError: false,
 });
 
+function assignableUsers(users: AdminUser[]): AdminUser[] {
+  return users.filter((user) => user.role === 'PO' || user.role === 'SK');
+}
+
+function selectionStateForUsers(
+  users: AdminUser[] | undefined,
+  desiredUserIds: ReadonlySet<number>,
+): { checked: boolean; indeterminate: boolean; ready: boolean } {
+  if (!users || users.length === 0) {
+    return { checked: false, indeterminate: false, ready: Boolean(users) };
+  }
+  const ids = users.map((user) => user.id);
+  const selectedCount = ids.filter((id) => desiredUserIds.has(id)).length;
+  if (selectedCount === 0) {
+    return { checked: false, indeterminate: false, ready: true };
+  }
+  if (selectedCount === ids.length) {
+    return { checked: true, indeterminate: false, ready: true };
+  }
+  return { checked: false, indeterminate: true, ready: true };
+}
+
+function isAlreadyAssignedUpazila(
+  users: AdminUser[] | undefined,
+  baselineUserIds: ReadonlySet<number>,
+): boolean {
+  if (!users || users.length === 0) return false;
+  return users.every((user) => baselineUserIds.has(user.id));
+}
+
 export const AssignmentGeoDistrictHierarchy = ({
   divisionId,
-  desiredUpazilaSet,
-  baselineUpazilaSet,
-  onToggleUpazila,
-  onToggleUpazilaNames,
+  desiredUserIds,
+  baselineUserIds,
+  onAddUserIds,
+  onRemoveUserIds,
 }: AssignmentGeoDistrictHierarchyProps) => {
   const [loadedDistricts, setLoadedDistricts] = useState<AdminDistrict[]>([]);
   const [districtsTotal, setDistrictsTotal] = useState(0);
@@ -52,12 +85,32 @@ export const AssignmentGeoDistrictHierarchy = ({
   const [upazilaPages, setUpazilaPages] = useState<
     Record<number, DistrictUpazilaPage>
   >({});
+  const [usersByUpazilaId, setUsersByUpazilaId] = useState<
+    Record<number, AdminUser[]>
+  >({});
+  const [usersByDistrictId, setUsersByDistrictId] = useState<
+    Record<number, AdminUser[]>
+  >({});
+  const [loadingUpazilaUserIds, setLoadingUpazilaUserIds] = useState<
+    Set<number>
+  >(() => new Set());
+  const [loadingDistrictUserIds, setLoadingDistrictUserIds] = useState<
+    Set<number>
+  >(() => new Set());
   const [districtToggleLoadingIds, setDistrictToggleLoadingIds] = useState<
     Set<number>
   >(() => new Set());
 
   const districtsRequestSeqRef = useRef(0);
   const upazilaRequestSeqRef = useRef<Map<number, number>>(new Map());
+  const upazilaUsersRequestSeqRef = useRef<Map<number, number>>(new Map());
+  const usersByUpazilaIdRef = useRef(usersByUpazilaId);
+  usersByUpazilaIdRef.current = usersByUpazilaId;
+  const usersByDistrictIdRef = useRef(usersByDistrictId);
+  usersByDistrictIdRef.current = usersByDistrictId;
+  const districtUsersPromiseRef = useRef<Map<number, Promise<AdminUser[]>>>(
+    new Map(),
+  );
 
   const [
     triggerDistrictsPage,
@@ -68,6 +121,7 @@ export const AssignmentGeoDistrictHierarchy = ({
     },
   ] = useLazyFetchAdminDistrictsPageQuery();
   const [triggerUpazilasPage] = useLazyFetchAdminUpazilasPageQuery();
+  const [triggerUsersPage] = useLazyFetchHierarchyUsersPageQuery();
 
   const loadDistrictsPage = useCallback(
     async (offset: number, append: boolean) => {
@@ -172,17 +226,186 @@ export const AssignmentGeoDistrictHierarchy = ({
       let offset = 0;
       let total = Number.POSITIVE_INFINITY;
 
-      while (offset < total) {
-        const page = await loadUpazilasPage(districtId, offset, offset > 0);
-        if (!page || page.upazilas.length === 0) break;
-        collected.push(...page.upazilas);
-        total = page.total;
-        offset += page.upazilas.length;
-      }
+      setUpazilaPages((prev) => {
+        const existing = prev[districtId] ?? emptyUpazilaPage();
+        return {
+          ...prev,
+          [districtId]: {
+            ...existing,
+            isLoading: existing.items.length === 0,
+            isFetching: true,
+            isError: false,
+          },
+        };
+      });
 
-      return collected;
+      try {
+        while (offset < total) {
+          const result = await triggerUpazilasPage({
+            limit: ASSIGNMENT_LIST_PAGE_SIZE,
+            offset,
+            districtId,
+          });
+          if ('error' in result && result.error) {
+            setUpazilaPages((prev) => {
+              const existing = prev[districtId] ?? emptyUpazilaPage();
+              return {
+                ...prev,
+                [districtId]: {
+                  ...existing,
+                  isLoading: false,
+                  isFetching: false,
+                  isError: true,
+                },
+              };
+            });
+            return collected;
+          }
+          const page = result.data;
+          if (!page || page.upazilas.length === 0) break;
+          collected.push(...page.upazilas);
+          total = page.total;
+          offset += page.upazilas.length;
+        }
+
+        setUpazilaPages((prev) => ({
+          ...prev,
+          [districtId]: {
+            items: collected,
+            total: collected.length,
+            offset: collected.length,
+            isLoading: false,
+            isFetching: false,
+            isError: false,
+          },
+        }));
+        return collected;
+      } catch {
+        setUpazilaPages((prev) => {
+          const existing = prev[districtId] ?? emptyUpazilaPage();
+          return {
+            ...prev,
+            [districtId]: {
+              ...existing,
+              isLoading: false,
+              isFetching: false,
+              isError: true,
+            },
+          };
+        });
+        return collected;
+      }
     },
-    [loadUpazilasPage],
+    [triggerUpazilasPage],
+  );
+
+  const fetchUsersForUpazila = useCallback(
+    async (upazilaId: number): Promise<AdminUser[]> => {
+      const cached = usersByUpazilaIdRef.current[upazilaId];
+      if (cached) return cached;
+
+      const requestSeq =
+        (upazilaUsersRequestSeqRef.current.get(upazilaId) ?? 0) + 1;
+      upazilaUsersRequestSeqRef.current.set(upazilaId, requestSeq);
+      setLoadingUpazilaUserIds((prev) => new Set(prev).add(upazilaId));
+
+      try {
+        const collected: AdminUser[] = [];
+        let offset = 0;
+        let total = Number.POSITIVE_INFINITY;
+
+        while (offset < total) {
+          const result = await triggerUsersPage({
+            limit: ASSIGNMENT_USERS_PAGE_SIZE,
+            offset,
+            upazilaId,
+          });
+          if (
+            (upazilaUsersRequestSeqRef.current.get(upazilaId) ?? 0) !==
+            requestSeq
+          ) {
+            return usersByUpazilaIdRef.current[upazilaId] ?? [];
+          }
+          if ('error' in result && result.error) {
+            return usersByUpazilaIdRef.current[upazilaId] ?? [];
+          }
+          const page = result.data;
+          if (!page || page.users.length === 0) break;
+          collected.push(...assignableUsers(page.users));
+          total = page.total;
+          offset += page.users.length;
+        }
+
+        setUsersByUpazilaId((prev) => ({ ...prev, [upazilaId]: collected }));
+        return collected;
+      } finally {
+        setLoadingUpazilaUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(upazilaId);
+          return next;
+        });
+      }
+    },
+    [triggerUsersPage],
+  );
+
+  const ensureUsersForUpazilas = useCallback(
+    async (upazilas: AdminUpazila[]): Promise<AdminUser[]> => {
+      const batches = await Promise.all(
+        upazilas.map((upazila) => fetchUsersForUpazila(upazila.id)),
+      );
+      const byId = new Map<number, AdminUser>();
+      for (const users of batches) {
+        for (const user of users) byId.set(user.id, user);
+      }
+      return Array.from(byId.values());
+    },
+    [fetchUsersForUpazila],
+  );
+
+  const ensureDistrictUsers = useCallback(
+    async (districtId: number): Promise<AdminUser[]> => {
+      const cached = usersByDistrictIdRef.current[districtId];
+      if (cached) return cached;
+
+      const inFlight = districtUsersPromiseRef.current.get(districtId);
+      if (inFlight) return inFlight;
+
+      const promise = (async () => {
+        setLoadingDistrictUserIds((prev) => new Set(prev).add(districtId));
+        try {
+          const upazilas = await fetchAllUpazilasForDistrict(districtId);
+          const users = await ensureUsersForUpazilas(upazilas);
+          setUsersByDistrictId((prev) => ({ ...prev, [districtId]: users }));
+          return users;
+        } finally {
+          districtUsersPromiseRef.current.delete(districtId);
+          setLoadingDistrictUserIds((prev) => {
+            const next = new Set(prev);
+            next.delete(districtId);
+            return next;
+          });
+        }
+      })();
+
+      districtUsersPromiseRef.current.set(districtId, promise);
+      return promise;
+    },
+    [ensureUsersForUpazilas, fetchAllUpazilasForDistrict],
+  );
+
+  const toggleUsersSelection = useCallback(
+    (users: AdminUser[]) => {
+      if (users.length === 0) return;
+      const ids = users.map((user) => user.id);
+      const allSelected = ids.every((id) => desiredUserIds.has(id));
+      if (allSelected) {
+        onRemoveUserIds(ids);
+        return;
+      }
+      onAddUserIds(ids, users);
+    },
+    [desiredUserIds, onAddUserIds, onRemoveUserIds],
   );
 
   useEffect(() => {
@@ -191,9 +414,81 @@ export const AssignmentGeoDistrictHierarchy = ({
     setDistrictsOffset(0);
     setExpandedDistrictIds(new Set());
     setUpazilaPages({});
+    setUsersByUpazilaId({});
+    setUsersByDistrictId({});
     upazilaRequestSeqRef.current = new Map();
+    upazilaUsersRequestSeqRef.current = new Map();
+    districtUsersPromiseRef.current = new Map();
     void loadDistrictsPage(0, false);
   }, [loadDistrictsPage]);
+
+  // Prefetch users for visible upazilas so checkbox state stays accurate.
+  useEffect(() => {
+    const upazilaIds = Object.values(upazilaPages).flatMap((page) =>
+      page.items.map((item) => item.id),
+    );
+    for (const upazilaId of upazilaIds) {
+      if (usersByUpazilaId[upazilaId] || loadingUpazilaUserIds.has(upazilaId)) {
+        continue;
+      }
+      void fetchUsersForUpazila(upazilaId);
+    }
+  }, [
+    fetchUsersForUpazila,
+    loadingUpazilaUserIds,
+    upazilaPages,
+    usersByUpazilaId,
+  ]);
+
+  // Prefetch full district user sets so district checkboxes reflect selection
+  // even when the district row is collapsed.
+  useEffect(() => {
+    for (const district of loadedDistricts) {
+      if (usersByDistrictId[district.id] !== undefined) continue;
+      if (loadingDistrictUserIds.has(district.id)) continue;
+      void ensureDistrictUsers(district.id);
+    }
+  }, [
+    ensureDistrictUsers,
+    loadedDistricts,
+    loadingDistrictUserIds,
+    usersByDistrictId,
+  ]);
+
+  // Keep district user cache in sync when upazila pages finish loading in the UI.
+  useEffect(() => {
+    for (const district of loadedDistricts) {
+      const page = upazilaPages[district.id];
+      if (
+        !page ||
+        page.isLoading ||
+        page.isFetching ||
+        page.isError ||
+        page.items.length < page.total
+      ) {
+        continue;
+      }
+      if (
+        page.items.some((upazila) => usersByUpazilaId[upazila.id] === undefined)
+      ) {
+        continue;
+      }
+      const users = assignableUsers(
+        page.items.flatMap((upazila) => usersByUpazilaId[upazila.id] ?? []),
+      );
+      const existing = usersByDistrictId[district.id];
+      if (existing) {
+        const existingIds = new Set(existing.map((user) => user.id));
+        if (
+          existing.length === users.length &&
+          users.every((user) => existingIds.has(user.id))
+        ) {
+          continue;
+        }
+      }
+      setUsersByDistrictId((prev) => ({ ...prev, [district.id]: users }));
+    }
+  }, [loadedDistricts, upazilaPages, usersByDistrictId, usersByUpazilaId]);
 
   const toggleDistrictExpanded = (districtId: number) => {
     const willExpand = !expandedDistrictIds.has(districtId);
@@ -214,20 +509,16 @@ export const AssignmentGeoDistrictHierarchy = ({
     void loadUpazilasPage(districtId, 0, false);
   };
 
-  const handleDistrictCheckboxChange = async (
-    districtId: number,
-    cachedPage: DistrictUpazilaPage | undefined,
-  ) => {
+  const handleUpazilaToggle = async (upazila: AdminUpazila) => {
+    const users = await fetchUsersForUpazila(upazila.id);
+    toggleUsersSelection(users);
+  };
+
+  const handleDistrictCheckboxChange = async (districtId: number) => {
     setDistrictToggleLoadingIds((prev) => new Set(prev).add(districtId));
     try {
-      const upazilas =
-        cachedPage &&
-        cachedPage.items.length >= cachedPage.total &&
-        cachedPage.total > 0
-          ? cachedPage.items
-          : await fetchAllUpazilasForDistrict(districtId);
-      if (upazilas.length === 0) return;
-      onToggleUpazilaNames(upazilas.map((upazila) => upazila.name));
+      const users = await ensureDistrictUsers(districtId);
+      toggleUsersSelection(users);
     } finally {
       setDistrictToggleLoadingIds((prev) => {
         const next = new Set(prev);
@@ -284,23 +575,15 @@ export const AssignmentGeoDistrictHierarchy = ({
             {loadedDistricts.map((district) => {
               const isExpanded = expandedDistrictIds.has(district.id);
               const upazilaPage = upazilaPages[district.id];
-              const upazilaNames =
-                upazilaPage?.items.map((item) => item.name) ?? [];
-              const selectedCount = upazilaNames.filter((name) =>
-                desiredUpazilaSet.has(name),
-              ).length;
-              const hasLoadedUpazilas = upazilaNames.length > 0;
-              const allLoadedSelected =
-                hasLoadedUpazilas && selectedCount === upazilaNames.length;
-              const isFullySelected =
-                hasLoadedUpazilas &&
-                upazilaPage !== undefined &&
-                upazilaPage.items.length >= upazilaPage.total &&
-                allLoadedSelected;
-              const isPartiallySelected = selectedCount > 0 && !isFullySelected;
-              const isDistrictToggleLoading = districtToggleLoadingIds.has(
-                district.id,
+              const districtUsers = usersByDistrictId[district.id];
+              const districtSelection = selectionStateForUsers(
+                districtUsers,
+                desiredUserIds,
               );
+              const isDistrictToggleLoading =
+                districtToggleLoadingIds.has(district.id) ||
+                (districtUsers === undefined &&
+                  loadingDistrictUserIds.has(district.id));
 
               return (
                 <div key={district.id}>
@@ -327,14 +610,11 @@ export const AssignmentGeoDistrictHierarchy = ({
                       </span>
                     </div>
                     <DistrictSelectionCheckbox
-                      checked={isFullySelected}
-                      indeterminate={isPartiallySelected}
+                      checked={districtSelection.checked}
+                      indeterminate={districtSelection.indeterminate}
                       disabled={isDistrictToggleLoading}
                       onChange={() => {
-                        void handleDistrictCheckboxChange(
-                          district.id,
-                          upazilaPage,
-                        );
+                        void handleDistrictCheckboxChange(district.id);
                       }}
                     />
                   </div>
@@ -342,9 +622,13 @@ export const AssignmentGeoDistrictHierarchy = ({
                   {isExpanded ? (
                     <DistrictUpazilaList
                       page={upazilaPage}
-                      desiredUpazilaSet={desiredUpazilaSet}
-                      baselineUpazilaSet={baselineUpazilaSet}
-                      onToggleUpazila={onToggleUpazila}
+                      desiredUserIds={desiredUserIds}
+                      baselineUserIds={baselineUserIds}
+                      usersByUpazilaId={usersByUpazilaId}
+                      loadingUpazilaUserIds={loadingUpazilaUserIds}
+                      onToggleUpazila={(upazila) => {
+                        void handleUpazilaToggle(upazila);
+                      }}
                       onRetry={() => {
                         void loadUpazilasPage(district.id, 0, false);
                       }}
@@ -395,7 +679,7 @@ function DistrictSelectionCheckbox({
       type="checkbox"
       checked={checked}
       disabled={disabled}
-      aria-label="Select all upazilas in district"
+      aria-label="Select all users in district"
       onChange={onChange}
       className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25 disabled:cursor-wait disabled:opacity-60"
     />
@@ -404,17 +688,21 @@ function DistrictSelectionCheckbox({
 
 interface DistrictUpazilaListProps {
   page: DistrictUpazilaPage | undefined;
-  desiredUpazilaSet: ReadonlySet<string>;
-  baselineUpazilaSet: ReadonlySet<string>;
-  onToggleUpazila: (upazilaName: string) => void;
+  desiredUserIds: ReadonlySet<number>;
+  baselineUserIds: ReadonlySet<number>;
+  usersByUpazilaId: Record<number, AdminUser[]>;
+  loadingUpazilaUserIds: ReadonlySet<number>;
+  onToggleUpazila: (upazila: AdminUpazila) => void;
   onRetry: () => void;
   onLoadMore: () => void;
 }
 
 function DistrictUpazilaList({
   page,
-  desiredUpazilaSet,
-  baselineUpazilaSet,
+  desiredUserIds,
+  baselineUserIds,
+  usersByUpazilaId,
+  loadingUpazilaUserIds,
   onToggleUpazila,
   onRetry,
   onLoadMore,
@@ -455,8 +743,13 @@ function DistrictUpazilaList({
   return (
     <div className="bg-spice-bg-tint/40">
       {page.items.map((upazila) => {
-        const isChecked = desiredUpazilaSet.has(upazila.name);
-        const isAlreadyAssigned = baselineUpazilaSet.has(upazila.name);
+        const users = usersByUpazilaId[upazila.id];
+        const selection = selectionStateForUsers(users, desiredUserIds);
+        const isAlreadyAssigned = isAlreadyAssignedUpazila(
+          users,
+          baselineUserIds,
+        );
+        const isLoadingUsers = loadingUpazilaUserIds.has(upazila.id);
 
         return (
           <label
@@ -471,13 +764,23 @@ function DistrictUpazilaList({
                 <span className="text-xs text-spice-text-muted">
                   Already assigned
                 </span>
+              ) : users && users.length === 0 ? (
+                <span className="text-xs text-spice-text-muted">
+                  No assignable users
+                </span>
               ) : null}
             </div>
             <input
               type="checkbox"
-              checked={isChecked}
-              onChange={() => onToggleUpazila(upazila.name)}
-              className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
+              checked={selection.checked}
+              ref={(element) => {
+                if (element) {
+                  element.indeterminate = selection.indeterminate;
+                }
+              }}
+              disabled={isLoadingUsers}
+              onChange={() => onToggleUpazila(upazila)}
+              className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25 disabled:cursor-wait disabled:opacity-60"
             />
           </label>
         );

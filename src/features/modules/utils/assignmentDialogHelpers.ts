@@ -186,6 +186,56 @@ export function hasAssignmentUserFilters(input: {
   );
 }
 
+export function baselineUpazilaIds(users: AdminUser[]): number[] {
+  return Array.from(
+    new Set(users.flatMap((user) => user.upazila_ids ?? [])),
+  ).sort((a, b) => a - b);
+}
+
+export function baselineUpazilaNameById(
+  users: AdminUser[],
+): Map<number, string> {
+  const map = new Map<number, string>();
+  for (const user of users) {
+    const ids = user.upazila_ids ?? [];
+    const names = user.upazilas ?? [];
+    for (let index = 0; index < ids.length; index += 1) {
+      const id = ids[index];
+      const name = names[index];
+      if (typeof id === 'number' && !map.has(id) && name) {
+        map.set(id, name);
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Add `ids` to the selection unless every id is already selected,
+ * in which case remove them.
+ */
+export function toggleIdsInSelection(
+  current: number[],
+  ids: number[],
+): number[] {
+  if (ids.length === 0) return current;
+  const selected = new Set(current);
+  const allSelected = ids.every((id) => selected.has(id));
+  if (allSelected) {
+    const remove = new Set(ids);
+    return current.filter((id) => !remove.has(id));
+  }
+  const next = [...current];
+  for (const id of ids) {
+    if (!selected.has(id)) {
+      next.push(id);
+      selected.add(id);
+    }
+  }
+  return next;
+}
+
+/** @deprecated Prefer baselineUpazilaIds — kept for display-only name lists. */
 export function baselineUpazilaNames(users: AdminUser[]): string[] {
   return Array.from(
     new Set(
@@ -200,6 +250,7 @@ export function baselineUpazilaNames(users: AdminUser[]): string[] {
 /**
  * Add `names` to the selection unless every name is already selected,
  * in which case remove them.
+ * @deprecated Prefer toggleIdsInSelection for assignment payloads.
  */
 export function toggleNamesInSelection(
   current: string[],

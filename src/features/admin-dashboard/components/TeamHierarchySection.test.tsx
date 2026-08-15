@@ -146,8 +146,9 @@ describe('TeamHierarchySection', () => {
     expect(
       screen.getByRole('tab', { name: 'Program Officers' }),
     ).toHaveAttribute('aria-selected', 'true');
+    // AM viewers: PO tab is direct reports (no depth). depth=1 would be SKs.
     expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ depth: 1 }),
+      expect.not.objectContaining({ depth: expect.any(Number) }),
     );
   });
 

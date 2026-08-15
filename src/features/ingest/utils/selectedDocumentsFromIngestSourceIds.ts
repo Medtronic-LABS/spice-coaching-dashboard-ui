@@ -1,6 +1,7 @@
 import type {
   AdminV3IngestAcceptedSource,
   AdminV3IngestBatchSourceStatus,
+  AdminV3IngestUploadResponse,
 } from '@/features/ingest/api/adminIngestApi';
 import { MAX_DOCUMENT_SELECTION } from '@/features/ingest/constants/documentSelection';
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
@@ -8,6 +9,7 @@ import type {
   ActiveIngestSession,
   KeptExistingIngestSource,
 } from '@/features/ingest/utils/ingestSessionStorage';
+import { selectedIngestDocumentsFromUploadResponse } from '@/features/ingest/utils/parseIngestDuplicateError';
 
 function upsertSelectedDocument(
   byId: Map<string, SelectedIngestDocument>,
@@ -21,7 +23,18 @@ function upsertSelectedDocument(
       next.originalFilename ?? existing?.originalFilename ?? null,
     sourceType: next.sourceType || existing?.sourceType || 'pdf',
     status: next.status || existing?.status || 'uploaded',
+    uploadedAt: next.uploadedAt || existing?.uploadedAt,
   });
+}
+
+/** Map upload (including duplicate-reuse) sources into selection rows. */
+export function selectedDocumentsFromUploadResponse(
+  response: AdminV3IngestUploadResponse,
+): SelectedIngestDocument[] {
+  return selectedIngestDocumentsFromUploadResponse(response).slice(
+    0,
+    MAX_DOCUMENT_SELECTION,
+  );
 }
 
 /**

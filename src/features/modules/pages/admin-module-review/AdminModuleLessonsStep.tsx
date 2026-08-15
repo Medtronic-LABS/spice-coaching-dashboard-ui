@@ -99,7 +99,11 @@ export const AdminModuleLessonsStep = () => {
   const previousModuleIdRef = useRef(moduleId);
   const pendingCardFocusRef = useRef<AdminModuleDraftIssue | null>(null);
   const isReadonly = useAdminModuleReviewReadonly();
-  const { registerEditorContext } = useModulePreview();
+  const {
+    registerEditorContext,
+    isOpen: isPreviewOpen,
+    closePreview,
+  } = useModulePreview();
   const {
     actionError,
     draftIssues,
@@ -160,6 +164,13 @@ export const AdminModuleLessonsStep = () => {
   useEffect(() => {
     registerEditorContext({ phase: 'card', index: selectedIndex });
   }, [selectedIndex, registerEditorContext]);
+
+  // Preview and source side panels both take horizontal space — only one at a time.
+  useEffect(() => {
+    if (isPreviewOpen) {
+      setSourceDocOpen(false);
+    }
+  }, [isPreviewOpen]);
 
   useEffect(() => {
     const state = location.state as AdminModuleDraftFocusLocationState | null;
@@ -362,7 +373,14 @@ export const AdminModuleLessonsStep = () => {
                 <Button
                   variant="secondary"
                   className="h-9 text-xs"
-                  onClick={() => setSourceDocOpen((open) => !open)}
+                  onClick={() => {
+                    setSourceDocOpen((open) => {
+                      if (!open) {
+                        closePreview();
+                      }
+                      return !open;
+                    });
+                  }}
                 >
                   {sourceDocOpen
                     ? 'Hide source'

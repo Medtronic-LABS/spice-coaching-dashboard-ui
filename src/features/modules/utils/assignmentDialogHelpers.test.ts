@@ -3,6 +3,7 @@ import type { AdminUser } from '@/features/modules/api/adminAssignmentApi';
 import {
   ALL_DISTRICTS_OPTION,
   ALL_UPAZILAS_OPTION,
+  baselineUpazilaIds,
   baselineUpazilaNames,
   buildAssignmentListUsers,
   buildNamedEntityComboboxOptions,
@@ -15,6 +16,7 @@ import {
   idsToRemoveWhenClearingPo,
   isPoSelectionMode,
   resolveNamedEntitySelection,
+  toggleIdsInSelection,
   toggleNamesInSelection,
 } from './assignmentDialogHelpers';
 
@@ -28,6 +30,7 @@ const po: AdminUser = {
   district_id: 10,
   upazila: 'Hatibandha',
   upazilas: ['Hatibandha'],
+  upazila_ids: [2],
   parent_id: null,
 };
 
@@ -41,6 +44,7 @@ const skUnderPo: AdminUser = {
   district_id: 10,
   upazila: 'Hatibandha',
   upazilas: ['Hatibandha'],
+  upazila_ids: [2],
   parent_id: 20,
 };
 
@@ -54,6 +58,7 @@ const independentSk: AdminUser = {
   district_id: 11,
   upazila: 'Ulipur',
   upazilas: ['Ulipur'],
+  upazila_ids: [3],
   parent_id: null,
 };
 
@@ -228,6 +233,12 @@ describe('baselineUpazilaNames', () => {
   });
 });
 
+describe('baselineUpazilaIds', () => {
+  it('dedupes and sorts upazila ids', () => {
+    expect(baselineUpazilaIds([po, independentSk, skUnderPo])).toEqual([2, 3]);
+  });
+});
+
 describe('toggleNamesInSelection', () => {
   it('adds missing names when any are unselected', () => {
     expect(
@@ -243,5 +254,15 @@ describe('toggleNamesInSelection', () => {
 
   it('returns the current selection when names is empty', () => {
     expect(toggleNamesInSelection(['Hatibandha'], [])).toEqual(['Hatibandha']);
+  });
+});
+
+describe('toggleIdsInSelection', () => {
+  it('adds missing ids when any are unselected', () => {
+    expect(toggleIdsInSelection([2], [2, 3])).toEqual([2, 3]);
+  });
+
+  it('removes ids when every id is already selected', () => {
+    expect(toggleIdsInSelection([2, 3], [2])).toEqual([3]);
   });
 });

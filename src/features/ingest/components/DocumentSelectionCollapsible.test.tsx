@@ -20,21 +20,21 @@ function ControlledCollapsible() {
 }
 
 describe('DocumentSelectionCollapsible', () => {
-  it('toggles expanded content without clearing children when reopened', async () => {
+  it('hides expanded content on collapse without unmounting children', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ControlledCollapsible />);
 
-    expect(screen.getByText('Panel body')).toBeInTheDocument();
+    expect(screen.getByText('Panel body')).toBeVisible();
     await user.click(
       screen.getByRole('button', { name: 'Collapse Document Selection' }),
     );
-    expect(screen.queryByText('Panel body')).not.toBeInTheDocument();
+    expect(screen.getByText('Panel body')).not.toBeVisible();
     expect(screen.getByText('2 documents selected')).toBeInTheDocument();
 
     await user.click(
       screen.getByRole('button', { name: 'Expand Document Selection' }),
     );
-    expect(screen.getByText('Panel body')).toBeInTheDocument();
+    expect(screen.getByText('Panel body')).toBeVisible();
   });
 
   it('shows header aside only while expanded', async () => {
@@ -58,7 +58,7 @@ describe('DocumentSelectionCollapsible', () => {
     renderWithProviders(<WithAside />);
     expect(
       screen.getByRole('searchbox', { name: /search knowledge documents/i }),
-    ).toBeInTheDocument();
+    ).toBeVisible();
 
     await user.click(
       screen.getByRole('button', { name: 'Collapse Document Selection' }),
