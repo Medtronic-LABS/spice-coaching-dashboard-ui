@@ -16,7 +16,6 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import type {
   AdminV3IngestUploadPayload,
   AdminV3IngestUploadResponse,
@@ -441,13 +440,14 @@ export const DocumentSelectionPanel = ({
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-medium text-spice-text-primary"
-            >
-              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
-            </TruncatedText>
+            />
             {row.originalFilename && row.originalFilename !== row.title ? (
-              <p className="mt-0.5 truncate text-[11px] text-spice-text-muted">
-                {row.originalFilename}
-              </p>
+              <div className="mt-0.5 min-w-0">
+                <TruncatedText
+                  text={row.originalFilename}
+                  className="text-[11px] text-spice-text-muted"
+                />
+              </div>
             ) : null}
           </div>
         ),

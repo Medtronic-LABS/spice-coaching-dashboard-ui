@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { Button } from '@/components/ui/Button';
+import { TruncatedText } from '@/components/ui/TruncatedText';
 import { cn } from '@/utils';
 
 export interface FileDropzoneProps {
@@ -186,12 +187,10 @@ export const FileDropzone = ({
                 <DocumentIcon />
               </div>
               <div className="min-w-0 flex-1">
-                <div
-                  className="truncate text-sm font-medium text-spice-text-primary"
-                  title={file.name}
-                >
-                  {file.name}
-                </div>
+                <TruncatedText
+                  text={file.name}
+                  className="text-sm font-medium text-spice-text-primary"
+                />
                 <div className="mt-0.5 text-[11px] text-spice-text-muted">
                   {Math.round(file.size / 1024)} KB
                 </div>

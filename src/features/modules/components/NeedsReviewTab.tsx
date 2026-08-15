@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Button, Card, ErrorState } from '@/components/ui';
+import { Button, Card, ErrorState, TruncatedText } from '@/components/ui';
+import {
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
+import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/IngestMatchedModulePreviewModal';
+import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
 import {
   useGetModuleDetailQuery,
   type AdminModuleDetailResponse,
   type AdminModulesListItem,
 } from '@/features/modules/api/adminModulesApi';
-import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/IngestMatchedModulePreviewModal';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
-import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
+
 interface NeedsReviewTabProps {
   modules: AdminModulesListItem[];
   isLoading?: boolean;
@@ -490,18 +496,30 @@ export const NeedsReviewTab = ({
       header: 'Module',
       sortable: true,
       sortKey: 'title',
-      headerClassName: 'max-w-[9rem] px-4 py-2 sm:max-w-none sm:px-4',
-      className:
-        'max-w-[9rem] whitespace-normal px-4 py-3.5 font-medium text-spice-text-primary sm:max-w-none sm:px-4 sm:py-3.5',
-      render: (row) => (
-        <button
-          type="button"
-          onClick={() => toggleExpand(row.id)}
-          className="max-w-full truncate text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
-        >
-          {row.title}
-        </button>
-      ),
+      headerClassName: TABLE_TITLE_COLUMN_CLASS,
+      className: TABLE_TITLE_COLUMN_CLASS,
+      render: (row) => {
+        const displayTitle = truncateDisplayText(
+          row.title,
+          TABLE_CELL_LABEL_MAX_LENGTH,
+        );
+        return (
+          <div className="w-full min-w-0">
+            <TruncatedText
+              text={row.title}
+              maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+            >
+              <button
+                type="button"
+                onClick={() => toggleExpand(row.id)}
+                className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
+              >
+                {displayTitle}
+              </button>
+            </TruncatedText>
+          </div>
+        );
+      },
     },
     {
       key: 'content',

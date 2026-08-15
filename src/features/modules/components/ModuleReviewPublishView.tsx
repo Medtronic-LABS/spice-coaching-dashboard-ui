@@ -1,5 +1,6 @@
 import { EyeIcon, SaveDraftIcon } from '@/assets/icon';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, TruncatedText } from '@/components/ui';
+import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { getPublishCardDescription } from '@/features/modules/utils/getPublishCardDescription';
 
 export interface ModuleReviewPublishLessonRow {
@@ -148,8 +149,11 @@ export const ModuleReviewPublishView = ({
             <div className="space-y-3">
               <div>
                 <SectionLabel>TITLE</SectionLabel>
-                <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-                  {title}
+                <div className="mt-1 min-w-0 text-sm font-semibold text-spice-text-primary">
+                  <TruncatedText
+                    text={title}
+                    className="font-semibold text-spice-text-primary"
+                  />
                 </div>
               </div>
               <div>
@@ -196,12 +200,15 @@ export const ModuleReviewPublishView = ({
                   key={lesson.id}
                   className="flex items-center justify-between gap-3 rounded-lg bg-spice-bg-tint px-3 py-2.5"
                 >
-                  <span className="text-sm text-spice-text-primary">
-                    <span className="font-medium text-spice-text-muted">
-                      {index + 1}.{' '}
+                  <div className="flex min-w-0 flex-1 items-baseline gap-1 text-sm text-spice-text-primary">
+                    <span className="shrink-0 font-medium text-spice-text-muted">
+                      {index + 1}.
                     </span>
-                    {lesson.title}
-                  </span>
+                    <TruncatedText
+                      text={lesson.title}
+                      maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                    />
+                  </div>
                   {lesson.mediaTags && lesson.mediaTags.length > 0 ? (
                     <div className="flex shrink-0 flex-wrap justify-end gap-1">
                       {lesson.mediaTags.map((tag) => (
@@ -300,9 +307,10 @@ export const ModuleReviewPublishView = ({
                   📄
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-spice-text-primary">
-                    {sourceFileName}
-                  </div>
+                  <TruncatedText
+                    text={sourceFileName}
+                    className="text-sm font-semibold text-spice-text-primary"
+                  />
                   {sourceFileSizeLabel ? (
                     <div className="text-xs text-spice-text-muted">
                       {sourceFileSizeLabel}

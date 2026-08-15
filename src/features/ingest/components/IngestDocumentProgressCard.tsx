@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
-import { Button } from '@/components/ui';
+import { Button, TruncatedText } from '@/components/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { AdminV3IngestBatchSourceStatus } from '@/features/ingest/api/adminIngestApi';
 import { IngestFlowStatusLabel } from '@/features/ingest/components/IngestFlowStatusLabel';
@@ -102,10 +102,11 @@ export const IngestDocumentProgressCard = ({
       <div className="flex items-start gap-3 px-3 py-3">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div id={headingId} className="min-w-0">
-              <div className="truncate text-sm font-semibold text-spice-text-primary">
-                {documentName}
-              </div>
+            <div id={headingId} className="min-w-0 flex-1">
+              <TruncatedText
+                text={documentName}
+                className="text-sm font-semibold text-spice-text-primary"
+              />
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <span

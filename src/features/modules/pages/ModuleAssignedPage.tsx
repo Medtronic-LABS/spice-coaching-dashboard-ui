@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ClipboardIcon } from '@/assets/icon';
-import { Badge, Button, Card, Loader } from '@/components/ui';
+import { Badge, Button, Card, Loader, TruncatedText } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
   MODULE_ASSIGNMENT_DURATION_KEY,
@@ -302,8 +302,11 @@ export const ModuleAssignedPage = () => {
                 <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
                   {copy.entityLabel}
                 </div>
-                <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-                  {entityName}
+                <div className="mt-1 min-w-0 text-sm font-semibold text-spice-text-primary">
+                  <TruncatedText
+                    text={entityName}
+                    className="font-semibold text-spice-text-primary"
+                  />
                 </div>
                 <div className="text-xs text-spice-text-muted">
                   {copy.entityMeta}

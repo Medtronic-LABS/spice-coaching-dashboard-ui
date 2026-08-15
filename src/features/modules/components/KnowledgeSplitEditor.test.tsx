@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { describe, expect, it, vi } from 'vitest';
-import { KnowledgeSplitEditor } from './KnowledgeSplitEditor';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
+import { KnowledgeSplitEditor } from './KnowledgeSplitEditor';
 
 vi.mock('@/features/modules/hooks/usePdfPageThumbnail', () => ({
   usePdfPageThumbnail: (_pdf: unknown, _page: unknown, enabled: boolean) => ({
@@ -49,6 +50,10 @@ describe('KnowledgeSplitEditor', () => {
     expect(
       screen.queryByText(/provide title and page range/i),
     ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Split 1 title')).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.documentTitle),
+    );
   });
 
   it('shows PDF auto preview and clearing leaves an intentional blank thumbnail', async () => {

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import type {
   AdminV3IngestAcceptedResponse,
   AdminV3IngestBatchStatusResponse,
@@ -333,6 +334,27 @@ describe('VideoUploadPage', () => {
     mocks.refetchSourceDocuments.mockReset();
     mocks.refetchSourceDocuments.mockResolvedValue(undefined);
     window.sessionStorage.clear();
+  });
+
+  it('caps staged video titles at the document title limit', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      video,
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: `Remove ${video.name}` }),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByDisplayValue('new-video')).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.documentTitle),
+    );
   });
 
   it('stages a video, uploads it, then starts ingest with source ids', async () => {

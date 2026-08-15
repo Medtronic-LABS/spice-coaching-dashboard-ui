@@ -59,7 +59,9 @@ describe('FileDropzone', () => {
       />,
     );
 
-    expect(screen.getByText('a.pdf')).toBeInTheDocument();
+    const listedName = screen.getByText('a.pdf');
+    expect(listedName).toHaveClass('truncate');
+    expect(listedName).not.toHaveAttribute('title');
     const input = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement;

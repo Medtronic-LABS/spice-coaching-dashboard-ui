@@ -2,7 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
-import { Button, EmptyState } from '@/components/ui';
+import { Button, EmptyState, TruncatedText } from '@/components/ui';
+import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
@@ -117,7 +118,6 @@ export const TopModuleDemandWidget = ({
                       type="button"
                       className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
                       aria-expanded={isExpanded}
-                      title={row.title}
                       onClick={() =>
                         setExpandedRowId((current) =>
                           current === row.id ? null : row.id,
@@ -128,8 +128,12 @@ export const TopModuleDemandWidget = ({
                         expanded={isExpanded}
                         className="h-3.5 w-3.5 shrink-0 text-spice-text-muted"
                       />
-                      <span className="min-w-0 flex-1 truncate">
-                        {row.title}
+                      <span className="min-w-0 flex-1">
+                        <TruncatedText
+                          text={row.title}
+                          maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                          className="font-medium"
+                        />
                       </span>
                     </button>
                     <div className="hidden min-w-0 sm:block">

@@ -1,5 +1,9 @@
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Button } from '@/components/ui';
+import { Button, TruncatedText } from '@/components/ui';
+import {
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
@@ -98,10 +102,17 @@ export const DiscardedTabTable = ({
         header: 'Module',
         sortable: true,
         sortKey: 'title',
+        headerClassName: TABLE_TITLE_COLUMN_CLASS,
+        className: TABLE_TITLE_COLUMN_CLASS,
         render: (row) => (
-          <span className="font-medium text-spice-text-primary">
-            {row.title}
-          </span>
+          <div className="w-full min-w-0">
+            <TruncatedText
+              text={row.title}
+              maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+              focusable
+              className="font-medium text-spice-text-primary"
+            />
+          </div>
         ),
       },
       {

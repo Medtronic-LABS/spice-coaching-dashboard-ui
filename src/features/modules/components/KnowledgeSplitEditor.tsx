@@ -1,5 +1,6 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { Button, ImagePicker } from '@/components/ui';
+import { Button, ImagePicker, LimitedTextInput } from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
@@ -93,18 +94,19 @@ export const KnowledgeSplitEditor = ({
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
               Title <span className="text-spice-semantic-error">*</span>
             </div>
-            <input
-              type="text"
+            <LimitedTextInput
+              id={`knowledge-split-title-${index}`}
               value={value.title}
+              maxLength={FIELD_LIMITS.documentTitle}
               aria-label={`${rowLabel} title`}
               disabled={disabled}
-              onChange={(e) => onChange({ ...value, title: e.target.value })}
               placeholder="e.g. HTN Referral Tips"
-              className={`h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/20 ${
+              inputClassName={
                 errors?.title
                   ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error/30'
-                  : 'border-spice-border-mid focus:border-spice-brand-primary/40'
-              }`}
+                  : 'border-spice-border-mid'
+              }
+              onChange={(title) => onChange({ ...value, title })}
             />
             {errors?.title ? (
               <p className="text-xs text-spice-semantic-error">

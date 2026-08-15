@@ -116,9 +116,13 @@ describe('ModuleLibraryPage', () => {
       name: /^assign$/i,
     });
     expect(assignButtons.length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('link', { name: 'SPICE App — Visit Submission' }),
-    ).toBeInTheDocument();
+    const publishedTitle = screen.getByRole('link', {
+      name: 'SPICE App — Visit Submission',
+    });
+    expect(publishedTitle).toBeInTheDocument();
+    expect(publishedTitle.parentElement?.parentElement).not.toHaveAttribute(
+      'tabIndex',
+    );
     expect(
       screen.queryByRole('button', { name: /^review$/i }),
     ).not.toBeInTheDocument();

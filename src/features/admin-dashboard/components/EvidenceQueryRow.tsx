@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
+import { TruncatedText } from '@/components/ui';
 import type {
   ModuleDemandQueryRow,
   ModuleDemandUserEntry,
@@ -64,8 +65,11 @@ function UserDetailRow({
         'sm:grid-cols-[minmax(8rem,1fr)_minmax(7rem,0.9fr)_minmax(8rem,0.9fr)]',
       )}
     >
-      <span className="truncate font-medium text-spice-text-primary">
-        {name ?? '—'}
+      <span className="min-w-0">
+        <TruncatedText
+          text={name ?? '—'}
+          className="font-medium text-spice-text-primary"
+        />
       </span>
       <span className="text-spice-text-muted">{interactionLabel}</span>
       <span className="whitespace-nowrap text-spice-text-muted">
@@ -120,9 +124,10 @@ export const EvidenceQueryRow = ({
           <span className="h-3.5 w-3.5 shrink-0" aria-hidden />
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-spice-text-primary">
-            {row.primaryText}
-          </span>
+          <TruncatedText
+            text={row.primaryText}
+            className="text-sm font-medium text-spice-text-primary"
+          />
         </span>
         <span
           className={cn(

@@ -1,4 +1,5 @@
 import { DeleteIcon } from '@/assets/icon';
+import { TruncatedText } from '@/components/ui';
 
 interface RichTextMediaNodeHeaderProps {
   label: string;
@@ -18,12 +19,14 @@ export const RichTextMediaNodeHeader = ({
     className={`mb-1 flex select-none items-center gap-2 ${showLabel || !onRemove ? 'justify-between' : 'justify-end'}`}
   >
     {showLabel ? (
-      <span
-        className="min-w-0 flex-1 truncate text-[11px] font-semibold text-spice-text-muted"
-        title={title}
-      >
-        {label}
-      </span>
+      <div className="min-w-0 flex-1">
+        <TruncatedText
+          text={title ?? label}
+          className="text-[11px] font-semibold text-spice-text-muted"
+        >
+          {label}
+        </TruncatedText>
+      </div>
     ) : null}
     {onRemove ? (
       <button

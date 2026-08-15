@@ -39,7 +39,6 @@ import {
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { useLazyGetAdminFilePresignedUrlQuery } from '@/features/modules/api/adminFilesApi';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import {
   knowledgeDownloadFilename,
   downloadFileAs,
@@ -417,12 +416,13 @@ export const KnowledgeLibraryTable = () => {
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-semibold"
-            >
-              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
-            </TruncatedText>
+            />
             {row.originalFilename ? (
-              <div className="mt-0.5 truncate text-xs text-spice-text-muted">
-                {row.originalFilename}
+              <div className="mt-0.5 min-w-0">
+                <TruncatedText
+                  text={row.originalFilename}
+                  className="text-xs text-spice-text-muted"
+                />
               </div>
             ) : null}
           </div>

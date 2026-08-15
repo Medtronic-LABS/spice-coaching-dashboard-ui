@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
-import { Button, UnsavedChangesDialog } from '@/components/ui';
+import { Button, TruncatedText, UnsavedChangesDialog } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { ModuleVersionConflictDialog } from '@/features/modules/components/ModuleVersionConflictDialog';
@@ -156,13 +156,16 @@ export const AdminModuleReviewLayout = () => {
           <span className="text-spice-text-muted" aria-hidden="true">
             &gt;
           </span>
-          <Link
-            to={detailsPath}
-            className="max-w-[16rem] truncate font-medium text-spice-brand-primary hover:underline"
-            title={moduleTitle}
-          >
-            {moduleTitle}
-          </Link>
+          <div className="max-w-[16rem] min-w-0">
+            <TruncatedText text={moduleTitle}>
+              <Link
+                to={detailsPath}
+                className="block truncate break-all font-medium text-spice-brand-primary hover:underline"
+              >
+                {moduleTitle}
+              </Link>
+            </TruncatedText>
+          </div>
           <span className="text-spice-text-muted" aria-hidden="true">
             &gt;
           </span>

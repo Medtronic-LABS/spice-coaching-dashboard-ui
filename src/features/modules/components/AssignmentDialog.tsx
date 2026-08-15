@@ -11,6 +11,7 @@ import {
   SearchInput,
   Select,
   Tabs,
+  TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
@@ -1082,7 +1083,12 @@ export const AssignmentDialog = ({
             >
               Assign {noun}
             </h2>
-            <p className="mt-1 text-xs text-spice-text-muted">{target.title}</p>
+            <p className="mt-1 min-w-0">
+              <TruncatedText
+                text={target.title}
+                className="text-xs text-spice-text-muted"
+              />
+            </p>
           </div>
           <Button
             variant="secondary"

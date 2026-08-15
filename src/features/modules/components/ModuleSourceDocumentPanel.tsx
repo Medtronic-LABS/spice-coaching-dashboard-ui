@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui';
+import { Card, TruncatedText } from '@/components/ui';
 import type { AdminModuleSourceDocument } from '@/features/modules/api/adminModulesApi';
 import {
   sourceDocumentIsPdf,
@@ -98,8 +98,11 @@ export const ModuleSourceDocumentPanel = ({
             </select>
           </label>
         ) : (
-          <p className="truncate text-xs text-spice-text-medium" title={label}>
-            {label}
+          <p className="min-w-0">
+            <TruncatedText
+              text={label}
+              className="text-xs text-spice-text-medium"
+            />
           </p>
         )}
 

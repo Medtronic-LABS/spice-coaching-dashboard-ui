@@ -11,6 +11,7 @@ import {
   Banner,
   Button,
   Card,
+  LimitedTextInput,
   Loader,
   SearchInput,
   StatusBadge,
@@ -19,11 +20,11 @@ import {
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
+  FIELD_LIMITS,
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
 import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
-import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
   type AdminV3IngestAcceptedResponse,
@@ -908,9 +909,7 @@ export const VideoUploadPage = () => {
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-medium text-spice-text-primary"
-            >
-              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
-            </TruncatedText>
+            />
             {row.description ? (
               <p className="mt-0.5 line-clamp-2 text-[11px] text-spice-text-muted">
                 {row.description}
@@ -1197,14 +1196,18 @@ export const VideoUploadPage = () => {
                           <DeleteIcon className="h-4 w-4" />
                         </Button>
                       </div>
-                      <input
+                      <LimitedTextInput
                         id={`pending-video-title-${item.key}`}
-                        type="text"
                         value={item.title}
+                        maxLength={FIELD_LIMITS.documentTitle}
                         disabled={uploadBusy}
                         aria-invalid={titleInvalid}
-                        onChange={(event) => {
-                          const value = event.target.value;
+                        inputClassName={
+                          titleInvalid
+                            ? 'h-auto rounded-md border-spice-semantic-error py-2'
+                            : 'h-auto rounded-md py-2'
+                        }
+                        onChange={(value) => {
                           updatePendingItem(item.key, { title: value });
                           if (value.trim()) {
                             setPendingTitleErrorKeys((previous) => {
@@ -1215,11 +1218,6 @@ export const VideoUploadPage = () => {
                             });
                           }
                         }}
-                        className={`w-full rounded-md border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20 ${
-                          titleInvalid
-                            ? 'border-spice-semantic-error'
-                            : 'border-spice-border'
-                        }`}
                       />
                       {titleInvalid ? (
                         <span className="text-[11px] text-spice-semantic-error">

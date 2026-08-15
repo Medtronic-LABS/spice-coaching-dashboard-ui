@@ -646,7 +646,6 @@ export const ModuleLibraryPage = () => {
               <TruncatedText
                 text={row.title}
                 maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
-                focusable
               >
                 {isNeedsReviewStatus(row.status) ? (
                   <button
@@ -655,7 +654,7 @@ export const ModuleLibraryPage = () => {
                       setExpandedReviewModuleId(row.id);
                       setTab('needs_review');
                     }}
-                    className="block w-full truncate text-left font-semibold text-spice-brand-primary hover:underline"
+                    className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline"
                   >
                     {displayTitle}
                   </button>
@@ -665,7 +664,7 @@ export const ModuleLibraryPage = () => {
                       ':moduleId',
                       encodeURIComponent(row.id),
                     )}
-                    className="block truncate font-semibold text-spice-brand-primary hover:underline"
+                    className="block truncate break-all font-semibold text-spice-brand-primary hover:underline"
                   >
                     {displayTitle}
                   </Link>
