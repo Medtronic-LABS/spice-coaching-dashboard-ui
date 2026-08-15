@@ -123,14 +123,18 @@ export const AppRoutes = () => {
     <Routes>
       <Route
         path={ROUTE_PREFIX}
-        element={<Navigate to={paths.moduleLibrary} replace />}
+        element={<Navigate to={paths.adminDashboard} replace />}
       />
       <Route path={paths.login} element={<LoginPage />} />
       <Route path={paths.unauthorized} element={<UnAuthorizedPage />} />
       <Route element={<MainLayout />}>
         <Route
           path={paths.home}
-          element={<Navigate to={paths.moduleLibrary} replace />}
+          element={<Navigate to={paths.adminDashboard} replace />}
+        />
+        <Route
+          path={`${ROUTE_PREFIX}/admin-dashboard`}
+          element={<Navigate to={paths.adminDashboard} replace />}
         />
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
         <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />
@@ -163,7 +167,7 @@ export const AppRoutes = () => {
         <Route path={paths.configs} element={<ConfigsPage />} />
         <Route
           path="*"
-          element={<Navigate to={paths.moduleLibrary} replace />}
+          element={<Navigate to={paths.adminDashboard} replace />}
         />
       </Route>
     </Routes>

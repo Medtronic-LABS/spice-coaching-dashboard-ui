@@ -5,6 +5,11 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { IngestDuplicateConflict } from '@/features/ingest/api/adminIngestApi';
+import {
+  useLazyFetchSourceDocumentsQuery,
+  type SourceDocumentSummary,
+} from '@/features/modules/api/adminSourceDocumentsApi';
+import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 export type DuplicateIngestDialogVariant = 'upload' | 'blocked' | 'skipped';
@@ -28,10 +33,25 @@ const INGEST_BLOCKED_TOOLTIP =
 const INGEST_SKIPPED_TOOLTIP =
   'One or more documents with similar content were already ingested and were not queued. Select documents to re-ingest them. Leave documents unselected to keep using the existing ingested source.';
 
-type ConflictRow = IngestDuplicateConflict & { _key: string };
+type ConflictRow = IngestDuplicateConflict & {
+  _key: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  ingestedBy: string;
+};
+
+type ExistingSourceMeta = {
+  uploadedAt: string;
+  uploadedBy: string | null;
+  ingestedBy: string | null;
+};
 
 function conflictKey(conflict: IngestDuplicateConflict): string {
   return `${conflict.filename}-${conflict.content_sha256}`;
+}
+
+function latestExistingSource(conflict: IngestDuplicateConflict) {
+  return conflict.existing_source_documents[0];
 }
 
 function TruncatedTooltipText({
@@ -46,6 +66,14 @@ function TruncatedTooltipText({
       <span className={className}>{text}</span>
     </Tooltip>
   );
+}
+
+function metaFromSummary(doc: SourceDocumentSummary): ExistingSourceMeta {
+  return {
+    uploadedAt: doc.uploaded_date || doc.ingested_at,
+    uploadedBy: doc.uploaded_by?.name ?? null,
+    ingestedBy: doc.ingested_by?.name ?? null,
+  };
 }
 
 export const DuplicateIngestConfirmDialog = ({
@@ -63,11 +91,81 @@ export const DuplicateIngestConfirmDialog = ({
     [conflicts],
   );
   const [selectedFilenames, setSelectedFilenames] = useState<string[]>([]);
+  const [existingMetaById, setExistingMetaById] = useState<
+    Map<string, ExistingSourceMeta>
+  >(() => new Map());
+  const [fetchSourceDocuments] = useLazyFetchSourceDocumentsQuery();
 
   useEffect(() => {
     if (!open) return;
     setSelectedFilenames([]);
   }, [allFilenames, open]);
+
+  useEffect(() => {
+    if (!open) {
+      setExistingMetaById(new Map());
+      return;
+    }
+
+    const lookups = conflicts
+      .map((conflict) => {
+        const existing = latestExistingSource(conflict);
+        if (!existing) return null;
+        return {
+          sourceDocumentId: existing.source_document_id,
+          query: (
+            existing.original_filename?.trim() ||
+            conflict.filename.trim() ||
+            existing.title.trim()
+          ).trim(),
+        };
+      })
+      .filter((entry): entry is { sourceDocumentId: string; query: string } =>
+        Boolean(entry?.sourceDocumentId && entry.query),
+      );
+
+    if (lookups.length === 0) {
+      setExistingMetaById(new Map());
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const next = new Map<string, ExistingSourceMeta>();
+      const queried = new Set<string>();
+
+      for (const lookup of lookups) {
+        if (next.has(lookup.sourceDocumentId)) continue;
+
+        const queryKey = lookup.query.toLowerCase();
+        if (!queried.has(queryKey)) {
+          queried.add(queryKey);
+          try {
+            const response = await fetchSourceDocuments({
+              q: lookup.query,
+              limit: 50,
+              sort_by: 'uploaded_date',
+              sort_dir: 'desc',
+            }).unwrap();
+            for (const doc of response.source_documents) {
+              next.set(doc.id, metaFromSummary(doc));
+            }
+          } catch {
+            // Keep unresolved rows as "—" when catalog lookup fails.
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setExistingMetaById(next);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conflicts, fetchSourceDocuments, open]);
 
   if (!open) return null;
 
@@ -112,6 +210,9 @@ export const DuplicateIngestConfirmDialog = ({
   const tableData: ConflictRow[] = conflicts.map((conflict) => ({
     ...conflict,
     _key: conflictKey(conflict),
+    uploadedAt: '',
+    uploadedBy: '',
+    ingestedBy: '',
   }));
 
   const columns: ColumnDef<ConflictRow>[] = [
@@ -140,34 +241,30 @@ export const DuplicateIngestConfirmDialog = ({
     {
       key: 'title',
       header: 'File name',
-      headerClassName: 'w-[55%] px-3 py-2 sm:px-3',
-      className:
-        'w-[55%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3',
-      render: (row) => {
-        const latest = row.existing_source_documents[0];
-        return (
-          <div className="min-w-0">
-            <TruncatedTooltipText
-              text={row.filename}
-              className="block truncate font-medium text-spice-text-primary"
-            />
-            {!isUpload && latest?.ingested_at ? (
-              <div className="mt-0.5 truncate text-[11px] text-spice-text-muted">
-                Last ingested {formatDisplayDateTime(latest.ingested_at)}
-              </div>
-            ) : null}
-          </div>
-        );
-      },
+      headerClassName: isUpload
+        ? 'w-[24%] px-3 py-2 sm:px-3'
+        : 'w-[18%] px-3 py-2 sm:px-3',
+      className: isUpload
+        ? 'w-[24%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3'
+        : 'w-[18%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3',
+      render: (row) => (
+        <TruncatedTooltipText
+          text={row.filename}
+          className="block truncate font-medium text-spice-text-primary"
+        />
+      ),
     },
     {
       key: 'content_sha256',
       header: 'Existing source',
-      headerClassName: 'w-[45%] px-3 py-2 sm:px-3',
-      className:
-        'w-[45%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3',
+      headerClassName: isUpload
+        ? 'w-[22%] px-3 py-2 sm:px-3'
+        : 'w-[16%] px-3 py-2 sm:px-3',
+      className: isUpload
+        ? 'w-[22%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3'
+        : 'w-[16%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3',
       render: (row) => {
-        const latest = row.existing_source_documents[0];
+        const latest = latestExistingSource(row);
         const label = latest?.title || row.title || '—';
         return (
           <TruncatedTooltipText
@@ -177,6 +274,59 @@ export const DuplicateIngestConfirmDialog = ({
         );
       },
     },
+    {
+      key: 'uploadedAt',
+      header: 'Uploaded',
+      headerClassName: isUpload
+        ? 'w-[30%] whitespace-nowrap px-3 py-2 sm:px-3'
+        : 'w-[24%] whitespace-nowrap px-3 py-2 sm:px-3',
+      className: isUpload
+        ? 'w-[30%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3'
+        : 'w-[24%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3',
+      render: (row) => {
+        const latest = latestExistingSource(row);
+        const meta = latest
+          ? existingMetaById.get(latest.source_document_id)
+          : undefined;
+        const uploadedAt = meta?.uploadedAt || latest?.ingested_at || '';
+        return formatDisplayDateTime(uploadedAt) || '—';
+      },
+    },
+    {
+      key: 'uploadedBy',
+      header: 'Uploaded by',
+      headerClassName: isUpload
+        ? 'w-[24%] whitespace-nowrap px-3 py-2 sm:px-3'
+        : 'w-[16%] whitespace-nowrap px-3 py-2 sm:px-3',
+      className: isUpload
+        ? 'w-[24%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3'
+        : 'w-[16%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3',
+      render: (row) => {
+        const latest = latestExistingSource(row);
+        const meta = latest
+          ? existingMetaById.get(latest.source_document_id)
+          : undefined;
+        return formatHierarchyActorName(meta?.uploadedBy);
+      },
+    },
+    ...(isUpload
+      ? []
+      : [
+          {
+            key: 'ingestedBy' as const,
+            header: 'Ingested by',
+            headerClassName: 'w-[16%] whitespace-nowrap px-3 py-2 sm:px-3',
+            className:
+              'w-[16%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3',
+            render: (row: ConflictRow) => {
+              const latest = latestExistingSource(row);
+              const meta = latest
+                ? existingMetaById.get(latest.source_document_id)
+                : undefined;
+              return formatHierarchyActorName(meta?.ingestedBy);
+            },
+          },
+        ]),
   ];
 
   const secondaryLabel = isUpload
@@ -204,7 +354,7 @@ export const DuplicateIngestConfirmDialog = ({
     >
       <Card
         variant="elevated"
-        className="w-full max-w-2xl space-y-4 border-spice-border p-6 shadow-lg"
+        className="w-full max-w-4xl space-y-4 border-spice-border p-6 shadow-lg"
       >
         <div className="space-y-2">
           <div className="flex items-center gap-2">

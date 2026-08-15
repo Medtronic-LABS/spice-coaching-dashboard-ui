@@ -7,6 +7,7 @@ import { IngestRunStatusPanel } from './IngestRunStatusPanel';
 const mocks = vi.hoisted(() => ({
   useGetIngestBatchStatusQuery: vi.fn(),
   useSubmitIngestMergeDecisionMutation: vi.fn(),
+  useFetchIngestionRunByIdQuery: vi.fn(),
   refetch: vi.fn(),
   submitMergeDecision: vi.fn(),
 }));
@@ -23,6 +24,20 @@ vi.mock('@/features/ingest/api/adminIngestApi', async (importOriginal) => {
       mocks.useSubmitIngestMergeDecisionMutation,
   };
 });
+
+vi.mock(
+  '@/features/ingest/api/adminIngestionRunsApi',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/ingest/api/adminIngestionRunsApi')
+      >();
+    return {
+      ...actual,
+      useFetchIngestionRunByIdQuery: mocks.useFetchIngestionRunByIdQuery,
+    };
+  },
+);
 
 vi.mock('@/features/modules/api/adminModulesApi', () => ({
   useGetModuleDetailQuery: () => ({
@@ -79,12 +94,19 @@ describe('IngestRunStatusPanel', () => {
   beforeEach(() => {
     mocks.useGetIngestBatchStatusQuery.mockReset();
     mocks.useSubmitIngestMergeDecisionMutation.mockReset();
+    mocks.useFetchIngestionRunByIdQuery.mockReset();
     mocks.refetch.mockReset();
     mocks.submitMergeDecision.mockReset();
     mocks.useSubmitIngestMergeDecisionMutation.mockReturnValue([
       mocks.submitMergeDecision,
       { isLoading: false },
     ]);
+    mocks.useFetchIngestionRunByIdQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      error: undefined,
+    });
   });
 
   it('skips the query and shows the empty label without a batch id', () => {

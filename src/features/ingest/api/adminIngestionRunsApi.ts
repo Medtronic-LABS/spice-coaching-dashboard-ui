@@ -150,8 +150,22 @@ export const adminIngestionRunsApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown, _meta, arg) =>
         normalizeIngestionRunListResponse(response, arg),
     }),
+    fetchIngestionRunById: builder.query<IngestionRunSummary, string>({
+      query: (runId) => ({
+        url: `/admin/ingestion-runs/${encodeURIComponent(runId)}`,
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): IngestionRunSummary => {
+        if (!isPlainObject(response)) {
+          return normalizeIngestionRunSummary({});
+        }
+        return normalizeIngestionRunSummary(response);
+      },
+      keepUnusedDataFor: 60,
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useFetchIngestionRunsQuery } = adminIngestionRunsApi;
+export const { useFetchIngestionRunsQuery, useFetchIngestionRunByIdQuery } =
+  adminIngestionRunsApi;

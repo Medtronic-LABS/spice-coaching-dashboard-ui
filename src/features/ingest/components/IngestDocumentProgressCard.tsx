@@ -4,6 +4,7 @@ import { ProgressBar } from '@/components/common/ProgressBar';
 import { Button, TruncatedText } from '@/components/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { AdminV3IngestBatchSourceStatus } from '@/features/ingest/api/adminIngestApi';
+import { useFetchIngestionRunByIdQuery } from '@/features/ingest/api/adminIngestionRunsApi';
 import { IngestFlowStatusLabel } from '@/features/ingest/components/IngestFlowStatusLabel';
 import {
   countGeneratedModulesFromSource,
@@ -51,7 +52,14 @@ export const IngestDocumentProgressCard = ({
   const latestStepLabel = getIngestSourceStepLabel(latestStep);
   const latestStepPath = latestStep?.path ?? null;
   const latestStepRef = useRef<HTMLDivElement | null>(null);
-  const generatedModuleCount = countGeneratedModulesFromSource(source);
+  const runId = source.run_id?.trim() ?? '';
+  const { data: ingestionRun } = useFetchIngestionRunByIdQuery(runId, {
+    skip: !isCompleted || !runId,
+  });
+  const generatedModuleCount =
+    ingestionRun !== undefined
+      ? Math.max(0, Math.floor(ingestionRun.generated_module_count))
+      : countGeneratedModulesFromSource(source);
   const reviewPendingModuleCount = countReviewPendingModulesFromSource(source);
   const similarityDetected = hasSimilarityDetectedInSource(source);
   const reviewModuleCount =

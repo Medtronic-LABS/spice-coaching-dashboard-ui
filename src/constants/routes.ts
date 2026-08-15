@@ -54,7 +54,8 @@ export const paths = {
   moduleQuiz: withRoutePrefix('/modules/new/quiz'),
   moduleReview: withRoutePrefix('/modules/new/review'),
   modulePublished: withRoutePrefix('/modules/new/published'),
-  adminDashboard: withRoutePrefix('/admin-dashboard'),
+  /** Admin analytics dashboard (default landing route). */
+  adminDashboard: withRoutePrefix('/dashboard'),
   configs: withRoutePrefix('/configs'),
   login: withRoutePrefix('/login'),
   unauthorized: withRoutePrefix('/unauthorized'),

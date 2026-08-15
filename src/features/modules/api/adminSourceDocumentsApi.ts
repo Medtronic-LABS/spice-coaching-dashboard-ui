@@ -262,6 +262,7 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
 
 export const {
   useFetchSourceDocumentsQuery,
+  useLazyFetchSourceDocumentsQuery,
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
 } = adminSourceDocumentsApi;
