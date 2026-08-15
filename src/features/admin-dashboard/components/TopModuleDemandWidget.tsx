@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { Button, EmptyState, TruncatedText } from '@/components/ui';
-import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
@@ -62,8 +61,8 @@ export const TopModuleDemandWidget = ({
   );
 
   const gridClass = showActions
-    ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_7.5rem_6.75rem]'
-    : 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_7.5rem]';
+    ? 'grid-cols-[minmax(0,1fr)_5rem_6rem_5.25rem]'
+    : 'grid-cols-[minmax(0,1fr)_5rem_6rem]';
 
   return (
     <DashboardWidgetShell
@@ -131,7 +130,7 @@ export const TopModuleDemandWidget = ({
                       <span className="min-w-0 flex-1">
                         <TruncatedText
                           text={row.title}
-                          maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                          maxChars={80}
                           className="font-medium"
                         />
                       </span>
@@ -151,7 +150,7 @@ export const TopModuleDemandWidget = ({
                         {row.actionLabel && row.onAction ? (
                           <Button
                             variant="secondary"
-                            className="h-7 w-full px-1.5 text-[10px] leading-none"
+                            className="h-7 w-full px-0.5 py-0 text-[10px] leading-none"
                             onClick={(event) => {
                               event.stopPropagation();
                               row.onAction?.();

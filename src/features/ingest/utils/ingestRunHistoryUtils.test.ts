@@ -164,16 +164,16 @@ describe('ingestRunHistoryUtils', () => {
     expect(ingestRunStatusTone('unknown_state')).toBe('neutral');
 
     expect(ingestRunStatusBadgeClassName('processing')).toContain(
-      'text-spice-semantic-info',
+      'text-spice-palette-violet',
     );
     expect(ingestRunStatusBadgeClassName('processing')).toContain(
-      'bg-spice-semantic-infoBg',
+      'bg-spice-palette-violetLt',
     );
     expect(ingestRunStatusBadgeClassName('completed')).toContain(
-      'text-spice-semantic-success',
+      'text-spice-palette-purple',
     );
     expect(ingestRunStatusBadgeClassName('partial')).toContain(
-      'text-spice-semantic-warning',
+      'text-spice-palette-pink',
     );
     expect(ingestRunStatusBadgeClassName('failed')).toContain(
       'text-spice-semantic-error',

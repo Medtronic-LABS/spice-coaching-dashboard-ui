@@ -24,7 +24,12 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
+import {
+  SPICE_CHECKBOX_CLASSNAME,
+  SPICE_INPUT_FOCUS_CLASSNAME,
+} from '@/constants/formControls';
 import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
+import { cn } from '@/utils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
   type AdminV3IngestAcceptedResponse,
@@ -174,10 +179,16 @@ function statusBadgeProps(status: string): {
     return { status: 'critical', label: status };
   }
   if (
+    normalized === 'ingesting' ||
     normalized.includes('queue') ||
-    normalized.includes('running') ||
-    normalized.includes('ingest')
+    normalized.includes('running')
   ) {
+    return { status: 'info', label: status };
+  }
+  if (normalized === 'uploaded') {
+    return { status: 'neutral', label: status };
+  }
+  if (normalized.includes('ingest')) {
     return { status: 'info', label: status };
   }
   return { status: 'neutral', label: status };
@@ -880,7 +891,7 @@ export const VideoUploadPage = () => {
         render: (row) => (
           <input
             type="checkbox"
-            className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
+            className={SPICE_CHECKBOX_CLASSNAME}
             aria-label={`Select ${row.title}`}
             checked={selectedIds.has(row.id)}
             disabled={isUploading}
@@ -1238,7 +1249,10 @@ export const VideoUploadPage = () => {
                             description: event.target.value,
                           })
                         }
-                        className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+                        className={cn(
+                          'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+                          SPICE_INPUT_FOCUS_CLASSNAME,
+                        )}
                       />
                     </label>
                   </div>

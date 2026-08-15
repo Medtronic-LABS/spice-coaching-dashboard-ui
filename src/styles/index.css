@@ -19,6 +19,19 @@ body {
   min-width: 0;
 }
 
+@layer base {
+  /* Theme accent for every native checkbox (checked fill + indeterminate). */
+  input[type='checkbox'] {
+    accent-color: var(--color-palette-purple);
+  }
+
+  /* Kill browser-default blue focus outline on search fields. */
+  input[type='search']:focus,
+  input[type='search']:focus-visible {
+    outline: none;
+  }
+}
+
 .spice-thin-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgb(139 143 168 / 0.45) transparent;

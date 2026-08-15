@@ -1,4 +1,5 @@
 import { type SelectHTMLAttributes } from 'react';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 /**
@@ -37,7 +38,8 @@ export const Select = ({
   return (
     <select
       className={cn(
-        'select-arrow h-10 rounded-sm border border-spice-border bg-spice-bg-surface px-3 text-[13px] text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25',
+        'select-arrow h-10 rounded-sm border border-spice-border-mid bg-spice-bg-surface px-3 text-[13px] text-spice-text-primary',
+        SPICE_INPUT_FOCUS_CLASSNAME,
         className,
       )}
       value={value}

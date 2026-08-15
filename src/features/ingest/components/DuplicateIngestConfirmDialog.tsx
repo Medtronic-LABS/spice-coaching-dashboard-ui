@@ -5,12 +5,14 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { IngestDuplicateConflict } from '@/features/ingest/api/adminIngestApi';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import {
   useLazyFetchSourceDocumentsQuery,
   type SourceDocumentSummary,
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 
 export type DuplicateIngestDialogVariant = 'upload' | 'blocked' | 'skipped';
 
@@ -224,7 +226,7 @@ export const DuplicateIngestConfirmDialog = ({
       render: (row) => (
         <input
           type="checkbox"
-          className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
+          className={cn(SPICE_CHECKBOX_CLASSNAME, isConfirming && 'opacity-60')}
           checked={selectedFilenames.includes(row.filename)}
           disabled={isConfirming}
           onChange={(event) =>

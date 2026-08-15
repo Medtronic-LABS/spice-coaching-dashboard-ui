@@ -10,8 +10,10 @@ import {
   type TabItem,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { cn } from '@/utils';
 import {
   useUploadKnowledgeDocumentMutation,
   type KnowledgeUploadPayload,
@@ -513,7 +515,10 @@ export const KnowledgeLibraryPage = () => {
                         disabled={disableInputs}
                         onChange={(e) => setOriginalTitle(e.target.value)}
                         placeholder="e.g. HTN Referral Guidelines"
-                        className="h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20"
+                        className={cn(
+                          'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                          SPICE_INPUT_FOCUS_CLASSNAME,
+                        )}
                       />
                     </div>
 

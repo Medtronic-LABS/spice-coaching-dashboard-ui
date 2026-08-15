@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 /**
@@ -200,7 +201,10 @@ export const Combobox = ({
             ? `${inputId}-option-${highlightedIndex}`
             : undefined
         }
-        className="h-10 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
+        className={cn(
+          'h-10 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+          SPICE_INPUT_FOCUS_CLASSNAME,
+        )}
         value={open ? searchTerm : selectedLabel}
         placeholder={open ? placeholder : selectedLabel || placeholder}
         onFocus={() => setOpen(true)}

@@ -1,3 +1,6 @@
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
+import { cn } from '@/utils';
+
 export interface ChatbotFaqsOnlyFieldProps {
   checked: boolean;
   disabled?: boolean;
@@ -14,7 +17,7 @@ export function ChatbotFaqsOnlyField({
     <label className="flex min-h-10 items-start gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5">
       <input
         type="checkbox"
-        className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30 mt-0.5"
+        className={cn(SPICE_CHECKBOX_CLASSNAME, 'mt-0.5')}
         disabled={disabled}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
@@ -24,8 +27,8 @@ export function ChatbotFaqsOnlyField({
           Chatbot FAQs Only
         </span>
         <span className="mt-0.5 block text-xs text-spice-text-muted">
-          Published FAQ-only modules are available for chatbot Q&amp;A and
-          cannot be assigned to CHWs.
+          Published FAQ-only modules are available for chatbot Q&A and cannot be
+          assigned to CHWs.
         </span>
       </span>
     </label>
