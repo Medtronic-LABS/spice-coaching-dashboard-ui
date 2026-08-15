@@ -45,11 +45,11 @@ export function ingestRunStatusBadgeClassName(
 ): string {
   switch (tone) {
     case 'processing':
-      return 'bg-spice-semantic-infoBg text-spice-semantic-info';
+      return 'bg-spice-palette-violetLt text-spice-palette-violet';
     case 'completed':
-      return 'bg-spice-semantic-successBg text-spice-semantic-success';
+      return 'bg-spice-palette-purpleLt text-spice-palette-purple';
     case 'partial':
-      return 'bg-spice-semantic-warningBg text-spice-semantic-warning';
+      return 'bg-spice-palette-pinkLt text-spice-palette-pink';
     case 'failed':
       return 'bg-spice-semantic-errorBg text-spice-semantic-error';
     case 'neutral':

@@ -7,10 +7,16 @@ import type {
   SettingsFilterSection,
   SettingsFilterSegmentedField,
 } from '@/components/common/settingsFilter.types';
+import {
+  SPICE_CHECKBOX_CLASSNAME,
+  SPICE_INPUT_FOCUS_CLASSNAME,
+} from '@/constants/formControls';
 import { cn } from '@/utils';
 
-const dateInputClassName =
-  'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none transition focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20';
+const dateInputClassName = cn(
+  'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+  SPICE_INPUT_FOCUS_CLASSNAME,
+);
 
 interface FilterFieldProps {
   label: string;
@@ -60,7 +66,9 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
       <div
         className={cn(
           'gap-2',
-          columns === 2 ? 'grid grid-cols-1 sm:grid-cols-2' : 'flex flex-col',
+          columns === 2
+            ? 'grid grid-cols-1 items-stretch sm:grid-cols-2'
+            : 'flex flex-col',
         )}
       >
         {field.options.map((option) => {
@@ -69,7 +77,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
             <label
               key={option.value}
               className={cn(
-                'flex min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition',
+                'flex h-11 w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 transition',
                 checked
                   ? 'border-spice-brand-primary/40 bg-spice-brand-primary/[0.06]'
                   : 'border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint',
@@ -77,7 +85,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
             >
               <input
                 type="checkbox"
-                className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
+                className={SPICE_CHECKBOX_CLASSNAME}
                 checked={checked}
                 onChange={() => field.onToggle(option.value)}
               />

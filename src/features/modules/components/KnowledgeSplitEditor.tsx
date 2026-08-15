@@ -1,10 +1,12 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Button, ImagePicker, LimitedTextInput } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
+import { cn } from '@/utils';
 
 export interface KnowledgeSplitEditorProps {
   index: number;
@@ -135,11 +137,13 @@ export const KnowledgeSplitEditor = ({
                     const nextStart = parseIntOrNaN(e.target.value);
                     onChange({ ...value, startPage: nextStart });
                   }}
-                  className={`h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/20 ${
+                  className={cn(
+                    'h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                    SPICE_INPUT_FOCUS_CLASSNAME,
                     errors?.startPage
-                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error/30'
-                      : 'border-spice-border-mid focus:border-spice-brand-primary/40'
-                  }`}
+                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error'
+                      : 'border-spice-border-mid',
+                  )}
                 />
                 {errors?.startPage ? (
                   <p className="mt-1 text-xs text-spice-semantic-error">
@@ -164,11 +168,13 @@ export const KnowledgeSplitEditor = ({
                     const nextEnd = parseIntOrNaN(e.target.value);
                     onChange({ ...value, endPage: nextEnd });
                   }}
-                  className={`h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/20 ${
+                  className={cn(
+                    'h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                    SPICE_INPUT_FOCUS_CLASSNAME,
                     errors?.endPage
-                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error/30'
-                      : 'border-spice-border-mid focus:border-spice-brand-primary/40'
-                  }`}
+                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error'
+                      : 'border-spice-border-mid',
+                  )}
                 />
                 {errors?.endPage ? (
                   <p className="mt-1 text-xs text-spice-semantic-error">

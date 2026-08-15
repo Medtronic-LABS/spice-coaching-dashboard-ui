@@ -11,6 +11,7 @@ import {
   useLazyFetchAdminUpazilasPageQuery,
   useLazyFetchHierarchyUsersPageQuery,
 } from '@/features/modules/api/adminAssignmentApi';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 interface DistrictUpazilaPage {
@@ -681,7 +682,10 @@ function DistrictSelectionCheckbox({
       disabled={disabled}
       aria-label="Select all users in district"
       onChange={onChange}
-      className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25 disabled:cursor-wait disabled:opacity-60"
+      className={cn(
+        SPICE_CHECKBOX_CLASSNAME,
+        'disabled:cursor-wait disabled:opacity-60',
+      )}
     />
   );
 }
@@ -780,7 +784,10 @@ function DistrictUpazilaList({
               }}
               disabled={isLoadingUsers}
               onChange={() => onToggleUpazila(upazila)}
-              className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25 disabled:cursor-wait disabled:opacity-60"
+              className={cn(
+                SPICE_CHECKBOX_CLASSNAME,
+                'disabled:cursor-wait disabled:opacity-60',
+              )}
             />
           </label>
         );

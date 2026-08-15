@@ -6,7 +6,9 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 import { type ColumnDef, Table } from '@/components/common/Table';
 import {
   SettingsFilterDrawer,
@@ -701,7 +703,10 @@ export const KnowledgeLibraryTable = () => {
                 step={1}
                 inputMode="numeric"
                 aria-label="Page number"
-                className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
+                className={cn(
+                  'h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary caret-spice-palette-purple',
+                  SPICE_INPUT_FOCUS_CLASSNAME,
+                )}
                 value={pageInput}
                 onChange={(e) => handlePageInputChange(e.target.value)}
                 onBlur={commitPageInput}

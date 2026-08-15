@@ -19,7 +19,7 @@ export const Badge = ({ children, className }: BadgeProps) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full bg-spice-bg-tint px-2.5 py-1 text-xs font-medium text-spice-text-medium',
+        'inline-flex items-center justify-center rounded-full bg-spice-bg-tint px-2.5 py-1 text-xs font-medium text-spice-text-medium',
         className,
       )}
     >

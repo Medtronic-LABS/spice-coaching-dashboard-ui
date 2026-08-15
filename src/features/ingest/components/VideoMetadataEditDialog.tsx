@@ -11,12 +11,14 @@ import {
   FIELD_LIMITS,
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import {
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
   type SourceDocumentSummary,
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
+import { cn } from '@/utils';
 import {
   VIDEO_THUMBNAIL_ACCEPT,
   formatVideoThumbnailRejectionError,
@@ -182,7 +184,10 @@ export const VideoMetadataEditDialog = ({
             maxLength={FIELD_LIMITS.documentTitle}
             disabled={isSaving}
             onChange={setTitle}
-            inputClassName="w-full rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+            inputClassName={cn(
+              'w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+              SPICE_INPUT_FOCUS_CLASSNAME,
+            )}
           />
         </label>
 
@@ -195,7 +200,10 @@ export const VideoMetadataEditDialog = ({
             onChange={(event) => setDescription(event.target.value)}
             disabled={isSaving}
             rows={3}
-            className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+            className={cn(
+              'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+              SPICE_INPUT_FOCUS_CLASSNAME,
+            )}
           />
         </label>
 

@@ -14,6 +14,7 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import {
   ASSIGNMENT_LIST_PAGE_SIZE,
   ASSIGNMENT_USERS_PAGE_SIZE,
@@ -258,7 +259,7 @@ function UserSelectionList({
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => onToggleUser(user.id)}
-                    className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
+                    className={SPICE_CHECKBOX_CLASSNAME}
                   />
                 </label>
               );

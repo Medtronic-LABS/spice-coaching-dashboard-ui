@@ -16,6 +16,8 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
+import { cn } from '@/utils';
 import type {
   AdminV3IngestUploadPayload,
   AdminV3IngestUploadResponse,
@@ -460,7 +462,10 @@ export const DocumentSelectionPanel = ({
           return (
             <input
               type="checkbox"
-              className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className={cn(
+                SPICE_CHECKBOX_CLASSNAME,
+                'disabled:cursor-not-allowed disabled:opacity-60',
+              )}
               aria-label={
                 selectionLocked
                   ? `${row.title} selected`
