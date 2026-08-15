@@ -492,6 +492,10 @@ export interface FetchModulesQueryArgs {
   deactivated_from?: string | null;
   deactivated_to?: string | null;
   sourceDocumentId?: string | null;
+  /** Assignee geography: integer hierarchy ids. */
+  division_id?: number | null;
+  district_id?: number | null;
+  upazila_id?: number | null;
   /** Server-side search; omit when empty or below the UI minimum length. */
   q?: string | null;
   sort_by?: string | null;
@@ -588,6 +592,9 @@ export const adminModulesApi = baseApi.injectEndpoints({
         deactivated_from,
         deactivated_to,
         sourceDocumentId,
+        division_id,
+        district_id,
+        upazila_id,
         q,
         sort_by,
         sort_dir,
@@ -612,6 +619,9 @@ export const adminModulesApi = baseApi.injectEndpoints({
           ...(deactivated_from ? { deactivated_from } : {}),
           ...(deactivated_to ? { deactivated_to } : {}),
           ...(sourceDocumentId ? { source_document_id: sourceDocumentId } : {}),
+          ...(typeof division_id === 'number' ? { division_id } : {}),
+          ...(typeof district_id === 'number' ? { district_id } : {}),
+          ...(typeof upazila_id === 'number' ? { upazila_id } : {}),
           ...(q ? { q } : {}),
           ...(sort_by ? { sort_by } : {}),
           ...(sort_dir ? { sort_dir } : {}),

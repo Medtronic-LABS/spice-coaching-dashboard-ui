@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   AdminV3IngestAcceptedResponse,
@@ -14,6 +13,7 @@ import {
   writeActiveVideoIngestSessions,
 } from '@/features/ingest/utils/videoIngestSessionStorage';
 import { VideoUploadPage } from './VideoUploadPage';
+import { renderWithProviders } from '@/test-utils/render';
 
 type IngestAcceptedCallback = (
   response: AdminV3IngestAcceptedResponse,
@@ -207,11 +207,7 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
 });
 
 function renderPage() {
-  return render(
-    <MemoryRouter>
-      <VideoUploadPage />
-    </MemoryRouter>,
-  );
+  return renderWithProviders(<VideoUploadPage />);
 }
 
 function latestUploadedVideosQuery() {
@@ -240,11 +236,11 @@ async function stageAndApiUpload(
     screen.getByLabelText(/upload video/i, { selector: 'input' }),
     video,
   );
-  await waitFor(() =>
+  await waitFor(() => {
     expect(
-      screen.getAllByText(video.name, { exact: false }).length,
-    ).toBeGreaterThan(0),
-  );
+      screen.getByRole('button', { name: `Remove ${video.name}` }),
+    ).toBeInTheDocument();
+  });
 
   mocks.uploadFiles.mockImplementation(async () => {
     const existingDocument = mocks.sourceDocuments.find(
@@ -474,11 +470,11 @@ describe('VideoUploadPage', () => {
       screen.getByLabelText(/upload video/i, { selector: 'input' }),
       videos,
     );
-    await waitFor(() =>
+    await waitFor(() => {
       expect(
-        screen.getAllByText('first-video.mp4', { exact: false }).length,
-      ).toBeGreaterThan(0),
-    );
+        screen.getByRole('button', { name: 'Remove first-video.mp4' }),
+      ).toBeInTheDocument();
+    });
 
     mocks.uploadFiles.mockImplementation(async () => {
       const response: AdminV3IngestUploadResponse = {
@@ -664,6 +660,33 @@ describe('VideoUploadPage', () => {
     await waitFor(() => {
       expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_from');
       expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_to');
+    });
+  });
+
+  it('sends geography assignment filters with the uploaded videos query', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      screen.getByRole('button', { name: /open video filters/i }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Filters' });
+    await user.click(within(dialog).getByLabelText(/^division$/i));
+    await user.click(await screen.findByRole('option', { name: 'Rangpur' }));
+    await user.click(within(dialog).getByLabelText(/^district$/i));
+    await user.click(
+      await screen.findByRole('option', { name: 'Lalmonirhat' }),
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => {
+      expect(latestUploadedVideosQuery()).toEqual(
+        expect.objectContaining({
+          source_type: 'video',
+          division_id: 1,
+          district_id: 10,
+        }),
+      );
     });
   });
 

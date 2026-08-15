@@ -1972,6 +1972,16 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         created_by: 'system',
         updated_by: 'system',
       },
+      {
+        id: 20,
+        name: 'Naogaon',
+        division_id: 2,
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
     ].filter((district) => {
       if (
         divisionIdFilter !== null &&

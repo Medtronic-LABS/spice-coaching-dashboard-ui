@@ -58,8 +58,10 @@ import {
   uploadedDateInputToToIso,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
@@ -181,6 +183,7 @@ export const KnowledgeLibraryTable = () => {
       ...(appliedDrawerFilters.assigned
         ? { assigned: appliedDrawerFilters.assigned === 'true' }
         : {}),
+      ...toGeographyQueryParams(appliedDrawerFilters),
       sort_by: sortBy,
       sort_dir: sortOrder,
       limit: pageSize,
@@ -314,6 +317,15 @@ export const KnowledgeLibraryTable = () => {
     setAppliedDrawerFilters(cleared);
     setPage(0);
   };
+
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'knowledge',
+    selection: draftDrawerFilters,
+    onSelectionChange: (next) => {
+      setDraftDrawerFilters((current) => ({ ...current, ...next }));
+    },
+  });
 
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
     setSortBy(nextSortBy as typeof sortBy);
@@ -641,6 +653,7 @@ export const KnowledgeLibraryTable = () => {
             uploaderSearch={uploaderSearch}
             onUploaderSearchChange={setUploaderSearch}
             uploadersLoading={uploadersLoading}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 
