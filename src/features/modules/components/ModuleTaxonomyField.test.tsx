@@ -71,17 +71,18 @@ describe('ModuleTaxonomyField', () => {
     expect(screen.getByText('*')).toBeInTheDocument();
   });
 
-  it('supports overriding the custom option label', () => {
+  it('hides the visible label when asked and keeps an accessible name', () => {
     render(
       <ModuleTaxonomyField
         label="Domain"
-        value=""
+        hideLabel
+        value="rmnch"
         options={['rmnch']}
-        customOptionLabel="Other"
         onChange={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole('option', { name: 'Other' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^domain$/i)).toBeInTheDocument();
+    expect(screen.queryByText('*')).not.toBeInTheDocument();
   });
 });

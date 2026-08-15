@@ -139,6 +139,12 @@ export interface EditAdminModuleRequestBody {
   thumbnail_storage_path?: string | null;
   /** When set, updates chatbot FAQ-only flag on the new module version. */
   chatbot_faqs_only?: boolean;
+  /** Omit to copy forward; send to update catalog domain. */
+  domain?: string;
+  /** Omit to copy forward; send to update Learning Library domain type. */
+  content_domain?: string | null;
+  /** Omit to copy forward; send to update estimated duration. */
+  estimated_minutes?: number;
 }
 
 export type AdminModuleRefresherType = 'refresher' | string;
@@ -689,6 +695,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
+      invalidatesTags: ['ModuleDomains'],
     }),
     deleteModule: builder.mutation<RetireModuleResponse, { moduleId: string }>({
       query: ({ moduleId }) => ({

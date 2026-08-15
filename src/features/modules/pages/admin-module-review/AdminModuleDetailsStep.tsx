@@ -1,6 +1,6 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRightIcon, SaveDraftIcon } from '@/assets/icon';
+import { ArrowRightIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
 import {
   Banner,
   Button,
@@ -8,12 +8,21 @@ import {
   ImagePicker,
   LimitedTextInput,
   Loader,
+  Select,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
+import {
+  INGEST_CONTENT_DOMAIN_OPTIONS,
+  formatModuleContentDomainLabel,
+} from '@/features/ingest/constants/ingestFormOptions';
+import { useFetchModuleDomainOptionsQuery } from '@/features/modules/api/adminModulesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
+import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
+import { CREATE_MODULE_FORM_PLACEHOLDERS } from '@/features/modules/constants/createModuleFormDefaults';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -21,12 +30,41 @@ import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdmin
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { updateDetails } from '@/features/modules/store/adminModuleReviewSlice';
 import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
-import { formatModuleContentDomainLabel } from '@/features/ingest/constants/ingestFormOptions';
+import {
+  formatEstimatedMinutesFieldValue,
+  getEstimatedMinutesValidationError,
+  parseEstimatedMinutesInput,
+} from '@/features/modules/utils/estimatedMinutesValidation';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
+import { normalizeModuleTaxonomyLabel } from '@/features/modules/utils/normalizeModuleTaxonomyLabel';
 import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import { useAppDispatch } from '@/store/hooks';
 import { patchLocaleField, readLocaleText } from '@/types/localized';
+import { cn } from '@/utils';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+
+const COMPACT_CONTROL_CLASS =
+  'h-8 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-2 text-xs font-semibold text-spice-text-primary';
+
+function SummaryFieldLabel({
+  label,
+  editable,
+}: {
+  label: string;
+  editable: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-medium text-spice-text-muted">
+      {label}
+      {editable ? (
+        <PencilIcon
+          className="h-3 w-3 shrink-0 text-spice-brand-primary"
+          title={`Edit ${label.toLowerCase()}`}
+        />
+      ) : null}
+    </span>
+  );
+}
 
 export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
@@ -36,6 +74,9 @@ export const AdminModuleDetailsStep = () => {
     useAdminModuleReviewEditor(moduleId);
 
   const isReadonly = useAdminModuleReviewReadonly();
+  const { data: catalogDomainOptions = [] } = useFetchModuleDomainOptionsQuery(
+    {},
+  );
   const { registerEditorContext } = useModulePreview();
   const {
     actionError,
@@ -65,6 +106,13 @@ export const AdminModuleDetailsStep = () => {
   const { uploadError, isUploading, uploadThumbnailFile } =
     useAdminModuleThumbnailUpload(save);
 
+  const domainOptions = useMemo(() => {
+    if (!working?.domain || catalogDomainOptions.includes(working.domain)) {
+      return catalogDomainOptions;
+    }
+    return [working.domain, ...catalogDomainOptions];
+  }, [catalogDomainOptions, working?.domain]);
+
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
   }
@@ -85,6 +133,14 @@ export const AdminModuleDetailsStep = () => {
   const busy = isSaving || isUploading;
   const busyLabel = isUploading ? 'Uploading image…' : 'Saving module…';
   const qualityFlagLabels: string[] = working.quality_flags?.flags ?? [];
+  const canEditMetadata = !isReadonly;
+  const domainError = normalizeModuleTaxonomyLabel(working.domain)
+    ? null
+    : 'Domain is required.';
+  const estimatedMinutesError = getEstimatedMinutesValidationError(
+    working.estimated_minutes,
+  );
+  const metadataInvalid = Boolean(domainError || estimatedMinutesError);
 
   return (
     <section className="space-y-4">
@@ -110,19 +166,63 @@ export const AdminModuleDetailsStep = () => {
 
         <div className="flex flex-col md:flex-row gap-4 items-stretch">
           <div className="flex-1 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border text-xs min-h-[180px]">
-            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
-              <span className="text-spice-text-muted font-medium">Domain</span>
-              <span className="font-semibold text-spice-text-primary">
-                {formatModuleDomainLabel(working.domain) || '—'}
-              </span>
+            <div className="flex justify-between items-start gap-3 py-1.5 border-b border-spice-border/40">
+              <SummaryFieldLabel label="Domain" editable={canEditMetadata} />
+              {canEditMetadata ? (
+                <div className="w-[13.5rem] shrink-0">
+                  <ModuleTaxonomyField
+                    id="admin-module-domain"
+                    label="Domain"
+                    hideLabel
+                    value={working.domain}
+                    options={domainOptions}
+                    placeholder={CREATE_MODULE_FORM_PLACEHOLDERS.domain}
+                    disabled={busy}
+                    required
+                    inputClassName={COMPACT_CONTROL_CLASS}
+                    onChange={(domain) => dispatch(updateDetails({ domain }))}
+                  />
+                  {domainError ? (
+                    <p className="mt-1 text-[11px] text-spice-semantic-error">
+                      {domainError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <span className="font-semibold text-spice-text-primary">
+                  {formatModuleDomainLabel(working.domain) || '—'}
+                </span>
+              )}
             </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
-              <span className="text-spice-text-muted font-medium">
-                Domain Type
-              </span>
-              <span className="font-semibold text-spice-text-primary">
-                {formatModuleContentDomainLabel(working.content_domain) || '—'}
-              </span>
+            <div className="flex justify-between items-center gap-3 py-1.5 border-b border-spice-border/40">
+              <SummaryFieldLabel
+                label="Domain Type"
+                editable={canEditMetadata}
+              />
+              {canEditMetadata ? (
+                <Select
+                  className={cn(COMPACT_CONTROL_CLASS, 'w-[13.5rem] shrink-0')}
+                  options={INGEST_CONTENT_DOMAIN_OPTIONS}
+                  value={
+                    working.content_domain ??
+                    INGEST_FORM_DEFAULTS.content_domain
+                  }
+                  disabled={busy}
+                  aria-label="Domain type"
+                  onChange={(value) =>
+                    dispatch(
+                      updateDetails({
+                        content_domain: value,
+                      }),
+                    )
+                  }
+                />
+              ) : (
+                <span className="font-semibold text-spice-text-primary">
+                  {formatModuleContentDomainLabel(working.content_domain) ||
+                    '—'}
+                </span>
+              )}
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
               <span className="text-spice-text-muted font-medium">Status</span>
@@ -136,14 +236,52 @@ export const AdminModuleDetailsStep = () => {
                 {working.card_count}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
-              <span className="text-spice-text-muted font-medium">
-                Estimated minutes
-              </span>
-              <span className="font-semibold text-spice-text-primary">
-                {working.estimated_minutes}{' '}
-                {working.estimated_minutes === 1 ? 'minute' : 'minutes'}
-              </span>
+            <div className="flex justify-between items-start gap-3 py-1.5 border-b border-spice-border/40">
+              <SummaryFieldLabel
+                label="Estimated minutes"
+                editable={canEditMetadata}
+              />
+              {canEditMetadata ? (
+                <div className="w-[13.5rem] shrink-0">
+                  <input
+                    id="admin-module-estimated-minutes"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    aria-label="Estimated minutes"
+                    aria-invalid={Boolean(estimatedMinutesError)}
+                    className={cn(
+                      COMPACT_CONTROL_CLASS,
+                      estimatedMinutesError &&
+                        'border-spice-semantic-error ring-1 ring-spice-semantic-error',
+                    )}
+                    value={formatEstimatedMinutesFieldValue(
+                      working.estimated_minutes,
+                    )}
+                    disabled={busy}
+                    onChange={(e) =>
+                      dispatch(
+                        updateDetails({
+                          estimated_minutes: parseEstimatedMinutesInput(
+                            e.target.value,
+                          ),
+                        }),
+                      )
+                    }
+                  />
+                  {estimatedMinutesError ? (
+                    <p className="mt-1 text-[11px] text-spice-semantic-error">
+                      {estimatedMinutesError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <span className="font-semibold text-spice-text-primary">
+                  {working.estimated_minutes}{' '}
+                  {working.estimated_minutes === 1 ? 'minute' : 'minutes'}
+                </span>
+              )}
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
               <span className="text-spice-text-muted font-medium">
@@ -305,9 +443,10 @@ export const AdminModuleDetailsStep = () => {
             <Button
               variant="secondary"
               className="inline-flex h-9 items-center gap-1.5 text-xs"
-              disabled={busy}
+              disabled={busy || metadataInvalid}
               onClick={async () => {
                 clearSaveFeedback();
+                if (metadataInvalid) return;
                 try {
                   await save();
                 } catch (err) {
@@ -321,15 +460,16 @@ export const AdminModuleDetailsStep = () => {
           ) : null}
           <Button
             className="inline-flex h-9 items-center gap-1.5 text-xs"
-            disabled={busy}
-            onClick={() =>
+            disabled={busy || metadataInvalid}
+            onClick={() => {
+              if (metadataInvalid) return;
               navigate(
                 paths.adminModuleReviewLessons.replace(
                   ':moduleId',
                   encodeURIComponent(working.id),
                 ),
-              )
-            }
+              );
+            }}
           >
             Continue to Lessons
             <ArrowRightIcon className="h-3.5 w-3.5" />
