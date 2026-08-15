@@ -213,4 +213,35 @@ describe('KnowledgeLibraryTable', () => {
       screen.getByRole('button', { name: /^open knowledge filters$/i }),
     ).toBeInTheDocument();
   });
+
+  it('shows searchable geography filters in the drawer', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<KnowledgeLibraryTable />);
+
+    expect(
+      await screen.findByText('HTN Referral Guidelines'),
+    ).toBeInTheDocument();
+
+    const dialog = await openKnowledgeFilters(user);
+    expect(within(dialog).getByLabelText(/^division$/i)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/^district$/i)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/^upazila$/i)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByLabelText(/^division$/i));
+    expect(
+      await screen.findByRole('option', { name: 'Rangpur' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'Rangpur' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: 'Filters' }),
+      ).not.toBeInTheDocument();
+    });
+
+    const reopened = await openKnowledgeFilters(user);
+    expect(within(reopened).getByLabelText(/^division$/i)).toHaveDisplayValue(
+      'Rangpur',
+    );
+  });
 });

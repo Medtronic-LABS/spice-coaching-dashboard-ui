@@ -79,6 +79,8 @@ import {
   toggleVideoUploadStatus,
   type VideoUploadFiltersState,
 } from '@/features/ingest/utils/videoUploadStatusConfig';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import {
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
@@ -330,6 +332,15 @@ export const VideoUploadPage = () => {
     setFiltersDrawerOpen(false);
   }, [draftFilters]);
 
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'video',
+    selection: draftFilters,
+    onSelectionChange: (next) => {
+      setDraftFilters((current) => ({ ...current, ...next }));
+    },
+  });
+
   const stageVideoFiles = useCallback((files: ArrayLike<File> | null) => {
     const picked = Array.from(files ?? []);
     if (!picked.length) return;
@@ -487,6 +498,7 @@ export const VideoUploadPage = () => {
           uploaded_to: uploadedDateInputToToIso(appliedFilters.uploadedAtTo),
         }
       : {}),
+    ...toGeographyQueryParams(appliedFilters),
     limit: pageSize,
     offset: page * pageSize,
     sort_by: sortBy,
@@ -1367,6 +1379,7 @@ export const VideoUploadPage = () => {
             }}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
         <Loader open={isLoadingVideos} label="Loading uploaded videos…" />

@@ -54,6 +54,8 @@ import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignab
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type {
   ModuleLibraryItem,
   ModuleStatus,
@@ -296,6 +298,7 @@ export const ModuleLibraryPage = () => {
       domain: activeFilters.domain || undefined,
       ...dateParams,
       sourceDocumentId: activeFilters.sourceDocumentId || undefined,
+      ...toGeographyQueryParams(activeFilters),
       q: searchQ,
       sort_by: sortBy,
       sort_dir: sortDir,
@@ -345,6 +348,15 @@ export const ModuleLibraryPage = () => {
     setPage(0);
     setDocumentSearch('');
   };
+
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'module',
+    selection: draftFilters,
+    onSelectionChange: (next) => {
+      setDraftFilters((current) => ({ ...current, ...next }));
+    },
+  });
 
   const handleTabChange = (value: string) => {
     setTab(value as ModuleLibraryTab);
@@ -1375,6 +1387,7 @@ export const ModuleLibraryPage = () => {
             onChange={setDraftFilters}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 
