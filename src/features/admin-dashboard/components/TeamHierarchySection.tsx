@@ -39,6 +39,7 @@ import {
   sortTeamMembers,
   type HierarchyRoleTab,
 } from '@/features/admin-dashboard/utils/teamActivity';
+import { getAuthSession } from '@/features/auth/services/authSession';
 import { cn } from '@/utils';
 
 export type { HierarchyFocusSelection };
@@ -59,6 +60,25 @@ const ROLE_TABS: Array<{ value: HierarchyRoleTab; labelKey: string }> = [
   { value: 'po', labelKey: 'adminDashboard.hierarchy.tabs.po' },
   { value: 'sk', labelKey: 'adminDashboard.hierarchy.tabs.sk' },
 ];
+
+/** True when the logged-in Spice role is an Area Manager. */
+function isLoggedInAreaManager(): boolean {
+  return hierarchyRoleKind(getAuthSession()?.role ?? '') === 'am';
+}
+
+function visibleHierarchyRoleTabs(): Array<{
+  value: HierarchyRoleTab;
+  labelKey: string;
+}> {
+  if (isLoggedInAreaManager()) {
+    return ROLE_TABS.filter((tab) => tab.value !== 'am');
+  }
+  return ROLE_TABS;
+}
+
+function defaultHierarchyRoleTab(): HierarchyRoleTab {
+  return isLoggedInAreaManager() ? 'po' : 'am';
+}
 
 const SORT_OPTIONS: Array<{ value: TeamHierarchySortKey }> = [
   { value: 'default' },
@@ -404,7 +424,10 @@ export const TeamHierarchySection = ({
 }: TeamHierarchySectionProps) => {
   const { t } = useTranslation();
   const { roleLabel } = useHierarchyLabels();
-  const [roleTab, setRoleTab] = useState<HierarchyRoleTab>('am');
+  const roleTabs = useMemo(() => visibleHierarchyRoleTabs(), []);
+  const [roleTab, setRoleTab] = useState<HierarchyRoleTab>(
+    defaultHierarchyRoleTab,
+  );
   const [search, setSearch] = useState('');
 
   const depth = hierarchyTabDepth(roleTab);
@@ -487,7 +510,7 @@ export const TeamHierarchySection = ({
     >
       <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4 pt-3">
         <div className="flex gap-6" role="tablist">
-          {ROLE_TABS.map((tab) => {
+          {roleTabs.map((tab) => {
             const isActive = roleTab === tab.value;
             return (
               <button
