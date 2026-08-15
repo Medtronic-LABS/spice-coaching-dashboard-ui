@@ -100,6 +100,9 @@ export function editableSnapshot(module: AdminModuleDetailResponse): string {
     quiz: module.quiz,
     thumbnail_storage_path: module.thumbnail_storage_path,
     chatbot_faqs_only: Boolean(module.chatbot_faqs_only),
+    domain: module.domain,
+    content_domain: module.content_domain ?? null,
+    estimated_minutes: module.estimated_minutes,
   });
 }
 
@@ -158,6 +161,9 @@ export const adminModuleReviewSlice = createSlice({
         thumbnail_presigned_expires_seconds:
           state.working.thumbnail_presigned_expires_seconds,
         chatbot_faqs_only: state.working.chatbot_faqs_only,
+        domain: state.working.domain,
+        content_domain: state.working.content_domain,
+        estimated_minutes: state.working.estimated_minutes,
       };
       syncExplanationReviewState(state);
     },
@@ -179,6 +185,9 @@ export const adminModuleReviewSlice = createSlice({
         thumbnail_storage_path?: string | null;
         thumbnail_presigned_url?: string | null;
         chatbot_faqs_only?: boolean;
+        domain?: string;
+        content_domain?: string | null;
+        estimated_minutes?: number;
       }>,
     ) {
       if (!state.working) return;

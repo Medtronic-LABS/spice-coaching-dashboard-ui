@@ -19,6 +19,7 @@ export { HistoryIcon, type HistoryIconProps } from './HistoryIcon';
 export { KnowledgeIcon, type KnowledgeIconProps } from './KnowledgeIcon';
 export { LayersIcon, type LayersIconProps } from './LayersIcon';
 export { MenuIcon, type MenuIconProps } from './MenuIcon';
+export { PencilIcon, type PencilIconProps } from './PencilIcon';
 export { RefreshIcon, type RefreshIconProps } from './RefreshIcon';
 export { SaveDraftIcon, type SaveDraftIconProps } from './SaveDraftIcon';
 export { SearchIcon, type SearchIconProps } from './SearchIcon';

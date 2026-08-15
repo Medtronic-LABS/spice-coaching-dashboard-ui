@@ -1,9 +1,9 @@
 import { useEffect, useId, useState } from 'react';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
+import { cn } from '@/utils';
 
 const FIELD_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
-const SELECT_CLASS = `select-arrow ${FIELD_CLASS}`;
 
 const OTHER_VALUE = '__other__';
 
@@ -16,6 +16,8 @@ export interface ModuleTaxonomyFieldProps {
   disabled?: boolean;
   required?: boolean;
   emptyOptionLabel?: string;
+  hideLabel?: boolean;
+  inputClassName?: string;
   onChange: (value: string) => void;
   id?: string;
 }
@@ -33,6 +35,8 @@ export const ModuleTaxonomyField = ({
   disabled = false,
   required = false,
   emptyOptionLabel,
+  hideLabel = false,
+  inputClassName,
   onChange,
   id: idProp,
 }: ModuleTaxonomyFieldProps) => {
@@ -42,6 +46,8 @@ export const ModuleTaxonomyField = ({
   const [useCustom, setUseCustom] = useState(false);
   const hasExistingOptions = options.length > 0;
   const inputOnly = !disabled && !hasExistingOptions;
+  const fieldClass = cn(FIELD_CLASS, inputClassName);
+  const selectClass = cn('select-arrow', fieldClass);
 
   useEffect(() => {
     const trimmed = value.trim();
@@ -54,7 +60,7 @@ export const ModuleTaxonomyField = ({
   }, [value, options]);
 
   const selectValue = useCustom ? OTHER_VALUE : value;
-  const labelContent = (
+  const labelContent = hideLabel ? null : (
     <span className="text-xs font-semibold text-spice-text-primary">
       {label}
       {required ? (
@@ -72,11 +78,12 @@ export const ModuleTaxonomyField = ({
         {labelContent}
         <input
           id={customInputId}
-          className={FIELD_CLASS}
+          className={fieldClass}
           value={value}
           disabled={disabled}
           required={required}
           placeholder={placeholder ?? `New ${label.toLowerCase()}`}
+          aria-label={hideLabel ? label : undefined}
           onChange={(event) => onChange(event.target.value)}
         />
       </label>
@@ -89,10 +96,11 @@ export const ModuleTaxonomyField = ({
         {labelContent}
         <select
           id={fieldId}
-          className={SELECT_CLASS}
+          className={selectClass}
           value={selectValue}
           disabled={disabled}
           required={required}
+          aria-label={hideLabel ? label : undefined}
           onChange={(event) => {
             const nextValue = event.target.value;
             if (nextValue === OTHER_VALUE) {
@@ -120,7 +128,7 @@ export const ModuleTaxonomyField = ({
       {useCustom ? (
         <input
           id={customInputId}
-          className={FIELD_CLASS}
+          className={fieldClass}
           value={value}
           disabled={disabled}
           required={required}
