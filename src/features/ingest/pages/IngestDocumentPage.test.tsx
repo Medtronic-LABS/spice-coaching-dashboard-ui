@@ -215,6 +215,113 @@ describe('IngestDocumentPage', () => {
     });
   });
 
+  it('keeps selected documents checked while ingestion is in progress', async () => {
+    const user = userEvent.setup();
+    mocks.startIngest.mockImplementation(async () => {
+      mocks.onAcceptedRef.current?.(
+        {
+          batch_id: 'batch-running',
+          sources: [
+            {
+              source_document_id: 'doc-1',
+              title: 'Hypertension Guide',
+              status: 'queued',
+            },
+          ],
+        },
+        { isReingest: false },
+      );
+      return null;
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-running',
+      status: 'running',
+      created_at: null,
+      completed_at: null,
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'running',
+          started_at: null,
+          completed_at: null,
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expand Document Selection' }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    );
+    expect(screen.getByText('1 document selected')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /start ingestion/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-running',
+      );
+    });
+    expect(screen.getByText('1 document selected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    ).toBeChecked();
+  });
+
+  it('restores checkbox selection from session source ids while batch is active', async () => {
+    writeActiveIngestSession({
+      batch_id: 'batch-running',
+      source_document_id: 'doc-1',
+      title: 'Hypertension Guide',
+      kept_existing_sources: [
+        {
+          source_document_id: 'doc-existing',
+          title: 'Existing Guide',
+          filename: 'existing.pdf',
+        },
+      ],
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-running',
+      status: 'running',
+      created_at: null,
+      completed_at: null,
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'running',
+          started_at: null,
+          completed_at: null,
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    expect(screen.getByText('2 documents selected')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-running',
+      );
+    });
+    expect(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    ).toBeChecked();
+  });
+
   it('keeps session storage after a terminal batch status until the page is left', async () => {
     writeActiveIngestSession({
       batch_id: 'batch-failed',

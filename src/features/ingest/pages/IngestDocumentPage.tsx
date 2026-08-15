@@ -37,7 +37,14 @@ import {
   isIngestSucceeded,
 } from '@/features/ingest/utils/ingestStatus';
 import { keptExistingSourcesFromConflicts } from '@/features/ingest/utils/parseIngestDuplicateError';
+import { selectedDocumentsFromIngestSourceIds } from '@/features/ingest/utils/selectedDocumentsFromIngestSourceIds';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
+
+function selectedDocumentsFromActiveSession(): SelectedIngestDocument[] {
+  return selectedDocumentsFromIngestSourceIds({
+    session: readActiveIngestSession(),
+  });
+}
 
 export const IngestDocumentPage = () => {
   const navigate = useNavigate();
@@ -56,8 +63,10 @@ export const IngestDocumentPage = () => {
 
   const [selectedDocuments, setSelectedDocuments] = useState<
     SelectedIngestDocument[]
-  >([]);
-  const [selectionPanelOpen, setSelectionPanelOpen] = useState(false);
+  >(() => selectedDocumentsFromActiveSession());
+  const [selectionPanelOpen, setSelectionPanelOpen] = useState(
+    () => selectedDocumentsFromActiveSession().length > 0,
+  );
   const [documentSearchQuery, setDocumentSearchQuery] = useState('');
   const [uploadClearSignal, setUploadClearSignal] = useState(0);
 
@@ -105,12 +114,6 @@ export const IngestDocumentPage = () => {
         setActiveBatchId(res.batch_id);
         setRestoredBatchId(res.batch_id);
       }
-      const queuedIds = new Set(
-        (res.sources ?? []).map((source) => source.source_document_id),
-      );
-      setSelectedDocuments((previous) =>
-        previous.filter((document) => !queuedIds.has(document.id)),
-      );
       setSelectionPanelOpen(true);
     },
     [],
@@ -156,6 +159,7 @@ export const IngestDocumentPage = () => {
     onClear: () => {
       clearActiveIngestSession();
       setKeptExistingSources([]);
+      setSelectedDocuments([]);
     },
   });
 
@@ -280,6 +284,21 @@ export const IngestDocumentPage = () => {
     primarySourceDocumentId,
     statusData?.completed_at,
   ]);
+
+  // Keep checkboxes selected from session / batch source ids while a batch is active.
+  useEffect(() => {
+    if (!batchId) return;
+    setSelectedDocuments((previous) =>
+      selectedDocumentsFromIngestSourceIds({
+        previous,
+        session: readActiveIngestSession(),
+        keptExistingSources,
+        acceptedSources: accepted?.sources,
+        statusSources: statusData?.sources,
+      }),
+    );
+    setSelectionPanelOpen(true);
+  }, [accepted?.sources, batchId, keptExistingSources, statusData?.sources]);
 
   const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {

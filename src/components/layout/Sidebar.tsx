@@ -42,7 +42,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
     : t('layout.header.userInitials');
   const roleLabel = authSession?.role ?? t('layout.sidebar.userFallback');
   const sectionTitleClassName =
-    'px-4 pt-6 text-[11px] font-semibold uppercase leading-[13px] text-spice-palette-violet first:pt-0';
+    'px-4 pt-2 text-[11px] font-semibold uppercase leading-[13px] text-spice-palette-violet first:pt-0';
   const linkClassName = ({ isActive }: { isActive: boolean }) =>
     cn(
       'group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-3 text-sm transition',
