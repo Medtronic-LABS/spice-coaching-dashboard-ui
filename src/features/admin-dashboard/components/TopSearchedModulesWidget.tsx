@@ -29,7 +29,6 @@ interface TopSearchedModulesWidgetProps {
   showActions: boolean;
   assignLabel: string;
   onAssign: (moduleId: string, title: string) => void;
-  hideSkName?: boolean;
 }
 
 function mapModulesToRows(
@@ -62,7 +61,6 @@ export const TopSearchedModulesWidget = ({
   showActions,
   assignLabel,
   onAssign,
-  hideSkName = false,
 }: TopSearchedModulesWidgetProps) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
@@ -151,7 +149,6 @@ export const TopSearchedModulesWidget = ({
           fromDate={fromDate}
           toDate={toDate}
           geography={geography}
-          hideSkName={hideSkName}
         />
       )}
     />

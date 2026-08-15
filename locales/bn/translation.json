@@ -236,9 +236,7 @@
       "searchPlaceholderSk": "SK খুঁজুন...",
       "emptyTitle": "কোনো টিম মেম্বার নেই",
       "emptyDescription": "বর্তমান ফিল্টারে কোনো হায়ারার্কি সারি নেই।",
-      "focusForAnalytics": "এই ব্যক্তির উপর ডকুমেন্ট অ্যানালিটিক্স ফোকাস করুন",
-      "clearFocus": "ফোকাস সরান",
-      "focusActive": "ফোকাসড",
+      "openSkDetail": "SK বিবরণ দেখুন",
       "roleLabels": {
         "am": "এরিয়া ম্যানেজার",
         "po": "প্রোগ্রাম অফিসার",
@@ -277,6 +275,28 @@
         "chatbot": "চ্যাটবট প্রশ্ন",
         "lastActive": "সর্বশেষ সক্রিয়"
       }
+    },
+    "skDrawer": {
+      "title": "আমার SK",
+      "description": "{{name}}-এর কার্যকলাপ ও অ্যাসাইন করা মডিউল",
+      "close": "SK বিবরণ বন্ধ করুন",
+      "modulesLabel": "মডিউল",
+      "queriesLabel": "প্রশ্ন",
+      "modulesHeading": "মডিউল",
+      "activityHeading": "কার্যকলাপ",
+      "topQueriesHeading": "টপ প্রশ্ন",
+      "pending": "অপেক্ষমাণ",
+      "completed": "সম্পন্ন",
+      "lastChatbotUse": "শেষ চ্যাটবট ব্যবহার",
+      "lastModule": "শেষ মডিউল",
+      "never": "কখনো না",
+      "today": "আজ",
+      "yesterday": "গতকাল",
+      "daysAgo_one": "{{count}} দিন আগে",
+      "daysAgo_other": "{{count}} দিন আগে",
+      "emptyModules": "এই রেঞ্জে কোনো অ্যাসাইন করা মডিউল নেই।",
+      "emptyQueriesTitle": "কোনো প্রশ্ন নেই",
+      "emptyQueriesDescription": "নির্বাচিত তারিখ পরিসরে এই SK-এর কোনো চ্যাটবট প্রশ্ন নেই।"
     },
     "trainingModules": {
       "title": "প্রশিক্ষণ মডিউল",
@@ -390,7 +410,6 @@
       "opensTitle": "ওপেন ইভেন্ট",
       "unknownUser": "অজানা ব্যবহারকারী",
       "openDetail": "{{title}} এর ওপেনে ড্রিল ডাউন করুন",
-      "clearFocus": "ফোকাস সরান: {{name}}",
       "viewAll": "সব দেখুন",
       "viewAllDocuments": "সব ডকুমেন্ট দেখুন",
       "backToOverview": "ওভারভিউতে ফিরুন",

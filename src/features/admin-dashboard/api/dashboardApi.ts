@@ -18,6 +18,7 @@ import type {
   ModuleCreationSuggestionListResponse,
   PublishedModuleCompletionsResponse,
   TeamActivityResponse,
+  TeamMemberQuestionsResponse,
 } from '@/features/admin-dashboard/types/dashboard.types';
 
 export interface DashboardDateParams {
@@ -41,6 +42,13 @@ export interface TeamActivityQuery
   sort_dir?: 'asc' | 'desc';
   /** Pending BE: hierarchy status filter. */
   status?: DashboardStatusQueryParam;
+}
+
+export interface TeamMemberQuestionsQuery
+  extends DashboardDateParams, DashboardGeoQueryParams {
+  userId: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface DigitalHelpModulesQuery extends DashboardDateParams {
@@ -108,6 +116,22 @@ export const dashboardApi = baseApi.injectEndpoints({
           offset,
           user_id,
           depth,
+          ...geo,
+        },
+      }),
+    }),
+    fetchTeamMemberQuestions: builder.query<
+      TeamMemberQuestionsResponse,
+      TeamMemberQuestionsQuery
+    >({
+      extraOptions: DASHBOARD_QUERY_RETRY,
+      query: ({ userId, from_date, to_date, limit, offset, ...geo }) => ({
+        url: `/dashboard/team-activity/users/${encodeURIComponent(String(userId))}/questions`,
+        params: {
+          from_date,
+          to_date,
+          limit,
+          offset,
           ...geo,
         },
       }),
@@ -256,6 +280,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
 export const {
   useFetchTeamActivityQuery,
+  useFetchTeamMemberQuestionsQuery,
   useFetchDigitalHelpModulesQuery,
   useFetchDigitalHelpModuleQuestionsQuery,
   useFetchDigitalHelpModuleRequestsQuery,

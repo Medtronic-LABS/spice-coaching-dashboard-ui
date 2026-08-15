@@ -27,7 +27,6 @@ interface TopSuggestedModulesWidgetProps {
   createLabel: string;
   onPublish: (moduleId: string) => void;
   onCreate: (topic: string) => void;
-  hideSkName?: boolean;
 }
 
 function mapSuggestionsToRows(
@@ -77,7 +76,6 @@ export const TopSuggestedModulesWidget = ({
   createLabel,
   onPublish,
   onCreate,
-  hideSkName = false,
 }: TopSuggestedModulesWidgetProps) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
@@ -179,7 +177,6 @@ export const TopSuggestedModulesWidget = ({
         <SuggestedModuleInlineEvidence
           suggestionId={rowId}
           geography={geography}
-          hideSkName={hideSkName}
         />
       )}
     />

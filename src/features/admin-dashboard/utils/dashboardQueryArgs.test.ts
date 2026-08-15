@@ -6,6 +6,7 @@ import {
   buildDocumentUsageDateGeoArgs,
   buildPublishedModuleCompletionsQueryArgs,
   buildTeamActivityQueryArgs,
+  buildTeamMemberQuestionsQueryArgs,
 } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 
 describe('dashboardQueryArgs', () => {
@@ -100,6 +101,30 @@ describe('dashboardQueryArgs', () => {
       to_date: '2026-01-31',
       limit: 100,
       offset: 0,
+    });
+  });
+
+  it('builds team member questions args with geography filters', () => {
+    expect(
+      buildTeamMemberQuestionsQueryArgs(
+        '2026-01-01',
+        '2026-01-31',
+        {
+          division: 'Dhaka',
+          district: 'Gazipur',
+          upazila: 'Kaliakoir',
+        },
+        42,
+      ),
+    ).toEqual({
+      userId: 42,
+      from_date: '2026-01-01',
+      to_date: '2026-01-31',
+      limit: 20,
+      offset: 0,
+      division: 'Dhaka',
+      district: 'Gazipur',
+      upazila_id: 'Kaliakoir',
     });
   });
 
