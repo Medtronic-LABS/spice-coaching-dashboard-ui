@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type {
   DashboardFiltersState,
   DashboardGeographyFilters,
@@ -11,6 +11,7 @@ import {
   resolveDashboardDateRange,
   seedCustomRangeFromPreset,
 } from '@/features/admin-dashboard/utils/dateRange';
+import { clampDateInputToToday } from '@/utils/dateInput';
 
 export const EMPTY_DASHBOARD_GEOGRAPHY: DashboardGeographyFilters = {
   division: '',
@@ -29,8 +30,8 @@ export const DEFAULT_DASHBOARD_FILTERS: DashboardFiltersState = {
 export function useDashboardFilters() {
   const [durationPreset, setDurationPresetState] =
     useState<DashboardDurationPreset>(DEFAULT_DASHBOARD_FILTERS.durationPreset);
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  const [customFrom, setCustomFromState] = useState('');
+  const [customTo, setCustomToState] = useState('');
   const [status, setStatus] = useState<DashboardStatusFilter>('all');
   const [geography, setGeography] = useState<DashboardGeographyFilters>(
     EMPTY_DASHBOARD_GEOGRAPHY,
@@ -52,6 +53,19 @@ export function useDashboardFilters() {
   );
 
   const isDateRangeValid = isDashboardDateRangeValid(dateRange);
+  const queryDateRangeRef = useRef(dateRange);
+  if (isDateRangeValid) {
+    queryDateRangeRef.current = dateRange;
+  }
+  const queryDateRange = queryDateRangeRef.current;
+
+  const setCustomFrom = (value: string) => {
+    setCustomFromState(clampDateInputToToday(value));
+  };
+
+  const setCustomTo = (value: string) => {
+    setCustomToState(clampDateInputToToday(value));
+  };
 
   const setDurationPreset = (preset: DashboardDurationPreset) => {
     if (preset === 'custom') {
@@ -75,6 +89,7 @@ export function useDashboardFilters() {
   return {
     filters,
     dateRange,
+    queryDateRange,
     isDateRangeValid,
     setDurationPreset,
     setCustomFrom,

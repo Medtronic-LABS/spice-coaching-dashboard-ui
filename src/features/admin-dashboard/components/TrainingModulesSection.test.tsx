@@ -55,9 +55,7 @@ describe('TrainingModulesSection', () => {
       screen.getByRole('heading', { name: 'Training Modules' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Published modules with SK completion progress in the current view.',
-      ),
+      screen.getByText('Published modules with SK completion progress.'),
     ).toBeInTheDocument();
 
     const table = screen.getByRole('table');

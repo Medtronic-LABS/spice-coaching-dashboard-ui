@@ -93,6 +93,11 @@ describe('moduleListFilters', () => {
     expect(dateRangeValidationMessage('2026-04-30', '2026-04-01')).toBe(
       'From date must be on or before to date.',
     );
+    expect(
+      dateRangeValidationMessage('2026-04-01', '2026-04-30', {
+        today: '2026-04-15',
+      }),
+    ).toBe('To date cannot be in the future.');
   });
 
   it('ignores hidden date types for badge / invalid checks on drafts', () => {

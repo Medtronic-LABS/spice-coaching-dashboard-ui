@@ -88,6 +88,11 @@ describe('badgeForm utils', () => {
       'From date must be on or before to date.',
     );
     expect(dateRangeValidationMessage('2026-04-01', '2026-04-10')).toBeNull();
+    expect(
+      dateRangeValidationMessage('2026-04-01', '2026-04-10', {
+        today: '2026-04-05',
+      }),
+    ).toBe('To date cannot be in the future.');
   });
 
   it('surfaces API problem-details detail for mutation errors', () => {

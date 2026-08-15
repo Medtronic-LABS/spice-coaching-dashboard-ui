@@ -12,6 +12,7 @@ import {
   SPICE_INPUT_FOCUS_CLASSNAME,
 } from '@/constants/formControls';
 import { cn } from '@/utils';
+import { todayDateInputValue } from '@/utils/dateInput';
 
 const dateInputClassName = cn(
   'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
@@ -101,6 +102,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
 }
 
 function renderDateRange(field: SettingsFilterDateRangeField) {
+  const maxDate = todayDateInputValue();
   return (
     <div
       className={cn(
@@ -122,6 +124,7 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
               field.invalid && 'border-spice-semantic-error',
             )}
             value={field.from.value}
+            max={maxDate}
             onChange={(event) => field.from.onChange(event.target.value)}
           />
         </FilterField>
@@ -135,6 +138,7 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
               field.invalid && 'border-spice-semantic-error',
             )}
             value={field.to.value}
+            max={maxDate}
             onChange={(event) => field.to.onChange(event.target.value)}
           />
         </FilterField>

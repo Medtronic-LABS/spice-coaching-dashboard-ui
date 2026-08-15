@@ -16,6 +16,7 @@ import {
 } from '@/features/modules/api/adminAssignmentApi';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import { cn } from '@/utils';
+import { todayDateInputValue } from '@/utils/dateInput';
 
 function countPanelFilters(
   status: DashboardStatusFilter,
@@ -160,7 +161,7 @@ export const DashboardFilterBar = ({
 
   useEffect(() => {
     if (!selectedDistrictId) {
-      setUpazilaOptions([]);
+      setUpazilaOptions((current) => (current.length === 0 ? current : []));
       return;
     }
     void (async () => {
@@ -225,6 +226,7 @@ export const DashboardFilterBar = ({
     setDraftGeography(EMPTY_DASHBOARD_GEOGRAPHY);
   };
 
+  const maxSelectableDate = todayDateInputValue();
   const selectClassName =
     'h-10 w-full rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm';
 
@@ -264,9 +266,6 @@ export const DashboardFilterBar = ({
             role="dialog"
             aria-label={t('adminDashboard.filters.panelLabel')}
           >
-            <p className="text-xs leading-relaxed text-spice-text-muted">
-              {t('adminDashboard.filters.scopeNote')}
-            </p>
             <FilterField label={t('adminDashboard.filters.statusLabel')}>
               <Select
                 options={statusOptions}
@@ -356,6 +355,7 @@ export const DashboardFilterBar = ({
             <input
               type="date"
               value={filters.customFrom}
+              max={maxSelectableDate}
               onChange={(event) => onCustomFromChange(event.target.value)}
               className="h-10 rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm text-spice-text-primary"
               aria-label={t('adminDashboard.filters.from')}
@@ -364,6 +364,7 @@ export const DashboardFilterBar = ({
             <input
               type="date"
               value={filters.customTo}
+              max={maxSelectableDate}
               onChange={(event) => onCustomToChange(event.target.value)}
               className="h-10 rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm text-spice-text-primary"
               aria-label={t('adminDashboard.filters.to')}

@@ -54,6 +54,13 @@ describe('videoUploadStatusConfig', () => {
         uploadedAtTo: '2026-01-01',
       }),
     ).toBe(true);
+    expect(
+      isVideoUploadDateRangeInvalid({
+        ...EMPTY_VIDEO_UPLOAD_FILTERS,
+        uploadedAtFrom: '2026-04-01',
+        uploadedAtTo: '2099-01-01',
+      }),
+    ).toBe(true);
   });
 
   it('normalizes filter draft values before apply', () => {

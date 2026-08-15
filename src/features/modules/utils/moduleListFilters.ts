@@ -5,6 +5,12 @@ import {
   parseGeographyIdParam,
   type GeographyFilterState,
 } from '@/features/modules/utils/geographyFilters';
+import { isDateRangeInvalid } from '@/utils/dateInput';
+
+export {
+  dateRangeValidationMessage,
+  isDateRangeInvalid,
+} from '@/utils/dateInput';
 
 export type ModuleLibraryTab =
   | 'all'
@@ -115,22 +121,6 @@ function primaryDateTypeForTab(
   if (tab === 'drafts') return 'created';
   if (tab === 'deactivated') return 'deactivated';
   return 'published';
-}
-
-export function dateRangeValidationMessage(
-  dateFrom: string,
-  dateTo: string,
-): string | null {
-  const from = dateFrom.trim();
-  const to = dateTo.trim();
-  if (!from && !to) return null;
-  if (!from || !to) return 'Both from and to dates are required.';
-  if (from > to) return 'From date must be on or before to date.';
-  return null;
-}
-
-export function isDateRangeInvalid(dateFrom: string, dateTo: string): boolean {
-  return dateRangeValidationMessage(dateFrom, dateTo) !== null;
 }
 
 export function isAnyVisibleDateRangeInvalid(

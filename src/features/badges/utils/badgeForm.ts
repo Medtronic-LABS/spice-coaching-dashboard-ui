@@ -6,6 +6,11 @@ import {
 } from '@/features/badges/types/badge.types';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
+export {
+  dateRangeValidationMessage,
+  isDateRangeInvalid,
+} from '@/utils/dateInput';
+
 /** Derive object key from `bucket/key` or bare object key storage paths. */
 export function objectNameFromStoragePath(storagePath: string): string {
   const clean = storagePath.trim().replace(/^\/+/, '');
@@ -19,22 +24,6 @@ export function objectNameFromStoragePath(storagePath: string): string {
   const slash = clean.indexOf('/');
   if (slash === -1) return clean;
   return clean.slice(slash + 1);
-}
-
-export function isDateRangeInvalid(dateFrom: string, dateTo: string): boolean {
-  return dateRangeValidationMessage(dateFrom, dateTo) !== null;
-}
-
-export function dateRangeValidationMessage(
-  dateFrom: string,
-  dateTo: string,
-): string | null {
-  const from = dateFrom.trim();
-  const to = dateTo.trim();
-  if (!from && !to) return null;
-  if (!from || !to) return 'Both from and to dates are required.';
-  if (from > to) return 'From date must be on or before to date.';
-  return null;
 }
 
 export function hasActiveBadgeFilters(

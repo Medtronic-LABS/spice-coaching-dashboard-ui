@@ -40,6 +40,25 @@ describe('KnowledgeLibraryFilters', () => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
   });
 
+  it('disables Apply when the To date is in the future', () => {
+    render(
+      <KnowledgeLibraryFilters
+        filters={{
+          ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
+          uploadedAtFrom: '2026-04-01',
+          uploadedAtTo: '2099-01-01',
+        }}
+        onChange={vi.fn()}
+        onClearAll={vi.fn()}
+        onApply={vi.fn()}
+        {...defaultFilterProps}
+      />,
+    );
+
+    expect(screen.getByText('To date cannot be in the future.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
   it('forwards Clear All and Apply for valid filters', async () => {
     const user = userEvent.setup();
     const onClearAll = vi.fn();
