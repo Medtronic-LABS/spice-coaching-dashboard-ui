@@ -41,6 +41,7 @@ import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdm
 import { useAppDispatch } from '@/store/hooks';
 import { patchLocaleField, readLocaleText } from '@/types/localized';
 import { cn } from '@/utils';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const COMPACT_CONTROL_CLASS =
@@ -344,7 +345,7 @@ export const AdminModuleDetailsStep = () => {
                   hint={THUMBNAIL_ACCEPT_SIZE_HINT}
                   previewAlt="Module thumbnail"
                   previewObjectFit="contain"
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  accept={IMAGE_FILE_INPUT_ACCEPT}
                 />
               )}
             </div>

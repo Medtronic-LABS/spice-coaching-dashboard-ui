@@ -251,4 +251,85 @@ describe('ImagePicker', () => {
       'false',
     );
   });
+
+  it('rejects AVIF on drop and does not call onChange', () => {
+    const onChange = vi.fn();
+    const onReject = vi.fn();
+    render(
+      <ImagePicker
+        variant="tile"
+        value={null}
+        onChange={onChange}
+        onReject={onReject}
+        label="Add thumbnail"
+      />,
+    );
+
+    const tile = screen.getByText('Add thumbnail').closest('label');
+    fireEvent.drop(tile as HTMLLabelElement, {
+      dataTransfer: { files: [makeFile('preview.avif', 'image/avif')] },
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onReject).toHaveBeenCalledWith(
+      'Unsupported format. Use PNG, JPEG, or WebP.',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Unsupported format. Use PNG, JPEG, or WebP.',
+    );
+  });
+
+  it('clears the AVIF rejection after a valid PNG pick', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <ImagePicker
+        variant="tile"
+        value={null}
+        onChange={onChange}
+        label="Add thumbnail"
+      />,
+    );
+
+    const tile = screen.getByText('Add thumbnail').closest('label');
+    fireEvent.drop(tile as HTMLLabelElement, {
+      dataTransfer: { files: [makeFile('preview.avif', 'image/avif')] },
+    });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const png = makeFile('thumb.png', 'image/png');
+    await user.upload(input, png);
+
+    expect(onChange).toHaveBeenCalledWith(png);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('replaces the hint with a short validation line', () => {
+    const onChange = vi.fn();
+    render(
+      <ImagePicker
+        variant="tile"
+        value={null}
+        onChange={onChange}
+        label="Add thumbnail"
+        hint="PNG, JPEG, or WebP · max 5 MB"
+      />,
+    );
+
+    fireEvent.drop(screen.getByText('Add thumbnail').closest('label')!, {
+      dataTransfer: { files: [makeFile('preview.avif', 'image/avif')] },
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Unsupported format. Use PNG, JPEG, or WebP.',
+    );
+    expect(
+      screen.queryByText('PNG, JPEG, or WebP · max 5 MB'),
+    ).not.toBeInTheDocument();
+  });
 });

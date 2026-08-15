@@ -12,6 +12,7 @@ import {
 import { paths } from '@/constants/routes';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { cn } from '@/utils';
 import {
@@ -551,7 +552,7 @@ export const KnowledgeLibraryPage = () => {
                         }}
                         disabled={disableInputs}
                         clearable={Boolean(originalThumbnailValue)}
-                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        accept={IMAGE_FILE_INPUT_ACCEPT}
                         label="Optional — leave blank for none"
                         labelWhenSelected={
                           hasCustomOriginalThumbnail

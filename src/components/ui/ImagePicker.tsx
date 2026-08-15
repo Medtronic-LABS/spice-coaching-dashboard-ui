@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
+import {
+  formatImageRejectionError,
+  IMAGE_FILE_INPUT_ACCEPT,
+} from '@/utils/acceptedImageFile';
 import { cn } from '@/utils';
 
 export type ImagePickerVariant = 'tile' | 'compact';
@@ -9,6 +13,10 @@ export interface ImagePickerProps {
   value: File | string | null;
   onChange: (file: File | null) => void;
   accept?: string;
+  /** Optional byte cap checked after format (callers that show a size hint). */
+  maxBytes?: number;
+  /** Called with a rejection message, or an empty string after a valid pick. */
+  onReject?: (message: string) => void;
   disabled?: boolean;
   enableDragDrop?: boolean;
   label?: string;
@@ -23,8 +31,6 @@ export interface ImagePickerProps {
   previewObjectFit?: 'cover' | 'contain';
   clearable?: boolean;
 }
-
-const DEFAULT_IMAGE_ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp';
 
 const PlusIcon = ({ className }: { className?: string }) => (
   <svg
@@ -50,7 +56,9 @@ export const ImagePicker = ({
   variant,
   value,
   onChange,
-  accept = DEFAULT_IMAGE_ACCEPT,
+  accept = IMAGE_FILE_INPUT_ACCEPT,
+  maxBytes,
+  onReject,
   disabled = false,
   enableDragDrop = true,
   label = 'Choose image',
@@ -65,6 +73,7 @@ export const ImagePicker = ({
   const previewFitClassName =
     previewObjectFit === 'contain' ? 'object-contain' : 'object-cover';
   const [isDragActive, setIsDragActive] = useState(false);
+  const [rejectionError, setRejectionError] = useState('');
 
   const objectUrl = useMemo(() => {
     if (value instanceof File) return URL.createObjectURL(value);
@@ -84,11 +93,21 @@ export const ImagePicker = ({
 
   const takeFile = (file: File | null | undefined) => {
     if (disabled || !file) return;
+    const message = formatImageRejectionError(file, { accept, maxBytes });
+    if (message) {
+      setRejectionError(message);
+      onReject?.(message);
+      return;
+    }
+    setRejectionError('');
+    onReject?.('');
     onChange(file);
   };
 
   const clearFile = () => {
     if (disabled) return;
+    setRejectionError('');
+    onReject?.('');
     onChange(null);
   };
 
@@ -106,8 +125,20 @@ export const ImagePicker = ({
     />
   );
 
-  const hintNode = hint ? (
-    <p className="text-[10px] leading-snug text-spice-text-muted">{hint}</p>
+  const feedbackText = rejectionError || hint || '';
+  const feedbackNode = feedbackText ? (
+    <p
+      className={cn(
+        'text-[10px] leading-snug',
+        rejectionError
+          ? 'text-spice-semantic-warning'
+          : 'text-spice-text-muted',
+      )}
+      role={rejectionError ? 'status' : undefined}
+      aria-live={rejectionError ? 'polite' : undefined}
+    >
+      {feedbackText}
+    </p>
   ) : null;
 
   if (variant === 'compact') {
@@ -125,14 +156,17 @@ export const ImagePicker = ({
         ) : null}
         <label
           className={cn(
-            'inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-medium hover:bg-spice-bg-tint',
+            'inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-medium hover:bg-spice-bg-tint',
+            rejectionError
+              ? 'border-spice-semantic-warning'
+              : 'border-spice-border',
             disabled && 'cursor-not-allowed opacity-60',
           )}
         >
           {input}
           {primaryLabel}
         </label>
-        {hintNode}
+        {feedbackNode}
       </div>
     );
   }
@@ -145,10 +179,14 @@ export const ImagePicker = ({
   } else if (isDragActive) {
     tileStateClasses =
       'cursor-pointer border-spice-brand-primary bg-spice-bg-surface';
+  } else if (rejectionError) {
+    tileStateClasses =
+      'cursor-pointer border-spice-semantic-warning bg-spice-semantic-warningBg hover:bg-spice-semantic-warningBg';
   }
 
   const tileFrameClassName = cn(
-    'flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint',
+    'flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg border bg-spice-bg-tint',
+    rejectionError ? 'border-spice-semantic-warning' : 'border-spice-border',
     frameClassName,
   );
 
@@ -179,14 +217,17 @@ export const ImagePicker = ({
         </div>
         <label
           className={cn(
-            'inline-flex cursor-pointer items-center justify-center rounded-md border border-spice-border bg-spice-bg-surface px-3 py-1.5 text-xs text-spice-text-medium hover:bg-spice-bg-tint',
+            'inline-flex cursor-pointer items-center justify-center rounded-md border bg-spice-bg-surface px-3 py-1.5 text-xs text-spice-text-medium hover:bg-spice-bg-tint',
+            rejectionError
+              ? 'border-spice-semantic-warning'
+              : 'border-spice-border',
             disabled && 'cursor-not-allowed opacity-60',
           )}
         >
           {input}
           {labelWhenSelected}
         </label>
-        {hintNode}
+        {feedbackNode}
       </div>
     );
   }
@@ -218,7 +259,7 @@ export const ImagePicker = ({
           {label}
         </span>
       </label>
-      {hintNode}
+      {feedbackNode}
     </div>
   );
 };

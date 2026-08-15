@@ -10,6 +10,7 @@ import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { cn } from '@/utils';
 
 export interface KnowledgeEditModalProps {
@@ -101,7 +102,7 @@ export function KnowledgeEditModal({
               value={thumbnailValue}
               onChange={onThumbnailChange}
               disabled={disabled}
-              accept="image/png,image/jpeg,image/jpg,image/webp"
+              accept={IMAGE_FILE_INPUT_ACCEPT}
               label="Choose thumbnail"
               labelWhenSelected="Change thumbnail"
               hint={THUMBNAIL_ACCEPT_SIZE_HINT}

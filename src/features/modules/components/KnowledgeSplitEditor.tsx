@@ -3,6 +3,7 @@ import { Button, ImagePicker, LimitedTextInput } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
@@ -209,7 +210,7 @@ export const KnowledgeSplitEditor = ({
               }}
               disabled={disabled}
               clearable={hasVisibleThumbnail}
-              accept="image/png,image/jpeg,image/jpg,image/webp"
+              accept={IMAGE_FILE_INPUT_ACCEPT}
               label="Optional — leave blank for none"
               labelWhenSelected={
                 hasCustomThumbnail ? 'Change custom' : 'Replace with custom'
