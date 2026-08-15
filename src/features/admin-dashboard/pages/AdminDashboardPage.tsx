@@ -7,6 +7,7 @@ import { buildPath, paths } from '@/constants/routes';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
 import { DocumentUsageSection } from '@/features/admin-dashboard/components/DocumentUsageSection';
+import { ModuleDemandSummaryWidget } from '@/features/admin-dashboard/components/ModuleDemandSummaryWidget';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/TopSearchedModulesWidget';
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
@@ -129,6 +130,11 @@ export const AdminDashboardPage = () => {
         <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
           {t('adminDashboard.moduleDemand.sectionTitle')}
         </h2>
+        <ModuleDemandSummaryWidget
+          fromDate={fromDate}
+          toDate={toDate}
+          geography={geography}
+        />
         <div className="grid items-stretch gap-3 xl:grid-cols-2">
           <TopSearchedModulesWidget
             fromDate={fromDate}

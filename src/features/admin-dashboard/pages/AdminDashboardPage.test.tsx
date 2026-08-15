@@ -36,6 +36,15 @@ vi.mock('@/features/admin-dashboard/components/TrainingModulesSection', () => ({
 }));
 
 vi.mock(
+  '@/features/admin-dashboard/components/ModuleDemandSummaryWidget',
+  () => ({
+    ModuleDemandSummaryWidget: () => (
+      <div data-testid="module-demand-summary-widget" />
+    ),
+  }),
+);
+
+vi.mock(
   '@/features/admin-dashboard/components/TopSearchedModulesWidget',
   () => ({
     TopSearchedModulesWidget: () => (
@@ -82,6 +91,7 @@ describe('AdminDashboardPage', () => {
       'dashboard-kpi-row',
       'team-hierarchy-section',
       'training-modules-section',
+      'module-demand-summary-widget',
       'top-searched-modules-widget',
       'top-suggested-modules-widget',
       'document-usage-section',

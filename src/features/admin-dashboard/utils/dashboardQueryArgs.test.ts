@@ -4,6 +4,7 @@ import {
   PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
   buildDashboardGeoParams,
   buildDocumentUsageDateGeoArgs,
+  buildModuleDemandSummaryQueryArgs,
   buildPublishedModuleCompletionsQueryArgs,
   buildTeamActivityQueryArgs,
   buildTeamMemberQuestionsQueryArgs,
@@ -140,6 +141,27 @@ describe('dashboardQueryArgs', () => {
       to: '2026-01-31',
       division: 'Dhaka',
       district: 'Gazipur',
+    });
+  });
+
+  it('builds module demand summary args with geography and top_limit', () => {
+    expect(
+      buildModuleDemandSummaryQueryArgs(
+        '2026-07-01',
+        '2026-07-31',
+        {
+          division: 'Dhaka',
+          district: '',
+          upazila: 'Kaliakoir',
+        },
+        { top_limit: 5 },
+      ),
+    ).toEqual({
+      from_date: '2026-07-01',
+      to_date: '2026-07-31',
+      top_limit: 5,
+      division: 'Dhaka',
+      upazila_id: 'Kaliakoir',
     });
   });
 });

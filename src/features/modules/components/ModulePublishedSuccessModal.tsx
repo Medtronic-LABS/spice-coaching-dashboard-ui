@@ -69,11 +69,22 @@ export const ModulePublishedSuccessModal = ({
         variant="elevated"
         className="w-full max-w-xl space-y-4 border-spice-border p-4 shadow-lg sm:space-y-5 sm:p-6"
       >
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-semantic-successBg text-2xl text-spice-semantic-success">
-          ✓
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-palette-purpleLt text-spice-palette-purple ring-1 ring-spice-palette-purple/15">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-7 w-7"
+            aria-hidden
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
         </div>
         <div className="space-y-2 text-center">
-          <Badge className="bg-spice-semantic-successBg text-spice-semantic-success">
+          <Badge className="bg-spice-palette-purpleLt text-spice-palette-purple ring-1 ring-spice-palette-purple/15">
             PUBLISHED
           </Badge>
           <h2

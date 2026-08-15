@@ -353,6 +353,9 @@
     },
     "moduleDemand": {
       "sectionTitle": "Module search demand",
+      "summaryTitle": "Module demand summary",
+      "summaryDescription": "Narrative overview of digital-help usage and module creation demand for the selected filters.",
+      "summaryEmptyFallback": "No module usage or creation demand was recorded for your team between {{fromDate}} to {{toDate}}.",
       "columns": {
         "title": "Module Title",
         "searchCount": "Search Count",
@@ -385,6 +388,7 @@
         "create": "Create Module"
       },
       "seeMore": "See more",
+      "seeLess": "See less",
       "loadingMore": "Loading…",
       "expand": "Expand widget",
       "collapse": "Collapse widget",

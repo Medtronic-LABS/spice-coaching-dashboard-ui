@@ -16,6 +16,7 @@ import type {
   DocumentUsageResponse,
   ModuleCreationSuggestionDetailResponse,
   ModuleCreationSuggestionListResponse,
+  ModuleDemandSummaryResponse,
   PublishedModuleCompletionsResponse,
   TeamActivityResponse,
   TeamMemberQuestionsResponse,
@@ -79,6 +80,11 @@ export interface ModuleCreationSuggestionsQuery extends DashboardDateParams {
 export interface ModuleCreationSuggestionDetailQuery {
   suggestionId: string;
   geography: DashboardGeographyFilters;
+}
+
+export interface ModuleDemandSummaryQuery
+  extends DashboardDateParams, DashboardGeoQueryParams {
+  top_limit?: number;
 }
 
 export interface DocumentUsageQuery extends DashboardGeoQueryParams {
@@ -243,6 +249,37 @@ export const dashboardApi = baseApi.injectEndpoints({
         return normalized;
       },
     }),
+    fetchModuleDemandSummary: builder.query<
+      ModuleDemandSummaryResponse,
+      ModuleDemandSummaryQuery
+    >({
+      extraOptions: DASHBOARD_QUERY_RETRY,
+      query: ({ from_date, to_date, top_limit, ...geo }) => ({
+        url: '/dashboard/module-demand-summary',
+        params: {
+          from_date,
+          to_date,
+          top_limit,
+          ...geo,
+        },
+      }),
+      transformResponse: (response: unknown): ModuleDemandSummaryResponse => {
+        if (
+          typeof response !== 'object' ||
+          response === null ||
+          Array.isArray(response)
+        ) {
+          return { from_date: '', to_date: '', summary: '' };
+        }
+        const record = response as Record<string, unknown>;
+        return {
+          from_date:
+            typeof record.from_date === 'string' ? record.from_date : '',
+          to_date: typeof record.to_date === 'string' ? record.to_date : '',
+          summary: typeof record.summary === 'string' ? record.summary : '',
+        };
+      },
+    }),
     fetchDocumentUsage: builder.query<
       DocumentUsageResponse,
       DocumentUsageQuery
@@ -289,5 +326,6 @@ export const {
   useFetchModuleCreationSuggestionsQuery,
   useFetchModuleCreationSuggestionDetailQuery,
   useLazyFetchModuleCreationSuggestionDetailQuery,
+  useFetchModuleDemandSummaryQuery,
   useFetchDocumentUsageQuery,
 } = dashboardApi;

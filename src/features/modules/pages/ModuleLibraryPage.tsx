@@ -50,6 +50,10 @@ import {
   NEEDS_REVIEW_TOOLTIP_CONTENT,
   NeedsReviewTab,
 } from '@/features/modules/components/NeedsReviewTab';
+import {
+  ModulePublishedSuccessModal,
+  type ModulePublishedSuccessSummary,
+} from '@/features/modules/components/ModulePublishedSuccessModal';
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
@@ -234,6 +238,9 @@ export const ModuleLibraryPage = () => {
     null,
   );
   const [publishError, setPublishError] = useState('');
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [publishSuccessSummary, setPublishSuccessSummary] =
+    useState<ModulePublishedSuccessSummary | null>(null);
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
 
@@ -544,6 +551,7 @@ export const ModuleLibraryPage = () => {
       lessons: m.card_count,
       questions: m.quiz_count,
       durationLabel: `~${formatEstimatedMinutesDisplay(m.estimated_minutes)}`,
+      estimatedMinutes: m.estimated_minutes,
       status: (m.lifecycle_status as ModuleStatus) ?? 'draft',
       createdAt: formatDisplayDateTime(m.created_at),
       lastUpdatedAt: formatDisplayDateTime(m.updated_at || m.created_at),
@@ -806,6 +814,14 @@ export const ModuleLibraryPage = () => {
                     setPublishingModuleId(row.id);
                     try {
                       await publishModule({ moduleId: row.id }).unwrap();
+                      setPublishSuccessSummary({
+                        title: row.title,
+                        topic: row.category,
+                        lessonCount: row.lessons,
+                        quizCount: row.questions,
+                        estimateMinutes: row.estimatedMinutes,
+                      });
+                      setPublishSuccessOpen(true);
                       refreshModuleList();
                     } catch (error) {
                       setPublishError(
@@ -866,6 +882,17 @@ export const ModuleLibraryPage = () => {
 
   return (
     <section className="space-y-5">
+      {publishSuccessSummary ? (
+        <ModulePublishedSuccessModal
+          open={publishSuccessOpen}
+          summary={publishSuccessSummary}
+          onRedirect={() => {
+            setPublishSuccessOpen(false);
+            setPublishSuccessSummary(null);
+            setTab('published');
+          }}
+        />
+      ) : null}
       <Loader
         open={
           isCreating ||

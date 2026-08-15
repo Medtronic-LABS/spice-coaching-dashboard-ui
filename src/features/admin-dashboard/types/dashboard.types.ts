@@ -292,6 +292,13 @@ export interface DocumentUsageResponse {
   events_offset: number;
 }
 
+/** GET /dashboard/module-demand-summary */
+export interface ModuleDemandSummaryResponse {
+  from_date: string;
+  to_date: string;
+  summary: string;
+}
+
 export type ModuleDemandInteractionType =
   | 'chatbot_served'
   | 'assignment_requested';

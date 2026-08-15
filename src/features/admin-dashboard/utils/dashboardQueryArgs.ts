@@ -88,3 +88,17 @@ export function buildDocumentUsageDateGeoArgs(
     ...buildDashboardGeoParams(geography),
   };
 }
+
+export function buildModuleDemandSummaryQueryArgs(
+  fromDate: string,
+  toDate: string,
+  geography: DashboardGeographyFilters,
+  extra: { top_limit?: number } = {},
+) {
+  return {
+    from_date: fromDate,
+    to_date: toDate,
+    ...(extra.top_limit !== undefined ? { top_limit: extra.top_limit } : {}),
+    ...buildDashboardGeoParams(geography),
+  };
+}
