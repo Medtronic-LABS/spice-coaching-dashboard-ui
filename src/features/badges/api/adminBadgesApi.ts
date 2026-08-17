@@ -27,9 +27,17 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
-function asNullableString(value: unknown): string | null {
-  if (value === null || value === undefined) return null;
-  return typeof value === 'string' ? value : null;
+/** Display name from `{ id, name }`, a legacy string, or null when missing. */
+export function normalizeBadgeActorName(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (isPlainObject(value) && typeof value.name === 'string') {
+    const trimmed = value.name.trim();
+    return trimmed || null;
+  }
+  return null;
 }
 
 function asNumberOrNull(value: unknown): number | null {
@@ -109,8 +117,8 @@ export function normalizeAdminBadge(raw: unknown): AdminBadge | null {
     sequence: asNumberOrNull(raw.sequence),
     created_at,
     updated_at,
-    created_by: asNullableString(raw.created_by),
-    updated_by: asNullableString(raw.updated_by),
+    created_by: normalizeBadgeActorName(raw.created_by),
+    updated_by: normalizeBadgeActorName(raw.updated_by),
   };
 }
 

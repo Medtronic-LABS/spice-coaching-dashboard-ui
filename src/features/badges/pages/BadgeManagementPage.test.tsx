@@ -53,6 +53,15 @@ describe('BadgeManagementPage', () => {
       ).toBeInTheDocument();
     });
 
+    expect(
+      screen.getByRole('columnheader', { name: 'Created By' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Updated By' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('alice').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('bob').length).toBeGreaterThan(0);
+
     await user.type(
       screen.getByRole('searchbox', { name: 'Search milestones' }),
       'Referral',

@@ -803,6 +803,12 @@ export const BadgeManagementPage = () => {
         ),
       },
       {
+        key: 'updated_by',
+        header: 'Updated By',
+        className: 'whitespace-nowrap',
+        render: (row) => row.updated_by ?? '—',
+      },
+      {
         key: 'updated_at',
         header: 'Last Updated',
         className: 'whitespace-nowrap',

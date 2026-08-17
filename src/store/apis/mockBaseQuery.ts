@@ -142,7 +142,7 @@ interface MockConfigThreshold {
 interface MockConfigChange {
   previous_value_json: unknown | null;
   current_value_json: unknown;
-  updated_by: string;
+  updated_by: string | { id: number; name: string } | null;
   updated_at: string;
 }
 

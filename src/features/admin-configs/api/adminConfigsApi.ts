@@ -50,6 +50,15 @@ function toNonNegativeInteger(value: unknown, fallback: number): number {
     : fallback;
 }
 
+/** Display name from `{ id, name }`, a legacy string, or empty when missing. */
+export function normalizeConfigUpdatedBy(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (isPlainObject(value) && typeof value.name === 'string') {
+    return value.name.trim();
+  }
+  return '';
+}
+
 export function normalizeConfigThresholdChangeItem(
   item: Record<string, unknown>,
 ): ConfigThresholdChangeItem {
@@ -58,7 +67,7 @@ export function normalizeConfigThresholdChangeItem(
       'previous_value_json' in item ? item.previous_value_json : null,
     current_value_json:
       'current_value_json' in item ? item.current_value_json : null,
-    updated_by: typeof item.updated_by === 'string' ? item.updated_by : '',
+    updated_by: normalizeConfigUpdatedBy(item.updated_by),
     updated_at: typeof item.updated_at === 'string' ? item.updated_at : '',
   };
 }
