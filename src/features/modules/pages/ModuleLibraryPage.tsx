@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Banner,
   Button,
   Card,
+  LimitedTextInput,
   Loader,
   Modal,
+  QuotedDisplayLabel,
   SearchInput,
   Select,
   Tabs,
@@ -13,12 +16,20 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
+import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
 } from '@/components/common/SettingsFilterDrawer';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
 import { paths } from '@/constants/routes';
+import {
+  FIELD_LIMITS,
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import { getCurrentRole } from '@/constants/role';
 import {
   useCreateModuleMutation,
@@ -29,17 +40,26 @@ import {
   useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
+import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
+import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
 import {
   NEEDS_REVIEW_TOOLTIP_CONTENT,
   NeedsReviewTab,
 } from '@/features/modules/components/NeedsReviewTab';
+import {
+  ModulePublishedSuccessModal,
+  type ModulePublishedSuccessSummary,
+} from '@/features/modules/components/ModulePublishedSuccessModal';
+import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type {
   ModuleLibraryItem,
   ModuleStatus,
@@ -54,18 +74,27 @@ import {
   EMPTY_MODULE_LIBRARY_FILTERS,
   formatModuleDomainLabel,
   getModuleActivatedAt,
+  getModuleDeactivatedAt,
+  getModuleListingActorColumns,
   getModuleListingDateColumns,
   getModuleListEmptyMessage,
   hasActiveModuleFilters,
   isAnyVisibleDateRangeInvalid,
-  moduleListingDateColumnHeader,
   type ModuleLibraryFilters as ModuleLibraryFilterState,
-  type ModuleListingDateColumn,
 } from '@/features/modules/utils/moduleListFilters';
+import {
+  listingActorColumnDef,
+  listingDateColumnDef,
+} from '@/features/modules/utils/moduleLibraryColumnDefs';
+import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   appendRecentIngestDocument,
   readRecentIngestDocuments,
 } from '@/features/ingest/utils/recentIngestDocumentsStorage';
+import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
+import { CONTENT_DOMAIN_TYPE_TOOLTIP } from '@/features/ingest/constants/ingestConfigurationTooltips';
+import { INGEST_CONTENT_DOMAIN_OPTIONS } from '@/features/ingest/constants/ingestFormOptions';
+import type { IngestContentDomain } from '@/features/ingest/api/adminIngestApi';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 import {
@@ -84,12 +113,11 @@ import {
   formatEstimatedMinutesFieldValue,
   parseEstimatedMinutesInput,
 } from '@/features/modules/utils/estimatedMinutesValidation';
-import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
 
 const DIFFICULTY_LEVEL_OPTIONS = ['easy', 'moderate', 'hard'] as const;
 
 /** Minimum characters before the module list search hits the API. */
-const MODULE_SEARCH_MIN_CHARS = 3;
+const MODULE_SEARCH_MIN_CHARS = 1;
 const MODULE_SEARCH_DEBOUNCE_MS = 300;
 /** Page size for the server-side source document typeahead. */
 const SOURCE_DOCUMENT_SEARCH_LIMIT = 50;
@@ -98,6 +126,8 @@ const DEFAULT_MODULE_PAGE_SIZE = 10;
 
 const CREATE_MODULE_INPUT_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
+const PUBLISHED_ASSIGN_SLOT_CLASS =
+  'inline-flex h-8 min-w-[5.25rem] justify-start';
 
 type AdminModuleDifficultyLevel = (typeof DIFFICULTY_LEVEL_OPTIONS)[number];
 
@@ -105,6 +135,7 @@ type CreateModuleFormState = {
   title_bn: string;
   description_bn: string;
   domain: string;
+  content_domain: IngestContentDomain;
   module_type: string;
   estimated_minutes: number;
   difficulty_level: AdminModuleDifficultyLevel;
@@ -116,6 +147,7 @@ function createEmptyCreateForm(): CreateModuleFormState {
     title_bn: '',
     description_bn: '',
     domain: '',
+    content_domain: CREATE_MODULE_FORM_DEFAULTS.content_domain,
     module_type: 'refresher',
     estimated_minutes: CREATE_MODULE_FORM_DEFAULTS.estimated_minutes,
     difficulty_level: CREATE_MODULE_FORM_DEFAULTS.difficulty_level,
@@ -127,32 +159,15 @@ const moduleBadge = (status: ModuleStatus) => {
   return <ModuleStatusBadge status={status} />;
 };
 
-function listingDateColumnDef(
-  column: ModuleListingDateColumn,
-): ColumnDef<ModuleLibraryItem> {
-  const key =
-    column === 'published'
-      ? 'publishedAt'
-      : column === 'activated'
-        ? 'activatedAt'
-        : column === 'deactivated'
-          ? 'deactivatedAt'
-          : 'createdAt';
-  return {
-    key,
-    header: moduleListingDateColumnHeader(column),
-    render: (row) => (
-      <span className="text-xs text-spice-text-medium">
-        {column === 'published'
-          ? (row.publishedAt ?? '—')
-          : column === 'activated'
-            ? (row.activatedAt ?? '—')
-            : column === 'deactivated'
-              ? (row.deactivatedAt ?? '—')
-              : row.createdAt}
-      </span>
-    ),
-  };
+function isNeedsReviewStatus(status?: string): boolean {
+  const norm = (status || '').trim().toLowerCase();
+  return (
+    norm === 'review_pending' ||
+    norm === 'needs_review' ||
+    norm === 'review pending' ||
+    norm === 'pending_review' ||
+    norm === 'needs review'
+  );
 }
 
 export const ModuleLibraryPage = () => {
@@ -188,6 +203,9 @@ export const ModuleLibraryPage = () => {
   }, [page]);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [expandedReviewModuleId, setExpandedReviewModuleId] = useState<
+    string | null
+  >(null);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<ModuleLibraryFilterState>(
     EMPTY_MODULE_LIBRARY_FILTERS,
@@ -216,6 +234,15 @@ export const ModuleLibraryPage = () => {
     useDeactivateModuleMutation();
   const [reactivateModule, { isLoading: isReactivating }] =
     useReactivateModuleMutation();
+  const [publishModule, { isLoading: isPublishing }] =
+    usePublishModuleMutation();
+  const [publishingModuleId, setPublishingModuleId] = useState<string | null>(
+    null,
+  );
+  const [publishError, setPublishError] = useState('');
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [publishSuccessSummary, setPublishSuccessSummary] =
+    useState<ModulePublishedSuccessSummary | null>(null);
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
 
@@ -253,6 +280,18 @@ export const ModuleLibraryPage = () => {
     tab,
     isProgramManager,
   );
+  const [sortBy, setSortBy] = useState<string | undefined>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = useCallback(
+    (newSortBy: string, newSortDir: 'asc' | 'desc') => {
+      setSortBy(newSortBy);
+      setSortDir(newSortDir);
+      setPage(0);
+    },
+    [],
+  );
+
   const { data: domainOptions = [], refetch: refetchDomainOptions } =
     useFetchModuleDomainOptionsQuery({});
   const {
@@ -268,7 +307,10 @@ export const ModuleLibraryPage = () => {
       domain: activeFilters.domain || undefined,
       ...dateParams,
       sourceDocumentId: activeFilters.sourceDocumentId || undefined,
+      ...toGeographyQueryParams(activeFilters),
       q: searchQ,
+      sort_by: sortBy,
+      sort_dir: sortDir,
     },
     { skip: dateRangeInvalid },
   );
@@ -316,6 +358,15 @@ export const ModuleLibraryPage = () => {
     setDocumentSearch('');
   };
 
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'module',
+    selection: draftFilters,
+    onSelectionChange: (next) => {
+      setDraftFilters((current) => ({ ...current, ...next }));
+    },
+  });
+
   const handleTabChange = (value: string) => {
     setTab(value as ModuleLibraryTab);
     setPage(0);
@@ -350,11 +401,25 @@ export const ModuleLibraryPage = () => {
       });
       setAssignmentOpen(true);
     }
+    if (state.openCreateModule) {
+      setCreateError('');
+      setCreateForm({
+        ...createEmptyCreateForm(),
+        title_bn:
+          state.openCreateModule.title_bn?.trim() ??
+          createEmptyCreateForm().title_bn,
+        domain:
+          state.openCreateModule.domain?.trim() ??
+          createEmptyCreateForm().domain,
+      });
+      setCreateOpen(true);
+    }
 
     const hasTransientState =
       state.tab !== undefined ||
       state.sourceDocumentId !== undefined ||
-      state.openAssignment !== undefined;
+      state.openAssignment !== undefined ||
+      state.openCreateModule !== undefined;
 
     if (!hasTransientState) return;
 
@@ -394,6 +459,17 @@ export const ModuleLibraryPage = () => {
           ),
     [modulesForList, tab],
   );
+
+  useEffect(() => {
+    if (!assignmentOpen || !assignmentModule) return;
+    const listed = modulesForDisplay.find(
+      (module) => module.id === assignmentModule.id,
+    );
+    if (listed && !isAssignablePublishedModule(listed)) {
+      setAssignmentOpen(false);
+      setAssignmentModule(null);
+    }
+  }, [assignmentModule, assignmentOpen, modulesForDisplay]);
 
   const documentFilterOptions = useMemo(() => {
     const searchTerm = documentSearchQ?.toLowerCase();
@@ -477,22 +553,29 @@ export const ModuleLibraryPage = () => {
       lessons: m.card_count,
       questions: m.quiz_count,
       durationLabel: `~${formatEstimatedMinutesDisplay(m.estimated_minutes)}`,
-      status:
-        m.lifecycle_status === 'published'
-          ? 'published'
-          : m.lifecycle_status === 'deactivated'
-            ? 'deactivated'
-            : 'draft',
+      estimatedMinutes: m.estimated_minutes,
+      status: (m.lifecycle_status as ModuleStatus) ?? 'draft',
       createdAt: formatDisplayDateTime(m.created_at),
+      lastUpdatedAt: formatDisplayDateTime(m.updated_at || m.created_at),
       publishedAt: formatDisplayDateTime(m.published_at),
       activatedAt: formatDisplayDateTime(getModuleActivatedAt(m)),
-      deactivatedAt: formatDisplayDateTime(m.last_deactivated_at),
+      deactivatedAt: formatDisplayDateTime(getModuleDeactivatedAt(m)),
+      generatedBy: m.created_by?.name ?? null,
+      publishedBy: m.published_by?.name ?? null,
+      activatedBy: m.activated_by?.name ?? null,
+      deactivatedBy: m.deactivated_by?.name ?? null,
+      chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
     }));
     return rows;
   }, [modulesForDisplay]);
 
   const dateColumns = useMemo(
     () => getModuleListingDateColumns(tab, isProgramManager),
+    [isProgramManager, tab],
+  );
+
+  const actorColumns = useMemo(
+    () => getModuleListingActorColumns(tab, isProgramManager),
     [isProgramManager, tab],
   );
 
@@ -559,28 +642,53 @@ export const ModuleLibraryPage = () => {
       {
         key: 'title',
         header: 'Module',
-        render: (row) => (
-          <div className="min-w-0">
-            <TruncatedText text={row.title}>
-              <Link
-                to={paths.adminModuleReviewDetails.replace(
-                  ':moduleId',
-                  encodeURIComponent(row.id),
-                )}
-                className="font-semibold text-spice-brand-primary underline decoration-spice-brand-primary/40 underline-offset-2 hover:decoration-spice-brand-primary"
+        headerClassName: TABLE_TITLE_COLUMN_CLASS,
+        className: TABLE_TITLE_COLUMN_CLASS,
+        sortable: true,
+        sortKey: 'title',
+        render: (row) => {
+          const displayTitle = truncateDisplayText(
+            row.title,
+            TABLE_CELL_LABEL_MAX_LENGTH,
+          );
+          return (
+            <div className="w-full min-w-0">
+              <TruncatedText
+                text={row.title}
+                maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               >
-                {row.title}
-              </Link>
-            </TruncatedText>
-            <div className="text-xs text-spice-text-muted">{row.category}</div>
-          </div>
-        ),
+                {isNeedsReviewStatus(row.status) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpandedReviewModuleId(row.id);
+                      setTab('needs_review');
+                    }}
+                    className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline"
+                  >
+                    {displayTitle}
+                  </button>
+                ) : (
+                  <Link
+                    to={paths.adminModuleReviewDetails.replace(
+                      ':moduleId',
+                      encodeURIComponent(row.id),
+                    )}
+                    className="block truncate break-all font-semibold text-spice-brand-primary hover:underline"
+                  >
+                    {displayTitle}
+                  </Link>
+                )}
+              </TruncatedText>
+            </div>
+          );
+        },
       },
       {
         key: 'lessons',
         header: 'Content',
         render: (row) => (
-          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>
               {row.lessons === 1 ? '1 lesson' : `${row.lessons} lessons`}
             </span>
@@ -588,16 +696,14 @@ export const ModuleLibraryPage = () => {
               |
             </span>
             {row.questions > 0 ? (
-              <span className="text-center">
+              <span>
                 {row.questions === 1
                   ? '1 question'
                   : `${row.questions} questions`}
               </span>
             ) : (
-              <span className="inline-flex w-full items-center justify-center">
-                <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
-                  No quiz
-                </span>
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                No quiz
               </span>
             )}
             <span className="text-spice-text-muted" aria-hidden="true">
@@ -610,9 +716,15 @@ export const ModuleLibraryPage = () => {
       {
         key: 'status',
         header: 'Status',
-        render: (row) => moduleBadge(row.status),
+        className: 'whitespace-nowrap',
+        sortable: tab === 'all',
+        sortKey: 'lifecycle_status',
+        render: (row) => (
+          <div className="flex items-center">{moduleBadge(row.status)}</div>
+        ),
       },
       ...dateColumns.map(listingDateColumnDef),
+      ...actorColumns.map(listingActorColumnDef),
       {
         key: 'id',
         header: 'Actions',
@@ -644,15 +756,19 @@ export const ModuleLibraryPage = () => {
           if (row.status === 'published') {
             return (
               <div className="flex justify-start gap-2">
-                <Button
-                  className="h-8 px-3 text-xs"
-                  onClick={() => {
-                    setAssignmentModule({ id: row.id, title: row.title });
-                    setAssignmentOpen(true);
-                  }}
-                >
-                  Assign
-                </Button>
+                <div className={PUBLISHED_ASSIGN_SLOT_CLASS}>
+                  {isAssignablePublishedModule(row) ? (
+                    <Button
+                      className="h-8 w-full px-3 text-xs"
+                      onClick={() => {
+                        setAssignmentModule({ id: row.id, title: row.title });
+                        setAssignmentOpen(true);
+                      }}
+                    >
+                      Assign
+                    </Button>
+                  ) : null}
+                </div>
                 {isProgramManager ? (
                   <Button
                     variant="secondary"
@@ -675,20 +791,77 @@ export const ModuleLibraryPage = () => {
           if (!isProgramManager) {
             return null;
           }
+          if (row.status === 'draft') {
+            const isPublishingRow =
+              isPublishing && publishingModuleId === row.id;
+            return (
+              <div className="flex justify-start gap-2">
+                <Button
+                  className="h-8 px-3 text-xs"
+                  onClick={() => {
+                    navigate(
+                      paths.adminModuleReviewDetails.replace(
+                        ':moduleId',
+                        encodeURIComponent(row.id),
+                      ),
+                    );
+                  }}
+                >
+                  Review
+                </Button>
+                <Button
+                  variant="primary"
+                  className="h-8 px-3 text-xs"
+                  disabled={isPublishing}
+                  onClick={async () => {
+                    setPublishError('');
+                    setPublishingModuleId(row.id);
+                    try {
+                      await publishModule({ moduleId: row.id }).unwrap();
+                      setPublishSuccessSummary({
+                        title: row.title,
+                        topic: row.category,
+                        lessonCount: row.lessons,
+                        quizCount: row.questions,
+                        estimateMinutes: row.estimatedMinutes,
+                      });
+                      setPublishSuccessOpen(true);
+                      refreshModuleList();
+                    } catch (error) {
+                      setPublishError(
+                        formatRtkQueryError(error) ||
+                          'Failed to publish module. Please try again.',
+                      );
+                      refreshModuleList();
+                    } finally {
+                      setPublishingModuleId(null);
+                    }
+                  }}
+                >
+                  {isPublishingRow ? 'Publishing…' : 'Publish'}
+                </Button>
+              </div>
+            );
+          }
           return (
             <div className="flex justify-start gap-2">
               <Button
                 className="h-8 px-3 text-xs"
-                onClick={() =>
-                  navigate(
-                    paths.adminModuleReviewDetails.replace(
-                      ':moduleId',
-                      encodeURIComponent(row.id),
-                    ),
-                  )
-                }
+                onClick={() => {
+                  if (isNeedsReviewStatus(row.status)) {
+                    setExpandedReviewModuleId(row.id);
+                    setTab('needs_review');
+                  } else {
+                    navigate(
+                      paths.adminModuleReviewDetails.replace(
+                        ':moduleId',
+                        encodeURIComponent(row.id),
+                      ),
+                    );
+                  }
+                }}
               >
-                Review
+                {isNeedsReviewStatus(row.status) ? 'Resolve' : 'Review'}
               </Button>
             </div>
           );
@@ -696,22 +869,40 @@ export const ModuleLibraryPage = () => {
       },
     ],
     [
+      actorColumns,
       dateColumns,
       isProgramManager,
+      isPublishing,
       isReactivating,
       navigate,
+      publishModule,
+      publishingModuleId,
       reactivateModule,
       refreshModuleList,
+      setTab,
+      tab,
     ],
   );
 
   return (
     <section className="space-y-5">
+      {publishSuccessSummary ? (
+        <ModulePublishedSuccessModal
+          open={publishSuccessOpen}
+          summary={publishSuccessSummary}
+          onRedirect={() => {
+            setPublishSuccessOpen(false);
+            setPublishSuccessSummary(null);
+            setTab('published');
+          }}
+        />
+      ) : null}
       <Loader
         open={
           isCreating ||
           isDeactivating ||
           isReactivating ||
+          isPublishing ||
           (!dateRangeInvalid && isLoadingModules)
         }
         label={
@@ -721,9 +912,12 @@ export const ModuleLibraryPage = () => {
               ? 'Deactivating module…'
               : isReactivating
                 ? 'Activating module…'
-                : 'Loading modules…'
+                : isPublishing
+                  ? 'Publishing module…'
+                  : 'Loading modules…'
         }
       />
+      {publishError ? <Banner tone="critical">{publishError}</Banner> : null}
       {createOpen ? (
         <Modal
           open={createOpen}
@@ -765,9 +959,7 @@ export const ModuleLibraryPage = () => {
               </div>
 
               {createError ? (
-                <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                  {createError}
-                </div>
+                <Banner tone="critical">{createError}</Banner>
               ) : null}
             </div>
 
@@ -784,17 +976,18 @@ export const ModuleLibraryPage = () => {
                       *
                     </span>
                   </span>
-                  <input
-                    className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                  <LimitedTextInput
+                    id="create-module-title-bn"
                     value={createForm.title_bn}
+                    maxLength={FIELD_LIMITS.moduleTitle}
                     disabled={isCreating}
-                    onChange={(e) =>
+                    placeholder="বাংলা শিরোনাম…"
+                    onChange={(title_bn) =>
                       setCreateForm((prev) => ({
                         ...prev,
-                        title_bn: e.target.value,
+                        title_bn,
                       }))
                     }
-                    placeholder="বাংলা শিরোনাম…"
                   />
                 </label>
                 <label className="block w-full space-y-1">
@@ -832,6 +1025,29 @@ export const ModuleLibraryPage = () => {
                     }))
                   }
                 />
+                <label className="block space-y-1 self-start">
+                  <span className="flex min-h-5 items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+                    Content domain type
+                    <Tooltip
+                      label="About Content domain type"
+                      content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                      placement="top"
+                    />
+                  </span>
+                  <Select
+                    className="w-full rounded-lg"
+                    options={INGEST_CONTENT_DOMAIN_OPTIONS}
+                    value={createForm.content_domain}
+                    disabled={isCreating}
+                    aria-label="Content domain type"
+                    onChange={(value) =>
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        content_domain: value as IngestContentDomain,
+                      }))
+                    }
+                  />
+                </label>
                 <label className="block space-y-1 self-start">
                   <span className="text-xs font-semibold text-spice-text-primary">
                     Estimated minutes
@@ -900,25 +1116,16 @@ export const ModuleLibraryPage = () => {
                 </label>
               </div>
 
-              <label className="flex min-h-10 items-start gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 shrink-0"
-                  disabled={isCreating}
-                  checked={createForm.chatbot_faqs_only}
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({
-                      ...prev,
-                      chatbot_faqs_only: e.target.checked,
-                    }))
-                  }
-                />
-                <span className="text-sm text-spice-text-medium">
-                  <span className="font-semibold text-spice-text-primary">
-                    Chatbot FAQs Only
-                  </span>
-                </span>
-              </label>
+              <ChatbotFaqsOnlyField
+                checked={createForm.chatbot_faqs_only}
+                disabled={isCreating}
+                onChange={(checked) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    chatbot_faqs_only: checked,
+                  }))
+                }
+              />
             </div>
 
             <div className="flex shrink-0 justify-end gap-2 px-6 pb-6 pt-6">
@@ -952,12 +1159,22 @@ export const ModuleLibraryPage = () => {
                     setCreateError('Domain is required.');
                     return;
                   }
+                  const titleBn = createForm.title_bn.trim();
+                  if (titleBn.length > FIELD_LIMITS.moduleTitle) {
+                    setCreateError(
+                      fieldLimitExceededMessage(
+                        'Title',
+                        FIELD_LIMITS.moduleTitle,
+                      ),
+                    );
+                    return;
+                  }
                   try {
                     const domain = normalizeModuleTaxonomyLabel(domainRaw);
                     const descriptionBn = createForm.description_bn.trim();
                     const created = await createModule({
                       title: {
-                        bn: createForm.title_bn.trim(),
+                        bn: titleBn,
                       },
                       ...(descriptionBn
                         ? {
@@ -968,6 +1185,7 @@ export const ModuleLibraryPage = () => {
                         : {}),
                       domain,
                       sub_domain: null,
+                      content_domain: createForm.content_domain,
                       module_type: createForm.module_type,
                       estimated_minutes: Math.min(
                         MAX_ESTIMATED_MINUTES,
@@ -1046,19 +1264,15 @@ export const ModuleLibraryPage = () => {
                 </h2>
                 <p className="mt-2 text-sm text-spice-text-medium">
                   You are deactivating{' '}
-                  <span className="font-semibold text-spice-text-primary">
-                    {deactivateModuleData.title}
-                  </span>
-                  . Once deactivated, this module will no longer be visible to
-                  users for new assignments or training workflows. Do you want
-                  to proceed?
+                  <QuotedDisplayLabel text={deactivateModuleData.title} />. Once
+                  deactivated, this module will no longer be visible to users
+                  for new assignments or training workflows. Do you want to
+                  proceed?
                 </p>
               </div>
 
               {deactivateError ? (
-                <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                  {deactivateError}
-                </div>
+                <Banner tone="critical">{deactivateError}</Banner>
               ) : null}
             </div>
 
@@ -1103,7 +1317,7 @@ export const ModuleLibraryPage = () => {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
+          <h1 className="text-[28px] font-semibold leading-[34px] text-spice-text-primary">
             {isProgramManager ? 'Module Library' : t('moduleLibrary.title')}
           </h1>
         </div>
@@ -1113,6 +1327,7 @@ export const ModuleLibraryPage = () => {
               value={query}
               onChange={setQuery}
               placeholder="Search modules..."
+              className="h-[35px] rounded-lg pl-10 pr-4 text-base placeholder:text-spice-text-onSurfaceVariant"
             />
           </div>
           {isProgramManager ? (
@@ -1135,6 +1350,7 @@ export const ModuleLibraryPage = () => {
         <div className="flex items-center justify-between gap-3">
           {isProgramManager ? (
             <Tabs
+              variant="moduleLibrary"
               items={[
                 { label: 'Drafts', value: 'drafts' },
                 { label: 'Published', value: 'published' },
@@ -1167,6 +1383,7 @@ export const ModuleLibraryPage = () => {
             active={filtersActive}
             expanded={filtersDrawerOpen}
             onClick={handleOpenFiltersDrawer}
+            ariaLabel="Open filters"
             tooltip={
               filtersActive
                 ? 'Results reflect the filters currently applied.'
@@ -1201,6 +1418,7 @@ export const ModuleLibraryPage = () => {
             onChange={setDraftFilters}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 
@@ -1210,123 +1428,55 @@ export const ModuleLibraryPage = () => {
             isLoading={isLoadingModules}
             onMerge={handleOverrideMerge}
             onSkip={handleSkipReview}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
+            initialExpandedId={expandedReviewModuleId}
+            emptyMessage={emptyMessage}
           />
         ) : tab === 'discarded' ? (
           <DiscardedTabTable
             modules={modulesForList}
             isLoading={isLoadingModules}
             onView={handleViewModule}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
           />
         ) : (
           <Table<ModuleLibraryItem>
+            density="comfortable"
             data={filtered}
             columns={columns}
             keyExtractor={(r) => r.id}
             caption={tableCaption}
             emptyMessage={emptyMessage}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
           />
         )}
 
-        <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Rows
-              </span>
-              <Select
-                aria-label="Rows per page"
-                className="h-8 w-[4.5rem] px-2 text-xs"
-                value={String(pageSize)}
-                options={MODULE_PAGE_SIZE_OPTIONS.map((size) => ({
-                  label: String(size),
-                  value: String(size),
-                }))}
-                onChange={(value) => {
-                  const next = Number.parseInt(value, 10);
-                  if (!Number.isFinite(next) || next <= 0) return;
-                  setPageSize(next);
-                  setPage(0);
-                }}
-              />
-            </label>
-
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Page
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages > 0 ? totalPages : 1}
-                step={1}
-                inputMode="numeric"
-                aria-label="Page number"
-                className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
-                value={pageInput}
-                onChange={(e) => handlePageInputChange(e.target.value)}
-                onBlur={commitPageInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.currentTarget.blur();
-                    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
-                      e.preventDefault();
-                      return;
-                    }
-                  }
-                }}
-              />
-              <span className="whitespace-nowrap">
-                of{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {totalPages}
-                </span>
-              </span>
-            </label>
-
-            {filtered.length ? (
-              <span className="whitespace-nowrap">
-                Showing{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeStart}
-                </span>
-                –
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeEnd}
-                </span>
-                {totalModules > 0 ? (
-                  <>
-                    {' '}
-                    of{' '}
-                    <span className="font-semibold text-spice-text-medium">
-                      {totalModules}
-                    </span>
-                  </>
-                ) : null}
-              </span>
-            ) : (
-              <span>No results on this page</span>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasPrevPage}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasNextPage}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={MODULE_PAGE_SIZE_OPTIONS}
+          totalItems={totalModules}
+          totalPages={totalPages}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          pageInput={pageInput}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPageSizeChange={(next) => {
+            setPageSize(next);
+            setPage(0);
+          }}
+          onPageInputChange={handlePageInputChange}
+          onCommitPageInput={commitPageInput}
+          onPrevPage={() => setPage((p) => Math.max(0, p - 1))}
+          onNextPage={() => setPage((p) => p + 1)}
+        />
       </Card>
       {assignmentOpen && assignmentModule ? (
         <ModuleAssignmentDialog

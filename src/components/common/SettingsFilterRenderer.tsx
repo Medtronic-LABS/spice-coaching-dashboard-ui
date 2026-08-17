@@ -1,15 +1,23 @@
 import { type ReactNode } from 'react';
-import { Button, Combobox, Select } from '@/components/ui';
+import { Button, Combobox, Select, Tabs } from '@/components/ui';
 import type {
   SettingsFilterCheckboxGroupField,
   SettingsFilterDateRangeField,
   SettingsFilterField,
   SettingsFilterSection,
+  SettingsFilterSegmentedField,
 } from '@/components/common/settingsFilter.types';
+import {
+  SPICE_CHECKBOX_CLASSNAME,
+  SPICE_INPUT_FOCUS_CLASSNAME,
+} from '@/constants/formControls';
 import { cn } from '@/utils';
+import { todayDateInputValue } from '@/utils/dateInput';
 
-const dateInputClassName =
-  'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none transition focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20';
+const dateInputClassName = cn(
+  'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+  SPICE_INPUT_FOCUS_CLASSNAME,
+);
 
 interface FilterFieldProps {
   label: string;
@@ -59,7 +67,9 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
       <div
         className={cn(
           'gap-2',
-          columns === 2 ? 'grid grid-cols-1 sm:grid-cols-2' : 'flex flex-col',
+          columns === 2
+            ? 'grid grid-cols-1 items-stretch sm:grid-cols-2'
+            : 'flex flex-col',
         )}
       >
         {field.options.map((option) => {
@@ -68,7 +78,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
             <label
               key={option.value}
               className={cn(
-                'flex min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition',
+                'flex h-11 w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 transition',
                 checked
                   ? 'border-spice-brand-primary/40 bg-spice-brand-primary/[0.06]'
                   : 'border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint',
@@ -76,7 +86,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
             >
               <input
                 type="checkbox"
-                className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
+                className={SPICE_CHECKBOX_CLASSNAME}
                 checked={checked}
                 onChange={() => field.onToggle(option.value)}
               />
@@ -92,6 +102,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
 }
 
 function renderDateRange(field: SettingsFilterDateRangeField) {
+  const maxDate = todayDateInputValue();
   return (
     <div
       className={cn(
@@ -113,6 +124,7 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
               field.invalid && 'border-spice-semantic-error',
             )}
             value={field.from.value}
+            max={maxDate}
             onChange={(event) => field.from.onChange(event.target.value)}
           />
         </FilterField>
@@ -126,6 +138,7 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
               field.invalid && 'border-spice-semantic-error',
             )}
             value={field.to.value}
+            max={maxDate}
             onChange={(event) => field.to.onChange(event.target.value)}
           />
         </FilterField>
@@ -136,6 +149,24 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
         </p>
       ) : null}
     </div>
+  );
+}
+
+function renderSegmented(field: SettingsFilterSegmentedField) {
+  return (
+    <FilterField
+      label={field.label}
+      htmlFor={field.id}
+      className={field.className}
+    >
+      <Tabs
+        idBase={field.id}
+        items={field.options}
+        value={field.value}
+        onChange={field.onChange}
+        className="w-fit"
+      />
+    </FilterField>
   );
 }
 
@@ -185,11 +216,56 @@ function renderField(field: SettingsFilterField) {
     );
   }
 
+  if (field.type === 'segmented') {
+    return <div key={field.id}>{renderSegmented(field)}</div>;
+  }
+
   if (field.type === 'checkbox-group') {
     return <div key={field.id}>{renderCheckboxGroup(field)}</div>;
   }
 
   return <div key={field.id}>{renderDateRange(field)}</div>;
+}
+
+/** Group consecutive segmented fields into shared rows to save vertical space. */
+function renderSectionFields(fields: SettingsFilterField[]) {
+  const nodes: ReactNode[] = [];
+  let index = 0;
+
+  while (index < fields.length) {
+    const field = fields[index];
+    if (field.type !== 'segmented') {
+      nodes.push(renderField(field));
+      index += 1;
+      continue;
+    }
+
+    const segmentedGroup: SettingsFilterSegmentedField[] = [];
+    while (index < fields.length && fields[index].type === 'segmented') {
+      segmentedGroup.push(fields[index] as SettingsFilterSegmentedField);
+      index += 1;
+    }
+
+    if (segmentedGroup.length === 1) {
+      nodes.push(renderField(segmentedGroup[0]));
+      continue;
+    }
+
+    nodes.push(
+      <div
+        key={segmentedGroup.map((item) => item.id).join('-')}
+        className="grid grid-cols-2 gap-3"
+      >
+        {segmentedGroup.map((item) => (
+          <div key={item.id} className="min-w-0">
+            {renderSegmented(item)}
+          </div>
+        ))}
+      </div>,
+    );
+  }
+
+  return nodes;
 }
 
 interface SettingsFilterRendererProps {
@@ -217,24 +293,21 @@ export const SettingsFilterRenderer = ({
                 (section.columns ?? 1) === 2
                   ? 'grid grid-cols-1 sm:grid-cols-2'
                   : 'flex flex-col',
+                section.fieldsClassName,
               )}
             >
-              {section.fields.map((field) => renderField(field))}
+              {renderSectionFields(section.fields)}
             </div>
           </section>
         ))}
       </div>
 
       <div className="flex shrink-0 items-center gap-3 border-t border-spice-border bg-spice-bg-surface/95 px-5 py-4 backdrop-blur-sm">
-        <Button
-          variant="ghost"
-          className="h-10 px-4 text-sm"
-          onClick={onClearAll}
-        >
+        <Button variant="ghost" className="h-9 text-xs" onClick={onClearAll}>
           Clear All
         </Button>
         <Button
-          className="ml-auto h-10 min-w-[7.5rem] px-5 text-sm"
+          className="ml-auto h-9 text-xs"
           onClick={onApply}
           disabled={applyDisabled}
         >

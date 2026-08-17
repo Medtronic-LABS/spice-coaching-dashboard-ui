@@ -3,6 +3,7 @@ import type { AdminModuleSourceDocument } from '@/features/modules/api/adminModu
 import {
   sourceDocumentIsPdf,
   sourceDocumentLabel,
+  sourceDocumentPreviewUrl,
 } from '@/features/modules/utils/sourceDocument';
 
 const sampleDoc: AdminModuleSourceDocument = {
@@ -28,5 +29,14 @@ describe('sourceDocument', () => {
 
   it('labels non-pdf files from path when disposition is missing', () => {
     expect(sourceDocumentLabel(secondDoc)).toBe('appendix.docx');
+  });
+
+  it('builds an iframe-friendly PDF preview URL with FitH', () => {
+    expect(sourceDocumentPreviewUrl(sampleDoc.presigned_url)).toBe(
+      `${sampleDoc.presigned_url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`,
+    );
+    expect(sourceDocumentPreviewUrl(`${sampleDoc.presigned_url}#page=2`)).toBe(
+      `${sampleDoc.presigned_url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`,
+    );
   });
 });

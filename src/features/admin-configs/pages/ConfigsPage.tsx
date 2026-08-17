@@ -5,6 +5,7 @@ import {
   useFetchConfigByKeyQuery,
   useUpdateConfigMutation,
 } from '@/features/admin-configs/api/adminConfigsApi';
+import { ConfigHistoryTable } from '@/features/admin-configs/components/ConfigHistoryTable';
 import {
   DURATION_MAX_DAYS,
   DURATION_VALIDATION_ERROR,
@@ -13,14 +14,19 @@ import {
   isDurationDaysInput,
   parseConfigDurationDays,
 } from '@/features/admin-configs/utils/configDuration';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
+import { cn } from '@/utils';
+import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 
 type FeedbackState =
   | { tone: 'success'; message: string }
   | { tone: 'critical'; message: string }
   | null;
 
-const inputClassName =
-  'h-11 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary focus:border-spice-brand-primary focus:outline-none focus:ring-2 focus:ring-spice-brand-primary/20';
+const inputClassName = cn(
+  'h-11 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+  SPICE_INPUT_FOCUS_CLASSNAME,
+);
 
 function handleDurationChange(
   value: string,
@@ -54,7 +60,6 @@ export const ConfigsPage = () => {
     data: config,
     isLoading,
     isError,
-    isFetching,
     refetch,
   } = useFetchConfigByKeyQuery(MODULE_ASSIGNMENT_DURATION_KEY);
   const [updateConfig, { isLoading: isSaving }] = useUpdateConfigMutation();
@@ -62,6 +67,7 @@ export const ConfigsPage = () => {
   const [assignmentDurationDays, setAssignmentDurationDays] = useState('');
   const [formError, setFormError] = useState('');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const savedDuration = useMemo(
     () => (config ? formatConfigDurationValue(config.value_json) : ''),
@@ -76,6 +82,8 @@ export const ConfigsPage = () => {
 
   const isDirty = assignmentDurationDays !== savedDuration;
   const isValid = parseConfigDurationDays(assignmentDurationDays) !== null;
+
+  useAutoDismissFeedback(feedback, () => setFeedback(null));
 
   const handleSave = async () => {
     if (!config) return;
@@ -98,9 +106,10 @@ export const ConfigsPage = () => {
           value_json: Number(assignmentDurationDays),
         },
       }).unwrap();
+      setHistoryRefreshNonce((current) => current + 1);
       setFeedback({
         tone: 'success',
-        message: 'Assignment duration updated successfully.',
+        message: 'Quiz reattempt validity updated successfully.',
       });
     } catch (error) {
       setFormError(getMutationErrorMessage(error));
@@ -132,25 +141,20 @@ export const ConfigsPage = () => {
 
   return (
     <section className="space-y-6">
-      <Loader
-        open={isSaving || isFetching}
-        label={isSaving ? 'Saving configuration…' : 'Refreshing configuration…'}
-      />
+      <Loader open={isSaving} label="Saving configuration…" />
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
-            {config.title ?? 'Configuration'}
-          </h1>
-        </div>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-spice-text-primary">
+          {config.title ?? 'Configuration'}
+        </h1>
         {config.description ? (
-          <p className="max-w-3xl text-sm leading-relaxed text-spice-text-muted">
+          <p className="w-full text-sm leading-relaxed text-spice-text-muted">
             {config.description}
           </p>
         ) : null}
       </div>
 
-      <Card variant="elevated" className="max-w-2xl overflow-hidden">
+      <Card variant="elevated" className="max-w-xl overflow-hidden">
         <div className="space-y-5 p-6">
           {feedback ? (
             <Banner tone={feedback.tone === 'success' ? 'success' : 'critical'}>
@@ -160,13 +164,21 @@ export const ConfigsPage = () => {
 
           {formError ? <Banner tone="critical">{formError}</Banner> : null}
 
-          <label className="block space-y-2">
-            <span className="text-sm font-semibold text-spice-text-primary">
+          <div className="space-y-3">
+            <label
+              htmlFor="quiz-reattempt-validity-days"
+              className="block text-sm font-semibold text-spice-text-primary"
+            >
               Quiz reattempt validity
-            </span>
-            <div className="flex max-w-xs items-center gap-3">
+            </label>
+
+            <div className="flex items-stretch">
               <input
-                className={inputClassName}
+                id="quiz-reattempt-validity-days"
+                className={cn(
+                  inputClassName,
+                  'w-28 rounded-r-none border-r-0 focus:z-10',
+                )}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -190,26 +202,34 @@ export const ConfigsPage = () => {
                   );
                 }}
                 placeholder="30"
+                aria-label="Quiz reattempt validity days"
+                aria-describedby="quiz-reattempt-validity-hint"
                 aria-invalid={Boolean(formError)}
               />
-              <span className="shrink-0 text-sm font-medium text-spice-text-muted">
+              <span className="inline-flex shrink-0 items-center rounded-r-lg border border-spice-border bg-spice-bg-tint px-3 text-sm font-medium text-spice-text-medium">
                 days
               </span>
             </div>
-            <span className="text-xs text-spice-text-muted">
-              Enter a value between 1 and {DURATION_MAX_DAYS} days.
-            </span>
-          </label>
 
-          <div className="flex flex-wrap justify-end gap-2 pt-4">
+            <p
+              id="quiz-reattempt-validity-hint"
+              className="text-xs text-spice-text-muted"
+            >
+              Enter a value between 1 and {DURATION_MAX_DAYS}.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2 border-t border-spice-border pt-4">
             <Button
               variant="secondary"
+              className="h-9 min-w-[5.5rem] text-xs"
               disabled={!isDirty || isSaving}
               onClick={handleReset}
             >
               Reset
             </Button>
             <Button
+              className="h-9 min-w-[5.5rem] text-xs"
               disabled={!isDirty || !isValid || isSaving || Boolean(formError)}
               onClick={() => void handleSave()}
             >
@@ -218,6 +238,11 @@ export const ConfigsPage = () => {
           </div>
         </div>
       </Card>
+
+      <ConfigHistoryTable
+        configKey={MODULE_ASSIGNMENT_DURATION_KEY}
+        refreshNonce={historyRefreshNonce}
+      />
     </section>
   );
 };

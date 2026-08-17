@@ -29,6 +29,7 @@ vi.mock(
               generated_card_count: 8,
               generated_quiz_count: 3,
               generated_module_count: 2,
+              ingested_by: { id: 1, name: 'Alice Admin' },
             },
             {
               id: 'run-2',
@@ -41,6 +42,7 @@ vi.mock(
               generated_card_count: 0,
               generated_quiz_count: 0,
               generated_module_count: 0,
+              ingested_by: null,
             },
           ],
           total_runs: 2,
@@ -86,14 +88,24 @@ describe('IngestRunHistoryTable', () => {
     expect(modulesCell).toHaveTextContent('3 quizzes');
   });
 
-  it('labels timing columns as Duration and Uploaded Date', () => {
+  it('shows ingested-by actor names when available', () => {
+    renderWithProviders(<IngestRunHistoryTable />);
+
+    expect(screen.getByText('Alice Admin')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('labels timing columns as Duration, Ingested By, and Ingested Date', () => {
     renderWithProviders(<IngestRunHistoryTable />);
 
     expect(
       screen.getByRole('columnheader', { name: 'Duration' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', { name: 'Uploaded Date' }),
+      screen.getByRole('columnheader', { name: 'Ingested By' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Ingested Date' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('columnheader', { name: 'Completed' }),

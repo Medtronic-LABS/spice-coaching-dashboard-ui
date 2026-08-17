@@ -47,6 +47,13 @@ describe('ui components', () => {
         />
         <ListItem title="Row2" />
         <StatCard label="Stat" value="42" change={5} supportingText="Helper" />
+        <StatCard
+          tone="pink"
+          label="Active"
+          value={127}
+          outOf={155}
+          tooltip="Active SKs"
+        />
         <Loader label="Loading..." />
         <EmptyState
           title="Empty"
@@ -84,6 +91,10 @@ describe('ui components', () => {
     expect(screen.getByText('Stat')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('Helper')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('127')).toBeInTheDocument();
+    expect(screen.getByText('/155')).toBeInTheDocument();
+    expect(screen.getByLabelText('Active')).toBeInTheDocument();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.getByText('Empty')).toBeInTheDocument();
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
@@ -211,5 +222,33 @@ describe('ui components', () => {
     expect(onChange).toHaveBeenCalledWith('history');
 
     fireEvent.keyDown(active, { key: 'Enter' });
+  });
+
+  it('module library tabs use compact equal-height capsules', () => {
+    render(
+      <Tabs
+        variant="moduleLibrary"
+        idBase="library"
+        items={[
+          { label: 'Drafts', value: 'drafts' },
+          { label: 'Published', value: 'published' },
+          { label: 'All', value: 'all' },
+        ]}
+        value="drafts"
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('tablist')).toHaveClass('items-center');
+    for (const name of ['Drafts', 'Published', 'All']) {
+      expect(screen.getByRole('tab', { name })).toHaveClass(
+        'h-8',
+        'items-center',
+        'px-3',
+        'py-0',
+        'text-sm',
+        'leading-none',
+      );
+    }
   });
 });

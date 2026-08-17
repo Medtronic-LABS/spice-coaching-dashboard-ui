@@ -241,7 +241,7 @@ describe('AdminModuleQuizStep explanation review', () => {
     await user.clear(questionInput);
     await user.type(questionInput, 'Updated question');
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save draft' }));
     expect(
       screen.queryByRole('dialog', { name: 'Review explanations' }),
     ).not.toBeInTheDocument();

@@ -7,9 +7,20 @@ export type { ComboboxOption, ComboboxProps } from '@/components/ui/Combobox';
 export { Divider } from '@/components/ui/Divider';
 export { EmptyState } from '@/components/ui/EmptyState';
 export { ErrorState } from '@/components/ui/ErrorState';
+export { FileDropzone } from '@/components/ui/FileDropzone';
+export type { FileDropzoneProps } from '@/components/ui/FileDropzone';
 export { FilterBar } from '@/components/ui/FilterBar';
+export { ImagePicker } from '@/components/ui/ImagePicker';
+export type {
+  ImagePickerProps,
+  ImagePickerVariant,
+} from '@/components/ui/ImagePicker';
+export { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+export type { InfiniteScrollContainerProps } from '@/components/ui/InfiniteScrollContainer';
 export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
+export { LimitedTextInput } from '@/components/ui/LimitedTextInput';
+export type { LimitedTextInputProps } from '@/components/ui/LimitedTextInput';
 export { ListItem } from '@/components/ui/ListItem';
 export { Loader } from '@/components/ui/Loader';
 export type { LoaderProps } from '@/components/ui/Loader';
@@ -17,6 +28,8 @@ export { Drawer } from '@/components/ui/Drawer';
 export type { DrawerProps } from '@/components/ui/Drawer';
 export { Modal } from '@/components/ui/Modal';
 export type { ModalProps } from '@/components/ui/Modal';
+export { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
+export type { QuotedDisplayLabelProps } from '@/components/ui/QuotedDisplayLabel';
 export { SearchInput } from '@/components/ui/SearchInput';
 export { SectionHeader } from '@/components/ui/SectionHeader';
 export { Select } from '@/components/ui/Select';
@@ -30,10 +43,6 @@ export { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
 export type { UnsavedChangesDialogProps } from '@/components/ui/UnsavedChangesDialog';
 export { SuccessModal } from '@/components/ui/SuccessModal';
 export type { SuccessModalProps } from '@/components/ui/SuccessModal';
-export { ModulePublishedSuccessModal } from '@/components/ui/ModulePublishedSuccessModal';
-export type {
-  ModulePublishedSuccessModalProps,
-  ModulePublishedSuccessSummary,
-} from '@/components/ui/ModulePublishedSuccessModal';
 export type { TabItem } from '@/components/ui/Tabs';
 export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';
+export { useWindowedList } from '@/components/ui/useWindowedList';

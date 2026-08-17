@@ -16,14 +16,13 @@ const defaultSidebarProps = {
 };
 
 describe('Sidebar', () => {
-  it('renders brand, module library, and ingest navigation', () => {
+  it('renders module library and ingest navigation', () => {
     render(
       <MemoryRouter>
         <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('SPICE • AI COACHING')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /^module library$/i }),
     ).toBeInTheDocument();
@@ -39,11 +38,16 @@ describe('Sidebar', () => {
     expect(screen.getByText(/super user/i)).toBeInTheDocument();
     expect(screen.getByText('SUPER_USER')).toBeInTheDocument();
     expect(screen.getByText('SU')).toBeInTheDocument();
+    expect(screen.getByText('OVERVIEW')).toBeInTheDocument();
     expect(screen.getByText('LEARNING')).toBeInTheDocument();
     expect(screen.getByText('ADMINISTRATION')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /configurations/i }),
     ).toBeInTheDocument();
+
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).toHaveAttribute('draggable', 'false');
+    }
   });
 
   it('applies active class to active link', () => {
@@ -54,10 +58,7 @@ describe('Sidebar', () => {
     );
 
     const activeLink = screen.getByRole('link', { name: /^module library$/i });
-    expect(activeLink).toHaveClass(
-      'bg-spice-brand-pm/20',
-      'text-spice-text-onDark-hi',
-    );
+    expect(activeLink).toHaveClass('bg-spice-palette-violet', 'text-white');
   });
 
   it.each([
@@ -80,12 +81,9 @@ describe('Sidebar', () => {
       name: /ingestion history/i,
     });
 
-    expect(modulesLink).toHaveClass(
-      'bg-spice-brand-pm/20',
-      'text-spice-text-onDark-hi',
-    );
-    expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
-    expect(historyLink).not.toHaveClass('bg-spice-brand-pm/20');
+    expect(modulesLink).toHaveClass('bg-spice-palette-violet', 'text-white');
+    expect(ingestLink).not.toHaveClass('bg-spice-palette-violet');
+    expect(historyLink).not.toHaveClass('bg-spice-palette-violet');
   });
 
   it('highlights ingest history on the history route', () => {
@@ -100,11 +98,22 @@ describe('Sidebar', () => {
     });
     const ingestLink = screen.getByRole('link', { name: /ingest document/i });
 
-    expect(historyLink).toHaveClass(
-      'bg-spice-brand-pm/20',
-      'text-spice-text-onDark-hi',
+    expect(historyLink).toHaveClass('bg-spice-palette-violet', 'text-white');
+    expect(ingestLink).not.toHaveClass('bg-spice-palette-violet');
+  });
+
+  it('highlights Module Library on the assignment success route', () => {
+    render(
+      <MemoryRouter initialEntries={[paths.moduleAssigned]}>
+        <Sidebar {...defaultSidebarProps} />
+      </MemoryRouter>,
     );
-    expect(ingestLink).not.toHaveClass('bg-spice-brand-pm/20');
+
+    const modulesLink = screen.getByRole('link', { name: /^module library$/i });
+    const ingestLink = screen.getByRole('link', { name: /ingest document/i });
+
+    expect(modulesLink).toHaveClass('bg-spice-palette-violet', 'text-white');
+    expect(ingestLink).not.toHaveClass('bg-spice-palette-violet');
   });
 
   it('highlights ingest document but not module library on the ingest route', () => {
@@ -117,12 +126,9 @@ describe('Sidebar', () => {
     const ingestLink = screen.getByRole('link', { name: /ingest document/i });
     const modulesLink = screen.getByRole('link', { name: /^module library$/i });
 
-    expect(ingestLink).toHaveClass(
-      'bg-spice-brand-pm/20',
-      'text-spice-text-onDark-hi',
-    );
-    expect(modulesLink).not.toHaveClass('bg-spice-brand-pm/20');
-    expect(modulesLink).not.toHaveClass('text-spice-text-onDark-hi');
+    expect(ingestLink).toHaveClass('bg-spice-palette-violet', 'text-white');
+    expect(modulesLink).not.toHaveClass('bg-spice-palette-violet');
+    expect(modulesLink).not.toHaveClass('text-white');
   });
 
   it('closes the mobile menu when a navigation link is clicked', async () => {

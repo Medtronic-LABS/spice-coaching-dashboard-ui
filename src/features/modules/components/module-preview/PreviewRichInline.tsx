@@ -39,8 +39,10 @@ function applyMark(
           {content}
         </a>
       );
-    default:
-      return content;
+    default: {
+      const exhaustiveCheck: never = mark;
+      return exhaustiveCheck;
+    }
   }
 }
 

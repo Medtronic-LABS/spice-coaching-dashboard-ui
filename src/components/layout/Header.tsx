@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { CloseIcon, MenuIcon } from '@/assets/icon';
 import uhisLogo from '@/assets/img/uhis-logo.png';
 import {
   getAuthDisplayName,
@@ -11,39 +12,6 @@ interface HeaderProps {
   onMenuToggle: () => void;
 }
 
-const MenuIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M4 6h16" />
-    <path d="M4 12h16" />
-    <path d="M4 18h16" />
-  </svg>
-);
-
-const CloseIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M6 6l12 12" />
-    <path d="M18 6 6 18" />
-  </svg>
-);
-
 export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
   const { t } = useTranslation();
   const authSession = getAuthSession();
@@ -55,11 +23,11 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
     : t('layout.header.userInitials');
 
   return (
-    <header className="border-b border-spice-border bg-spice-bg-surface px-4 py-3 sm:px-6 sm:py-4">
-      <div className="flex items-center gap-3">
+    <header className="flex h-14 shrink-0 items-center border-b border-spice-border bg-spice-palette-violetLt px-4 sm:px-6">
+      <div className="flex w-full items-center gap-3">
         <button
           type="button"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-spice-border-mid text-spice-text-primary transition hover:bg-spice-bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/25 lg:hidden"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-spice-border text-spice-palette-violetDeep transition hover:bg-spice-palette-violetLt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-palette-violet/30 lg:hidden"
           aria-label={
             isSidebarOpen
               ? t('layout.header.closeMenu')
@@ -80,25 +48,22 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
           <img
             src={uhisLogo}
             alt="UHIS"
-            className="h-8 w-auto object-contain sm:h-9"
+            draggable={false}
+            className="h-8 w-auto select-none object-contain sm:h-10"
           />
-          <span className="truncate text-lg font-semibold tracking-tight text-[#E5007D] sm:text-xl">
+          <span className="truncate text-lg font-semibold tracking-tight text-spice-brand-coaching sm:text-xl">
             AI Coaching
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            className="flex h-9 w-9 cursor-default items-center justify-center rounded-full bg-spice-bg-tint text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border"
-            aria-label={t('layout.header.userMenuAriaLabel', {
-              name: displayName,
-            })}
-            title={displayName}
-            disabled
-          >
-            {userInitials}
-          </button>
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-spice-palette-violet text-xs font-bold text-white"
+          aria-label={t('layout.header.userMenuAriaLabel', {
+            name: displayName,
+          })}
+          title={displayName}
+        >
+          {userInitials}
         </div>
       </div>
     </header>

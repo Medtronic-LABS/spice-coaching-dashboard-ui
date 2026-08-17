@@ -1,5 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Card } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  QuotedDisplayLabel,
+  TruncatedText,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetModuleDraftQuery } from '@/features/modules/api/moduleDraftApi';
 
@@ -37,8 +43,8 @@ export const ModulePublishedPage = () => {
             Module is Live
           </h1>
           <p className="text-sm text-spice-text-muted">
-            {data?.title} has been published to the module library and is ready
-            to assign.
+            {data?.title ? <QuotedDisplayLabel text={data.title} /> : null} has
+            been published to the module library and is ready to assign.
           </p>
         </div>
 
@@ -48,8 +54,13 @@ export const ModulePublishedPage = () => {
           </div>
           <div className="rounded-lg bg-spice-bg-tint p-3">
             <div className="text-xs text-spice-text-muted">Module</div>
-            <div className="font-semibold text-spice-text-primary">
-              {data?.title}
+            <div className="min-w-0 font-semibold text-spice-text-primary">
+              {data?.title ? (
+                <TruncatedText
+                  text={data.title}
+                  className="font-semibold text-spice-text-primary"
+                />
+              ) : null}
             </div>
             <div className="text-xs text-spice-text-muted">
               {data?.topic} • Published just now
@@ -76,8 +87,13 @@ export const ModulePublishedPage = () => {
             </div>
             <div className="rounded-lg bg-spice-bg-tint p-3">
               <div className="text-xs text-spice-text-muted">Source</div>
-              <div className="font-semibold text-spice-text-primary">
-                {data?.sourceFile}
+              <div className="min-w-0 font-semibold text-spice-text-primary">
+                {data?.sourceFile ? (
+                  <TruncatedText
+                    text={data.sourceFile}
+                    className="font-semibold text-spice-text-primary"
+                  />
+                ) : null}
               </div>
             </div>
           </div>

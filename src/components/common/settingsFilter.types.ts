@@ -32,6 +32,16 @@ export interface SettingsFilterSelectField {
   onChange: (value: string) => void;
 }
 
+export interface SettingsFilterSegmentedField {
+  type: 'segmented';
+  id: string;
+  label: string;
+  className?: string;
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+}
+
 export interface SettingsFilterCheckboxGroupField {
   type: 'checkbox-group';
   id: string;
@@ -66,6 +76,7 @@ export interface SettingsFilterDateRangeField {
 export type SettingsFilterField =
   | SettingsFilterComboboxField
   | SettingsFilterSelectField
+  | SettingsFilterSegmentedField
   | SettingsFilterCheckboxGroupField
   | SettingsFilterDateRangeField;
 
@@ -73,6 +84,8 @@ export interface SettingsFilterSection {
   id: string;
   label: string;
   fields: SettingsFilterField[];
+  /** Extra classes for the field group under the section label. */
+  fieldsClassName?: string;
   /** Field layout. `2` shows two fields per row from `sm` up; stacks on smaller widths. Default `1`. */
   columns?: 1 | 2;
 }

@@ -9,6 +9,19 @@
       "description": "আপনি Spice SSO-এর মাধ্যমে আসেননি বলে এই ড্যাশবোর্ডে আপনার অ্যাক্সেস নেই।",
       "instruction": "অনুগ্রহ করে Spice-এ সাইন ইন করুন, তারপর ড্যাশবোর্ড খুলতে এখানে ফিরে আসুন।",
       "continueToSpice": "Spice লগইনে যান"
+    },
+    "signIn": {
+      "welcome": "স্বাগতম",
+      "title": "আপনার অ্যাকাউন্টে লগইন করুন",
+      "usernameLabel": "ইমেইল, ইউজারনেম বা মোবাইল নম্বর",
+      "passwordLabel": "পাসওয়ার্ড",
+      "submitButton": "লগইন",
+      "submitting": "লগইন হচ্ছে...",
+      "errorEmailRequired": "অনুগ্রহ করে ইমেইল দিন",
+      "errorPasswordRequired": "অনুগ্রহ করে পাসওয়ার্ড দিন",
+      "errorRequiredFields": "অনুগ্রহ করে ইউজারনেম এবং পাসওয়ার্ড উভয়ই দিন।",
+      "errorMissingAuthCookie": "সাইন ইন সফল হয়েছে কিন্তু কোনো অথ কুকি ফেরত আসেনি। আবার চেষ্টা করুন।",
+      "errorMessage": "অবৈধ পরিচয়পত্র বা লগইন ব্যর্থ। আবার চেষ্টা করুন।"
     }
   },
   "common": {
@@ -24,7 +37,11 @@
     "retry": "আবার চেষ্টা করুন",
     "reset": "রিসেট",
     "clearFilters": "ফিল্টার মুছুন",
-    "view": "দেখুন"
+    "view": "দেখুন",
+    "close": "বন্ধ করুন",
+    "previous": "পূর্ববর্তী",
+    "next": "পরবর্তী",
+    "pageOf": "পৃষ্ঠা {{page}} / {{total}}"
   },
   "charts": {
     "errorTitle": "ত্রুটি",
@@ -40,14 +57,18 @@
       "suiteAccess": "স্যুইট অ্যাক্সেস",
       "userFallback": "ইউজার",
       "sections": {
+        "overview": "OVERVIEW",
         "learning": "LEARNING",
         "administration": "ADMINISTRATION"
       },
       "nav": {
         "moduleLibrary": "মডিউল লাইব্রেরি",
+        "badgeManagement": "মাইলস্টোন ম্যানেজমেন্ট",
         "ingestDocument": "ইনজেস্ট ডকুমেন্ট",
+        "uploadKnowledge": "নলেজ আপলোড",
         "videoUpload": "ভিডিও আপলোড",
         "ingestHistory": "ইনজেশন হিস্ট্রি",
+        "dashboard": "ড্যাশবোর্ড",
         "configs": "কনফিগারেশন"
       },
       "user": {
@@ -85,17 +106,25 @@
     "assigned": {
       "badge": "অ্যাসাইনমেন্ট সম্পন্ন",
       "title": "মডিউল সফলভাবে অ্যাসাইন হয়েছে",
+      "titleDocument": "ডকুমেন্ট সফলভাবে অ্যাসাইন হয়েছে",
+      "titleVideo": "ভিডিও সফলভাবে অ্যাসাইন হয়েছে",
       "subtitle": "মডিউলটি অ্যাসাইন করা হয়েছে। তারা তাদের কোচিং স্ক্রিনে সাথে সাথে দেখতে পাবে।",
+      "subtitleDocument": "নলেজ ডকুমেন্টটি অ্যাসাইন করা হয়েছে। তারা তাদের কোচিং স্ক্রিনে সাথে সাথে দেখতে পাবে।",
+      "subtitleVideo": "ভিডিওটি অ্যাসাইন করা হয়েছে। তারা তাদের কোচিং স্ক্রিনে সাথে সাথে দেখতে পাবে।",
       "summary": {
         "module": "মডিউল",
+        "document": "ডকুমেন্ট",
+        "video": "ভিডিও",
         "moduleMeta": "৪টি লেসন • ৩টি প্রশ্ন • ~১৮ মিনিট",
+        "documentMeta": "নলেজ ডকুমেন্ট অ্যাসাইনমেন্ট",
+        "videoMeta": "ভিডিও অ্যাসাইনমেন্ট",
         "quizReattemptAllowed": "কুইজ পুনরায় চেষ্টা অনুমোদিত",
         "quizReattemptAllowedUntilLoading": "লোড হচ্ছে…",
         "quizReattemptAllowedUntilUnavailable": "—",
         "quizReattemptAllowedMeta": "অ্যাসাইনমেন্ট তারিখ থেকে {{count}} দিন",
         "quizReattemptAllowedMetaLoading": "পুনরায় চেষ্টার সময়সীমা লোড হচ্ছে…",
         "quizReattemptAllowedMetaUnavailable": "পুনরায় চেষ্টার সময়সীমা উপলব্ধ নয়",
-        "assignedTo": "অ্যাসাইনড টু — {{count}} জন ব্যবহারকারী",
+        "assignedTo": "অ্যাসাইনড টু",
         "assignedToIndividual": "অ্যাসাইনড টু — ব্যক্তি",
         "assignedToPoSk": "অ্যাসাইনড টু — PO + SK",
         "assignedToPo": "অ্যাসাইনড টু — PO",
@@ -111,8 +140,12 @@
       "next": {
         "title": "পরবর্তী পদক্ষেপ",
         "backToLibrary": "মডিউল লাইব্রেরি",
+        "backToKnowledgeLibrary": "নলেজ লাইব্রেরি",
+        "backToVideoLibrary": "ভিডিও লাইব্রেরি",
         "backToLibraryHint": "অ্যাসাইন করা মডিউল দেখুন বা এডিট করুন",
         "assignMore": "আরও ব্যবহারকারীকে অ্যাসাইন করুন",
+        "assignMoreDocument": "আরও ব্যবহারকারীকে ডকুমেন্ট অ্যাসাইন করুন",
+        "assignMoreVideo": "আরও ব্যবহারকারীকে ভিডিও অ্যাসাইন করুন",
         "assignMoreHint": "এই মডিউলে আরও ব্যবহারকারী যোগ করুন",
         "goDashboard": "ড্যাশবোর্ডে যান",
         "goDashboardHint": "মডিউল কমপ্লিশন উইজেটে অগ্রগতি ট্র্যাক করুন"
@@ -127,6 +160,295 @@
       }
     }
   },
+  "adminDashboard": {
+    "title": "ড্যাশবোর্ড",
+    "description": "BRAC Health Programme · Bangladesh",
+    "insightsTitle": "প্রশিক্ষণ ইনসাইটস",
+    "widgetError": {
+      "title": "এই অংশ লোড করা যায়নি",
+      "description": "ডেটা সাময়িকভাবে অনুপলব্ধ। আপনার সংযোগ পরীক্ষা করুন বা কিছুক্ষণ পর আবার চেষ্টা করুন।",
+      "compactDescription": "এই অংশ পুনরায় লোড করতে আবার চেষ্টা করুন।",
+      "retry": "আবার চেষ্টা করুন"
+    },
+    "kpis": {
+      "active": "প্রতিক্রিয়াশীল SK",
+      "activeTooltip": "নির্বাচিত সময়ে অন্তত একবার প্রতিক্রিয়াশীল থাকা SK",
+      "inactive": "অপ্রতিক্রিয়াশীল SK",
+      "inactiveTooltip": "নির্বাচিত সময়ে অপ্রতিক্রিয়াশীল থাকা SK",
+      "finishedModules": "অন্তত একটি মডিউল সম্পন্ন SK",
+      "finishedModulesTooltip": "নির্বাচিত সময়ে অন্তত একটি মডিউল সম্পন্ন করা SK",
+      "chatbotEngaged": "চ্যাটবট এনগেজড",
+      "chatbotEngagedTooltip": "নির্বাচিত সময়ে চ্যাটবট ব্যবহার করা SK",
+      "totalModules": "প্রকাশিত প্রশিক্ষণ মডিউল",
+      "totalModulesTooltip": "ক্যাটালগে প্রকাশিত প্রশিক্ষণ মডিউলের মোট সংখ্যা"
+    },
+    "filters": {
+      "button": "ফিল্টার",
+      "apply": "প্রয়োগ করুন",
+      "clearAll": "সব ফিল্টার মুছুন",
+      "activeCount": "{{count}}টি ফিল্টার প্রয়োগ করা হয়েছে",
+      "panelLabel": "ড্যাশবোর্ড ফিল্টার",
+      "statusLabel": "টিম ভিউ",
+      "durationLabel": "সময়কাল:",
+      "clearCustomRange": "কাস্টম তারিখ রেঞ্জ মুছুন",
+      "invalidRangeTitle": "অবৈধ তারিখ রেঞ্জ",
+      "invalidRangeDescription": "একটি বৈধ কাস্টম শুরু/শেষ রেঞ্জ বেছে নিন, অথবা চালিয়ে যেতে কাস্টম রেঞ্জ মুছুন।",
+      "duration": {
+        "allTime": "সব সময়",
+        "thisWeek": "এই সপ্তাহ",
+        "thisMonth": "এই মাস",
+        "custom": "কাস্টম রেঞ্জ"
+      },
+      "from": "শুরু",
+      "to": "শেষ",
+      "sortLabel": "সাজান:",
+      "sort": {
+        "default": "ডিফল্ট",
+        "at_risk_first": "ঝুঁকিতে প্রথম",
+        "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
+        "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
+        "most_inactive": "সর্বাধিক অপ্রতিক্রিয়াশীল SK",
+        "name": "নাম (A–Z)"
+      },
+      "status": {
+        "all": "সব স্ট্যাটাস",
+        "on_track": "ঠিক পথে",
+        "at_risk": "ঝুঁকিতে"
+      },
+      "division": "বিভাগ",
+      "allDivisions": "সব বিভাগ",
+      "divisionUnavailable": "বিভাগ ফিল্টারিং এখনো উপলব্ধ নয়।",
+      "district": "জেলা",
+      "upazila": "উপজেলা",
+      "allDistricts": "সব জেলা",
+      "allUpazilas": "সব উপজেলা"
+    },
+    "hierarchy": {
+      "description": {
+        "am": "প্রোগ্রাম অফিসার ও SK দেখতে \"PO দেখুন\" ট্যাপ করে প্রসারিত করুন",
+        "po": "এই প্রোগ্রাম অফিসারের অধীনে SK দেখতে \"SK দেখুন\" ট্যাপ করে প্রসারিত করুন",
+        "sk": "সম্পূর্ণ SK বিবরণ দেখতে একটি সারিতে ট্যাপ করুন"
+      },
+      "emptyChildren": "এই রেঞ্জে কোনো সরাসরি রিপোর্ট নেই।",
+      "searchPlaceholder": "এরিয়া ম্যানেজার খুঁজুন...",
+      "searchPlaceholderPo": "প্রোগ্রাম অফিসার খুঁজুন...",
+      "searchPlaceholderSk": "SK খুঁজুন...",
+      "emptyTitle": "কোনো টিম মেম্বার নেই",
+      "emptyDescription": "বর্তমান ফিল্টারে কোনো হায়ারার্কি সারি নেই।",
+      "openSkDetail": "SK বিবরণ দেখুন",
+      "roleLabels": {
+        "am": "এরিয়া ম্যানেজার",
+        "po": "প্রোগ্রাম অফিসার",
+        "sk": "স্বাস্থ্যকর্মী"
+      },
+      "viewChildrenActions": {
+        "pos": "PO দেখুন",
+        "sks": "SK দেখুন",
+        "generic": "দেখুন"
+      },
+      "hideChildrenActions": {
+        "pos": "PO লুকান",
+        "sks": "SK লুকান",
+        "generic": "লুকান"
+      },
+      "tabs": {
+        "am": "এরিয়া ম্যানেজার",
+        "po": "প্রোগ্রাম অফিসার",
+        "sk": "SK"
+      },
+      "metrics": {
+        "members": "{{count}} সদস্য",
+        "inactive": "{{count}} অপ্রতিক্রিয়াশীল",
+        "modules": "{{completed}}/{{total}} মডিউল",
+        "chatbot": "{{count}} চ্যাটবট",
+        "sksLabel": "SK",
+        "membersLabel": "সদস্য",
+        "inactiveLabel": "অপ্রতিক্রিয়াশীল",
+        "modulesLabel": "মডিউল",
+        "queriesLabel": "প্রশ্ন"
+      },
+      "columns": {
+        "name": "নাম",
+        "status": "স্ট্যাটাস",
+        "modules": "মডিউল",
+        "chatbot": "চ্যাটবট প্রশ্ন",
+        "lastActive": "সর্বশেষ সক্রিয়"
+      }
+    },
+    "skDrawer": {
+      "title": "আমার SK",
+      "description": "{{name}}-এর কার্যকলাপ ও অ্যাসাইন করা মডিউল",
+      "close": "SK বিবরণ বন্ধ করুন",
+      "modulesLabel": "মডিউল",
+      "queriesLabel": "প্রশ্ন",
+      "modulesHeading": "মডিউল",
+      "activityHeading": "কার্যকলাপ",
+      "topQueriesHeading": "টপ প্রশ্ন",
+      "pending": "অপেক্ষমাণ",
+      "completed": "সম্পন্ন",
+      "lastChatbotUse": "শেষ চ্যাটবট ব্যবহার",
+      "lastModule": "শেষ মডিউল",
+      "never": "কখনো না",
+      "today": "আজ",
+      "yesterday": "গতকাল",
+      "daysAgo_one": "{{count}} দিন আগে",
+      "daysAgo_other": "{{count}} দিন আগে",
+      "emptyModules": "এই রেঞ্জে কোনো অ্যাসাইন করা মডিউল নেই।",
+      "emptyQueriesTitle": "কোনো প্রশ্ন নেই",
+      "emptyQueriesDescription": "নির্বাচিত তারিখ পরিসরে এই SK-এর কোনো চ্যাটবট প্রশ্ন নেই।"
+    },
+    "trainingModules": {
+      "title": "প্রশিক্ষণ মডিউল",
+      "description": "প্রকাশিত মডিউল ও SK সম্পন্নতার অগ্রগতি।",
+      "emptyTitle": "কোনো প্রকাশিত মডিউল নেই",
+      "emptyDescription": "এই তারিখের রেঞ্জে কোনো মডিউল প্রকাশিত হয়নি।",
+      "columns": {
+        "name": "মডিউল নাম",
+        "launched": "লঞ্চ করা",
+        "progress": "অগ্রগতি",
+        "completed": "SK সম্পন্ন"
+      }
+    },
+    "existingModules": {
+      "title": "টপ সার্চ করা বিদ্যমান মডিউল",
+      "description": "প্রকাশিত মডিউল যেখানে চ্যাটবট কনটেন্ট সরবরাহ করেছে বা SK-রা অ্যাসাইনমেন্ট চেয়েছে।",
+      "footer": "উচ্চ সার্চ ভলিউম ইঙ্গিত দেয় কোথায় SK-দের পরিষ্কার কনটেন্ট বা ফিল্ড সাপোর্ট দরকার।",
+      "emptyTitle": "কোনো সার্চ করা মডিউল নেই",
+      "emptyDescription": "এই তারিখ পরিসরে প্রকাশিত মডিউলের জন্য কোনো AI হেল্প বা অ্যাসাইনমেন্ট অনুরোধ নেই।",
+      "queriesHeading": "চ্যাটবট প্রশ্ন",
+      "requestsHeading": "অ্যাসাইনমেন্ট অনুরোধ",
+      "emptyQueries": "নির্বাচিত সময়ে এই মডিউলের জন্য কোনো চ্যাটবট প্রশ্ন নেই।",
+      "emptyRequests": "নির্বাচিত সময়ে এই মডিউলের জন্য কোনো অ্যাসাইনমেন্ট অনুরোধ নেই।"
+    },
+    "suggestedModules": {
+      "title": "টপ সার্চ করা সাজেস্টেড মডিউল",
+      "description": "যে বিষয়গুলোতে চ্যাটবট পূর্ণ উত্তর দিতে পারেনি — ড্রাফট মিল, মেটাডেটা ঘাটতি, নেই এমন মডিউল, বা নতুন প্রশিক্ষণ অনুরোধ।",
+      "columns": {
+        "topic": "সাজেস্টেড মডিউল / বিষয়"
+      },
+      "footer": "উচ্চ রিকোয়েস্ট ভলিউম ইঙ্গিত দেয় কোন প্রকাশিত মডিউল অ্যাসাইন বা রিফ্রেশ করা দরকার।",
+      "emptyTitle": "কোনো সাজেস্টেড মডিউল নেই",
+      "emptyDescription": "এই তারিখ পরিসরে কোনো মডিউল তৈরির পরামর্শ নেই।",
+      "detailFallback": "সাজেস্টেড মডিউল",
+      "loadDetailError": "পরামর্শের বিবরণ লোড করা যায়নি।",
+      "queriesHeading": "সম্পর্কিত চ্যাটবট প্রশ্ন",
+      "requestsHeading": "সম্পর্কিত প্রশিক্ষণ অনুরোধ",
+      "emptyQueries": "কোনো সম্পর্কিত চ্যাটবট প্রশ্ন নেই।",
+      "emptyRequests": "কোনো সম্পর্কিত প্রশিক্ষণ অনুরোধ নেই।",
+      "showMetadata": "বিবরণ দেখুন",
+      "reasonHeading": "কারণ",
+      "reasons": {
+        "draftModule": "মিলে যাওয়া মডিউল ড্রাফটে আছে",
+        "insufficientMetadata": "অপর্যাপ্ত মেটাডেটার কারণে সার্চ ব্যর্থ",
+        "noMatchingModule": "কোনো মিলে যাওয়া মডিউল নেই",
+        "newTopicRequest": "SK নতুন বিষয়ে প্রশিক্ষণ চেয়েছে",
+        "unattributedDemand": "অনির্দিষ্ট চ্যাটবট চাহিদা"
+      },
+      "evidence": {
+        "interaction": "ইন্টারঅ্যাকশন ধরন",
+        "source": "উৎস",
+        "sourceRequested": "প্রশিক্ষণ অনুরোধ",
+        "sourceChatbot": "চ্যাটবট প্রশ্ন",
+        "skId": "নমুনা SK ID"
+      }
+    },
+    "moduleDemand": {
+      "sectionTitle": "মডিউল সার্চ চাহিদা",
+      "summaryTitle": "মডিউল চাহিদার সারাংশ",
+      "summaryDescription": "নির্বাচিত ফিল্টার অনুযায়ী ডিজিটাল-হেল্প ব্যবহার ও মডিউল তৈরির চাহিদার বর্ণনামূলক সারাংশ।",
+      "summaryEmptyFallback": "{{fromDate}} থেকে {{toDate}} এর মধ্যে আপনার টিমের জন্য কোনো মডিউল ব্যবহার বা তৈরির চাহিদা রেকর্ড হয়নি।",
+      "columns": {
+        "title": "মডিউল শিরোনাম",
+        "searchCount": "সার্চ কাউন্ট",
+        "action": "অ্যাকশন"
+      },
+      "emptyTitle": "কোনো মডিউল চাহিদা নেই",
+      "emptyDescription": "এই তারিখ পরিসরে কোনো চ্যাটবট মডিউল কার্যকলাপ নেই।",
+      "requestSummary": "এই সময়ে {{count}}টি প্রশিক্ষণ অ্যাক্সেস অনুরোধ",
+      "requestFallback": "প্রশিক্ষণ অ্যাক্সেস অনুরোধ",
+      "detailDescription": "এই মডিউল বা টপিকের সাথে যুক্ত প্রশ্ন এবং অনুরোধ।",
+      "occurrences": "{{count}} ঘটনা",
+      "usersHeading": "যারা এই প্রশ্ন করেছেন",
+      "userCount": "{{count}} জন",
+      "interaction": {
+        "chatbotServed": "চ্যাটবটে সরবরাহ",
+        "assignmentRequested": "অ্যাসাইনমেন্টের জন্য অনুরোধ"
+      },
+      "metadata": {
+        "timestamp": "টাইমস্ট্যাম্প",
+        "skName": "SK নাম",
+        "district": "জেলা",
+        "upazila": "উপজেলা",
+        "geography": "ভৌগোলিক অবস্থান",
+        "interaction": "ইন্টারঅ্যাকশন",
+        "reason": "কারণ"
+      },
+      "actions": {
+        "assign": "অ্যাসাইন",
+        "publish": "প্রকাশ",
+        "create": "মডিউল তৈরি"
+      },
+      "seeMore": "আরও দেখুন",
+      "seeLess": "কম দেখুন",
+      "loadingMore": "লোড হচ্ছে…",
+      "expand": "উইজেট প্রসারিত করুন",
+      "collapse": "উইজেট সংকুচিত করুন",
+      "collapsedSummary": "{{count}}টি আইটেম লোড হয়েছে",
+      "showMetadata": "মেটাডেটা দেখুন"
+    },
+    "documentUsage": {
+      "title": "ডকুমেন্ট ও নলেজ ভিউ",
+      "description": "নির্বাচিত ফিল্টার অনুযায়ী PDF ও নলেজ-বেস ডকুমেন্ট ওপেন। কে খুলেছে দেখতে একটি সারিতে ক্লিক করুন।",
+      "emptyTitle": "কোনো ডকুমেন্ট ভিউ নেই",
+      "emptyDescription": "ডকুমেন্ট ভিউ টেলিমেট্রি এখনো রেকর্ড হয়নি।",
+      "chartLabel": "সর্বাধিক দেখা ডকুমেন্ট",
+      "tableTitle": "সব ডকুমেন্ট",
+      "topAllTitle": "সব সর্বাধিক দেখা ডকুমেন্ট",
+      "topAllDescription": "নির্বাচিত ফিল্টার অনুযায়ী মোট ভিউ দিয়ে র‍্যাঙ্ক করা।",
+      "documentsAllDescription": "নির্বাচিত ফিল্টার অনুযায়ী সব ডকুমেন্টের এনগেজমেন্ট বিবরণ।",
+      "topAllFooter": "নির্বাচিত সময়ে মোট ভিউ অনুযায়ী র‍্যাঙ্ক করা ডকুমেন্ট দেখায়।",
+      "documentsAllFooter": "এনগেজমেন্ট মেট্রিকসহ পূর্ণ ডকুমেন্ট তালিকা। সার্চ বর্তমান পেজ ফিল্টার করে।",
+      "detailDescription": "নির্বাচিত ডকুমেন্ট ও ফিল্টার অনুযায়ী প্রতিটি ওপেন ইভেন্ট।",
+      "detailTitle": "ডকুমেন্ট ওপেন",
+      "opensTitle": "ওপেন ইভেন্ট",
+      "unknownUser": "অজানা ব্যবহারকারী",
+      "openDetail": "{{title}} এর ওপেনে ড্রিল ডাউন করুন",
+      "viewAll": "সব দেখুন",
+      "viewAllDocuments": "সব ডকুমেন্ট দেখুন",
+      "backToOverview": "ওভারভিউতে ফিরুন",
+      "backToDocuments": "ডকুমেন্টে ফিরুন",
+      "searchPlaceholder": "ডকুমেন্ট খুঁজুন…",
+      "viewsCount": "{{count}} ভিউ",
+      "showingRange": "{{total}} ডকুমেন্টের মধ্যে {{from}} থেকে {{to}} দেখানো হচ্ছে",
+      "rowsPerPage": "প্রতি পেজে ডকুমেন্ট সারি",
+      "pageNumber": "ডকুমেন্ট ইউজেজ পেজ নম্বর",
+      "eventRowsPerPage": "প্রতি পেজে ওপেন ইভেন্ট সারি",
+      "eventPageNumber": "ওপেন ইভেন্ট পেজ নম্বর",
+      "kpis": {
+        "views": "মোট ভিউ",
+        "viewsTooltip": "সব ডকুমেন্ট ভিউ",
+        "documents": "দেখা ডকুমেন্ট",
+        "documentsTooltip": "ইউনিক ডকুমেন্ট",
+        "users": "ইউনিক ব্যবহারকারী",
+        "usersTooltip": "যারা দেখেছেন"
+      },
+      "columns": {
+        "rank": "র‍্যাঙ্ক",
+        "title": "ডকুমেন্ট",
+        "trend": "ভিউ",
+        "views": "ভিউ",
+        "users": "ইউনিক ব্যবহারকারী",
+        "lastViewed": "সর্বশেষ দেখা",
+        "lastViewedBy": "সর্বশেষ দেখেছেন"
+      },
+      "eventColumns": {
+        "user": "ব্যবহারকারী",
+        "role": "ভূমিকা",
+        "viewedAt": "খোলার সময়",
+        "geography": "ভূগোল"
+      }
+    }
+  },
   "errorBoundary": {
     "description": "ড্যাশবোর্ডে অনাকাঙ্ক্ষিত একটি ত্রুটি হয়েছে। আপনি পৃষ্ঠা রিফ্রেশ করতে পারেন অথবা হোম স্ক্রিনে ফিরে যেতে পারেন।",
     "detailsDevOnly": "বিস্তারিত (শুধু ডেভ)",
@@ -137,7 +459,7 @@
     "onTime": "সময়ের মধ্যে",
     "dueSoon": "শিগগিরই সময়সীমা",
     "delayed": "বিলম্বিত",
-    "inactive": "নিষ্ক্রিয়",
+    "inactive": "অপ্রতিক্রিয়াশীল",
     "inProgress": "চলমান",
     "unknown": "অজানা"
   },

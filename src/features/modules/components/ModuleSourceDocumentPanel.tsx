@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui';
+import { Card, TruncatedText } from '@/components/ui';
 import type { AdminModuleSourceDocument } from '@/features/modules/api/adminModulesApi';
 import {
   sourceDocumentIsPdf,
   sourceDocumentLabel,
+  sourceDocumentPreviewUrl,
 } from '@/features/modules/utils/sourceDocument';
 
 export interface ModuleSourceDocumentPanelProps {
@@ -41,6 +42,7 @@ export const ModuleSourceDocumentPanel = ({
   const label = sourceDocumentLabel(active);
   const showPdf = sourceDocumentIsPdf(active);
   const multiple = documents.length > 1;
+  const previewUrl = sourceDocumentPreviewUrl(active.presigned_url);
 
   return (
     <Card
@@ -96,8 +98,11 @@ export const ModuleSourceDocumentPanel = ({
             </select>
           </label>
         ) : (
-          <p className="truncate text-xs text-spice-text-medium" title={label}>
-            {label}
+          <p className="min-w-0">
+            <TruncatedText
+              text={label}
+              className="text-xs text-spice-text-medium"
+            />
           </p>
         )}
 
@@ -111,13 +116,13 @@ export const ModuleSourceDocumentPanel = ({
         </a>
       </div>
 
-      <div className="min-h-[min(70vh,720px)] flex-1 bg-spice-bg-tint p-2">
+      <div className="h-[min(70vh,720px)] min-h-[320px] bg-spice-bg-tint p-2">
         {showPdf ? (
           <iframe
             key={active.source_document_id}
             title={label}
-            src={active.presigned_url}
-            className="h-full min-h-[min(68vh,700px)] w-full rounded-lg border border-spice-border bg-white"
+            src={previewUrl}
+            className="h-full w-full rounded-lg border border-spice-border bg-white"
           />
         ) : (
           <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-spice-border bg-spice-bg-surface p-6 text-center">

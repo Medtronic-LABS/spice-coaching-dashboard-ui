@@ -1,4 +1,8 @@
 import { baseApi } from '@/store/apis/base';
+import {
+  normalizeHierarchyActorRef,
+  type HierarchyActorRef,
+} from '@/features/modules/types/hierarchyActor';
 
 export interface IngestionRunSummary {
   id: string;
@@ -11,6 +15,7 @@ export interface IngestionRunSummary {
   generated_card_count: number;
   generated_quiz_count: number;
   generated_module_count: number;
+  ingested_by: HierarchyActorRef | null;
 }
 
 export interface IngestionRunListResponse {
@@ -24,8 +29,11 @@ export interface IngestionRunListResponse {
 
 export interface FetchIngestionRunsQueryArgs {
   status?: string;
+  q?: string;
   limit?: number;
   offset?: number;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -60,6 +68,7 @@ function normalizeIngestionRunSummary(
     generated_card_count: normalizeCount(item.generated_card_count),
     generated_quiz_count: normalizeCount(item.generated_quiz_count),
     generated_module_count: normalizeCount(item.generated_module_count),
+    ingested_by: normalizeHierarchyActorRef(item.ingested_by),
   };
 }
 
@@ -126,20 +135,37 @@ export const adminIngestionRunsApi = baseApi.injectEndpoints({
       IngestionRunListResponse,
       FetchIngestionRunsQueryArgs
     >({
-      query: ({ limit, offset, status }) => ({
+      query: ({ limit, offset, status, q, sort_by, sort_dir }) => ({
         url: '/admin/ingestion-runs',
         method: 'GET',
         params: {
           limit,
           offset,
           ...(status ? { status } : {}),
+          ...(q ? { q } : {}),
+          ...(sort_by ? { sort_by } : {}),
+          ...(sort_dir ? { sort_dir } : {}),
         },
       }),
       transformResponse: (response: unknown, _meta, arg) =>
         normalizeIngestionRunListResponse(response, arg),
     }),
+    fetchIngestionRunById: builder.query<IngestionRunSummary, string>({
+      query: (runId) => ({
+        url: `/admin/ingestion-runs/${encodeURIComponent(runId)}`,
+        method: 'GET',
+      }),
+      transformResponse: (response: unknown): IngestionRunSummary => {
+        if (!isPlainObject(response)) {
+          return normalizeIngestionRunSummary({});
+        }
+        return normalizeIngestionRunSummary(response);
+      },
+      keepUnusedDataFor: 60,
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useFetchIngestionRunsQuery } = adminIngestionRunsApi;
+export const { useFetchIngestionRunsQuery, useFetchIngestionRunByIdQuery } =
+  adminIngestionRunsApi;

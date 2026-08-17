@@ -7,9 +7,13 @@ import {
   conflictsKeptExisting,
   findKeptExistingTargetForSource,
   isOverriddenUploadedSource,
+  keptExistingSourcesFromConflicts,
   normalizeUploadResponse,
   parseIngestDuplicateError,
   selectFilesForConflicts,
+  selectSourceDocumentIdsForConflicts,
+  selectSourcesForDuplicateIngestRetry,
+  selectedIngestDocumentsFromUploadResponse,
   sourceDocumentFromDuplicateConflict,
   uploadResponseFromDuplicateConflicts,
   uploadedSourceFromConflict,
@@ -84,6 +88,35 @@ describe('uploadedSourceFromConflict', () => {
   });
 });
 
+describe('selectedIngestDocumentsFromUploadResponse', () => {
+  it('enriches reused duplicates with existing source details', () => {
+    const docs = selectedIngestDocumentsFromUploadResponse({
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: existingSource.source_document_id,
+          title: existingSource.title,
+          source_type: 'pdf',
+          stored_path: '',
+          status: 'uploaded',
+        },
+      ],
+      skipped_duplicates: conflicts,
+    });
+
+    expect(docs).toEqual([
+      {
+        id: existingSource.source_document_id,
+        title: 'Procedure description',
+        originalFilename: 'Procedure description.pdf',
+        sourceType: 'pdf',
+        status: 'uploaded',
+        uploadedAt: existingSource.ingested_at,
+      },
+    ]);
+  });
+});
+
 describe('normalizeUploadResponse', () => {
   it('merges skipped duplicates into ordered sources', () => {
     const payload = {
@@ -145,6 +178,71 @@ describe('buildIngestOverrideFlags', () => {
       conflicts,
     );
     expect(flags).toEqual([false, true]);
+  });
+});
+
+describe('selectSourcesForDuplicateIngestRetry', () => {
+  const protocolConflict = {
+    filename: 'protocol.pdf',
+    title: 'Protocol',
+    content_sha256: 'def',
+    existing_source_documents: [
+      {
+        source_document_id: 'src-2',
+        title: 'Existing Protocol',
+        original_filename: 'protocol.pdf',
+        ingested_at: '2026-07-16T08:00:00Z',
+        status: 'uploaded',
+      },
+    ],
+  };
+  const mixedConflicts = [conflicts[0]!, protocolConflict];
+
+  it('keeps non-duplicates and only selected duplicates', () => {
+    const result = selectSourcesForDuplicateIngestRetry(
+      ['src-new', existingSource.source_document_id, 'src-2'],
+      mixedConflicts,
+      ['protocol.pdf'],
+    );
+    expect(result).toEqual({
+      sourceDocumentIds: ['src-new', 'src-2'],
+      overrideDuplicates: [false, true],
+    });
+  });
+
+  it('omits every duplicate when none are selected', () => {
+    const result = selectSourcesForDuplicateIngestRetry(
+      ['src-new', existingSource.source_document_id, 'src-2'],
+      mixedConflicts,
+      [],
+    );
+    expect(result).toEqual({
+      sourceDocumentIds: ['src-new'],
+      overrideDuplicates: [false],
+    });
+  });
+
+  it('returns empty when the batch is only unselected duplicates', () => {
+    const result = selectSourcesForDuplicateIngestRetry(
+      [existingSource.source_document_id, 'src-2'],
+      mixedConflicts,
+      [],
+    );
+    expect(result).toEqual({
+      sourceDocumentIds: [],
+      overrideDuplicates: [],
+    });
+  });
+});
+
+describe('selectSourceDocumentIdsForConflicts', () => {
+  it('filters payload ids to those present in conflicts', () => {
+    expect(
+      selectSourceDocumentIdsForConflicts(
+        ['src-new', existingSource.source_document_id, 'other'],
+        conflicts,
+      ),
+    ).toEqual([existingSource.source_document_id]);
   });
 });
 
@@ -303,5 +401,17 @@ describe('isOverriddenUploadedSource', () => {
         conflicts,
       ),
     ).toBe(false);
+  });
+});
+
+describe('keptExistingSourcesFromConflicts', () => {
+  it('maps kept duplicate conflicts to session rows', () => {
+    expect(keptExistingSourcesFromConflicts(conflicts)).toEqual([
+      {
+        source_document_id: existingSource.source_document_id,
+        title: existingSource.title,
+        filename: conflicts[0]!.filename,
+      },
+    ]);
   });
 });

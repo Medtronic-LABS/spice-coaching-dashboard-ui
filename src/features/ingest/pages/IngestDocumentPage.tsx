@@ -1,63 +1,51 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DeleteIcon } from '@/assets/icon';
-import { Button, Card } from '@/components/ui';
-import { Badge } from '@/components/ui/Badge';
+import { Banner, Button, Card } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type {
   AdminV3IngestAcceptedResponse,
   AdminV3IngestBatchStatusResponse,
   AdminV3IngestUploadResponse,
-  AdminV3IngestUploadedSource,
   IngestContentDomain,
-  IngestDuplicateConflict,
 } from '@/features/ingest/api/adminIngestApi';
+import { DocumentSelectionCollapsible } from '@/features/ingest/components/DocumentSelectionCollapsible';
+import { DocumentSelectionPanel } from '@/features/ingest/components/DocumentSelectionPanel';
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
 import { IngestConfigurationPanel } from '@/features/ingest/components/IngestConfigurationPanel';
 import { IngestRunStatusPanel } from '@/features/ingest/components/IngestRunStatusPanel';
-import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
+import { useClearIngestSessionOnTerminalLeave } from '@/features/ingest/hooks/useClearIngestSessionOnTerminalLeave';
 import { useIngestWithDuplicateHandling } from '@/features/ingest/hooks/useIngestWithDuplicateHandling';
-import {
-  INGEST_ACCEPTED_FILE_TYPES_LABEL,
-  INGEST_FILE_INPUT_ACCEPT,
-  formatIngestFileRejectionError,
-  isIngestAcceptedFile,
-} from '@/features/ingest/constants/ingestAcceptedFileTypes';
+import { MAX_DOCUMENT_SELECTION } from '@/features/ingest/constants/documentSelection';
 import {
   INGEST_FORM_DEFAULTS,
   type IngestModuleCountInput,
   ingestModuleCountForPayload,
   isOptionalIngestModuleCountValid,
 } from '@/features/ingest/constants/ingestFormDefaults';
+import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 import {
   clearActiveIngestSession,
+  mergeKeptExistingIngestSources,
   readActiveIngestSession,
   writeActiveIngestSession,
+  type KeptExistingIngestSource,
 } from '@/features/ingest/utils/ingestSessionStorage';
 import { appendRecentIngestDocument } from '@/features/ingest/utils/recentIngestDocumentsStorage';
-import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDecisions';
 import {
   isIngestInProgress,
   isIngestSucceeded,
+  isTerminalIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
+import { keptExistingSourcesFromConflicts } from '@/features/ingest/utils/parseIngestDuplicateError';
 import {
-  findKeptExistingTargetForSource,
-  isOverriddenUploadedSource,
-  sourceDocumentFromDuplicateConflict,
-} from '@/features/ingest/utils/parseIngestDuplicateError';
-
-function titleFromFilename(filename: string): string {
-  const trimmed = filename.trim();
-  const dot = trimmed.lastIndexOf('.');
-  if (dot <= 0) return trimmed;
-  return trimmed.slice(0, dot) || trimmed;
-}
+  selectedDocumentsFromIngestSourceIds,
+  selectedDocumentsFromUploadResponse,
+} from '@/features/ingest/utils/selectedDocumentsFromIngestSourceIds';
+import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
 export const IngestDocumentPage = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<File[]>([]);
   const [contentDomain, setContentDomain] = useState<IngestContentDomain>(
     INGEST_FORM_DEFAULTS.content_domain,
   );
@@ -71,14 +59,13 @@ export const IngestDocumentPage = () => {
   );
   const [ingestionInstructions, setIngestionInstructions] = useState('');
 
-  const [uploadedSources, setUploadedSources] = useState<
-    AdminV3IngestUploadedSource[]
+  const [selectedDocuments, setSelectedDocuments] = useState<
+    SelectedIngestDocument[]
   >([]);
-  const [overriddenFilenames, setOverriddenFilenames] = useState<string[]>([]);
-  const [uploadDuplicateConflicts, setUploadDuplicateConflicts] = useState<
-    IngestDuplicateConflict[]
-  >([]);
-  const [uploadComplete, setUploadComplete] = useState(false);
+  const [selectionPanelOpen, setSelectionPanelOpen] = useState(false);
+  const [documentSearchQuery, setDocumentSearchQuery] = useState('');
+  const [uploadClearSignal, setUploadClearSignal] = useState(0);
+
   const [accepted, setAccepted] =
     useState<AdminV3IngestAcceptedResponse | null>(null);
   const [activeBatchId, setActiveBatchId] = useState(
@@ -88,81 +75,26 @@ export const IngestDocumentPage = () => {
     () => readActiveIngestSession()?.batch_id ?? '',
   );
   const [actionError, setActionError] = useState('');
-  const [fileSelectionError, setFileSelectionError] = useState('');
   const [statusData, setStatusData] =
     useState<AdminV3IngestBatchStatusResponse | null>(null);
+  const [keptExistingSources, setKeptExistingSources] = useState<
+    KeptExistingIngestSource[]
+  >(() => readActiveIngestSession()?.kept_existing_sources ?? []);
 
-  const clearUploadedState = useCallback(() => {
-    setUploadedSources([]);
-    setUploadComplete(false);
-    setOverriddenFilenames([]);
-    setUploadDuplicateConflicts([]);
-  }, []);
+  const handleUploaded = useCallback((res: AdminV3IngestUploadResponse) => {
+    const uploaded = selectedDocumentsFromUploadResponse(res);
 
-  const removeFileAtIndex = useCallback(
-    (index: number) => {
-      setFiles((prev) => prev.filter((_, i) => i !== index));
-      clearUploadedState();
-    },
-    [clearUploadedState],
-  );
-
-  const appendFiles = useCallback(
-    (picked: File[]) => {
-      const acceptedFiles = picked.filter(isIngestAcceptedFile);
-      const rejected = picked.filter((file) => !isIngestAcceptedFile(file));
-
-      setFileSelectionError(
-        rejected.length ? formatIngestFileRejectionError(rejected) : '',
-      );
-
-      if (!acceptedFiles.length) return;
-
-      clearUploadedState();
-
-      setFiles((prev) => {
-        const existing = new Set(
-          prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`),
+    if (uploaded.length) {
+      setSelectedDocuments((previous) => {
+        const withoutDupes = previous.filter(
+          (doc) => !uploaded.some((item) => item.id === doc.id),
         );
-        const next = [...prev];
-        for (const file of acceptedFiles) {
-          const key = `${file.name}-${file.size}-${file.lastModified}`;
-          if (existing.has(key)) continue;
-          next.push(file);
-          existing.add(key);
-          if (next.length >= 10) break;
-        }
-        return next;
+        // Newest / just-resolved uploads stay at the top of the selection.
+        return [...uploaded, ...withoutDupes].slice(0, MAX_DOCUMENT_SELECTION);
       });
-    },
-    [clearUploadedState],
-  );
-
-  const handleUploaded = useCallback(
-    (
-      res: AdminV3IngestUploadResponse,
-      {
-        isReupload,
-        overriddenFilenames: overridden,
-        duplicateConflicts,
-      }: {
-        isReupload: boolean;
-        overriddenFilenames: string[];
-        duplicateConflicts: IngestDuplicateConflict[];
-      },
-    ) => {
-      setUploadedSources((prev) =>
-        isReupload ? [...prev, ...res.sources] : res.sources,
-      );
-      setOverriddenFilenames(overridden);
-      setUploadDuplicateConflicts(duplicateConflicts);
-      setUploadComplete(res.sources.length > 0);
-      if (res.sources.length) {
-        setFiles([]);
-      }
-    },
-    [],
-  );
+    }
+    setUploadClearSignal((current) => current + 1);
+  }, []);
 
   const handleIngestAccepted = useCallback(
     (res: AdminV3IngestAcceptedResponse) => {
@@ -171,10 +103,9 @@ export const IngestDocumentPage = () => {
         setActiveBatchId(res.batch_id);
         setRestoredBatchId(res.batch_id);
       }
-      setFiles([]);
-      clearUploadedState();
+      setSelectionPanelOpen(true);
     },
-    [clearUploadedState],
+    [],
   );
 
   const {
@@ -189,7 +120,7 @@ export const IngestDocumentPage = () => {
     reusedUploadNotice,
     keptExistingIngestNotice,
   } = useIngestWithDuplicateHandling({
-    onUploaded: handleUploaded,
+    onUploaded: (response) => handleUploaded(response),
     onAccepted: (response) => handleIngestAccepted(response),
     onError: setActionError,
   });
@@ -211,92 +142,109 @@ export const IngestDocumentPage = () => {
   const ingestionSucceeded =
     isIngestSucceeded(statusData?.status) && !pendingMergeDecisions;
 
-  useEffect(() => {
-    if (ingestionSucceeded) {
+  useClearIngestSessionOnTerminalLeave({
+    batchId,
+    status: statusData,
+    onClear: () => {
       clearActiveIngestSession();
-      return;
-    }
-    if (!accepted?.batch_id) return;
-    const first = accepted.sources?.[0];
-    writeActiveIngestSession({
-      batch_id: accepted.batch_id,
-      source_document_id: first?.source_document_id,
-      title: first?.title,
-    });
-    setRestoredBatchId(accepted.batch_id);
-  }, [accepted, ingestionSucceeded]);
+      setKeptExistingSources([]);
+      setSelectedDocuments([]);
+    },
+  });
 
   useEffect(() => {
-    if (ingestionSucceeded || !restoredBatchId) return;
+    if (!keptExistingIngestNotice?.length) return;
+    const kept = keptExistingSourcesFromConflicts(keptExistingIngestNotice);
+    setKeptExistingSources((previous) =>
+      mergeKeptExistingIngestSources(previous, kept),
+    );
+    setSelectedDocuments((previous) =>
+      selectedDocumentsFromIngestSourceIds({
+        previous,
+        keptExistingSources: kept,
+      }),
+    );
+  }, [keptExistingIngestNotice]);
+
+  useEffect(() => {
+    if (!accepted?.batch_id && !restoredBatchId) return;
+    const nextBatchId = accepted?.batch_id ?? restoredBatchId;
+    const first = accepted?.sources?.[0];
+    const session = readActiveIngestSession();
+    writeActiveIngestSession({
+      batch_id: nextBatchId,
+      source_document_id:
+        first?.source_document_id ?? session?.source_document_id,
+      title: first?.title ?? session?.title,
+      ...(keptExistingSources.length
+        ? { kept_existing_sources: keptExistingSources }
+        : {}),
+    });
+    setRestoredBatchId(nextBatchId);
+  }, [accepted, keptExistingSources, restoredBatchId]);
+
+  useEffect(() => {
+    if (!restoredBatchId) return;
     const session = readActiveIngestSession();
     if (session?.batch_id === restoredBatchId) return;
     writeActiveIngestSession({
       batch_id: restoredBatchId,
       source_document_id: session?.source_document_id,
       title: session?.title,
+      ...(keptExistingSources.length
+        ? { kept_existing_sources: keptExistingSources }
+        : {}),
     });
-  }, [ingestionSucceeded, restoredBatchId]);
+  }, [keptExistingSources, restoredBatchId]);
 
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
     isOptionalIngestModuleCountValid(cardsPerModule);
 
-  const canUpload =
-    files.length > 0 &&
-    !isUploading &&
-    !isStartingIngest &&
-    !ingestionInProgress &&
-    !uploadComplete;
+  const selectionDisabled =
+    isUploading || isStartingIngest || ingestionInProgress;
+  const selectionExpandDisabled = isUploading || isStartingIngest;
 
   const canStartIngest =
-    uploadedSources.length > 0 &&
-    uploadComplete &&
+    selectedDocuments.length > 0 &&
     !isUploading &&
     !isStartingIngest &&
     !ingestionInProgress &&
     moduleCountsValid;
 
-  const uploadFieldsDisabled =
-    isUploading || isStartingIngest || ingestionInProgress;
-
   const primarySourceDocumentId =
     accepted?.sources?.[0]?.source_document_id ||
-    uploadedSources[0]?.source_document_id ||
+    selectedDocuments[0]?.id ||
     readActiveIngestSession()?.source_document_id ||
     '';
 
   const activeSourceTitle = useMemo(() => {
     const fromAccepted = accepted?.sources?.[0]?.title;
     if (fromAccepted) return fromAccepted;
-    const fromUploaded = uploadedSources[0]?.title;
-    if (fromUploaded) return fromUploaded;
+    const fromSelected = selectedDocuments[0]?.title;
+    if (fromSelected) return fromSelected;
     if (readActiveIngestSession()?.batch_id === batchId) {
       return readActiveIngestSession()?.title;
     }
     return undefined;
-  }, [accepted?.sources, batchId, uploadedSources]);
+  }, [accepted?.sources, batchId, selectedDocuments]);
 
-  const keptExistingOnlyRows = useMemo(() => {
-    if (!keptExistingIngestNotice?.length) return [];
+  const keptExistingSourceIds = useMemo(
+    () => keptExistingSources.map((source) => source.source_document_id),
+    [keptExistingSources],
+  );
 
-    const matchedSourceDocumentIds = new Set(
-      uploadedSources.flatMap((source) => {
-        const target = findKeptExistingTargetForSource(
-          source,
-          keptExistingIngestNotice,
-        );
-        return target ? [target.sourceDocumentId] : [];
-      }),
-    );
-
-    return keptExistingIngestNotice.flatMap((conflict) => {
-      const target = sourceDocumentFromDuplicateConflict(conflict);
-      if (!target || matchedSourceDocumentIds.has(target.sourceDocumentId)) {
-        return [];
-      }
-      return [{ conflict, target }];
-    });
-  }, [keptExistingIngestNotice, uploadedSources]);
+  useEffect(() => {
+    if (!statusData?.sources?.length) return;
+    for (const source of statusData.sources) {
+      if (!isIngestSucceeded(source.status)) continue;
+      appendRecentIngestDocument({
+        source_document_id: source.source_document_id,
+        title: source.document_label,
+        ingested_at: source.completed_at ?? new Date().toISOString(),
+      });
+    }
+  }, [statusData?.sources]);
 
   useEffect(() => {
     if (!ingestionSucceeded || !primarySourceDocumentId) return;
@@ -312,28 +260,47 @@ export const IngestDocumentPage = () => {
     statusData?.completed_at,
   ]);
 
-  const goToAllModules = useCallback(() => {
-    const state: ModuleLibraryLocationState = {
-      tab: 'all',
-      sourceDocumentId: primarySourceDocumentId,
-      sourceDocumentTitle: activeSourceTitle,
-    };
-    navigate(paths.moduleLibrary, { state });
-  }, [activeSourceTitle, navigate, primarySourceDocumentId]);
+  // Drop session-backed selection metadata once a batch finishes so refresh and
+  // the next ingest start from a clean document picker.
+  useEffect(() => {
+    if (!batchId || !statusData || statusData.batch_id !== batchId) return;
+    if (hasPendingMergeDecisions(statusData.merge_decisions)) return;
+    if (!isTerminalIngestStatus(statusData.status)) return;
 
-  const goToNeedsReview = useCallback(() => {
-    const state: ModuleLibraryLocationState = {
-      tab: 'needs_review',
-      sourceDocumentId: primarySourceDocumentId,
-      sourceDocumentTitle: activeSourceTitle,
-    };
-    navigate(paths.moduleLibrary, { state });
-  }, [activeSourceTitle, navigate, primarySourceDocumentId]);
+    const session = readActiveIngestSession();
+    if (session?.source_document_id || session?.kept_existing_sources?.length) {
+      writeActiveIngestSession({ batch_id: batchId });
+    }
+    setKeptExistingSources([]);
+  }, [batchId, statusData]);
 
-  const goToModulesForSource = useCallback(
+  // Keep checkboxes aligned with the active batch only while ingestion is running.
+  useEffect(() => {
+    if (!batchId || !ingestionInProgress) return;
+    const statusSources =
+      statusData?.batch_id === batchId ? statusData.sources : undefined;
+    setSelectedDocuments((previous) =>
+      selectedDocumentsFromIngestSourceIds({
+        previous,
+        session: readActiveIngestSession(),
+        keptExistingSources,
+        acceptedSources: accepted?.sources,
+        statusSources,
+      }),
+    );
+    setSelectionPanelOpen(true);
+  }, [
+    accepted?.sources,
+    batchId,
+    ingestionInProgress,
+    keptExistingSources,
+    statusData,
+  ]);
+
+  const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
-        tab: 'all',
+        tab: 'drafts',
         sourceDocumentId,
         sourceDocumentTitle: sourceTitle,
       };
@@ -342,32 +309,30 @@ export const IngestDocumentPage = () => {
     [navigate],
   );
 
-  const runUpload = useCallback(async () => {
-    if (!files.length) return;
+  const goToNeedsReviewForSource = useCallback(
+    (sourceDocumentId: string, sourceTitle?: string) => {
+      const state: ModuleLibraryLocationState = {
+        tab: 'needs_review',
+        sourceDocumentId,
+        sourceDocumentTitle: sourceTitle,
+      };
+      navigate(paths.moduleLibrary, { state });
+    },
+    [navigate],
+  );
+
+  const runStartIngest = useCallback(async () => {
+    if (!selectedDocuments.length) return;
+    const nextSourceIds = selectedDocuments.map((doc) => doc.id);
     setActionError('');
     setAccepted(null);
     setActiveBatchId('');
     setRestoredBatchId('');
+    setKeptExistingSources([]);
+    setStatusData(null);
     clearActiveIngestSession();
-    setUploadComplete(false);
-
-    await uploadFiles({
-      files,
-      titles: files.map((file) => titleFromFilename(file.name)),
-      content_domains: files.map(() => contentDomain),
-      sync_published_visible: files.map(
-        () => INGEST_FORM_DEFAULTS.sync_published_visible,
-      ),
-    });
-  }, [contentDomain, files, uploadFiles]);
-
-  const runStartIngest = useCallback(async () => {
-    if (!uploadedSources.length) return;
-    setActionError('');
     await startIngest({
-      source_document_ids: uploadedSources.map(
-        (source) => source.source_document_id,
-      ),
+      source_document_ids: nextSourceIds,
       assessment_mode: assessmentMode,
       quizzes_per_module: ingestModuleCountForPayload(quizzesPerModule) ?? null,
       cards_per_module: ingestModuleCountForPayload(cardsPerModule) ?? null,
@@ -381,8 +346,8 @@ export const IngestDocumentPage = () => {
     cardsPerModule,
     ingestionInstructions,
     quizzesPerModule,
+    selectedDocuments,
     startIngest,
-    uploadedSources,
   ]);
 
   return (
@@ -393,7 +358,9 @@ export const IngestDocumentPage = () => {
             Ingest Document
           </h1>
           <p className="mt-1 text-sm text-spice-text-muted">
-            Upload files first, then start ingestion to generate modules
+            Select a configuration, upload a new document or choose existing
+            documents under Document Selection, then start the ingestion process
+            to generate modules.
           </p>
         </div>
         <div className="flex gap-2">
@@ -415,16 +382,13 @@ export const IngestDocumentPage = () => {
           <span className="font-semibold">Ingestion in progress.</span>{' '}
           <span className="text-spice-text-muted">
             Batch <span className="font-mono">{batchId}</span> is being
-            processed. Upload another file after the pipeline reports succeeded.
+            processed. Select more documents after the pipeline reports
+            succeeded.
           </span>
         </div>
       ) : null}
 
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
+      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
 
       {reusedUploadNotice?.length ? (
         <div
@@ -439,31 +403,13 @@ export const IngestDocumentPage = () => {
         </div>
       ) : null}
 
-      {keptExistingIngestNotice?.length ? (
-        <div
-          className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-medium"
-          role="status"
-        >
-          <span className="font-semibold text-spice-text-primary">
-            Already ingested:
-          </span>{' '}
-          {keptExistingIngestNotice
-            .map((conflict) => conflict.filename)
-            .join(', ')}
-          . View existing modules below.
-        </div>
-      ) : null}
-
-      <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
+      <Card variant="elevated" className="min-w-0 p-4 sm:p-6">
         <IngestConfigurationPanel
-          disabled={uploadFieldsDisabled}
+          disabled={selectionDisabled}
           assessmentMode={assessmentMode}
           onAssessmentModeChange={setAssessmentMode}
           contentDomain={contentDomain}
-          onContentDomainChange={(value) => {
-            setContentDomain(value);
-            clearUploadedState();
-          }}
+          onContentDomainChange={setContentDomain}
           cardsPerModule={cardsPerModule}
           onCardsPerModuleChange={setCardsPerModule}
           quizzesPerModule={quizzesPerModule}
@@ -471,308 +417,59 @@ export const IngestDocumentPage = () => {
           ingestionInstructions={ingestionInstructions}
           onIngestionInstructionsChange={setIngestionInstructions}
         />
-
-        <div className="space-y-3">
-          <div className="text-sm font-semibold text-spice-text-primary">
-            Upload
-          </div>
-
-          <div className="space-y-2">
-            {files.length ? (
-              <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto pr-1">
-                {files.map((f, idx) => (
-                  <li
-                    key={`${f.name}-${f.size}-${f.lastModified}`}
-                    className="flex items-center gap-3 rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2.5"
-                  >
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-spice-bg-tint text-spice-text-muted"
-                      aria-hidden
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M14 3v5h5"
-                        />
-                      </svg>
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="truncate text-sm font-medium text-spice-text-primary"
-                        title={f.name}
-                      >
-                        {f.name}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-spice-text-muted">
-                        {Math.round(f.size / 1024)} KB
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="ghost"
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-                      disabled={uploadFieldsDisabled}
-                      aria-label={`Remove ${f.name}`}
-                      title="Remove"
-                      onClick={() => removeFileAtIndex(idx)}
-                    >
-                      <DeleteIcon className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            {files.length < 10 && !uploadComplete ? (
-              <div className="relative">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={INGEST_FILE_INPUT_ACCEPT}
-                  multiple
-                  tabIndex={-1}
-                  className="sr-only"
-                  disabled={uploadFieldsDisabled}
-                  onFocus={(event) => {
-                    // Windows Chrome scrolls scrollable ancestors to reveal
-                    // focused sr-only inputs after the native file dialog closes.
-                    event.currentTarget.blur();
-                  }}
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.files ?? []).slice(
-                      0,
-                      10,
-                    );
-                    e.target.value = '';
-                    appendFiles(picked);
-                  }}
-                />
-                <button
-                  type="button"
-                  aria-label={files.length ? 'Add more files' : 'Select files'}
-                  disabled={uploadFieldsDisabled}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-spice-border-mid bg-spice-bg-tint p-3 text-center transition-colors ${
-                    uploadFieldsDisabled
-                      ? 'cursor-not-allowed opacity-60'
-                      : 'cursor-pointer hover:border-spice-border hover:bg-spice-bg-surface'
-                  }`}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                  </span>
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    {files.length ? 'Add more' : 'Select files'}
-                  </span>
-                  {!files.length ? (
-                    <span className="text-[11px] text-spice-text-muted">
-                      Click to select documents
-                    </span>
-                  ) : null}
-                </button>
-              </div>
-            ) : null}
-
-            {fileSelectionError ? (
-              <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-                {fileSelectionError}
-              </div>
-            ) : null}
-          </div>
-
-          <IngestUploadProgress
-            active={isUploading}
-            complete={uploadComplete && !isUploading}
-          />
-
-          {uploadedSources.length || keptExistingOnlyRows.length ? (
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-spice-text-primary">
-                Uploaded sources
-              </div>
-              <div className="space-y-2">
-                {uploadedSources.map((source) => {
-                  const overridden = isOverriddenUploadedSource(
-                    source,
-                    overriddenFilenames,
-                    uploadDuplicateConflicts,
-                  );
-                  const keptExistingTarget = findKeptExistingTargetForSource(
-                    source,
-                    keptExistingIngestNotice ?? undefined,
-                  );
-                  const keptExistingConflict = keptExistingIngestNotice?.find(
-                    (conflict) =>
-                      Boolean(
-                        findKeptExistingTargetForSource(source, [conflict]),
-                      ),
-                  );
-                  const displayTitle =
-                    keptExistingConflict?.filename ?? source.title;
-                  return (
-                    <div
-                      key={source.source_document_id}
-                      className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0 flex flex-wrap items-center gap-2">
-                          <div className="font-semibold text-spice-text-primary">
-                            {displayTitle}
-                          </div>
-                          {overridden ? (
-                            <Badge className="bg-spice-semantic-warningBg text-spice-semantic-warning">
-                              Overridden
-                            </Badge>
-                          ) : null}
-                        </div>
-                        {keptExistingTarget ? (
-                          <Button
-                            className="h-8 shrink-0 px-3 text-xs"
-                            onClick={() =>
-                              goToModulesForSource(
-                                keptExistingTarget.sourceDocumentId,
-                                keptExistingTarget.title,
-                              )
-                            }
-                          >
-                            View modules
-                          </Button>
-                        ) : null}
-                      </div>
-                      <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
-                        {source.source_document_id}
-                      </div>
-                    </div>
-                  );
-                })}
-                {keptExistingOnlyRows.map(({ conflict, target }) => (
-                  <div
-                    key={`${target.sourceDocumentId}-${conflict.filename}`}
-                    className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="min-w-0 font-semibold text-spice-text-primary">
-                        {conflict.filename}
-                      </div>
-                      <Button
-                        className="h-8 shrink-0 px-3 text-xs"
-                        onClick={() =>
-                          goToModulesForSource(
-                            target.sourceDocumentId,
-                            target.title,
-                          )
-                        }
-                      >
-                        View modules
-                      </Button>
-                    </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
-                      {target.sourceDocumentId}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <p className="text-xs text-spice-text-muted">
-            {INGEST_ACCEPTED_FILE_TYPES_LABEL}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            className="h-9 text-xs"
-            disabled={!canUpload}
-            onClick={() => void runUpload()}
-          >
-            {isUploading ? 'Uploading…' : 'Upload'}
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            disabled={!canStartIngest}
-            onClick={() => void runStartIngest()}
-          >
-            {isStartingIngest
-              ? 'Starting…'
-              : ingestionInProgress
-                ? 'Ingestion in progress…'
-                : 'Start ingestion'}
-          </Button>
-        </div>
-
-        {accepted?.sources?.length ? (
-          <div className="space-y-2">
-            <div className="text-xs font-semibold text-spice-text-primary">
-              Queued sources
-            </div>
-            <div className="space-y-2">
-              {accepted.sources.map((s) => (
-                <div
-                  key={s.source_document_id}
-                  className="w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-left text-xs text-spice-text-medium"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold text-spice-text-primary">
-                        {s.title}
-                      </div>
-                      <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
-                        {s.source_document_id}
-                      </div>
-                    </div>
-                    <div className="text-[11px] text-spice-text-muted">
-                      {s.source_type}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {accepted.note ? (
-              <div className="rounded-lg bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-muted">
-                {accepted.note}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
       </Card>
+
+      <DocumentSelectionCollapsible
+        title="Document Selection"
+        open={selectionPanelOpen}
+        onOpenChange={setSelectionPanelOpen}
+        collapsedSummary="Expand to select documents or upload new files"
+        disabled={selectionExpandDisabled}
+      >
+        <DocumentSelectionPanel
+          selectedDocuments={selectedDocuments}
+          onSelectedDocumentsChange={setSelectedDocuments}
+          searchQuery={documentSearchQuery}
+          onSearchQueryChange={setDocumentSearchQuery}
+          contentDomain={contentDomain}
+          disabled={selectionDisabled}
+          uploadFiles={uploadFiles}
+          isUploading={isUploading}
+          uploadClearSignal={uploadClearSignal}
+          batchSources={statusData?.sources ?? []}
+          keptExistingSourceIds={keptExistingSourceIds}
+        />
+      </DocumentSelectionCollapsible>
+
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          className="h-9 text-xs"
+          disabled={!canStartIngest}
+          onClick={() => void runStartIngest()}
+        >
+          {isStartingIngest
+            ? 'Starting…'
+            : ingestionInProgress
+              ? 'Ingestion in progress…'
+              : 'Start ingestion'}
+        </Button>
+      </div>
+
+      {accepted?.note ? (
+        <div className="rounded-lg bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-muted">
+          {accepted.note}
+        </div>
+      ) : null}
 
       {batchId ? (
         <IngestRunStatusPanel
           batchId={batchId}
-          sourceTitle={activeSourceTitle}
           isUploading={isUploading}
           uploadLabel="Uploading document…"
-          initialPollDelayMs={activeBatchId ? 5000 : 0}
+          initialPollDelayMs={accepted?.batch_id === batchId ? 5000 : 0}
           onStatusChange={handleStatusChange}
-          onGoToDrafts={goToAllModules}
-          onGoToNeedsReview={goToNeedsReview}
+          onGoToDrafts={goToDraftsForSource}
+          onGoToNeedsReview={goToNeedsReviewForSource}
         />
       ) : null}
 

@@ -5,6 +5,7 @@ describe('routes', () => {
   it('prefixes app routes', () => {
     expect(paths.home).toBe(`${ROUTE_PREFIX}/`);
     expect(paths.moduleLibrary).toBe(`${ROUTE_PREFIX}/module-library`);
+    expect(paths.adminDashboard).toBe(`${ROUTE_PREFIX}/dashboard`);
     expect(paths.configs).toBe(`${ROUTE_PREFIX}/configs`);
   });
 

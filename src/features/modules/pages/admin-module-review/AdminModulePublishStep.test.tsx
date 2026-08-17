@@ -18,8 +18,11 @@ import { AdminModulePublishStep } from './AdminModulePublishStep';
 
 const mockNavigate = vi.fn();
 
-const setClinicallyReviewed = vi.fn(() => ({
-  unwrap: vi.fn().mockResolvedValue({ clinically_reviewed: true }),
+const publishModule = vi.fn(() => ({
+  unwrap: vi.fn().mockResolvedValue({
+    id: 'mod-1',
+    lifecycle_status: 'published',
+  }),
 }));
 
 function createMockModule() {
@@ -75,12 +78,22 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   return {
     ...actual,
     useEditModuleMutation: () => [vi.fn(), { isLoading: false }],
-    useSetClinicallyReviewedMutation: () => [
-      setClinicallyReviewed,
-      { isLoading: false },
-    ],
   };
 });
+
+vi.mock(
+  '@/features/modules/api/moduleCreationPipelineApi',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/modules/api/moduleCreationPipelineApi')
+      >();
+    return {
+      ...actual,
+      usePublishModuleMutation: () => [publishModule, { isLoading: false }],
+    };
+  },
+);
 
 function renderPublishStep() {
   const store = configureStore({
@@ -117,7 +130,7 @@ describe('AdminModulePublishStep', () => {
     roleState.role = 'programManager';
     mockModule = createMockModule();
     mockNavigate.mockClear();
-    setClinicallyReviewed.mockClear();
+    publishModule.mockClear();
   });
 
   it('renders publish summary content for draft modules', () => {
@@ -128,15 +141,14 @@ describe('AdminModulePublishStep', () => {
     expect(screen.getByText('Question?')).toBeInTheDocument();
   });
 
-  it('publishes draft modules via clinically reviewed mutation', async () => {
+  it('publishes draft modules via publish mutation', async () => {
     const user = userEvent.setup();
     renderPublishStep();
 
     await user.click(screen.getByRole('button', { name: /↑ publish module/i }));
 
-    expect(setClinicallyReviewed).toHaveBeenCalledWith({
+    expect(publishModule).toHaveBeenCalledWith({
       moduleId: 'mod-1',
-      body: { clinically_reviewed: true },
     });
   });
 
@@ -145,7 +157,6 @@ describe('AdminModulePublishStep', () => {
     mockModule = {
       ...createMockModule(),
       lifecycle_status: 'published',
-      clinically_reviewed: true,
     };
     renderPublishStep();
 
@@ -163,6 +174,22 @@ describe('AdminModulePublishStep', () => {
         },
       },
     });
+  });
+
+  it('hides Assign to CHWs for chatbot FAQ-only published modules', () => {
+    mockModule = {
+      ...createMockModule(),
+      lifecycle_status: 'published',
+      chatbot_faqs_only: true,
+    };
+    renderPublishStep();
+
+    expect(
+      screen.queryByRole('button', { name: 'Assign to CHWs' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/chatbot FAQ-only module.*cannot be assigned to CHWs/i),
+    ).toBeInTheDocument();
   });
 
   it('redirects to the published tab after the success modal', async () => {
@@ -186,5 +213,52 @@ describe('AdminModulePublishStep', () => {
         state: { tab: 'published' },
       });
     });
+  });
+
+  it('shows Save draft for editable drafts', () => {
+    renderPublishStep();
+
+    expect(
+      screen.getByRole('button', { name: /save draft/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides source document card when none are linked', () => {
+    renderPublishStep();
+
+    expect(screen.queryByText('Source document')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /preview source document/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows source document card and opens preview panel', async () => {
+    const user = userEvent.setup();
+    mockModule = {
+      ...createMockModule(),
+      source_documents: [
+        {
+          source_document_id: 'doc-1',
+          presigned_url:
+            'https://example.com/files/bangladesh_htn_protocol_v3.pdf?response-content-disposition=attachment%3B%20filename%3D%22bangladesh_htn_protocol_v3.pdf%22&response-content-type=application%2Fpdf',
+          presigned_expires_seconds: 3600,
+        },
+      ],
+    };
+    renderPublishStep();
+
+    expect(screen.getByText('Source document')).toBeInTheDocument();
+    expect(
+      screen.getByText('bangladesh_htn_protocol_v3.pdf'),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /preview source document/i }),
+    );
+
+    expect(screen.getByText(/compare with original/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^close$/i }),
+    ).toBeInTheDocument();
   });
 });

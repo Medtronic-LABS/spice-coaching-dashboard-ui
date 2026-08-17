@@ -19,12 +19,14 @@ export const UnAuthorizedPage = () => {
         <p className="mt-4 text-sm text-spice-text-medium">
           {t('auth.login.instruction')}
         </p>
-        <a
-          href={spiceWebLoginUrl}
-          className="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md bg-spice-brand-primary px-3 text-sm font-medium text-white shadow-spicePrimary transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard"
-        >
-          {t('auth.login.continueToSpice')}
-        </a>
+        <div className="mt-6">
+          <a
+            href={spiceWebLoginUrl}
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-spice-brand-primary px-3 text-sm font-medium text-white shadow-spicePrimary transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard"
+          >
+            {t('auth.login.continueToSpice')}
+          </a>
+        </div>
       </div>
     </div>
   );

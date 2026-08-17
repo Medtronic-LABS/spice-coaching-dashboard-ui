@@ -1,5 +1,4 @@
-import { Button } from '@/components/ui/Button';
-import { Loader } from '@/components/ui/Loader';
+import { Banner, Button, EmptyState, Loader } from '@/components/ui';
 import { ModulePreviewNavigator } from '@/features/modules/components/module-preview/ModulePreviewNavigator';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -67,18 +66,18 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
       </div>
 
       {syncError ? (
-        <div className="mx-4 mt-3 shrink-0 rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {syncError}
+        <div className="mx-4 mt-3 shrink-0">
+          <Banner tone="critical">{syncError}</Banner>
         </div>
       ) : null}
 
       <div className="relative flex h-0 min-h-0 flex-1 flex-col overflow-hidden px-4 py-2">
         {snapshot ? (
           isEmpty ? (
-            <div className="rounded-lg border border-dashed border-spice-border px-4 py-8 text-center text-sm text-spice-text-muted">
-              No cards or quiz questions to preview. Add content, then sync
-              preview.
-            </div>
+            <EmptyState
+              title="No cards or quiz questions to preview"
+              description="Add content, then sync preview."
+            />
           ) : (
             <ModulePreviewNavigator
               snapshot={snapshot}

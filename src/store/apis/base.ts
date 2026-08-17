@@ -1,6 +1,7 @@
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { apiBaseUrl, useMockApi } from '@/config/apiClientConfig';
+import { getAuthSession } from '@/features/auth/services/authSession';
 import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
 import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
 
@@ -8,17 +9,29 @@ export { apiBaseUrl } from '@/config/apiClientConfig';
 
 const realFetchBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,
-  // credentials: 'include',
+  credentials: 'include',
+  prepareHeaders: (headers) => {
+    const session = getAuthSession();
+    // /auth/session returns the auth cookie on Authorization; replay it as auth-cookie.
+    const authCookie = session?.authorization ?? session?.token;
+    if (authCookie) {
+      headers.set('auth-cookie', authCookie);
+    }
+    return headers;
+  },
 });
 
-const hybridBaseQuery: BaseQueryFn = (args, api, extraOptions) => {
+const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
+  let result;
   if (import.meta.env.MODE === 'test') {
-    return mockBaseQuery(args, api, extraOptions);
+    result = await mockBaseQuery(args, api, extraOptions);
+  } else if (!useMockApi || shouldUseRealFetchForRequest(args)) {
+    result = await realFetchBaseQuery(args, api, extraOptions);
+  } else {
+    result = await mockBaseQuery(args, api, extraOptions);
   }
-  if (!useMockApi || shouldUseRealFetchForRequest(args)) {
-    return realFetchBaseQuery(args, api, extraOptions);
-  }
-  return mockBaseQuery(args, api, extraOptions);
+
+  return result;
 };
 
 /** Used by unit tests to verify mock vs real fetch routing outside vitest `MODE=test`. */
@@ -29,6 +42,12 @@ export const baseApi = createApi({
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
   baseQuery: hybridBaseQuery,
-  tagTypes: ['Config', 'ModuleDomains'],
+  tagTypes: [
+    'Config',
+    'ConfigHistory',
+    'ModuleDomains',
+    'SourceDocuments',
+    'Badges',
+  ],
   endpoints: () => ({}),
 });

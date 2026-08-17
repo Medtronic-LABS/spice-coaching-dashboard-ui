@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { TEST_AUTH_USER } from '@/features/auth/constants/testAuthUser';
-import { fetchSpiceUserProfile } from '@/features/auth/services/fetchSpiceUserProfile';
 import {
   getAuthSession,
   setAuthSession,
 } from '@/features/auth/services/authSession';
+import {
+  fetchSpiceUserProfile,
+  isSpiceProfileUnauthorizedError,
+} from '@/features/auth/services/fetchSpiceUserProfile';
 import { hasCoachingSuiteAccess } from '@/features/auth/utils/hasCoachingSuiteAccess';
 import { mapSpiceProfileToAuthUser } from '@/features/auth/utils/mapSpiceProfileToAuthUser';
 import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
@@ -37,17 +40,20 @@ export function useAuthBootstrap(): AuthBootstrapStatus {
         if (cancelled) return;
 
         if (!hasCoachingSuiteAccess(profile.entity.suiteAccess)) {
-          setStatus('redirecting');
-          redirectToSpiceWeb();
+          setStatus('ready');
           return;
         }
 
         setAuthSession(mapSpiceProfileToAuthUser(profile.entity));
         setStatus('ready');
-      } catch {
+      } catch (error) {
         if (cancelled) return;
-        setStatus('redirecting');
-        redirectToSpiceWeb();
+        if (isSpiceProfileUnauthorizedError(error)) {
+          setStatus('redirecting');
+          redirectToSpiceWeb();
+          return;
+        }
+        setStatus('ready');
       }
     }
 

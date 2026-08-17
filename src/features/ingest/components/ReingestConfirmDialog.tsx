@@ -1,4 +1,4 @@
-import { Button, Card, Modal } from '@/components/ui';
+import { Banner, Button, Card, Modal } from '@/components/ui';
 
 export const REINGEST_VIDEO_WARNING =
   'Re-ingesting these videos will reset learner module progress and quiz attempts and scores associated with these modules.';
@@ -50,9 +50,7 @@ export const ReingestConfirmDialog = ({
               <li key={name}>{name}</li>
             ))}
           </ul>
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-sm text-spice-semantic-error">
-            {REINGEST_VIDEO_WARNING}
-          </div>
+          <Banner tone="critical">{REINGEST_VIDEO_WARNING}</Banner>
           <p className="text-sm font-medium text-spice-text-primary">
             Do you want to continue?
           </p>

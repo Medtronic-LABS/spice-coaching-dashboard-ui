@@ -31,5 +31,16 @@ export function sourceDocumentContentType(
 export function sourceDocumentIsPdf(doc: AdminModuleSourceDocument): boolean {
   const type = sourceDocumentContentType(doc);
   if (type?.includes('pdf')) return true;
-  return /\.pdf($|\?)/i.test(doc.presigned_url);
+  if (/\.pdf($|\?)/i.test(doc.presigned_url)) return true;
+  return /\.pdf$/i.test(doc.source_document_id);
+}
+
+/**
+ * Append Chrome/Firefox PDF viewer open params so the page fits the iframe
+ * width. Hash fragments do not affect signed URL query signatures.
+ */
+export function sourceDocumentPreviewUrl(url: string): string {
+  const hashIndex = url.indexOf('#');
+  const base = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+  return `${base}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`;
 }

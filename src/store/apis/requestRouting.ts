@@ -20,8 +20,15 @@ export function shouldUseRealFetchForRequest(
 ): boolean {
   const url = getNormalizedRequestUrl(args);
   return (
+    url === 'auth/session' ||
+    url.startsWith('auth/') ||
     url.startsWith('admin/') ||
-    isSpiceAdminServiceRequest(url) ||
-    isSpiceUserServiceRequest(url)
+    url.startsWith('dashboard/') ||
+    url.startsWith('telemetry/') ||
+    isSpiceServiceRequestUrl(url)
   );
+}
+
+function isSpiceServiceRequestUrl(url: string): boolean {
+  return isSpiceAdminServiceRequest(url) || isSpiceUserServiceRequest(url);
 }

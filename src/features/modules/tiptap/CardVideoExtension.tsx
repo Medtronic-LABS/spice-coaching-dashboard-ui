@@ -67,7 +67,7 @@ function CardVideoNodeView({
         <video
           src={url}
           controls
-          className="max-h-48 w-full rounded-md"
+          className="max-h-[min(70vh,420px)] w-full rounded-md object-contain"
           draggable={false}
           onMouseDown={(event) => event.stopPropagation()}
         />

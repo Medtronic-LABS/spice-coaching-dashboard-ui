@@ -3,6 +3,11 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { paths, ROUTE_PREFIX } from '@/constants/routes';
 
+const UnAuthorizedPage = lazy(() =>
+  import('@/features/auth/pages/UnAuthorizedPage').then((module) => ({
+    default: module.UnAuthorizedPage,
+  })),
+);
 const ModuleLibraryPage = lazy(() =>
   import('@/features/modules/pages/ModuleLibraryPage').then((module) => ({
     default: module.ModuleLibraryPage,
@@ -26,6 +31,11 @@ const IngestHistoryPage = lazy(() =>
 const VideoUploadPage = lazy(() =>
   import('@/features/ingest/pages/VideoUploadPage').then((module) => ({
     default: module.VideoUploadPage,
+  })),
+);
+const KnowledgeLibraryPage = lazy(() =>
+  import('@/features/modules/pages/KnowledgeLibraryPage').then((module) => ({
+    default: module.KnowledgeLibraryPage,
   })),
 );
 const AdminModuleReviewLayout = lazy(() =>
@@ -90,23 +100,50 @@ const ConfigsPage = lazy(() =>
     default: module.ConfigsPage,
   })),
 );
+const AdminDashboardPage = lazy(() =>
+  import('@/features/admin-dashboard/pages/AdminDashboardPage').then(
+    (module) => ({
+      default: module.AdminDashboardPage,
+    }),
+  ),
+);
+const BadgeManagementPage = lazy(() =>
+  import('@/features/badges/pages/BadgeManagementPage').then((module) => ({
+    default: module.BadgeManagementPage,
+  })),
+);
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route
         path={ROUTE_PREFIX}
-        element={<Navigate to={paths.moduleLibrary} replace />}
+        element={<Navigate to={paths.adminDashboard} replace />}
       />
+      <Route
+        path={paths.login}
+        element={<Navigate to={paths.home} replace />}
+      />
+      <Route path={paths.unauthorized} element={<UnAuthorizedPage />} />
       <Route element={<MainLayout />}>
         <Route
           path={paths.home}
-          element={<Navigate to={paths.moduleLibrary} replace />}
+          element={<Navigate to={paths.adminDashboard} replace />}
+        />
+        <Route
+          path={`${ROUTE_PREFIX}/admin-dashboard`}
+          element={<Navigate to={paths.adminDashboard} replace />}
         />
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+        <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />
         <Route path={paths.ingestDocument} element={<IngestDocumentPage />} />
+        <Route
+          path={paths.uploadKnowledge}
+          element={<KnowledgeLibraryPage />}
+        />
         <Route path={paths.videoUpload} element={<VideoUploadPage />} />
         <Route path={paths.ingestHistory} element={<IngestHistoryPage />} />
+        <Route path={paths.adminDashboard} element={<AdminDashboardPage />} />
         <Route
           path={paths.adminModuleReview}
           element={<AdminModuleReviewLayout />}
@@ -128,7 +165,7 @@ export const AppRoutes = () => {
         <Route path={paths.configs} element={<ConfigsPage />} />
         <Route
           path="*"
-          element={<Navigate to={paths.moduleLibrary} replace />}
+          element={<Navigate to={paths.adminDashboard} replace />}
         />
       </Route>
     </Routes>

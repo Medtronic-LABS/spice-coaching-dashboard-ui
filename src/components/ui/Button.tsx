@@ -15,11 +15,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    'bg-spice-brand-primary text-white shadow-spicePrimary hover:opacity-95 focus-visible:ring-spice-brand-primary disabled:opacity-50',
+    'bg-spice-brand-primary text-white shadow-spicePrimary hover:bg-spice-palette-purpleHover active:bg-spice-palette-purpleActive focus-visible:ring-spice-brand-primary disabled:bg-spice-border disabled:text-spice-text-muted disabled:shadow-none',
   secondary:
-    'bg-spice-bg-surface text-spice-text-primary ring-1 ring-spice-border-mid hover:bg-spice-bg-tint focus-visible:ring-spice-border-mid',
+    'bg-spice-bg-surface text-spice-brand-primary ring-1 ring-spice-border hover:bg-spice-palette-purpleLt active:ring-spice-brand-primary focus-visible:ring-spice-brand-primary disabled:text-spice-border disabled:ring-spice-border',
   ghost:
-    'bg-transparent text-spice-text-medium hover:bg-spice-bg-tint focus-visible:ring-spice-border-mid',
+    'bg-transparent text-spice-brand-primary hover:bg-spice-palette-purpleLt focus-visible:ring-spice-brand-primary disabled:text-spice-text-muted/60',
 };
 
 export const Button = ({
@@ -32,7 +32,7 @@ export const Button = ({
     <button
       type={type}
       className={cn(
-        'inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center rounded-sm px-3 py-2 text-[13px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-spice-bg-dashboard disabled:cursor-not-allowed',
         variantClasses[variant],
         className,
       )}

@@ -7,6 +7,7 @@ import type {
   IngestDuplicateErrorDetail,
   IngestSourceType,
 } from '@/features/ingest/api/adminIngestApi';
+import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -117,11 +118,61 @@ export function uploadedSourceFromConflict(
   return {
     source_document_id: existing.source_document_id,
     title: existing.title || conflict.title,
-    source_type: inferSourceType(conflict.filename),
+    source_type: inferSourceType(
+      existing.original_filename || conflict.filename,
+    ),
     stored_path: '',
     content_domain: contentDomain ?? null,
     status: existing.status || 'uploaded',
   };
+}
+
+/**
+ * Build selection rows from an upload response, enriching reused duplicates
+ * with title / filename / status / timestamp from conflict payloads.
+ */
+export function selectedIngestDocumentsFromUploadResponse(
+  response: AdminV3IngestUploadResponse,
+): SelectedIngestDocument[] {
+  const conflictBySourceId = new Map<string, IngestDuplicateConflict>();
+  for (const conflict of response.skipped_duplicates ?? []) {
+    for (const existing of conflict.existing_source_documents) {
+      if (existing.source_document_id) {
+        conflictBySourceId.set(existing.source_document_id, conflict);
+      }
+    }
+  }
+
+  return response.sources
+    .filter((source) => Boolean(source.source_document_id))
+    .map((source) => {
+      const conflict = conflictBySourceId.get(source.source_document_id);
+      const existing = conflict?.existing_source_documents[0];
+      const originalFilename =
+        existing?.original_filename?.trim() ||
+        conflict?.filename?.trim() ||
+        null;
+      const title =
+        existing?.title?.trim() ||
+        source.title.trim() ||
+        conflict?.title?.trim() ||
+        originalFilename ||
+        source.source_document_id;
+      const uploadedAt = existing?.ingested_at?.trim() || undefined;
+
+      return {
+        id: source.source_document_id,
+        title,
+        originalFilename,
+        sourceType:
+          source.source_type ||
+          (conflict
+            ? inferSourceType(originalFilename || conflict.filename)
+            : 'pdf'),
+        status: existing?.status?.trim() || source.status || 'uploaded',
+        ...(uploadedAt ? { uploadedAt } : {}),
+      };
+    });
 }
 
 function titleFromFilename(filename: string): string {
@@ -259,17 +310,64 @@ export function buildOverrideFlags(
   return files.map((file) => conflictFilenames.has(file.name));
 }
 
-export function buildIngestOverrideFlags(
-  sourceDocumentIds: string[],
-  conflicts: IngestDuplicateConflict[],
-): boolean[] {
+/** Source document IDs referenced by duplicate conflicts. */
+export function duplicateSourceDocumentIdsFromConflicts(
+  conflicts: readonly IngestDuplicateConflict[],
+): Set<string> {
   const duplicateIds = new Set<string>();
   for (const conflict of conflicts) {
     for (const existing of conflict.existing_source_documents) {
       duplicateIds.add(existing.source_document_id);
     }
   }
+  return duplicateIds;
+}
+
+export function buildIngestOverrideFlags(
+  sourceDocumentIds: string[],
+  conflicts: IngestDuplicateConflict[],
+): boolean[] {
+  const duplicateIds = duplicateSourceDocumentIdsFromConflicts(conflicts);
   return sourceDocumentIds.map((id) => duplicateIds.has(id));
+}
+
+/**
+ * Narrow an ingest-start retry to non-duplicates plus sources the user chose
+ * to re-ingest. Unselected duplicates are omitted from the next request.
+ */
+export function selectSourcesForDuplicateIngestRetry(
+  sourceDocumentIds: readonly string[],
+  conflicts: readonly IngestDuplicateConflict[],
+  selectedFilenames: readonly string[],
+): {
+  sourceDocumentIds: string[];
+  overrideDuplicates: boolean[];
+} {
+  const allDuplicateIds = duplicateSourceDocumentIdsFromConflicts(conflicts);
+  const selectedSet = conflictFilenamesFromList(
+    selectedFilenames.map((filename) => ({ filename })),
+  );
+  const selectedDuplicateIds = duplicateSourceDocumentIdsFromConflicts(
+    conflicts.filter((conflict) => selectedSet.has(conflict.filename)),
+  );
+
+  const filteredIds = sourceDocumentIds.filter(
+    (id) => !allDuplicateIds.has(id) || selectedDuplicateIds.has(id),
+  );
+
+  return {
+    sourceDocumentIds: filteredIds,
+    overrideDuplicates: filteredIds.map((id) => selectedDuplicateIds.has(id)),
+  };
+}
+
+/** Keep only payload sources that appear in the given conflicts (e.g. skipped). */
+export function selectSourceDocumentIdsForConflicts(
+  sourceDocumentIds: readonly string[],
+  conflicts: readonly IngestDuplicateConflict[],
+): string[] {
+  const duplicateIds = duplicateSourceDocumentIdsFromConflicts(conflicts);
+  return sourceDocumentIds.filter((id) => duplicateIds.has(id));
 }
 
 export function conflictFilenamesFromList(
@@ -316,6 +414,31 @@ export function sourceDocumentFromDuplicateConflict(
     sourceDocumentId: existing.source_document_id,
     title: existing.title || conflict.title || conflict.filename,
   };
+}
+
+/** Map duplicate conflicts the user kept as already ingested to session rows. */
+export function keptExistingSourcesFromConflicts(
+  conflicts: readonly IngestDuplicateConflict[],
+): Array<{
+  source_document_id: string;
+  title?: string;
+  filename?: string;
+}> {
+  return conflicts.flatMap((conflict) => {
+    const existing = conflict.existing_source_documents[0];
+    if (!existing?.source_document_id) return [];
+    return [
+      {
+        source_document_id: existing.source_document_id,
+        title:
+          existing.title?.trim() || conflict.title?.trim() || conflict.filename,
+        filename:
+          existing.original_filename?.trim() ||
+          conflict.filename?.trim() ||
+          undefined,
+      },
+    ];
+  });
 }
 
 /** Resolve view-modules target when an uploaded source was kept as already ingested. */

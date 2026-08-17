@@ -7,6 +7,8 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
+import { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 /**
@@ -15,6 +17,9 @@ import { cn } from '@/utils';
  * externally (e.g. server-side search). The parent owns both the selected
  * value and the search term; this component only renders the options it is
  * given, without any client-side filtering.
+ *
+ * Optional infinite-scroll props (`hasMore` / `onLoadMore`) load more pages
+ * as the user scrolls the open list.
  *
  * Usage:
  * <Combobox
@@ -56,6 +61,15 @@ export interface ComboboxProps {
   id?: string;
   className?: string;
   'aria-label'?: string;
+  /** When true, scrolling near the list bottom calls `onLoadMore`. */
+  hasMore?: boolean;
+  /** Load the next page of options (parent appends to `options`). */
+  onLoadMore?: () => void;
+  /** Disables load triggers while the next page is fetching. */
+  isLoadingMore?: boolean;
+  /** Shows a retry row when a page load failed. */
+  loadMoreError?: boolean;
+  onLoadMoreRetry?: () => void;
 }
 
 export const Combobox = ({
@@ -72,6 +86,11 @@ export const Combobox = ({
   id: idProp,
   className,
   'aria-label': ariaLabel,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
+  loadMoreError = false,
+  onLoadMoreRetry,
 }: ComboboxProps) => {
   const generatedId = useId();
   const inputId = idProp ?? generatedId;
@@ -182,7 +201,10 @@ export const Combobox = ({
             ? `${inputId}-option-${highlightedIndex}`
             : undefined
         }
-        className="h-10 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
+        className={cn(
+          'h-10 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+          SPICE_INPUT_FOCUS_CLASSNAME,
+        )}
         value={open ? searchTerm : selectedLabel}
         placeholder={open ? placeholder : selectedLabel || placeholder}
         onFocus={() => setOpen(true)}
@@ -195,13 +217,30 @@ export const Combobox = ({
       />
       {open ? (
         <div className="absolute z-20 mt-1 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface shadow-lg">
-          <ul
-            id={listboxId}
-            role="listbox"
-            className="max-h-64 overflow-y-auto py-1"
-          >
-            {listContent}
-          </ul>
+          {onLoadMore ? (
+            <InfiniteScrollContainer
+              className="max-h-64 py-1"
+              hasMore={hasMore}
+              onLoadMore={onLoadMore}
+              loadedCount={options.length}
+              isLoadingMore={isLoadingMore}
+              error={loadMoreError}
+              onRetry={onLoadMoreRetry}
+              disabled={isLoading}
+            >
+              <ul id={listboxId} role="listbox">
+                {listContent}
+              </ul>
+            </InfiniteScrollContainer>
+          ) : (
+            <ul
+              id={listboxId}
+              role="listbox"
+              className="max-h-64 overflow-y-auto py-1"
+            >
+              {listContent}
+            </ul>
+          )}
           {hint ? (
             <p className="border-t border-spice-border-mid px-3 py-1.5 text-xs text-spice-text-muted">
               {hint}

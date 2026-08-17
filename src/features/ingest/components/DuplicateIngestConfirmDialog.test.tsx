@@ -1,8 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IngestDuplicateConflict } from '@/features/ingest/api/adminIngestApi';
 import { DuplicateIngestConfirmDialog } from './DuplicateIngestConfirmDialog';
+
+const mocks = vi.hoisted(() => ({
+  fetchSourceDocuments: vi.fn(),
+}));
+
+vi.mock('@/features/modules/api/adminSourceDocumentsApi', () => ({
+  useLazyFetchSourceDocumentsQuery: () => [
+    mocks.fetchSourceDocuments,
+    { isFetching: false },
+  ],
+}));
 
 const conflicts: IngestDuplicateConflict[] = [
   {
@@ -36,6 +47,43 @@ const conflicts: IngestDuplicateConflict[] = [
 ];
 
 describe('DuplicateIngestConfirmDialog', () => {
+  beforeEach(() => {
+    mocks.fetchSourceDocuments.mockReset();
+    mocks.fetchSourceDocuments.mockImplementation((params: { q?: string }) => ({
+      unwrap: async () => {
+        if (params.q === 'guide.pdf') {
+          return {
+            source_documents: [
+              {
+                id: 'src-1',
+                title: 'Existing Guide',
+                uploaded_date: '2026-07-14T10:00:00Z',
+                ingested_at: '2026-07-15T08:00:00Z',
+                uploaded_by: { id: 101, name: 'Alice Admin' },
+                ingested_by: { id: 201, name: 'Carol Ingester' },
+              },
+            ],
+          };
+        }
+        if (params.q === 'protocol.pdf') {
+          return {
+            source_documents: [
+              {
+                id: 'src-2',
+                title: 'Existing Protocol',
+                uploaded_date: '2026-07-15T11:00:00Z',
+                ingested_at: '2026-07-16T08:00:00Z',
+                uploaded_by: { id: 102, name: 'Bob Reviewer' },
+                ingested_by: { id: 202, name: 'Dave Ingester' },
+              },
+            ],
+          };
+        }
+        return { source_documents: [] };
+      },
+    }));
+  });
+
   it('shows upload duplicate modal with tooltip, table, and action buttons', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
@@ -56,24 +104,20 @@ describe('DuplicateIngestConfirmDialog', () => {
       screen.getByRole('button', { name: 'About duplicate file upload' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(
-        /This document with similar content is already ingested/i,
-      ),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/Checked documents will be re-ingested/i),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('checkbox', {
-        name: /Select all duplicate documents/i,
-      }),
-    ).not.toBeInTheDocument();
-    expect(
       screen.getByRole('columnheader', { name: 'File name' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: 'Existing source' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Uploaded' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Uploaded by' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: 'Ingested by' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('0/2')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'guide.pdf' }),
@@ -87,6 +131,11 @@ describe('DuplicateIngestConfirmDialog', () => {
     expect(
       screen.getByRole('button', { name: 'Skip Upload' }),
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
+      expect(screen.getByText('Bob Reviewer')).toBeInTheDocument();
+    });
 
     const uploadButton = screen.getByRole('button', {
       name: 'Upload as New Source',
@@ -144,7 +193,7 @@ describe('DuplicateIngestConfirmDialog', () => {
     ).toBeDisabled();
   });
 
-  it('shows ingest duplicate modal with tooltip, table, and action buttons', async () => {
+  it('shows ingest duplicate modal with catalog uploaded metadata', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     render(
@@ -163,27 +212,24 @@ describe('DuplicateIngestConfirmDialog', () => {
     expect(
       screen.getByRole('button', { name: 'About duplicate ingest' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'This document with similar content is already ingested. Do you want to re-ingest guide.pdf?',
-      ),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/Checked documents will be re-ingested/i),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('checkbox', {
-        name: /Select all duplicate documents/i,
-      }),
-    ).not.toBeInTheDocument();
     expect(screen.getByText('0/1')).toBeInTheDocument();
-    expect(screen.getByText(/Last ingested/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Uploaded by' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Ingested by' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Cancel' }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Keep Existing' }),
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
+      expect(screen.getByText('Carol Ingester')).toBeInTheDocument();
+    });
 
     const reingestButton = screen.getByRole('button', { name: 'Re-ingest' });
     expect(reingestButton).toBeDisabled();
@@ -254,11 +300,6 @@ describe('DuplicateIngestConfirmDialog', () => {
     expect(
       screen.getByRole('button', { name: 'About skipped duplicate ingest' }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'This document with similar content is already ingested and was not queued. Do you want to re-ingest guide.pdf?',
-      ),
-    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Keep Existing' }),
     ).toBeInTheDocument();

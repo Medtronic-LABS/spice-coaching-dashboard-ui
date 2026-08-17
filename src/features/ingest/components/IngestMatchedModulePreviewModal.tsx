@@ -1,10 +1,11 @@
-import { Card, KeyValue, Loader, Modal } from '@/components/ui';
+import { Banner, Card, KeyValue, Loader, Modal } from '@/components/ui';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
 } from '@/config/deploymentLocale';
 import { useGetModuleDetailQuery } from '@/features/modules/api/adminModulesApi';
 import { LearnerRichCardBody } from '@/features/modules/components/module-preview/LearnerRichCardBody';
+import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   readLocaleOptions,
@@ -53,7 +54,7 @@ export const IngestMatchedModulePreviewModal = ({
               id="ingest-matched-module-preview-title"
               className="text-lg font-semibold text-spice-text-primary"
             >
-              Module Content
+              Module Details
             </h2>
           </div>
           <button
@@ -80,36 +81,31 @@ export const IngestMatchedModulePreviewModal = ({
 
         <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           {!moduleId ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
+            <Banner tone="critical">
               No module id was provided for this merge decision.
-            </div>
+            </Banner>
           ) : null}
 
           {error ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {formatRtkQueryError(error)}
-            </div>
+            <Banner tone="critical">{formatRtkQueryError(error)}</Banner>
           ) : null}
 
           {module ? (
             <div className="space-y-5">
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-spice-text-primary">
-                  Module details
-                </h3>
-                <div className="grid gap-2 rounded-lg border border-spice-border bg-spice-bg-tint/40 p-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 rounded-lg border border-spice-border bg-spice-bg-tint/40 p-3.5 sm:grid-cols-2">
                   <KeyValue
                     label="Title"
                     value={resolveDisplayText(module.title)}
                   />
                   <KeyValue label="Domain" value={module.domain || '—'} />
                   <KeyValue
-                    label="Lifecycle"
-                    value={module.lifecycle_status || '—'}
-                  />
-                  <KeyValue
-                    label="Version"
-                    value={String(module.version ?? '—')}
+                    label="Status"
+                    value={
+                      <ModuleStatusBadge
+                        status={module.lifecycle_status ?? 'draft'}
+                      />
+                    }
                   />
                   <KeyValue
                     label="Lessons"
@@ -117,22 +113,27 @@ export const IngestMatchedModulePreviewModal = ({
                   />
                   <KeyValue label="Quizzes" value={String(quizzes.length)} />
                   <KeyValue
-                    label="Published"
+                    label="Estimated (mins)"
                     value={
-                      module.published_at
-                        ? formatDisplayDateTime(module.published_at)
-                        : '—'
+                      module.estimated_minutes ? module.estimated_minutes : '—'
                     }
                   />
-                  <KeyValue
-                    label="Estimated minutes"
-                    value={String(module.estimated_minutes ?? '—')}
-                  />
+                  {module.published_at ? (
+                    <KeyValue
+                      label="Published"
+                      value={formatDisplayDateTime(module.published_at)}
+                    />
+                  ) : null}
                 </div>
                 {module.description ? (
-                  <p className="text-sm text-spice-text-medium">
-                    {resolveDisplayText(module.description)}
-                  </p>
+                  <div className="space-y-1 mt-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-spice-text-muted">
+                      Module Description
+                    </span>
+                    <div className="text-xs text-spice-text-medium rounded-lg border border-spice-border bg-spice-bg-surface p-3">
+                      {resolveDisplayText(module.description)}
+                    </div>
+                  </div>
                 ) : null}
               </section>
 
@@ -157,7 +158,7 @@ export const IngestMatchedModulePreviewModal = ({
                       return (
                         <article
                           key={card.id || `lesson-${index}`}
-                          className="rounded-lg border border-spice-border bg-spice-bg-surface p-3"
+                          className="rounded-lg border border-spice-border bg-spice-bg-surface p-3.5"
                         >
                           <div className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                             Lesson {index + 1}
@@ -191,11 +192,6 @@ export const IngestMatchedModulePreviewModal = ({
                         DEPLOYMENT_PRIMARY_LOCALE,
                         'en',
                       );
-                      const caseSetup = readLocaleText(
-                        item.case_setup,
-                        DEPLOYMENT_PRIMARY_LOCALE,
-                        'en',
-                      );
                       const explanation = readLocaleText(
                         item.explanation,
                         DEPLOYMENT_PRIMARY_LOCALE,
@@ -209,43 +205,50 @@ export const IngestMatchedModulePreviewModal = ({
                       return (
                         <article
                           key={item.id || `quiz-${index}`}
-                          className="rounded-lg border border-spice-border bg-spice-bg-surface p-3"
+                          className="rounded-lg border border-spice-border bg-spice-bg-surface p-3.5 space-y-2.5"
                         >
                           <div className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                             Question {index + 1}
                           </div>
-                          {caseSetup ? (
-                            <p className="mt-1 text-xs text-spice-text-muted">
-                              {caseSetup}
-                            </p>
-                          ) : null}
-                          <h4 className="mt-1 text-sm font-semibold text-spice-text-primary">
+                          <h4 className="text-sm font-semibold text-spice-text-primary">
                             {question || `Question ${index + 1}`}
                           </h4>
-                          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-spice-text-medium">
+                          <div className="space-y-1.5 text-xs">
                             {options.map((option, optionIndex) => {
                               const isCorrect = (
                                 item.correct_indices ?? []
                               ).includes(optionIndex);
                               return (
-                                <li
+                                <div
                                   key={`${item.id}-option-${optionIndex}`}
-                                  className={
+                                  className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
                                     isCorrect
-                                      ? 'font-medium text-spice-semantic-success'
-                                      : undefined
-                                  }
+                                      ? 'border-spice-semantic-success/40 bg-spice-semantic-successBg/40 text-spice-semantic-success font-medium'
+                                      : 'border-spice-border/50 bg-spice-bg-surface text-spice-text-medium'
+                                  }`}
                                 >
-                                  {option || `Option ${optionIndex + 1}`}
-                                  {isCorrect ? ' (correct)' : ''}
-                                </li>
+                                  <span className="shrink-0 font-semibold">
+                                    {String.fromCharCode(65 + optionIndex)}.
+                                  </span>
+                                  <span className="flex-1">
+                                    {option || `Option ${optionIndex + 1}`}
+                                  </span>
+                                  {isCorrect ? (
+                                    <span className="rounded bg-spice-semantic-successBg px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-success">
+                                      Correct
+                                    </span>
+                                  ) : null}
+                                </div>
                               );
                             })}
-                          </ul>
+                          </div>
                           {explanation ? (
-                            <p className="mt-2 text-xs text-spice-text-muted">
+                            <div className="rounded border border-spice-border/40 bg-spice-bg-tint/30 p-2.5 text-xs text-spice-text-medium">
+                              <span className="font-semibold text-spice-text-primary">
+                                Explanation:{' '}
+                              </span>
                               {explanation}
-                            </p>
+                            </div>
                           ) : null}
                         </article>
                       );

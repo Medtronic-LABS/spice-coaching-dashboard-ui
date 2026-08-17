@@ -28,17 +28,17 @@ export const MainLayout = () => {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-spice-bg-dashboard">
-      <Sidebar
-        isMobileOpen={isSidebarOpen}
-        onMobileClose={() => setIsSidebarOpen(false)}
+    <div className="flex h-screen flex-col overflow-hidden bg-spice-bg-dashboard">
+      <Header
+        isSidebarOpen={isSidebarOpen}
+        onMenuToggle={() => setIsSidebarOpen((open) => !open)}
       />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <Header
-          isSidebarOpen={isSidebarOpen}
-          onMenuToggle={() => setIsSidebarOpen((open) => !open)}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Sidebar
+          isMobileOpen={isSidebarOpen}
+          onMobileClose={() => setIsSidebarOpen(false)}
         />
-        <main className="flex-1 overflow-y-auto bg-spice-bg-dashboard p-4 sm:p-6">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-spice-bg-dashboard p-4 sm:p-6">
           <ErrorBoundary variant="section">
             <Suspense fallback={<Loader />}>
               <Outlet />

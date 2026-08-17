@@ -78,13 +78,13 @@ export const IngestConfigurationPanel = ({
       />
 
       <div className="relative z-10 space-y-4">
-        <div className="text-xs font-semibold tracking-wide text-spice-text-medium uppercase">
+        <h2 className="text-sm font-semibold text-spice-text-primary sm:text-base">
           Configuration
-        </div>
+        </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
           <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
+            <span className="flex min-h-5 items-center text-xs font-semibold text-spice-text-primary">
               Module content
             </span>
             <Select
@@ -99,11 +99,12 @@ export const IngestConfigurationPanel = ({
           </label>
 
           <label className="block min-w-0 space-y-1">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+            <span className="flex min-h-5 items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
               Content domain type
               <Tooltip
                 label="About Content domain type"
                 content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                placement="top"
               />
             </span>
             <Select

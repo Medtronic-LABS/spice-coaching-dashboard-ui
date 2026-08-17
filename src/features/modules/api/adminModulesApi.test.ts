@@ -14,6 +14,13 @@ async function dispatchFetchModules(arg: {
   status?: string | null;
   sourceDocumentId?: string | null;
   q?: string | null;
+  chatbot_faqs_only?: boolean | null;
+  created_from?: string | null;
+  created_to?: string | null;
+  published_from?: string | null;
+  division_id?: number | null;
+  district_id?: number | null;
+  upazila_id?: number | null;
 }): Promise<FetchArgs> {
   mockBaseQuerySpy.mockResolvedValue({ data: [] });
   const { baseApi } = await import('@/store/apis/base');
@@ -97,6 +104,54 @@ describe('adminModulesApi fetchModules request', () => {
     });
 
     expect(request.params).not.toHaveProperty('q');
+  });
+
+  it('sends chatbot_faqs_only when provided as a boolean', async () => {
+    const request = await dispatchFetchModules({
+      limit: 50,
+      offset: 0,
+      status: 'published',
+      chatbot_faqs_only: false,
+    });
+
+    expect(request.params).toEqual({
+      limit: 50,
+      offset: 0,
+      latest_version_only: true,
+      status: 'published',
+      chatbot_faqs_only: false,
+    });
+  });
+
+  it('omits chatbot_faqs_only when not provided', async () => {
+    const request = await dispatchFetchModules({
+      limit: 50,
+      offset: 0,
+      status: 'published',
+    });
+
+    expect(request.params).not.toHaveProperty('chatbot_faqs_only');
+  });
+
+  it('sends geography assignment filters when provided', async () => {
+    const request = await dispatchFetchModules({
+      limit: 20,
+      offset: 0,
+      status: 'published',
+      division_id: 1,
+      district_id: 10,
+      upazila_id: 2,
+    });
+
+    expect(request.params).toEqual({
+      limit: 20,
+      offset: 0,
+      latest_version_only: true,
+      status: 'published',
+      division_id: 1,
+      district_id: 10,
+      upazila_id: 2,
+    });
   });
 
   it('sends typed date range params when provided', async () => {

@@ -17,10 +17,6 @@ export const INGEST_CONTENT_DOMAIN_OPTIONS: SelectOption[] = [
   ingestOption('Clinical', 'clinical' satisfies IngestContentDomain),
   ingestOption('Digital', 'digital' satisfies IngestContentDomain),
   ingestOption('Operational', 'operational' satisfies IngestContentDomain),
-  ingestOption(
-    'Clinical with app workflows',
-    'clinical_with_app_workflows' satisfies IngestContentDomain,
-  ),
 ];
 function findIngestOptionLabel(options: SelectOption[], value: string): string {
   return options.find((option) => option.value === value)?.label ?? value;
@@ -36,4 +32,11 @@ export function getIngestContentDomainLabel(
   value: IngestContentDomain,
 ): string {
   return findIngestOptionLabel(INGEST_CONTENT_DOMAIN_OPTIONS, value);
+}
+
+export function formatModuleContentDomainLabel(
+  value: string | null | undefined,
+): string {
+  if (!value?.trim()) return '';
+  return getIngestContentDomainLabel(value.trim() as IngestContentDomain);
 }

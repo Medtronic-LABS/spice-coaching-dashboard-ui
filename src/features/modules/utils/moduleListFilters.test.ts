@@ -7,11 +7,14 @@ import {
   formatModuleDomainLabel,
   getAvailableDateFilterTypes,
   getModuleActivatedAt,
+  getModuleDeactivatedAt,
+  getModuleListingActorColumns,
   getModuleListingDateColumns,
   getModuleListEmptyMessage,
   hasActiveModuleFilters,
   isAnyVisibleDateRangeInvalid,
   isDateRangeInvalid,
+  moduleListingActorColumnHeader,
   moduleListingDateColumnHeader,
   parseFiltersFromSearchParams,
   parseModuleLibraryTab,
@@ -90,6 +93,11 @@ describe('moduleListFilters', () => {
     expect(dateRangeValidationMessage('2026-04-30', '2026-04-01')).toBe(
       'From date must be on or before to date.',
     );
+    expect(
+      dateRangeValidationMessage('2026-04-01', '2026-04-30', {
+        today: '2026-04-15',
+      }),
+    ).toBe('To date cannot be in the future.');
   });
 
   it('ignores hidden date types for badge / invalid checks on drafts', () => {
@@ -110,6 +118,12 @@ describe('moduleListFilters', () => {
       hasActiveModuleFilters({
         ...EMPTY_MODULE_LIBRARY_FILTERS,
         domain: 'rmnch',
+      }),
+    ).toBe(true);
+    expect(
+      hasActiveModuleFilters({
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        divisionId: '1',
       }),
     ).toBe(true);
   });
@@ -162,6 +176,38 @@ describe('moduleListFilters', () => {
     );
   });
 
+  it('round-trips geography filters through URL params', () => {
+    const params = buildModuleListSearchParams(
+      'drafts',
+      {
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        divisionId: '1',
+        districtId: '10',
+        upazilaId: '2',
+      },
+      true,
+    );
+    expect(params.get('division_id')).toBe('1');
+    expect(params.get('district_id')).toBe('10');
+    expect(params.get('upazila_id')).toBe('2');
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      divisionId: '1',
+      districtId: '10',
+      upazilaId: '2',
+    });
+  });
+
+  it('ignores invalid geography ids in the URL', () => {
+    const params = new URLSearchParams(
+      'division_id=abc&district_id=0&upazila_id=12',
+    );
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      upazilaId: '12',
+    });
+  });
+
   it('persists the all tab in URL params so it does not fall back to drafts', () => {
     const params = buildModuleListSearchParams(
       'all',
@@ -173,34 +219,54 @@ describe('moduleListFilters', () => {
   });
 
   it('returns tab-aware date columns', () => {
-    expect(getModuleListingDateColumns('drafts', true)).toEqual(['created']);
+    expect(getModuleListingDateColumns('drafts', true)).toEqual([
+      'created',
+      'updated',
+    ]);
     expect(getModuleListingDateColumns('published', true)).toEqual([
       'created',
+      'updated',
       'published',
     ]);
     expect(getModuleListingDateColumns('deactivated', true)).toEqual([
       'created',
+      'updated',
       'activated',
       'deactivated',
     ]);
     expect(getModuleListingDateColumns('all', true)).toEqual([
       'created',
+      'updated',
       'published',
+      'activated',
+      'deactivated',
     ]);
     expect(getModuleListingDateColumns('published', false)).toEqual([
       'created',
+      'updated',
       'published',
     ]);
   });
 
   it('labels date columns', () => {
     expect(moduleListingDateColumnHeader('created')).toBe('Created at');
+    expect(moduleListingDateColumnHeader('updated')).toBe('Last updated');
     expect(moduleListingDateColumnHeader('published')).toBe('Published at');
     expect(moduleListingDateColumnHeader('activated')).toBe('Activated at');
     expect(moduleListingDateColumnHeader('deactivated')).toBe('Deactivated at');
   });
 
-  it('prefers last_reactivated_at for Activated, then falls back', () => {
+  it('prefers activated_at for Activated, then falls back', () => {
+    expect(
+      getModuleActivatedAt({
+        lifecycle_status: 'deactivated',
+        published_at: '2026-01-01T00:00:00.000Z',
+        created_at: '2025-12-01T00:00:00.000Z',
+        activated_at: '2026-03-01T00:00:00.000Z',
+        first_activated_at: '2026-01-01T00:00:00.000Z',
+        last_reactivated_at: '2026-02-10T00:00:00.000Z',
+      }),
+    ).toBe('2026-03-01T00:00:00.000Z');
     expect(
       getModuleActivatedAt({
         lifecycle_status: 'deactivated',
@@ -225,6 +291,54 @@ describe('moduleListFilters', () => {
         created_at: '2025-12-01T00:00:00.000Z',
       }),
     ).toBe('2026-02-01T00:00:00.000Z');
+  });
+
+  it('labels actor columns by tab', () => {
+    expect(getModuleListingActorColumns('drafts', true)).toEqual([
+      'generatedBy',
+    ]);
+    expect(getModuleListingActorColumns('published', true)).toEqual([
+      'publishedBy',
+    ]);
+    expect(getModuleListingActorColumns('deactivated', true)).toEqual([
+      'deactivatedBy',
+    ]);
+    expect(getModuleListingActorColumns('all', true)).toEqual([
+      'generatedBy',
+      'publishedBy',
+      'activatedBy',
+      'deactivatedBy',
+    ]);
+    expect(getModuleListingActorColumns('published', false)).toEqual([]);
+  });
+
+  it('labels actor columns', () => {
+    expect(moduleListingActorColumnHeader('generatedBy')).toBe('Generated By');
+    expect(moduleListingActorColumnHeader('publishedBy')).toBe('Published By');
+    expect(moduleListingActorColumnHeader('activatedBy')).toBe('Activated By');
+    expect(moduleListingActorColumnHeader('deactivatedBy')).toBe(
+      'Deactivated By',
+    );
+  });
+
+  it('prefers deactivated_at over last_deactivated_at', () => {
+    expect(
+      getModuleDeactivatedAt({
+        lifecycle_status: 'deactivated',
+        published_at: null,
+        created_at: '2025-12-01T00:00:00.000Z',
+        deactivated_at: '2026-03-01T00:00:00.000Z',
+        last_deactivated_at: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toBe('2026-03-01T00:00:00.000Z');
+    expect(
+      getModuleDeactivatedAt({
+        lifecycle_status: 'deactivated',
+        published_at: null,
+        created_at: '2025-12-01T00:00:00.000Z',
+        last_deactivated_at: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toBe('2026-01-01T00:00:00.000Z');
   });
 
   it('returns filter-aware empty messages', () => {

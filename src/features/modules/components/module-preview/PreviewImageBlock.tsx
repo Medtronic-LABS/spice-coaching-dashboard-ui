@@ -6,22 +6,23 @@ export interface PreviewImageBlockProps {
 }
 
 /**
- * Preview mirrors the editor display size when width/height are set, but always
- * centers the image in the phone frame (unlike TipTap's left-aligned node view).
+ * Preview mirrors the editor display size when width is set, but keeps natural
+ * aspect ratio (`height: auto`) so images are not cropped when the phone frame
+ * is narrower than the stored pixel width.
  */
 export const PreviewImageBlock = ({ attrs }: PreviewImageBlockProps) => {
   const { url, isLoading, isError } = usePresignedFileUrl(attrs.object_name, {
     legacyUrl: attrs.url,
   });
-  const hasDisplayDimensions = Boolean(attrs.width && attrs.height);
+  const hasDisplayWidth = Boolean(attrs.width);
 
   return (
     <figure className="my-3 flex justify-center">
       <div
         className={
-          hasDisplayDimensions
+          hasDisplayWidth
             ? 'inline-block max-w-full'
-            : 'relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-spice-bg-tint'
+            : 'relative w-full overflow-hidden rounded-lg bg-spice-bg-tint'
         }
       >
         {isLoading ? (
@@ -37,16 +38,16 @@ export const PreviewImageBlock = ({ attrs }: PreviewImageBlockProps) => {
           <img
             src={url}
             alt="Lesson image"
+            draggable={false}
             className={
-              hasDisplayDimensions
-                ? 'max-w-full rounded-lg object-contain'
-                : 'h-full w-full object-contain'
+              hasDisplayWidth
+                ? 'h-auto max-w-full rounded-lg object-contain'
+                : 'h-auto max-h-[min(70vh,480px)] w-full rounded-lg object-contain'
             }
             style={
-              hasDisplayDimensions
+              hasDisplayWidth
                 ? {
                     width: `${attrs.width}px`,
-                    height: `${attrs.height}px`,
                   }
                 : undefined
             }

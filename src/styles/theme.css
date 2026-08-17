@@ -1,25 +1,46 @@
 /* SPICE Design System tokens (ported from `SPICE Design System Enhanced/colors_and_type.css`) */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* COLORS — BRAND BLUES */
-  --color-blue-supervisor: #1565c0;
-  --color-blue-pm: #2962ff;
+  /* COLORS — CORE PALETTE (admin dashboard design system) */
+  --color-palette-purple: #a23dae;
+  --color-palette-purple-hover: #952c9f;
+  --color-palette-purple-active: #8b2894;
+  --color-palette-pink: #da3e9c;
+  --color-palette-blue: #2c93da;
+  --color-palette-violet: #9d8cde;
+  --color-palette-violet-deep: #7d2d86;
+  --color-palette-amber: #e8954b;
+  --color-palette-green: #1d9e75;
+  --color-palette-red: #d32f2f;
+  --color-palette-purple-lt: #f0ecf5;
+  --color-palette-pink-lt: #fbe7f3;
+  --color-palette-blue-lt: #e6f3fc;
+  --color-palette-violet-lt: #efebfb;
+  --color-palette-amber-lt: #fdeee1;
+  --color-palette-green-lt: #e6f7f2;
+  --color-palette-red-lt: #ffebee;
+
+  /* COLORS — BRAND (mapped to dashboard core palette) */
+  --color-blue-supervisor: var(--color-palette-violet-deep);
+  --color-blue-pm: var(--color-palette-violet-deep);
   --color-blue-app: #005eb8;
   --color-blue-app-dark: #0052a2;
   --color-navy-sidebar: #1b2a4a;
 
   /* COLORS — TINTS & SURFACES */
-  --color-blue-tint: #eef4ff;
+  --color-blue-tint: var(--color-palette-purple-lt);
   --color-blue-tint-mid: #bbd6fb;
-  --color-bg-dashboard: #f0f2f8;
+  --color-bg-dashboard: #f4f2f8;
   --color-bg-app: #f7f9fc;
   --color-bg-pm: #f9fbff;
   --color-bg-input: #ffffff;
   --color-surface: #ffffff;
 
   /* COLORS — NEUTRALS */
-  --color-text-primary: #1a1d23;
+  --color-text-primary: #1c1b1f;
+  --color-text-sidebar-name: #3b1f5e;
+  --color-text-on-surface-variant: #49454f;
   --color-text-medium: #44464f;
   --color-text-body: #596065;
   --color-text-muted: #8b8fa8;
@@ -29,25 +50,31 @@
   --color-text-on-dark-mid: rgba(255, 255, 255, 0.45);
   --color-text-on-dark-lo: rgba(255, 255, 255, 0.2);
 
-  --color-border: #eceef5;
-  --color-border-mid: #d5d7da;
-  --color-border-input: #cac4d0;
+  --color-border: #e8e4f0;
+  --color-border-mid: #e8e4f0;
+  --color-border-input: #e8e4f0;
+
+  /* Module library violet theme — header & actions */
+  --color-brand-coaching: #df057f;
+  --color-logout-text: #d12e8c;
+  --color-logout-bg: rgba(209, 46, 140, 0.1);
+  --color-logout-border: rgba(209, 46, 140, 0.3);
 
   /* COLORS — SEMANTIC */
-  --color-success: #2e7d32;
-  --color-success-bg: #e8f5e9;
-  --color-error: #d32f2f;
-  --color-error-bg: #ffebee;
+  --color-success: var(--color-palette-green);
+  --color-success-bg: var(--color-palette-green-lt);
+  --color-error: var(--color-palette-red);
+  --color-error-bg: var(--color-palette-red-lt);
   --color-error-stroke: #ffcdd2;
-  --color-warning: #e65100;
-  --color-warning-bg: #fff3e0;
-  --color-info: #1565c0;
-  --color-info-bg: #eef4ff;
+  --color-warning: var(--color-palette-amber);
+  --color-warning-bg: var(--color-palette-amber-lt);
+  --color-info: var(--color-palette-blue);
+  --color-info-bg: var(--color-palette-blue-lt);
 
   /* SHADOWS */
-  --shadow-card-dashboard: 0px 4px 16px 0px rgba(30, 40, 80, 0.05),
-    0px 1px 4px 0px rgba(30, 40, 80, 0.06);
-  --shadow-btn-primary: 0px 2px 8px 0px rgba(21, 101, 192, 0.25);
+  --shadow-card-dashboard: 0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-btn-primary: 0px 2px 8px 0px rgba(162, 61, 174, 0.25);
 
   /* BORDER RADIUS */
   --radius-md: 12px;
@@ -55,8 +82,19 @@
   --radius-xl: 20px;
   --radius-pill: 9999px;
 
+  --gradient-topbar: linear-gradient(
+    90deg,
+    var(--color-palette-pink),
+    var(--color-palette-purple)
+  );
+  --gradient-sk-drawer: linear-gradient(
+    135deg,
+    var(--color-palette-pink),
+    var(--color-palette-blue)
+  );
+
   /* TYPOGRAPHY — FONT FAMILIES */
-  --font-dashboard: 'Noto Sans', 'Noto Sans Bengali', sans-serif;
+  --font-dashboard: 'Inter', 'Noto Sans Bengali', sans-serif;
 
   /* Additional SPICE tokens (full set from design system) */
   --color-neutral-100: #f0f2f8;
@@ -79,7 +117,7 @@
     0px 32px 80px 0px rgba(0, 0, 0, 0.5);
   --shadow-overlay: 0px 0px 0px 1px rgba(0, 0, 0, 0.06),
     0px 4px 12px 0px rgba(0, 0, 0, 0.08);
-  --shadow-kpi-card: 0px 1px 4px rgba(30, 40, 80, 0.05);
+  --shadow-kpi-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
 
   --radius-sm: 8px;
   --radius-2xl: 32px;
@@ -100,7 +138,7 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-bengali: 'Noto Sans Bengali', 'Nirmala UI', sans-serif;
 

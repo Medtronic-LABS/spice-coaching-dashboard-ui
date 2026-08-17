@@ -9,6 +9,19 @@
       "description": "You do not have access to this dashboard because you did not arrive through Spice SSO.",
       "instruction": "Please sign in through Spice, then return here to open the dashboard.",
       "continueToSpice": "Go to Spice login"
+    },
+    "signIn": {
+      "welcome": "Welcome",
+      "title": "Login to your account",
+      "usernameLabel": "Email, username or mobile number",
+      "passwordLabel": "Password",
+      "submitButton": "Login",
+      "submitting": "Logging in...",
+      "errorEmailRequired": "Please enter email",
+      "errorPasswordRequired": "Please enter password",
+      "errorRequiredFields": "Please enter both username and password.",
+      "errorMissingAuthCookie": "Sign-in succeeded but no auth cookie was returned. Please try again.",
+      "errorMessage": "Invalid credentials or login failed. Please try again."
     }
   },
   "common": {
@@ -24,7 +37,11 @@
     "retry": "Retry",
     "reset": "Reset",
     "clearFilters": "Clear filters",
-    "view": "View"
+    "view": "View",
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "charts": {
     "errorTitle": "Error",
@@ -39,14 +56,18 @@
       "suiteAccess": "Suite Access",
       "userFallback": "User",
       "sections": {
+        "overview": "OVERVIEW",
         "learning": "LEARNING",
         "administration": "ADMINISTRATION"
       },
       "nav": {
         "moduleLibrary": "Module Library",
+        "badgeManagement": "Milestone Management",
         "ingestDocument": "Ingest Document",
+        "uploadKnowledge": "Upload Knowledge",
         "videoUpload": "Upload Video",
         "ingestHistory": "Ingestion History",
+        "dashboard": "Dashboard",
         "configs": "Configurations"
       },
       "user": {
@@ -84,17 +105,25 @@
     "assigned": {
       "badge": "ASSIGNMENT COMPLETE",
       "title": "Module Assigned Successfully",
+      "titleDocument": "Document Assigned Successfully",
+      "titleVideo": "Video Assigned Successfully",
       "subtitle": "The module has been assigned. They will see it in their coaching screen immediately.",
+      "subtitleDocument": "The knowledge document has been assigned. They will see it in their coaching screen immediately.",
+      "subtitleVideo": "The video has been assigned. They will see it in their coaching screen immediately.",
       "summary": {
         "module": "MODULE",
+        "document": "DOCUMENT",
+        "video": "VIDEO",
         "moduleMeta": "4 lessons • 3 questions • ~18 min",
+        "documentMeta": "Knowledge document assignment",
+        "videoMeta": "Video assignment",
         "quizReattemptAllowed": "QUIZ REATTEMPT ALLOWED",
         "quizReattemptAllowedUntilLoading": "Loading…",
         "quizReattemptAllowedUntilUnavailable": "—",
         "quizReattemptAllowedMeta": "{{count}} days from assignment date",
         "quizReattemptAllowedMetaLoading": "Loading reattempt window…",
         "quizReattemptAllowedMetaUnavailable": "Reattempt window unavailable",
-        "assignedTo": "ASSIGNED TO — {{count}} users",
+        "assignedTo": "ASSIGNED TO",
         "assignedToIndividual": "ASSIGNED TO — Individual",
         "assignedToPoSk": "ASSIGNED TO — PO + SKs",
         "assignedToPo": "ASSIGNED TO — PO",
@@ -110,8 +139,12 @@
       "next": {
         "title": "WHAT'S NEXT",
         "backToLibrary": "Module Library",
+        "backToKnowledgeLibrary": "Knowledge Library",
+        "backToVideoLibrary": "Video Library",
         "backToLibraryHint": "View or edit the assigned module",
         "assignMore": "Assign to more users",
+        "assignMoreDocument": "Assign document to more users",
+        "assignMoreVideo": "Assign video to more users",
         "assignMoreHint": "Add more users to this module",
         "goDashboard": "Go to Dashboard",
         "goDashboardHint": "Track progress in the Module Completion widget"
@@ -126,6 +159,295 @@
       }
     }
   },
+  "adminDashboard": {
+    "title": "Dashboard",
+    "description": "BRAC Health Programme · Bangladesh",
+    "insightsTitle": "Training Insights",
+    "widgetError": {
+      "title": "Couldn't load this section",
+      "description": "This data is temporarily unavailable. Check your connection or try again in a moment.",
+      "compactDescription": "Try again to reload this section.",
+      "retry": "Try again"
+    },
+    "kpis": {
+      "active": "Responsive SKs",
+      "activeTooltip": "SKs who were responsive at least once in the selected period",
+      "inactive": "Non-Responsive SKs",
+      "inactiveTooltip": "SKs who were non-responsive in the selected period",
+      "finishedModules": "SKs completed a module",
+      "finishedModulesTooltip": "SKs who completed at least one module in the selected period",
+      "chatbotEngaged": "Chatbot engaged",
+      "chatbotEngagedTooltip": "SKs who used the chatbot in the selected period",
+      "totalModules": "Published training modules",
+      "totalModulesTooltip": "Total number of published training modules in the catalog"
+    },
+    "filters": {
+      "button": "Filters",
+      "apply": "Apply",
+      "clearAll": "Clear all filters",
+      "activeCount": "{{count}} filters applied",
+      "panelLabel": "Dashboard filters",
+      "statusLabel": "Team view",
+      "durationLabel": "Duration:",
+      "clearCustomRange": "Clear custom date range",
+      "invalidRangeTitle": "Invalid date range",
+      "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
+      "duration": {
+        "allTime": "All time",
+        "thisWeek": "This week",
+        "thisMonth": "This month",
+        "custom": "Custom range"
+      },
+      "from": "From",
+      "to": "To",
+      "sortLabel": "Sort:",
+      "sort": {
+        "default": "Default",
+        "at_risk_first": "At risk first",
+        "lowest_completion": "Lowest module completion",
+        "lowest_chatbot": "Lowest chatbot engagement",
+        "most_inactive": "Most Non-Responsive SKs",
+        "name": "Name (A–Z)"
+      },
+      "status": {
+        "all": "All statuses",
+        "on_track": "On track",
+        "at_risk": "At risk"
+      },
+      "division": "Division",
+      "allDivisions": "All divisions",
+      "divisionUnavailable": "Division filtering is not available yet.",
+      "district": "District",
+      "upazila": "Upazila",
+      "allDistricts": "All districts",
+      "allUpazilas": "All upazilas"
+    },
+    "hierarchy": {
+      "description": {
+        "am": "Tap \"View POs\" to expand and see program officers and SKs",
+        "po": "Tap \"View SKs\" to expand and see SKs under this program officer",
+        "sk": "Tap a row to see full SK detail"
+      },
+      "emptyChildren": "No direct reports in this range.",
+      "searchPlaceholder": "Search area managers...",
+      "searchPlaceholderPo": "Search program officers...",
+      "searchPlaceholderSk": "Search SKs...",
+      "emptyTitle": "No team members",
+      "emptyDescription": "No hierarchy rows match the current filters.",
+      "openSkDetail": "View SK detail",
+      "roleLabels": {
+        "am": "Area Manager",
+        "po": "Program Officer",
+        "sk": "Shasthya Kormi"
+      },
+      "viewChildrenActions": {
+        "pos": "View POs",
+        "sks": "View SKs",
+        "generic": "View"
+      },
+      "hideChildrenActions": {
+        "pos": "Hide POs",
+        "sks": "Hide SKs",
+        "generic": "Hide"
+      },
+      "tabs": {
+        "am": "Area Managers",
+        "po": "Program Officers",
+        "sk": "SKs"
+      },
+      "metrics": {
+        "members": "{{count}} members",
+        "inactive": "{{count}} Non-Responsive",
+        "modules": "{{completed}}/{{total}} Modules",
+        "chatbot": "{{count}} chatbot",
+        "sksLabel": "SKs",
+        "membersLabel": "members",
+        "inactiveLabel": "Non-Responsive",
+        "modulesLabel": "Modules",
+        "queriesLabel": "Queries"
+      },
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "modules": "Modules",
+        "chatbot": "Chatbot queries",
+        "lastActive": "Last active"
+      }
+    },
+    "skDrawer": {
+      "title": "My SK",
+      "description": "Activity and assigned modules for {{name}}",
+      "close": "Close SK detail",
+      "modulesLabel": "Modules",
+      "queriesLabel": "Queries",
+      "modulesHeading": "Modules",
+      "activityHeading": "Activity",
+      "topQueriesHeading": "Top Queries",
+      "pending": "Pending",
+      "completed": "Completed",
+      "lastChatbotUse": "Last chatbot use",
+      "lastModule": "Last module",
+      "never": "Never",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago",
+      "emptyModules": "No assigned modules in this range.",
+      "emptyQueriesTitle": "No queries",
+      "emptyQueriesDescription": "This SK has no chatbot questions in the selected date range."
+    },
+    "trainingModules": {
+      "title": "Training Modules",
+      "description": "Published modules with SK completion progress.",
+      "emptyTitle": "No published modules",
+      "emptyDescription": "No modules were published in this date range.",
+      "columns": {
+        "name": "Module Name",
+        "launched": "Launched",
+        "progress": "Progress",
+        "completed": "SKs Completed"
+      }
+    },
+    "existingModules": {
+      "title": "Top searched existing modules",
+      "description": "Top published modules where the chatbot served content or SKs requested assignment.",
+      "footer": "High search volume signals where SKs need clearer module content or field support.",
+      "emptyTitle": "No searched modules",
+      "emptyDescription": "No AI help lookups or assignment requests for published modules in this date range.",
+      "queriesHeading": "Chatbot queries",
+      "requestsHeading": "Assignment requests",
+      "emptyQueries": "No chatbot queries for this module in the selected period.",
+      "emptyRequests": "No assignment requests for this module in the selected period."
+    },
+    "suggestedModules": {
+      "title": "Top searched suggested modules",
+      "description": "Topics where the chatbot could not fully respond — draft matches, metadata gaps, missing modules, or new training requests.",
+      "columns": {
+        "topic": "Suggested module / topic"
+      },
+      "footer": "High request volume signals demand for assigning or refreshing a published module.",
+      "emptyTitle": "No suggested modules",
+      "emptyDescription": "No module creation suggestions in this date range.",
+      "detailFallback": "Suggested module",
+      "loadDetailError": "Could not load suggestion details.",
+      "queriesHeading": "Related chatbot queries",
+      "requestsHeading": "Related training requests",
+      "emptyQueries": "No related chatbot queries.",
+      "emptyRequests": "No related training requests.",
+      "showMetadata": "Show details",
+      "reasonHeading": "Reason",
+      "reasons": {
+        "draftModule": "Matching module exists in draft",
+        "insufficientMetadata": "Search failed due to insufficient metadata",
+        "noMatchingModule": "No matching module exists",
+        "newTopicRequest": "SK requested training on a new topic",
+        "unattributedDemand": "Unattributed chatbot demand"
+      },
+      "evidence": {
+        "interaction": "Interaction type",
+        "source": "Source",
+        "sourceRequested": "Training request",
+        "sourceChatbot": "Chatbot query",
+        "skId": "Sample SK ID"
+      }
+    },
+    "moduleDemand": {
+      "sectionTitle": "Module search demand",
+      "summaryTitle": "Module demand summary",
+      "summaryDescription": "Narrative overview of digital-help usage and module creation demand for the selected filters.",
+      "summaryEmptyFallback": "No module usage or creation demand was recorded for your team between {{fromDate}} to {{toDate}}.",
+      "columns": {
+        "title": "Module Title",
+        "searchCount": "Search Count",
+        "action": "Action"
+      },
+      "emptyTitle": "No module demand",
+      "emptyDescription": "No chatbot module activity in this date range.",
+      "requestSummary": "{{count}} training access requests in this period",
+      "requestFallback": "Training access requested",
+      "detailDescription": "Queries and requests associated with this module or topic.",
+      "occurrences": "{{count}} occurrences",
+      "usersHeading": "Users who asked this question",
+      "userCount": "{{count}} users",
+      "interaction": {
+        "chatbotServed": "Served by chatbot",
+        "assignmentRequested": "Requested for assignment"
+      },
+      "metadata": {
+        "timestamp": "Timestamp",
+        "skName": "SK name",
+        "district": "District",
+        "upazila": "Upazila",
+        "geography": "Geography",
+        "interaction": "Interaction",
+        "reason": "Reason"
+      },
+      "actions": {
+        "assign": "Assign",
+        "publish": "Publish",
+        "create": "Create Module"
+      },
+      "seeMore": "See more",
+      "seeLess": "See less",
+      "loadingMore": "Loading…",
+      "expand": "Expand widget",
+      "collapse": "Collapse widget",
+      "collapsedSummary": "{{count}} items loaded",
+      "showMetadata": "Show metadata"
+    },
+    "documentUsage": {
+      "title": "Document & knowledge views",
+      "description": "PDF and knowledge-base document opens for the selected filters. Click a row to see who opened each document.",
+      "emptyTitle": "No document views",
+      "emptyDescription": "Document view telemetry has not been recorded yet.",
+      "chartLabel": "Top viewed documents",
+      "tableTitle": "All documents",
+      "topAllTitle": "All top viewed documents",
+      "topAllDescription": "Ranked by total views for the selected filters.",
+      "documentsAllDescription": "All documents with engagement details for the selected filters.",
+      "topAllFooter": "Shows documents ranked by total views within the selected period.",
+      "documentsAllFooter": "Shows the full document list with engagement metrics. Search filters the current page.",
+      "detailDescription": "Individual document opens for the selected document and filters.",
+      "detailTitle": "Document opens",
+      "opensTitle": "Open events",
+      "unknownUser": "Unknown user",
+      "openDetail": "Drill down into opens for {{title}}",
+      "viewAll": "View all",
+      "viewAllDocuments": "View all documents",
+      "backToOverview": "Back to overview",
+      "backToDocuments": "Back to documents",
+      "searchPlaceholder": "Search documents…",
+      "viewsCount": "{{count}} views",
+      "showingRange": "Showing {{from}} to {{to}} of {{total}} documents",
+      "rowsPerPage": "Document rows per page",
+      "pageNumber": "Document usage page number",
+      "eventRowsPerPage": "Open event rows per page",
+      "eventPageNumber": "Open events page number",
+      "kpis": {
+        "views": "Total Views",
+        "viewsTooltip": "All document views",
+        "documents": "Documents Viewed",
+        "documentsTooltip": "Unique documents",
+        "users": "Unique Users",
+        "usersTooltip": "Users who viewed"
+      },
+      "columns": {
+        "rank": "Rank",
+        "title": "Document",
+        "trend": "Views",
+        "views": "Views",
+        "users": "Unique users",
+        "lastViewed": "Last viewed",
+        "lastViewedBy": "Last viewed by"
+      },
+      "eventColumns": {
+        "user": "User",
+        "role": "Role",
+        "viewedAt": "Opened at",
+        "geography": "Geography"
+      }
+    }
+  },
   "errorBoundary": {
     "description": "The dashboard hit an unexpected error. You can refresh the page or go back to the home screen.",
     "detailsDevOnly": "Details (dev only)",
@@ -136,7 +458,7 @@
     "onTime": "On time",
     "dueSoon": "Due soon",
     "delayed": "Delayed",
-    "inactive": "Inactive",
+    "inactive": "Non-Responsive",
     "inProgress": "In progress",
     "unknown": "Unknown"
   },

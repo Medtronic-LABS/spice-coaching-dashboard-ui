@@ -1,10 +1,16 @@
+import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
+import {
+  normalizeHierarchyActorRef,
+  type HierarchyActorRef,
+} from '@/features/modules/types/hierarchyActor';
 import { baseApi } from '@/store/apis/base';
 
 export type SourceDocumentStatus =
   | 'uploaded'
   | 'ingesting'
   | 'ingested'
-  | 'failed';
+  | 'failed'
+  | 'retired';
 
 export type SourceDocumentSourceType =
   | 'pdf'
@@ -13,6 +19,9 @@ export type SourceDocumentSourceType =
   | 'audio'
   | 'video';
 
+/** @deprecated Prefer `HierarchyActorRef` from `@/features/modules/types/hierarchyActor`. */
+export type SourceDocumentActorRef = HierarchyActorRef;
+
 export interface SourceDocumentSummary {
   id: string;
   title: string;
@@ -20,11 +29,19 @@ export interface SourceDocumentSummary {
   status: string;
   content_domain: string;
   authority_label: string;
+  stored_path: string;
   original_filename: string | null;
   description: string | null;
   thumbnail_storage_path: string | null;
   thumbnail_presigned_url?: string | null;
+  uploaded_date: string;
   ingested_at: string;
+  updated_at: string;
+  uploaded_by: SourceDocumentActorRef | null;
+  updated_by: SourceDocumentActorRef | null;
+  ingested_by: SourceDocumentActorRef | null;
+  assigned: boolean;
+  sync_published_visible?: boolean;
 }
 
 /** Paginated envelope returned by `GET /admin/source-documents`. */
@@ -41,10 +58,23 @@ export interface FetchSourceDocumentsParams {
   status?: SourceDocumentStatus | SourceDocumentStatus[];
   /** Repeated or comma-separated values are accepted by the backend. */
   source_type?: SourceDocumentSourceType | SourceDocumentSourceType[];
+  /** `true` = knowledge docs, `false` = ingest docs. */
+  sync_published_visible?: boolean;
   /** Case-insensitive substring match on original_filename or title. */
   q?: string;
+  uploaded_from?: string;
+  uploaded_to?: string;
+  /** Hierarchy user id(s); backend accepts repeated or comma-separated ints. */
+  uploaded_by?: string | number | Array<string | number>;
+  assigned?: boolean;
+  /** Assignee geography: integer hierarchy ids. */
+  division_id?: number;
+  district_id?: number;
+  upazila_id?: number;
   limit?: number;
   offset?: number;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
 }
 
 export interface UpdateSourceDocumentMetadataRequest {
@@ -61,6 +91,13 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** @deprecated Prefer `normalizeHierarchyActorRef`. */
+export function normalizeSourceDocumentActorRef(
+  value: unknown,
+): SourceDocumentActorRef | null {
+  return normalizeHierarchyActorRef(value);
+}
+
 function normalizeSourceDocumentSummary(
   item: Record<string, unknown>,
 ): SourceDocumentSummary {
@@ -73,6 +110,7 @@ function normalizeSourceDocumentSummary(
       typeof item.content_domain === 'string' ? item.content_domain : '',
     authority_label:
       typeof item.authority_label === 'string' ? item.authority_label : '',
+    stored_path: typeof item.stored_path === 'string' ? item.stored_path : '',
     original_filename:
       typeof item.original_filename === 'string'
         ? item.original_filename
@@ -86,7 +124,29 @@ function normalizeSourceDocumentSummary(
       typeof item.thumbnail_presigned_url === 'string'
         ? item.thumbnail_presigned_url
         : null,
+    uploaded_date:
+      typeof item.uploaded_date === 'string'
+        ? item.uploaded_date
+        : typeof item.ingested_at === 'string'
+          ? item.ingested_at
+          : '',
     ingested_at: typeof item.ingested_at === 'string' ? item.ingested_at : '',
+    updated_at:
+      typeof item.updated_at === 'string'
+        ? item.updated_at
+        : typeof item.uploaded_date === 'string'
+          ? item.uploaded_date
+          : typeof item.ingested_at === 'string'
+            ? item.ingested_at
+            : '',
+    uploaded_by: normalizeHierarchyActorRef(item.uploaded_by),
+    updated_by: normalizeHierarchyActorRef(item.updated_by),
+    ingested_by: normalizeHierarchyActorRef(item.ingested_by),
+    assigned: item.assigned === true,
+    sync_published_visible:
+      typeof item.sync_published_visible === 'boolean'
+        ? item.sync_published_visible
+        : undefined,
   };
 }
 
@@ -94,6 +154,26 @@ function toNonNegativeInteger(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
     ? value
     : fallback;
+}
+
+export function mapSourceDocumentToKnowledgeItem(
+  doc: SourceDocumentSummary,
+): KnowledgeLibraryItem {
+  return {
+    id: doc.id,
+    title: doc.title,
+    fileType: 'pdf',
+    storedPath: doc.stored_path,
+    originalFilename: doc.original_filename,
+    thumbnailStoragePath: doc.thumbnail_storage_path,
+    uploadedAt: doc.uploaded_date || doc.ingested_at,
+    updatedAt: doc.updated_at || doc.uploaded_date || doc.ingested_at,
+    uploadedBy: doc.uploaded_by?.name ?? null,
+    assigned: doc.assigned,
+    ingested: doc.status === 'ingested',
+    status: doc.status,
+    description: doc.description,
+  };
 }
 
 export const adminSourceDocumentsApi = baseApi.injectEndpoints({
@@ -136,6 +216,7 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
           offset: toNonNegativeInteger(response.offset, 0),
         };
       },
+      providesTags: ['SourceDocuments'],
     }),
     updateSourceDocumentMetadata: builder.mutation<
       SourceDocumentSummary,
@@ -152,6 +233,7 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
         }
         return normalizeSourceDocumentSummary(response);
       },
+      invalidatesTags: ['SourceDocuments'],
     }),
     updateSourceDocumentThumbnail: builder.mutation<
       SourceDocumentSummary,
@@ -172,6 +254,7 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
         }
         return normalizeSourceDocumentSummary(response);
       },
+      invalidatesTags: ['SourceDocuments'],
     }),
   }),
   overrideExisting: false,
@@ -179,6 +262,7 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
 
 export const {
   useFetchSourceDocumentsQuery,
+  useLazyFetchSourceDocumentsQuery,
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
 } = adminSourceDocumentsApi;

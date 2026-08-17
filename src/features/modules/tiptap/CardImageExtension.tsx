@@ -38,6 +38,10 @@ function cornerHandleClass(corner: ResizeCorner): string {
       return `${base} bottom-0 left-0 cursor-sw-resize`;
     case 'se':
       return `${base} bottom-0 right-0 cursor-se-resize`;
+    default: {
+      const exhaustiveCheck: never = corner;
+      return exhaustiveCheck;
+    }
   }
 }
 
@@ -53,6 +57,10 @@ function nextWidthForCorner(
     case 'sw':
     case 'nw':
       return startWidth - deltaX;
+    default: {
+      const exhaustiveCheck: never = corner;
+      return exhaustiveCheck;
+    }
   }
 }
 
@@ -87,6 +95,7 @@ function CardImageNodeView({
   );
 
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (!editable) return;
     if (displayDimensions.width && displayDimensions.height) return;
 
     const img = event.currentTarget;
@@ -134,16 +143,8 @@ function CardImageNodeView({
     document.addEventListener('pointerup', handlePointerUp);
   };
 
-  const frameStyle =
-    displayDimensions.width && displayDimensions.height
-      ? {
-          width: `${displayDimensions.width}px`,
-          height: `${displayDimensions.height}px`,
-        }
-      : undefined;
-
   const frameClassName = [
-    'relative shrink-0 overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint',
+    'relative shrink-0 rounded-md border border-spice-border bg-spice-bg-tint',
     editable && selected && displayDimensions.width
       ? 'ring-2 ring-spice-brand-primary'
       : '',
@@ -153,8 +154,16 @@ function CardImageNodeView({
 
   const imageClassName =
     displayDimensions.width && displayDimensions.height
-      ? 'block h-full w-full object-contain'
-      : 'block max-h-64 max-w-full object-contain';
+      ? 'block h-auto w-full max-w-full object-contain'
+      : 'block h-auto max-h-64 max-w-full object-contain';
+
+  const frameStyle =
+    displayDimensions.width && displayDimensions.height
+      ? {
+          width: `${displayDimensions.width}px`,
+          maxWidth: '100%',
+        }
+      : undefined;
 
   return (
     <NodeViewWrapper

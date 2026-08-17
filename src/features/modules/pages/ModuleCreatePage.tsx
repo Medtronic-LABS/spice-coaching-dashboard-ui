@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card, Loader } from '@/components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { Banner, Button, Card, FileDropzone, Loader } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetIngestStatusByDocumentQuery } from '@/features/ingest/api/adminIngestApi';
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
@@ -29,8 +29,6 @@ function redirectToModuleLibrary(): void {
 }
 
 export const ModuleCreatePage = () => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [sourceDocumentId, setSourceDocumentId] = useState(
@@ -160,48 +158,40 @@ export const ModuleCreatePage = () => {
       ) : null}
 
       <Card variant="elevated" className="space-y-4">
-        <div className="rounded-xl border border-dashed border-spice-border-mid bg-spice-bg-tint p-8 text-center">
-          <div className="text-sm font-semibold text-spice-text-primary">
-            Upload document
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-spice-text-primary">
+              Upload document
+            </div>
+            <p className="mt-1 text-xs text-spice-text-muted">
+              Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100
+              MB
+            </p>
           </div>
-          <p className="mt-1 text-xs text-spice-text-muted">
-            Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL}
-          </p>
-          <div className="mt-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={INGEST_FILE_INPUT_ACCEPT}
-              className="hidden"
-              disabled={uploadFieldsDisabled}
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                event.target.value = '';
 
-                if (!file) {
-                  setSelectedFile(null);
-                  return;
-                }
+          <FileDropzone
+            files={selectedFile ? [selectedFile] : []}
+            onChange={(next) => {
+              setSelectedFile(next[0] ?? null);
+              setUploadError('');
+            }}
+            accept={INGEST_FILE_INPUT_ACCEPT}
+            disabled={uploadFieldsDisabled}
+            showFileList
+            title="Select file"
+            titleWhenSelected="Replace file"
+            subtitle="Click to select or drag and drop"
+            ariaLabel="Upload document"
+            validateFile={(file) =>
+              isIngestAcceptedFile(file)
+                ? null
+                : formatIngestFileRejectionError([file])
+            }
+            onReject={setUploadError}
+          />
 
-                if (!isIngestAcceptedFile(file)) {
-                  setSelectedFile(null);
-                  setUploadError(formatIngestFileRejectionError([file]));
-                  return;
-                }
-
-                setSelectedFile(file);
-                setUploadError('');
-              }}
-            />
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant="secondary"
-              disabled={uploadFieldsDisabled}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Browse Files
-            </Button>
-            <Button
-              className="ml-2"
               disabled={uploadFieldsDisabled || !selectedFile}
               onClick={async () => {
                 setUploadError('');
@@ -226,22 +216,13 @@ export const ModuleCreatePage = () => {
                   : 'Upload & start ingestion'}
             </Button>
           </div>
-          <div className="mt-4 text-xs text-spice-text-medium">
-            {selectedFile ? selectedFile.name : 'No file selected'}
-          </div>
         </div>
 
-        {uploadError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {uploadError}
-          </div>
-        ) : null}
+        {uploadError ? <Banner tone="critical">{uploadError}</Banner> : null}
 
         {statusError ? (
           <div className="space-y-2">
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {formatRtkQueryError(statusError)}
-            </div>
+            <Banner tone="critical">{formatRtkQueryError(statusError)}</Banner>
             <Button
               variant="secondary"
               className="h-8 text-xs"
@@ -317,9 +298,9 @@ export const ModuleCreatePage = () => {
           ) : null}
 
           {ingestionSucceeded ? (
-            <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
+            <Banner tone="success">
               Ingestion succeeded. Redirecting to Module Library…
-            </div>
+            </Banner>
           ) : null}
         </Card>
       ) : null}

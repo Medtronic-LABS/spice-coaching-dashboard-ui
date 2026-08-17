@@ -1,11 +1,15 @@
 import { StatusBadge } from '@/components/ui';
 import type { AdminModuleLifecycleStatus } from '@/features/modules/api/adminModulesApi';
 import type { ModuleStatus } from '@/features/modules/types/moduleLibrary.types';
+import { cn } from '@/utils';
 
 export type UnifiedModuleStatus =
   | AdminModuleLifecycleStatus
   | ModuleStatus
   | string;
+
+export const MODULE_STATUS_BADGE_CLASSNAME =
+  'h-6 min-w-[7rem] whitespace-nowrap px-2.5 py-0 text-xs font-semibold leading-none tracking-wide';
 
 export interface ModuleStatusBadgeProps {
   status: UnifiedModuleStatus;
@@ -24,7 +28,7 @@ export function getModuleStatusBadgeProps(status: UnifiedModuleStatus): {
       return { semanticStatus: 'success', label: 'Published' };
     case 'review_pending':
     case 'review pending':
-      return { semanticStatus: 'warning', label: 'Review Pending' };
+      return { semanticStatus: 'warning', label: 'Review' };
     case 'retired':
     case 'discarded':
       return { semanticStatus: 'neutral', label: 'Discarded' };
@@ -39,7 +43,14 @@ export function getModuleStatusBadgeProps(status: UnifiedModuleStatus): {
 export const ModuleStatusBadge = ({
   status,
   overrideLabel,
+  className,
 }: ModuleStatusBadgeProps) => {
   const { semanticStatus, label } = getModuleStatusBadgeProps(status);
-  return <StatusBadge status={semanticStatus} label={overrideLabel ?? label} />;
+  return (
+    <StatusBadge
+      status={semanticStatus}
+      label={overrideLabel ?? label}
+      className={cn(MODULE_STATUS_BADGE_CLASSNAME, className)}
+    />
+  );
 };

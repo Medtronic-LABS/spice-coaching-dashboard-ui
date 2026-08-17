@@ -31,9 +31,11 @@ export const paths = {
   home: withRoutePrefix('/'),
   moduleLibrary: withRoutePrefix('/module-library'),
   moduleAssigned: withRoutePrefix('/module-library/assigned'),
+  badgeManagement: withRoutePrefix('/badge-management'),
   ingestDocument: withRoutePrefix('/module-library/ingest'),
   ingestHistory: withRoutePrefix('/module-library/ingest-history'),
   videoUpload: withRoutePrefix('/module-library/ingest-video'),
+  uploadKnowledge: withRoutePrefix('/module-library/upload-knowledge'),
   adminModuleReview: withRoutePrefix('/module-library/review/:moduleId'),
   adminModuleReviewDetails: withRoutePrefix(
     '/module-library/review/:moduleId/details',
@@ -52,5 +54,9 @@ export const paths = {
   moduleQuiz: withRoutePrefix('/modules/new/quiz'),
   moduleReview: withRoutePrefix('/modules/new/review'),
   modulePublished: withRoutePrefix('/modules/new/published'),
+  /** Admin analytics dashboard (default landing route). */
+  adminDashboard: withRoutePrefix('/dashboard'),
   configs: withRoutePrefix('/configs'),
+  login: withRoutePrefix('/login'),
+  unauthorized: withRoutePrefix('/unauthorized'),
 } as const;

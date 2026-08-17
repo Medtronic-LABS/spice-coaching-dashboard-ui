@@ -4,6 +4,10 @@ import {
   sortQuizItems,
 } from '@/features/modules/utils/adminModuleQuizUtils';
 import { normalizeAdminModuleCard } from '@/features/modules/utils/cardBody';
+import {
+  normalizeHierarchyActorRef,
+  type HierarchyActorRef,
+} from '@/features/modules/types/hierarchyActor';
 import { baseApi } from '@/store/apis/base';
 import type { LocalizedOptions, LocalizedString } from '@/types/localized';
 import {
@@ -12,6 +16,7 @@ import {
 } from '@/features/modules/utils/localizedWire';
 
 export type { AdminModuleCard };
+export type ModuleActorRef = HierarchyActorRef;
 
 export type AdminModuleLifecycleStatus =
   | 'draft'
@@ -38,9 +43,21 @@ export interface AdminModulesListItem {
   estimated_minutes: number;
   published_at: string | null;
   created_at: string;
+  updated_at: string;
+  activated_at?: string | null;
+  deactivated_at?: string | null;
+  retired_at?: string | null;
+  /** @deprecated Prefer `activated_at` from the modules API. */
   first_activated_at?: string | null;
+  /** @deprecated Prefer `deactivated_at` from the modules API. */
   last_deactivated_at?: string | null;
+  /** @deprecated Prefer `activated_at` from the modules API. */
   last_reactivated_at?: string | null;
+  created_by?: ModuleActorRef | null;
+  published_by?: ModuleActorRef | null;
+  activated_by?: ModuleActorRef | null;
+  deactivated_by?: ModuleActorRef | null;
+  retired_by?: ModuleActorRef | null;
   quality_flags?: { flags: string[] } | null;
   quiz_count: number;
   search_metadata?: Record<string, unknown> | null;
@@ -49,6 +66,8 @@ export interface AdminModulesListItem {
   thumbnail_presigned_expires_seconds?: number | null;
   /** Populated when the modules list API includes document linkage. */
   source_document_ids?: string[];
+  /** Chatbot FAQ-only modules are not assignable to milestones/badges. */
+  chatbot_faqs_only?: boolean;
   merge_source_module_id?: string | null;
   merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
   merge_primary_module_id?: string | null;
@@ -86,6 +105,7 @@ export interface AdminModuleDetailResponse {
   description: LocalizedString | null;
   domain: string;
   category?: string | null;
+  content_domain?: string | null;
   module_type: string;
   lifecycle_status: AdminModuleLifecycleStatus;
   clinically_reviewed: boolean;
@@ -106,6 +126,8 @@ export interface AdminModuleDetailResponse {
   merge_primary_module_id?: string | null;
   merge_secondary_module_id?: string | null;
   is_merge_secondary?: boolean;
+  /** Chatbot FAQ-only modules are not assignable to CHWs. */
+  chatbot_faqs_only?: boolean;
 }
 
 export interface EditAdminModuleRequestBody {
@@ -117,6 +139,14 @@ export interface EditAdminModuleRequestBody {
   editor_id?: string;
   quiz?: AdminModuleQuizItem[];
   thumbnail_storage_path?: string | null;
+  /** When set, updates chatbot FAQ-only flag on the new module version. */
+  chatbot_faqs_only?: boolean;
+  /** Omit to copy forward; send to update catalog domain. */
+  domain?: string;
+  /** Omit to copy forward; send to update Learning Library domain type. */
+  content_domain?: string | null;
+  /** Omit to copy forward; send to update estimated duration. */
+  estimated_minutes?: number;
 }
 
 export type AdminModuleRefresherType = 'refresher' | string;
@@ -126,6 +156,7 @@ export interface CreateAdminModuleRequestBody {
   description?: LocalizedString | null;
   domain: string;
   sub_domain?: string | null;
+  content_domain?: string | null;
   module_type?: AdminModuleRefresherType;
   estimated_minutes: number;
   difficulty_level?: string | null;
@@ -190,18 +221,48 @@ function normalizeModuleSummary(
     published_at:
       typeof item.published_at === 'string' ? item.published_at : null,
     created_at: typeof item.created_at === 'string' ? item.created_at : '',
+    updated_at:
+      typeof item.updated_at === 'string'
+        ? item.updated_at
+        : typeof item.created_at === 'string'
+          ? item.created_at
+          : '',
+    activated_at:
+      typeof item.activated_at === 'string'
+        ? item.activated_at
+        : typeof item.last_reactivated_at === 'string'
+          ? item.last_reactivated_at
+          : typeof item.first_activated_at === 'string'
+            ? item.first_activated_at
+            : null,
+    deactivated_at:
+      typeof item.deactivated_at === 'string'
+        ? item.deactivated_at
+        : typeof item.last_deactivated_at === 'string'
+          ? item.last_deactivated_at
+          : null,
+    retired_at: typeof item.retired_at === 'string' ? item.retired_at : null,
     first_activated_at:
       typeof item.first_activated_at === 'string'
         ? item.first_activated_at
-        : null,
+        : typeof item.activated_at === 'string'
+          ? item.activated_at
+          : null,
     last_deactivated_at:
       typeof item.last_deactivated_at === 'string'
         ? item.last_deactivated_at
-        : null,
+        : typeof item.deactivated_at === 'string'
+          ? item.deactivated_at
+          : null,
     last_reactivated_at:
       typeof item.last_reactivated_at === 'string'
         ? item.last_reactivated_at
         : null,
+    created_by: normalizeHierarchyActorRef(item.created_by),
+    published_by: normalizeHierarchyActorRef(item.published_by),
+    activated_by: normalizeHierarchyActorRef(item.activated_by),
+    deactivated_by: normalizeHierarchyActorRef(item.deactivated_by),
+    retired_by: normalizeHierarchyActorRef(item.retired_by),
     quality_flags:
       item.quality_flags && typeof item.quality_flags === 'object'
         ? (item.quality_flags as { flags: string[] })
@@ -224,6 +285,7 @@ function normalizeModuleSummary(
         ? item.thumbnail_presigned_expires_seconds
         : null,
     source_document_ids: normalizeSourceDocumentIds(item.source_document_ids),
+    chatbot_faqs_only: Boolean(item.chatbot_faqs_only),
     merge_source_module_id:
       typeof item.merge_source_module_id === 'string'
         ? item.merge_source_module_id
@@ -327,6 +389,10 @@ function normalizeModuleDetail(
         : typeof response.domain === 'string'
           ? response.domain
           : null,
+    content_domain:
+      typeof response.content_domain === 'string'
+        ? response.content_domain
+        : null,
     module_type:
       typeof response.module_type === 'string' ? response.module_type : '',
     lifecycle_status:
@@ -381,6 +447,7 @@ function normalizeModuleDetail(
         ? response.merge_secondary_module_id
         : null,
     is_merge_secondary: Boolean(response.is_merge_secondary),
+    chatbot_faqs_only: Boolean(response.chatbot_faqs_only),
   };
 }
 
@@ -391,22 +458,10 @@ export interface EditAdminModuleResponse {
   supersedes_module_id: string;
 }
 
-export interface ClinicallyReviewedRequestBody {
-  clinically_reviewed: true;
-  reviewer_id?: string;
-}
-
-export interface ClinicallyReviewedResponse {
-  id: string;
-  clinically_reviewed: boolean;
-  clinically_reviewed_at: string;
-  clinically_reviewed_by: string;
-}
-
 export interface RetireModuleResponse {
   id: string;
   lifecycle_status: 'retired';
-  deprecated_at: string;
+  retired_at: string;
 }
 
 export interface DeactivateModuleRequestBody {
@@ -436,6 +491,8 @@ export interface FetchModulesQueryArgs {
   offset: number;
   status?: AdminModuleLifecycleStatus | null;
   domain?: string | null;
+  /** Exact match on module.chatbot_faqs_only; pass false to exclude FAQ-only modules. */
+  chatbot_faqs_only?: boolean | null;
   created_from?: string | null;
   created_to?: string | null;
   published_from?: string | null;
@@ -445,8 +502,14 @@ export interface FetchModulesQueryArgs {
   deactivated_from?: string | null;
   deactivated_to?: string | null;
   sourceDocumentId?: string | null;
+  /** Assignee geography: integer hierarchy ids. */
+  division_id?: number | null;
+  district_id?: number | null;
+  upazila_id?: number | null;
   /** Server-side search; omit when empty or below the UI minimum length. */
   q?: string | null;
+  sort_by?: string | null;
+  sort_dir?: 'asc' | 'desc' | null;
 }
 
 export interface FetchModulesResponse {
@@ -529,6 +592,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
         offset,
         status,
         domain,
+        chatbot_faqs_only,
         created_from,
         created_to,
         published_from,
@@ -538,7 +602,12 @@ export const adminModulesApi = baseApi.injectEndpoints({
         deactivated_from,
         deactivated_to,
         sourceDocumentId,
+        division_id,
+        district_id,
+        upazila_id,
         q,
+        sort_by,
+        sort_dir,
       }) => ({
         url: '/admin/modules',
         method: 'GET',
@@ -548,6 +617,9 @@ export const adminModulesApi = baseApi.injectEndpoints({
           latest_version_only: true,
           ...(status ? { status } : {}),
           ...(domain ? { domain } : {}),
+          ...(typeof chatbot_faqs_only === 'boolean'
+            ? { chatbot_faqs_only }
+            : {}),
           ...(created_from ? { created_from } : {}),
           ...(created_to ? { created_to } : {}),
           ...(published_from ? { published_from } : {}),
@@ -557,7 +629,12 @@ export const adminModulesApi = baseApi.injectEndpoints({
           ...(deactivated_from ? { deactivated_from } : {}),
           ...(deactivated_to ? { deactivated_to } : {}),
           ...(sourceDocumentId ? { source_document_id: sourceDocumentId } : {}),
+          ...(typeof division_id === 'number' ? { division_id } : {}),
+          ...(typeof district_id === 'number' ? { district_id } : {}),
+          ...(typeof upazila_id === 'number' ? { upazila_id } : {}),
           ...(q ? { q } : {}),
+          ...(sort_by ? { sort_by } : {}),
+          ...(sort_dir ? { sort_dir } : {}),
         },
       }),
       transformResponse: (response: unknown) =>
@@ -565,14 +642,15 @@ export const adminModulesApi = baseApi.injectEndpoints({
     }),
     fetchModuleDomainOptions: builder.query<
       string[],
-      { status?: AdminModuleLifecycleStatus | null }
+      { status?: AdminModuleLifecycleStatus | null; q?: string | null }
     >({
-      query: ({ status }) => ({
+      query: ({ status, q }) => ({
         url: '/admin/modules/domains',
         method: 'GET',
         params: {
           latest_version_only: true,
           ...(status ? { status } : {}),
+          ...(q?.trim() ? { q: q.trim() } : {}),
         },
       }),
       transformResponse: (response: unknown) => {
@@ -621,16 +699,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
-    }),
-    setClinicallyReviewed: builder.mutation<
-      ClinicallyReviewedResponse,
-      { moduleId: string; body: ClinicallyReviewedRequestBody }
-    >({
-      query: ({ moduleId, body }) => ({
-        url: `/admin/modules/${encodeURIComponent(moduleId)}/clinically-reviewed`,
-        method: 'POST',
-        body,
-      }),
+      invalidatesTags: ['ModuleDomains'],
     }),
     deleteModule: builder.mutation<RetireModuleResponse, { moduleId: string }>({
       query: ({ moduleId }) => ({
@@ -673,11 +742,11 @@ export const adminModulesApi = baseApi.injectEndpoints({
 
 export const {
   useFetchModulesQuery,
+  useLazyFetchModulesQuery,
   useFetchModuleDomainOptionsQuery,
   useCreateModuleMutation,
   useGetModuleDetailQuery,
   useEditModuleMutation,
-  useSetClinicallyReviewedMutation,
   useDeleteModuleMutation,
   useDeactivateModuleMutation,
   useReactivateModuleMutation,

@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RefreshIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Button, Card, Loader, Select, TruncatedText } from '@/components/ui';
+import { TablePagination } from '@/components/common/TablePagination';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Loader,
+  SearchInput,
+  TruncatedText,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useFetchIngestionRunsQuery } from '@/features/ingest/api/adminIngestionRunsApi';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -15,12 +24,15 @@ import {
   shouldPollIngestionRunList,
 } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus';
+import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const RUN_HISTORY_PAGE_SIZE_OPTIONS = [5, 10, 15, 25] as const;
 const DEFAULT_RUN_HISTORY_PAGE_SIZE = 10;
 const RUN_HISTORY_POLL_INTERVAL_MS = 30000;
+const RUN_HISTORY_SEARCH_DEBOUNCE_MS = 300;
 
 type IngestRunHistoryRow = {
   id: string;
@@ -32,26 +44,11 @@ type IngestRunHistoryRow = {
   statusLabel: string;
   statusTone: ReturnType<typeof ingestRunStatusTone>;
   durationLabel: string;
-  uploadedAt: string;
+  ingestedAt: string;
+  ingestedBy: string | null;
   hasGeneratedModules: boolean;
   actions: '';
 };
-
-const RefreshIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-    <path d="M21 3v6h-6" />
-  </svg>
-);
 
 export const IngestRunHistoryTable = () => {
   const navigate = useNavigate();
@@ -59,13 +56,37 @@ export const IngestRunHistoryTable = () => {
   const [pageSize, setPageSize] = useState(DEFAULT_RUN_HISTORY_PAGE_SIZE);
   const [pageInput, setPageInput] = useState('1');
   const [pollIntervalMs, setPollIntervalMs] = useState(0);
+  const [sortBy, setSortBy] = useState<string | undefined>('started_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(
+    query,
+    RUN_HISTORY_SEARCH_DEBOUNCE_MS,
+  );
+  const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
+
+  const handleSort = useCallback(
+    (newSortBy: string, newSortDir: 'asc' | 'desc') => {
+      setSortBy(newSortBy);
+      setSortDir(newSortDir);
+      setPage(0);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQ]);
 
   const queryArgs = useMemo(
     () => ({
       limit: pageSize,
       offset: page * pageSize,
+      sort_by: sortBy,
+      sort_dir: sortDir,
+      ...(searchQ ? { q: searchQ } : {}),
     }),
-    [page, pageSize],
+    [page, pageSize, searchQ, sortBy, sortDir],
   );
 
   const {
@@ -108,7 +129,8 @@ export const IngestRunHistoryTable = () => {
           run.started_at,
           run.completed_at,
         ),
-        uploadedAt: run.started_at,
+        ingestedAt: run.started_at,
+        ingestedBy: run.ingested_by?.name ?? null,
         hasGeneratedModules: hasGeneratedIngestModules(
           run.generated_module_count,
         ),
@@ -178,9 +200,11 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'fileName',
         header: 'File name',
+        sortable: true,
+        sortKey: 'document_label',
         className: 'whitespace-normal',
         render: (row) => (
-          <div className="min-w-[12rem] max-w-[20rem]">
+          <div className="w-[20rem] min-w-[20rem] max-w-[20rem]">
             <TruncatedText
               text={row.fileName ?? '—'}
               focusable
@@ -192,6 +216,7 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'generatedModuleLabel',
         header: 'Modules / cards / quizzes',
+        sortable: false,
         render: (row) => (
           <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
             <span>{row.generatedModuleLabel}</span>
@@ -209,9 +234,13 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'statusLabel',
         header: 'Status',
+        sortable: true,
+        sortKey: 'status',
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span
-            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide ${ingestRunStatusBadgeClassName(row.statusTone)}`}
+            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${ingestRunStatusBadgeClassName(row.statusTone)}`}
           >
             {row.statusLabel}
           </span>
@@ -220,6 +249,9 @@ export const IngestRunHistoryTable = () => {
       {
         key: 'durationLabel',
         header: 'Duration',
+        sortable: false,
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.durationLabel}
@@ -227,19 +259,38 @@ export const IngestRunHistoryTable = () => {
         ),
       },
       {
-        key: 'uploadedAt',
-        header: 'Uploaded Date',
+        key: 'ingestedBy',
+        header: 'Ingested By',
+        sortable: false,
+        headerClassName: 'whitespace-nowrap px-3 sm:px-4',
+        className: 'whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
-            {formatIngestRunTimestamp(row.uploadedAt)}
+            {formatHierarchyActorName(row.ingestedBy)}
+          </span>
+        ),
+      },
+      {
+        key: 'ingestedAt',
+        header: 'Ingested Date',
+        sortable: true,
+        sortKey: 'started_at',
+        headerClassName: 'whitespace-nowrap px-3 sm:px-4',
+        className: 'whitespace-nowrap px-3 sm:px-4',
+        render: (row) => (
+          <span className="text-xs text-spice-text-medium">
+            {formatIngestRunTimestamp(row.ingestedAt)}
           </span>
         ),
       },
       {
         key: 'actions',
         header: 'Actions',
+        sortable: false,
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 text-left sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 text-left sm:px-4',
         render: (row) => (
-          <span
+          <div
             className="inline-flex"
             title={
               row.hasGeneratedModules
@@ -248,56 +299,73 @@ export const IngestRunHistoryTable = () => {
             }
           >
             <Button
-              className="h-8 px-3 text-xs"
+              variant={row.hasGeneratedModules ? 'primary' : 'secondary'}
+              className="h-8 min-w-[7.75rem] px-3 text-xs"
               disabled={!row.sourceDocumentId || !row.hasGeneratedModules}
               onClick={() => openGeneratedModules(row)}
             >
               {row.hasGeneratedModules ? 'Open modules' : 'No modules'}
             </Button>
-          </span>
+          </div>
         ),
       },
     ],
     [openGeneratedModules],
   );
 
+  const emptyMessage = isLoading
+    ? 'Loading run history…'
+    : searchQ
+      ? 'No ingestion runs match your search.'
+      : 'No ingestion history available. Upload your first document to generate learning modules.';
+
   return (
     <Card variant="elevated" className="space-y-4 p-4">
-      <div className="flex items-center justify-end gap-3">
-        <span className="text-[11px] text-spice-text-muted">
-          Last updated {lastUpdatedLabel}
-        </span>
-        {isFetching && !isLoading ? (
-          <span className="text-[11px] text-spice-text-muted">Updating…</span>
-        ) : null}
-        <Button
-          variant="secondary"
-          className="h-8 w-8 px-0"
-          aria-label="Refresh"
-          title="Refresh"
-          onClick={() => {
-            refetch();
-          }}
-        >
-          <RefreshIcon className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {error ? (
-        <div className="space-y-2">
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {formatRtkQueryError(error)}
+      <div className="flex flex-col items-end gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-64 sm:w-72">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search ingestion history…"
+              aria-label="Search ingestion history"
+              className="h-9"
+            />
           </div>
           <Button
             variant="secondary"
-            className="h-8 text-xs"
+            className="h-8 w-8 px-0"
+            aria-label="Refresh"
+            title="Refresh"
             onClick={() => {
               refetch();
             }}
           >
-            Retry
+            <RefreshIcon className="h-4 w-4" />
           </Button>
         </div>
+        <div className="flex items-center gap-2 text-[11px] text-spice-text-muted">
+          <span>Last updated {lastUpdatedLabel}</span>
+          {isFetching && !isLoading ? <span>Updating…</span> : null}
+        </div>
+      </div>
+
+      {error ? (
+        <ErrorState
+          title="Unable to load run history"
+          description={formatRtkQueryError(error)}
+          action={
+            <Button
+              variant="secondary"
+              className="h-8 text-xs"
+              onClick={() => {
+                refetch();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        />
       ) : null}
 
       <Loader open={isLoading} label="Loading run history…" />
@@ -307,104 +375,35 @@ export const IngestRunHistoryTable = () => {
         columns={columns}
         keyExtractor={(row) => row.id}
         caption="Ingestion run history"
-        emptyMessage={
-          isLoading
-            ? 'Loading run history…'
-            : 'No ingestion history available. Upload your first document to generate learning modules.'
-        }
+        emptyMessage={emptyMessage}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={handleSort}
       />
 
-      <div className="flex flex-col gap-3 border-t border-spice-border pt-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
-          <label className="inline-flex items-center gap-2">
-            <span className="whitespace-nowrap font-medium text-spice-text-medium">
-              Rows
-            </span>
-            <Select
-              aria-label="Run history rows per page"
-              className="h-8 w-[4.5rem] px-2 text-xs"
-              value={String(pageSize)}
-              options={RUN_HISTORY_PAGE_SIZE_OPTIONS.map((size) => ({
-                label: String(size),
-                value: String(size),
-              }))}
-              onChange={(value) => {
-                const next = Number.parseInt(value, 10);
-                if (!Number.isFinite(next) || next <= 0) return;
-                setPageSize(next);
-                setPage(0);
-              }}
-            />
-          </label>
-
-          <label className="inline-flex items-center gap-2">
-            <span className="whitespace-nowrap font-medium text-spice-text-medium">
-              Page
-            </span>
-            <input
-              type="number"
-              min={1}
-              max={totalPages > 0 ? totalPages : undefined}
-              step={1}
-              inputMode="numeric"
-              aria-label="Run history page number"
-              className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
-              value={pageInput}
-              onChange={(e) => handlePageInputChange(e.target.value)}
-              onBlur={commitPageInput}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.currentTarget.blur();
-                }
-              }}
-            />
-            <span className="whitespace-nowrap">
-              of{' '}
-              <span className="font-semibold text-spice-text-medium">
-                {Math.max(totalPages, 1)}
-              </span>
-            </span>
-          </label>
-
-          {rows.length ? (
-            <span className="whitespace-nowrap">
-              Showing{' '}
-              <span className="font-semibold text-spice-text-medium">
-                {rangeStart}
-              </span>
-              –
-              <span className="font-semibold text-spice-text-medium">
-                {rangeEnd}
-              </span>{' '}
-              of{' '}
-              <span className="font-semibold text-spice-text-medium">
-                {totalRuns}
-              </span>
-            </span>
-          ) : (
-            <span>No results on this page</span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            className="h-8 px-3 text-xs"
-            disabled={!hasPrevPage}
-            onClick={() => setPage((current) => Math.max(0, current - 1))}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            className="h-8 px-3 text-xs"
-            disabled={!hasNextPage}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        pageSize={pageSize}
+        pageSizeOptions={RUN_HISTORY_PAGE_SIZE_OPTIONS}
+        totalItems={totalRuns}
+        totalPages={totalPages}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        pageInput={pageInput}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPageSizeChange={(next) => {
+          setPageSize(next);
+          setPage(0);
+        }}
+        onPageInputChange={handlePageInputChange}
+        onCommitPageInput={commitPageInput}
+        onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
+        onNextPage={() => setPage((current) => current + 1)}
+        rowsPerPageAriaLabel="Run history rows per page"
+        pageNumberAriaLabel="Run history page number"
+        className="border-t border-spice-border px-0 pt-3"
+      />
     </Card>
   );
 };

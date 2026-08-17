@@ -70,4 +70,19 @@ describe('ModuleTaxonomyField', () => {
     expect(screen.getByLabelText(/domain/i)).toBeRequired();
     expect(screen.getByText('*')).toBeInTheDocument();
   });
+
+  it('hides the visible label when asked and keeps an accessible name', () => {
+    render(
+      <ModuleTaxonomyField
+        label="Domain"
+        hideLabel
+        value="rmnch"
+        options={['rmnch']}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^domain$/i)).toBeInTheDocument();
+    expect(screen.queryByText('*')).not.toBeInTheDocument();
+  });
 });

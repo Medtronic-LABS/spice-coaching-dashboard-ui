@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useState } from 'react';
 import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
 import {
   useLazyGetAdminFilePresignedUrlQuery,
@@ -17,16 +17,8 @@ export function useAdminModuleThumbnailUpload(save: ThumbnailSave) {
     useUploadAdminFileMutation();
   const [getPresignedUrl] = useLazyGetAdminFilePresignedUrlQuery();
   const [uploadError, setUploadError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const openFilePicker = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const uploadThumbnailFile = async (file: File) => {
     setUploadError('');
     try {
       const uploadResponse = await uploadAdminFile({
@@ -52,10 +44,8 @@ export function useAdminModuleThumbnailUpload(save: ThumbnailSave) {
   };
 
   return {
-    fileInputRef,
     uploadError,
     isUploading,
-    openFilePicker,
-    handleImageUpload,
+    uploadThumbnailFile,
   };
 }

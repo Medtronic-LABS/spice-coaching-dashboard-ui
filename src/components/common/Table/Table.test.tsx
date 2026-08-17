@@ -9,7 +9,7 @@ interface TestData extends Record<string, unknown> {
 
 const columns: ColumnDef<TestData>[] = [
   { key: 'id', header: 'ID' },
-  { key: 'name', header: 'Name' },
+  { key: 'name', header: 'Name', sortable: true },
 ];
 
 describe('Table', () => {
@@ -66,5 +66,39 @@ describe('Table', () => {
       'text-center',
     );
     expect(screen.getByText('Alice').closest('td')).toHaveClass('text-right');
+  });
+
+  it('triggers onSort when sortable column header is clicked', () => {
+    const onSortMock = vi.fn();
+    render(
+      <Table
+        data={[{ id: '1', name: 'Alice' }]}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        onSort={onSortMock}
+      />,
+    );
+
+    const nameHeader = screen.getByRole('button', { name: /name/i });
+    nameHeader.click();
+    expect(onSortMock).toHaveBeenCalledWith('name', 'asc');
+  });
+
+  it('toggles direction to desc when active asc column header is clicked', () => {
+    const onSortMock = vi.fn();
+    render(
+      <Table
+        data={[{ id: '1', name: 'Alice' }]}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        sortBy="name"
+        sortDir="asc"
+        onSort={onSortMock}
+      />,
+    );
+
+    const nameHeader = screen.getByRole('button', { name: /name/i });
+    nameHeader.click();
+    expect(onSortMock).toHaveBeenCalledWith('name', 'desc');
   });
 });

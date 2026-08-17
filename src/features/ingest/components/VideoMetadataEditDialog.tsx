@@ -1,15 +1,30 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Button, Card, Loader, Modal } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  LimitedTextInput,
+  Loader,
+  Modal,
+} from '@/components/ui';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import {
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
   type SourceDocumentSummary,
 } from '@/features/modules/api/adminSourceDocumentsApi';
+import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
+import { cn } from '@/utils';
 import {
   VIDEO_THUMBNAIL_ACCEPT,
   formatVideoThumbnailRejectionError,
   isAcceptedVideoThumbnailFile,
 } from '@/features/ingest/utils/videoThumbnail';
+import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 interface VideoMetadataEditDialogProps {
@@ -28,9 +43,9 @@ export const VideoMetadataEditDialog = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(
-    null,
-  );
+  const [localThumbnailPreviewUrl, setLocalThumbnailPreviewUrl] = useState<
+    string | null
+  >(null);
   const [fieldError, setFieldError] = useState('');
   const [actionError, setActionError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,20 +57,31 @@ export const VideoMetadataEditDialog = ({
 
   const isSaving = isSavingMetadata || isSavingThumbnail;
 
+  const existingStoragePath =
+    open && document && !thumbnailFile ? document.thumbnail_storage_path : null;
+  const { url: existingThumbnailUrl, isLoading: isLoadingExistingThumbnail } =
+    usePresignedFileUrl(existingStoragePath);
+
+  const thumbnailPreviewUrl =
+    localThumbnailPreviewUrl ?? existingThumbnailUrl ?? null;
+
   useEffect(() => {
     if (!open || !document) return;
     setTitle(document.title);
     setDescription(document.description ?? '');
     setThumbnailFile(null);
-    setThumbnailPreviewUrl(document.thumbnail_presigned_url ?? null);
+    setLocalThumbnailPreviewUrl(null);
     setFieldError('');
     setActionError('');
   }, [open, document]);
 
   useEffect(() => {
-    if (!thumbnailFile) return;
+    if (!thumbnailFile) {
+      setLocalThumbnailPreviewUrl(null);
+      return;
+    }
     const url = URL.createObjectURL(thumbnailFile);
-    setThumbnailPreviewUrl(url);
+    setLocalThumbnailPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [thumbnailFile]);
 
@@ -84,6 +110,12 @@ export const VideoMetadataEditDialog = ({
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setFieldError('Title is required.');
+      return;
+    }
+    if (trimmedTitle.length > FIELD_LIMITS.documentTitle) {
+      setFieldError(
+        fieldLimitExceededMessage('Title', FIELD_LIMITS.documentTitle),
+      );
       return;
     }
 
@@ -139,27 +171,23 @@ export const VideoMetadataEditDialog = ({
           Edit video details
         </h2>
 
-        {actionError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {actionError}
-          </div>
-        ) : null}
-        {fieldError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {fieldError}
-          </div>
-        ) : null}
+        {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
+        {fieldError ? <Banner tone="critical">{fieldError}</Banner> : null}
 
         <label className="block space-y-1.5">
           <span className="text-xs font-semibold text-spice-text-primary">
             Title <span className="text-spice-semantic-error">*</span>
           </span>
-          <input
-            type="text"
+          <LimitedTextInput
+            id="video-metadata-title"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            maxLength={FIELD_LIMITS.documentTitle}
             disabled={isSaving}
-            className="w-full rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+            onChange={setTitle}
+            inputClassName={cn(
+              'w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+              SPICE_INPUT_FOCUS_CLASSNAME,
+            )}
           />
         </label>
 
@@ -172,7 +200,10 @@ export const VideoMetadataEditDialog = ({
             onChange={(event) => setDescription(event.target.value)}
             disabled={isSaving}
             rows={3}
-            className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+            className={cn(
+              'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+              SPICE_INPUT_FOCUS_CLASSNAME,
+            )}
           />
         </label>
 
@@ -209,6 +240,9 @@ export const VideoMetadataEditDialog = ({
               </svg>
             </button>
           </div>
+          <p className="text-[10px] leading-snug text-spice-text-muted">
+            {THUMBNAIL_ACCEPT_SIZE_HINT}
+          </p>
           <input
             ref={fileInputRef}
             type="file"
@@ -217,25 +251,32 @@ export const VideoMetadataEditDialog = ({
             onChange={handleThumbnailChange}
           />
           {thumbnailPreviewUrl ? (
-            <div className="overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+            <div className="flex max-h-[220px] min-h-[140px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint p-2">
               <img
                 src={thumbnailPreviewUrl}
                 alt="Video thumbnail preview"
-                className="aspect-video w-full object-cover"
+                draggable={false}
+                className="max-h-[200px] max-w-full object-contain"
               />
+            </div>
+          ) : isLoadingExistingThumbnail ? (
+            <div
+              className="flex min-h-[140px] w-full animate-pulse items-center justify-center rounded-lg border border-spice-border bg-spice-bg-tint"
+              aria-label="Loading thumbnail"
+            >
+              <span className="text-[11px] font-medium text-spice-text-muted">
+                Loading thumbnail…
+              </span>
             </div>
           ) : (
             <button
               type="button"
               disabled={isSaving}
               onClick={() => fileInputRef.current?.click()}
-              className="flex aspect-video w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-center transition-colors hover:bg-spice-bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-[140px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-center transition-colors hover:bg-spice-bg-surface disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="text-[11px] font-medium text-spice-text-muted">
                 Add thumbnail
-              </span>
-              <span className="mt-0.5 text-[10px] text-spice-text-muted">
-                PNG, JPEG, or WebP · max 5 MB
               </span>
             </button>
           )}

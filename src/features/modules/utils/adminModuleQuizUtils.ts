@@ -183,6 +183,8 @@ export function removeQuizItem(
   );
 }
 
+const DEFAULT_NEW_OPTION_COUNT = 4;
+
 export function addQuizItem(
   quiz: AdminModuleQuizItem[],
 ): AdminModuleQuizItem[] {
@@ -194,12 +196,60 @@ export function addQuizItem(
       question_order: nextOrder,
       question: { [DEPLOYMENT_PRIMARY_LOCALE]: '' },
       case_setup: null,
-      options: { [DEPLOYMENT_PRIMARY_LOCALE]: [''] },
+      options: {
+        [DEPLOYMENT_PRIMARY_LOCALE]: Array.from(
+          { length: DEFAULT_NEW_OPTION_COUNT },
+          () => '',
+        ),
+      },
       correct_indices: [0],
       explanation: null,
       difficulty: 'medium',
     },
   ];
+}
+
+function cloneLocalizedString(
+  value: AdminModuleQuizItem['question'] | null,
+): AdminModuleQuizItem['question'] | null {
+  if (!value) return null;
+  return { ...value };
+}
+
+function cloneLocalizedOptions(
+  value: AdminModuleQuizItem['options'],
+): AdminModuleQuizItem['options'] {
+  const next: AdminModuleQuizItem['options'] = {};
+  for (const [locale, options] of Object.entries(value)) {
+    next[locale] = [...options];
+  }
+  return next;
+}
+
+/** Deep-copies a quiz item and inserts the duplicate immediately after it. */
+export function duplicateQuizItem(
+  quiz: AdminModuleQuizItem[],
+  id: string,
+): AdminModuleQuizItem[] {
+  const sorted = sortQuizItems(quiz);
+  const index = sorted.findIndex((item) => item.id === id);
+  if (index < 0) return quiz;
+
+  const source = sorted[index];
+  const duplicate: AdminModuleQuizItem = {
+    id: `temp-${crypto.randomUUID()}`,
+    question_order: source.question_order + 1,
+    question: { ...source.question },
+    case_setup: cloneLocalizedString(source.case_setup),
+    options: cloneLocalizedOptions(source.options),
+    correct_indices: [...source.correct_indices],
+    explanation: cloneLocalizedString(source.explanation),
+    difficulty: source.difficulty,
+  };
+
+  const next = [...sorted];
+  next.splice(index + 1, 0, duplicate);
+  return renumberQuestionOrders(next);
 }
 
 export function clearAllQuizItems(): AdminModuleQuizItem[] {

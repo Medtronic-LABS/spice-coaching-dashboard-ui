@@ -1,3 +1,4 @@
+import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
 import type {
   AdminModuleDetailResponse,
   AdminModuleModuleJson,
@@ -5,7 +6,10 @@ import type {
   EditAdminModuleResponse,
 } from '@/features/modules/api/adminModulesApi';
 import { applyEditModuleAndSyncRoute } from '@/features/modules/utils/applyEditModuleAndSyncRoute';
+import { getEstimatedMinutesValidationError } from '@/features/modules/utils/estimatedMinutesValidation';
+import { normalizeModuleTaxonomyLabel } from '@/features/modules/utils/normalizeModuleTaxonomyLabel';
 import { prepareModuleJsonForSave } from '@/features/modules/utils/prepareModuleJsonForSave';
+import { validateAdminModuleDraftContent } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import type { NavigateFunction } from 'react-router-dom';
 
 type EditModuleTrigger = (args: {
@@ -40,6 +44,20 @@ export async function persistAdminModuleDraft(options: {
   onSaved: (data: AdminModuleDetailResponse) => void;
 }): Promise<AdminModuleDetailResponse> {
   const { working } = options;
+  const domain = normalizeModuleTaxonomyLabel(working.domain);
+  if (!domain) {
+    throw new Error('Domain is required.');
+  }
+  const estimatedMinutesError = getEstimatedMinutesValidationError(
+    working.estimated_minutes,
+  );
+  if (estimatedMinutesError) {
+    throw new Error(estimatedMinutesError);
+  }
+  validateAdminModuleDraftContent({
+    cards: working.cards,
+    quiz: working.quiz,
+  });
   const { cards, quiz } = prepareModuleJsonForSave(working.cards, working.quiz);
 
   const response = await applyEditModuleAndSyncRoute({
@@ -53,6 +71,11 @@ export async function persistAdminModuleDraft(options: {
       description: working.description,
       module_json: { cards, quiz } as unknown as AdminModuleModuleJson,
       thumbnail_storage_path: working.thumbnail_storage_path,
+      chatbot_faqs_only: Boolean(working.chatbot_faqs_only),
+      domain,
+      content_domain:
+        working.content_domain?.trim() || INGEST_FORM_DEFAULTS.content_domain,
+      estimated_minutes: working.estimated_minutes,
     },
   });
 
