@@ -815,6 +815,9 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             m.status === 'deactivated'
               ? { id: 103, name: 'Mock Deactivator' }
               : null,
+          retired_at: m.status === 'retired' ? createdAt : null,
+          retired_by:
+            m.status === 'retired' ? { id: 104, name: 'Mock Retirer' } : null,
           quality_flags: { flags: [] },
           quiz_count: m.questions,
           chatbot_faqs_only: Boolean(m.chatbot_faqs_only),

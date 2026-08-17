@@ -223,4 +223,32 @@ describe('ui components', () => {
 
     fireEvent.keyDown(active, { key: 'Enter' });
   });
+
+  it('module library tabs use compact equal-height capsules', () => {
+    render(
+      <Tabs
+        variant="moduleLibrary"
+        idBase="library"
+        items={[
+          { label: 'Drafts', value: 'drafts' },
+          { label: 'Published', value: 'published' },
+          { label: 'All', value: 'all' },
+        ]}
+        value="drafts"
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('tablist')).toHaveClass('items-center');
+    for (const name of ['Drafts', 'Published', 'All']) {
+      expect(screen.getByRole('tab', { name })).toHaveClass(
+        'h-8',
+        'items-center',
+        'px-3',
+        'py-0',
+        'text-sm',
+        'leading-none',
+      );
+    }
+  });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -189,15 +190,16 @@ export const DocumentSelectionPanel = ({
     () => new Set(keptExistingSourceIds),
     [keptExistingSourceIds],
   );
-  const recentlyIngestedIds = useMemo(
-    () =>
-      new Set(
-        readRecentIngestDocuments().map(
-          (document) => document.source_document_id,
-        ),
+  const recentlyIngestedIds = useMemo(() => {
+    // Re-read sessionStorage when an upload finishes or ingest batch status changes.
+    void uploadClearSignal;
+    void batchSources;
+    return new Set(
+      readRecentIngestDocuments().map(
+        (document) => document.source_document_id,
       ),
-    [uploadClearSignal, batchSources],
-  );
+    );
+  }, [uploadClearSignal, batchSources]);
   const debouncedQuery = useDebouncedValue(
     searchQuery,
     DOCUMENT_SELECTION_SEARCH_DEBOUNCE_MS,
@@ -575,15 +577,16 @@ export const DocumentSelectionPanel = ({
             keptExistingIds,
           );
           return (
-            <div className="flex h-8 min-w-[7.75rem] items-center">
+            <div className="flex h-8 min-w-[9.25rem] items-center">
               {canViewModules ? (
                 <Button
                   variant="secondary"
-                  className="h-8 shrink-0 px-3 text-xs"
+                  className="h-8 shrink-0 gap-1.5 px-3 text-xs"
                   onClick={() => {
                     goToModulesForSource(row.id, row.title);
                   }}
                 >
+                  <EyeIcon className="h-3.5 w-3.5" />
                   View modules
                 </Button>
               ) : (

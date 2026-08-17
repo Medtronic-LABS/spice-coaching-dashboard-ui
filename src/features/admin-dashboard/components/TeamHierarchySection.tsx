@@ -297,7 +297,7 @@ const HierarchyMemberRow = ({
                   label={peopleLabel}
                 />
                 <MetricCell
-                  className="w-[5.5rem]"
+                  className="w-[9.5rem]"
                   value={inactiveValue}
                   label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
                 />

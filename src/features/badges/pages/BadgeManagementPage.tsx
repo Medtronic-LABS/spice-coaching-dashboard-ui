@@ -12,7 +12,7 @@ import {
   Tooltip,
   TruncatedText,
 } from '@/components/ui';
-import { ArrowRightIcon, CloseIcon, SearchIcon } from '@/assets/icon';
+import { ArrowRightIcon, CloseIcon, EyeIcon, SearchIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -826,9 +826,10 @@ export const BadgeManagementPage = () => {
           <div className="flex justify-start gap-2">
             <Button
               variant="secondary"
-              className="h-8 px-3 text-xs"
+              className="h-8 gap-1.5 px-3 text-xs"
               onClick={() => startView(row)}
             >
+              <EyeIcon className="h-3.5 w-3.5" />
               View
             </Button>
             <Button

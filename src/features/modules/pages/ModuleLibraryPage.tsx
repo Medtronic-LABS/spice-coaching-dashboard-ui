@@ -126,6 +126,8 @@ const DEFAULT_MODULE_PAGE_SIZE = 10;
 
 const CREATE_MODULE_INPUT_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
+const PUBLISHED_ASSIGN_SLOT_CLASS =
+  'inline-flex h-8 min-w-[5.25rem] justify-start';
 
 type AdminModuleDifficultyLevel = (typeof DIFFICULTY_LEVEL_OPTIONS)[number];
 
@@ -754,17 +756,19 @@ export const ModuleLibraryPage = () => {
           if (row.status === 'published') {
             return (
               <div className="flex justify-start gap-2">
-                {isAssignablePublishedModule(row) ? (
-                  <Button
-                    className="h-8 px-3 text-xs"
-                    onClick={() => {
-                      setAssignmentModule({ id: row.id, title: row.title });
-                      setAssignmentOpen(true);
-                    }}
-                  >
-                    Assign
-                  </Button>
-                ) : null}
+                <div className={PUBLISHED_ASSIGN_SLOT_CLASS}>
+                  {isAssignablePublishedModule(row) ? (
+                    <Button
+                      className="h-8 w-full px-3 text-xs"
+                      onClick={() => {
+                        setAssignmentModule({ id: row.id, title: row.title });
+                        setAssignmentOpen(true);
+                      }}
+                    >
+                      Assign
+                    </Button>
+                  ) : null}
+                </div>
                 {isProgramManager ? (
                   <Button
                     variant="secondary"
@@ -1027,6 +1031,7 @@ export const ModuleLibraryPage = () => {
                     <Tooltip
                       label="About Content domain type"
                       content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                      placement="top"
                     />
                   </span>
                   <Select

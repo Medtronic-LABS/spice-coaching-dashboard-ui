@@ -26,6 +26,29 @@ export function normalizeHierarchyActorRef(
   return { id, name: trimmed };
 }
 
+function actorDisplayName(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  const normalized = normalizeHierarchyActorRef(value);
+  if (normalized) return normalized.name;
+  if (!isPlainObject(value) || typeof value.name !== 'string') return undefined;
+
+  const trimmed = value.name.trim();
+  return trimmed || undefined;
+}
+
+/** Reads a displayable actor name from search-metadata string or object values. */
+export function actorNameFromMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+  key: string,
+): string | undefined {
+  if (!metadata) return undefined;
+  return actorDisplayName(metadata[key]);
+}
+
 /** Display helper for actor name columns (`—` when missing). */
 export function formatHierarchyActorName(
   name: string | null | undefined,

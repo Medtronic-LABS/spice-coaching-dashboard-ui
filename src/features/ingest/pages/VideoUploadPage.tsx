@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { DeleteIcon } from '@/assets/icon';
+import { DeleteIcon, EyeIcon } from '@/assets/icon';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -1036,7 +1036,7 @@ export const VideoUploadPage = () => {
               ) : isViewModulesStatus(row.status) ? (
                 <Button
                   variant="secondary"
-                  className="h-8 shrink-0 px-3 text-xs"
+                  className="h-8 shrink-0 gap-1.5 px-3 text-xs"
                   onClick={() => {
                     goToDraftsForSource(
                       row.sourceDocumentId as string,
@@ -1044,6 +1044,7 @@ export const VideoUploadPage = () => {
                     );
                   }}
                 >
+                  <EyeIcon className="h-3.5 w-3.5" />
                   View modules
                 </Button>
               ) : (

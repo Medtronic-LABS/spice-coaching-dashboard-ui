@@ -46,6 +46,7 @@ export interface AdminModulesListItem {
   updated_at: string;
   activated_at?: string | null;
   deactivated_at?: string | null;
+  retired_at?: string | null;
   /** @deprecated Prefer `activated_at` from the modules API. */
   first_activated_at?: string | null;
   /** @deprecated Prefer `deactivated_at` from the modules API. */
@@ -56,6 +57,7 @@ export interface AdminModulesListItem {
   published_by?: ModuleActorRef | null;
   activated_by?: ModuleActorRef | null;
   deactivated_by?: ModuleActorRef | null;
+  retired_by?: ModuleActorRef | null;
   quality_flags?: { flags: string[] } | null;
   quiz_count: number;
   search_metadata?: Record<string, unknown> | null;
@@ -239,6 +241,7 @@ function normalizeModuleSummary(
         : typeof item.last_deactivated_at === 'string'
           ? item.last_deactivated_at
           : null,
+    retired_at: typeof item.retired_at === 'string' ? item.retired_at : null,
     first_activated_at:
       typeof item.first_activated_at === 'string'
         ? item.first_activated_at
@@ -259,6 +262,7 @@ function normalizeModuleSummary(
     published_by: normalizeHierarchyActorRef(item.published_by),
     activated_by: normalizeHierarchyActorRef(item.activated_by),
     deactivated_by: normalizeHierarchyActorRef(item.deactivated_by),
+    retired_by: normalizeHierarchyActorRef(item.retired_by),
     quality_flags:
       item.quality_flags && typeof item.quality_flags === 'object'
         ? (item.quality_flags as { flags: string[] })
@@ -457,7 +461,7 @@ export interface EditAdminModuleResponse {
 export interface RetireModuleResponse {
   id: string;
   lifecycle_status: 'retired';
-  deprecated_at: string;
+  retired_at: string;
 }
 
 export interface DeactivateModuleRequestBody {

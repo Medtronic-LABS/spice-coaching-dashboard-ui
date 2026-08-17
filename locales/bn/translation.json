@@ -171,10 +171,10 @@
       "retry": "আবার চেষ্টা করুন"
     },
     "kpis": {
-      "active": "সক্রিয় SK",
-      "activeTooltip": "নির্বাচিত সময়ে অন্তত একবার সক্রিয় থাকা SK",
-      "inactive": "নিষ্ক্রিয় SK",
-      "inactiveTooltip": "নির্বাচিত সময়ে কোনো কার্যকলাপ নেই এমন SK",
+      "active": "প্রতিক্রিয়াশীল SK",
+      "activeTooltip": "নির্বাচিত সময়ে অন্তত একবার প্রতিক্রিয়াশীল থাকা SK",
+      "inactive": "অপ্রতিক্রিয়াশীল SK",
+      "inactiveTooltip": "নির্বাচিত সময়ে অপ্রতিক্রিয়াশীল থাকা SK",
       "finishedModules": "অন্তত একটি মডিউল সম্পন্ন SK",
       "finishedModulesTooltip": "নির্বাচিত সময়ে অন্তত একটি মডিউল সম্পন্ন করা SK",
       "chatbotEngaged": "চ্যাটবট এনগেজড",
@@ -207,7 +207,7 @@
         "at_risk_first": "ঝুঁকিতে প্রথম",
         "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
         "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
-        "most_inactive": "সর্বাধিক নিষ্ক্রিয় SK",
+        "most_inactive": "সর্বাধিক অপ্রতিক্রিয়াশীল SK",
         "name": "নাম (A–Z)"
       },
       "status": {
@@ -258,12 +258,12 @@
       },
       "metrics": {
         "members": "{{count}} সদস্য",
-        "inactive": "{{count}} নিষ্ক্রিয়",
+        "inactive": "{{count}} অপ্রতিক্রিয়াশীল",
         "modules": "{{completed}}/{{total}} মডিউল",
         "chatbot": "{{count}} চ্যাটবট",
         "sksLabel": "SK",
         "membersLabel": "সদস্য",
-        "inactiveLabel": "নিষ্ক্রিয়",
+        "inactiveLabel": "অপ্রতিক্রিয়াশীল",
         "modulesLabel": "মডিউল",
         "queriesLabel": "প্রশ্ন"
       },
@@ -459,7 +459,7 @@
     "onTime": "সময়ের মধ্যে",
     "dueSoon": "শিগগিরই সময়সীমা",
     "delayed": "বিলম্বিত",
-    "inactive": "নিষ্ক্রিয়",
+    "inactive": "অপ্রতিক্রিয়াশীল",
     "inProgress": "চলমান",
     "unknown": "অজানা"
   },

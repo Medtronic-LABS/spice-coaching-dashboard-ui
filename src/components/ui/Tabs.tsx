@@ -117,7 +117,7 @@ export const Tabs = ({
         'flex w-full overflow-x-auto',
         variant === 'default'
           ? 'gap-1 rounded-lg bg-spice-bg-tint p-1'
-          : 'gap-2',
+          : 'items-center gap-2',
         className,
       )}
       role="tablist"
@@ -150,7 +150,7 @@ export const Tabs = ({
                       : 'text-spice-text-muted hover:text-spice-palette-violetDeep',
                   )
                 : cn(
-                    'rounded-full border px-4 py-2 text-base',
+                    'inline-flex h-8 items-center rounded-full border px-3 py-0 text-sm leading-none',
                     isActive
                       ? 'border-spice-palette-violet bg-spice-palette-violetLt font-semibold text-spice-palette-violetDeep'
                       : 'border-spice-border font-normal text-spice-text-onSurfaceVariant hover:text-spice-palette-violetDeep',

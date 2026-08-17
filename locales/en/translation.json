@@ -170,10 +170,10 @@
       "retry": "Try again"
     },
     "kpis": {
-      "active": "SKs active",
-      "activeTooltip": "SKs with at least one activity in the selected period",
-      "inactive": "Inactive SKs",
-      "inactiveTooltip": "SKs with no activity in the selected period",
+      "active": "Responsive SKs",
+      "activeTooltip": "SKs who were responsive at least once in the selected period",
+      "inactive": "Non-Responsive SKs",
+      "inactiveTooltip": "SKs who were non-responsive in the selected period",
       "finishedModules": "SKs completed a module",
       "finishedModulesTooltip": "SKs who completed at least one module in the selected period",
       "chatbotEngaged": "Chatbot engaged",
@@ -206,7 +206,7 @@
         "at_risk_first": "At risk first",
         "lowest_completion": "Lowest module completion",
         "lowest_chatbot": "Lowest chatbot engagement",
-        "most_inactive": "Most inactive SKs",
+        "most_inactive": "Most Non-Responsive SKs",
         "name": "Name (A–Z)"
       },
       "status": {
@@ -257,12 +257,12 @@
       },
       "metrics": {
         "members": "{{count}} members",
-        "inactive": "{{count}} Inactive",
+        "inactive": "{{count}} Non-Responsive",
         "modules": "{{completed}}/{{total}} Modules",
         "chatbot": "{{count}} chatbot",
         "sksLabel": "SKs",
         "membersLabel": "members",
-        "inactiveLabel": "Inactive",
+        "inactiveLabel": "Non-Responsive",
         "modulesLabel": "Modules",
         "queriesLabel": "Queries"
       },
@@ -367,7 +367,7 @@
       "requestFallback": "Training access requested",
       "detailDescription": "Queries and requests associated with this module or topic.",
       "occurrences": "{{count}} occurrences",
-      "usersHeading": "Users who raised this question",
+      "usersHeading": "Users who asked this question",
       "userCount": "{{count}} users",
       "interaction": {
         "chatbotServed": "Served by chatbot",
@@ -458,7 +458,7 @@
     "onTime": "On time",
     "dueSoon": "Due soon",
     "delayed": "Delayed",
-    "inactive": "Inactive",
+    "inactive": "Non-Responsive",
     "inProgress": "In progress",
     "unknown": "Unknown"
   },

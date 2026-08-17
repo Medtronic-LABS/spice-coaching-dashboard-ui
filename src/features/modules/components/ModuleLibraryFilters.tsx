@@ -85,6 +85,7 @@ export const ModuleLibraryFilters = ({
       {
         id: 'module-library-general',
         label: 'General',
+        fieldsClassName: 'pl-2',
         fields: [
           {
             type: 'combobox',
@@ -111,10 +112,14 @@ export const ModuleLibraryFilters = ({
           },
         ],
       },
-      geographySection,
+      {
+        ...geographySection,
+        fieldsClassName: 'pl-2',
+      },
       {
         id: 'module-library-date-ranges',
         label: 'Date ranges',
+        fieldsClassName: 'pl-2',
         fields: dateTypes.map((type) => {
           const keys = DATE_FIELD_KEYS[type];
           const fromValue = String(filters[keys.from]);

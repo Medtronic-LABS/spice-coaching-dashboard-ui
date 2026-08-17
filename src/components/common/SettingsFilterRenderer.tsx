@@ -293,6 +293,7 @@ export const SettingsFilterRenderer = ({
                 (section.columns ?? 1) === 2
                   ? 'grid grid-cols-1 sm:grid-cols-2'
                   : 'flex flex-col',
+                section.fieldsClassName,
               )}
             >
               {renderSectionFields(section.fields)}

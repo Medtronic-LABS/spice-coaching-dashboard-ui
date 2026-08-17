@@ -1,4 +1,4 @@
-import { EyeIcon, SaveDraftIcon } from '@/assets/icon';
+import { EyeIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
 import { Button, Card, TruncatedText } from '@/components/ui';
 import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { getPublishCardDescription } from '@/features/modules/utils/getPublishCardDescription';
@@ -57,18 +57,22 @@ export interface ModuleReviewPublishViewProps {
 const EditLinkButton = ({
   label,
   onClick,
-  showIcon = true,
+  icon = 'edit',
 }: {
   label: string;
   onClick: () => void;
-  showIcon?: boolean;
+  icon?: 'edit' | 'view';
 }) => (
   <button
     type="button"
     onClick={onClick}
     className="inline-flex items-center gap-1 text-xs font-semibold text-spice-brand-primary hover:underline"
   >
-    {showIcon && <span aria-hidden="true">✎</span>}
+    {icon === 'view' ? (
+      <EyeIcon className="h-3.5 w-3.5" />
+    ) : (
+      <PencilIcon className="h-3.5 w-3.5" />
+    )}
     {label}
   </button>
 );
@@ -143,7 +147,7 @@ export const ModuleReviewPublishView = ({
               <EditLinkButton
                 label={sectionActionLabel}
                 onClick={onEditDetails}
-                showIcon={!readonly}
+                icon={readonly ? 'view' : 'edit'}
               />
             </div>
             <div className="space-y-3">
@@ -191,7 +195,7 @@ export const ModuleReviewPublishView = ({
               <EditLinkButton
                 label={sectionActionLabel}
                 onClick={onEditLessons}
-                showIcon={!readonly}
+                icon={readonly ? 'view' : 'edit'}
               />
             </div>
             <ol className="space-y-2">
@@ -234,7 +238,7 @@ export const ModuleReviewPublishView = ({
               <EditLinkButton
                 label={sectionActionLabel}
                 onClick={onEditQuiz}
-                showIcon={!readonly}
+                icon={readonly ? 'view' : 'edit'}
               />
             </div>
             <ul className="space-y-2">

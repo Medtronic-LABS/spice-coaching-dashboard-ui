@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { paths } from '@/constants/routes';
@@ -282,8 +282,14 @@ describe('DocumentSelectionPanel', () => {
   it('shows View modules for kept existing sources during an active ingest batch', () => {
     renderWithProviders(<ControlledPanel keptExistingSourceIds={['doc-1']} />);
 
+    const hypertensionRow = screen
+      .getByText('Hypertension Guide')
+      .closest('tr');
+    expect(hypertensionRow).not.toBeNull();
     expect(
-      screen.getByRole('button', { name: /view modules/i }),
+      within(hypertensionRow as HTMLElement).getByRole('button', {
+        name: /view modules/i,
+      }),
     ).toBeInTheDocument();
   });
 

@@ -120,6 +120,10 @@ describe('TeamHierarchySection', () => {
         offset: 0,
       }),
     );
+    expect(screen.getByText('Non-Responsive')).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Most Non-Responsive SKs' }),
+    ).toBeInTheDocument();
   });
 
   it('hides Area Managers tab when logged in as Area Manager', () => {

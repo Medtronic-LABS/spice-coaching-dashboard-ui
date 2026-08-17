@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { Button, TruncatedText } from '@/components/ui';
 import {
@@ -6,8 +8,11 @@ import {
 } from '@/constants/fieldLimits';
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import {
+  actorNameFromMetadata,
+  formatHierarchyActorName,
+} from '@/features/modules/types/hierarchyActor';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
-import { useMemo } from 'react';
 
 interface DiscardedTabTableProps {
   modules: AdminModulesListItem[];
@@ -35,49 +40,31 @@ function formatModuleTitle(item: AdminModulesListItem): string {
 }
 
 function getPreviousStatus(item: AdminModulesListItem): string {
-  if (!item) return 'Draft';
-  const metadata = item.search_metadata as Record<string, unknown> | null;
-  if (
-    metadata &&
-    typeof metadata.previous_status === 'string' &&
-    metadata.previous_status.trim()
-  ) {
-    const raw = metadata.previous_status.trim();
-    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  if (!item) return 'draft';
+  const previousStatus = item.search_metadata?.previous_status;
+  if (typeof previousStatus === 'string' && previousStatus.trim()) {
+    return previousStatus.trim().toLowerCase();
   }
-  if (item.published_at) return 'Published';
-  return 'Draft';
+  if (item.published_at) return 'published';
+  return 'draft';
 }
 
 function getDiscardedBy(item: AdminModulesListItem): string {
   if (!item) return '—';
-  const metadata = item.search_metadata as Record<string, unknown> | null;
-  if (
-    metadata &&
-    typeof metadata.discarded_by === 'string' &&
-    metadata.discarded_by.trim()
-  ) {
-    return metadata.discarded_by.trim();
-  }
-  if (
-    metadata &&
-    typeof metadata.created_by === 'string' &&
-    metadata.created_by.trim()
-  ) {
-    return metadata.created_by.trim();
-  }
-  return '—';
+  return formatHierarchyActorName(
+    item.retired_by?.name ??
+      actorNameFromMetadata(item.search_metadata, 'discarded_by'),
+  );
 }
 
 function getDiscardedAt(item: AdminModulesListItem): string {
   if (!item) return '—';
-  const dateStr = item.last_deactivated_at ?? item.created_at;
+  const dateStr = item.retired_at ?? item.created_at;
   return dateStr ? formatDisplayDateTime(dateStr) : '—';
 }
 
 export const DiscardedTabTable = ({
   modules,
-  // isLoading,
   onView,
   sortBy,
   sortDir,
@@ -125,11 +112,7 @@ export const DiscardedTabTable = ({
         key: 'previousStatus',
         header: 'Previous Status',
         sortable: false,
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {row.previousStatus}
-          </span>
-        ),
+        render: (row) => <ModuleStatusBadge status={row.previousStatus} />,
       },
       {
         key: 'discardedBy',
@@ -145,7 +128,7 @@ export const DiscardedTabTable = ({
         key: 'discardedAt',
         header: 'Discarded At',
         sortable: true,
-        sortKey: 'deactivated_at',
+        sortKey: 'updated_at',
         render: (row) => (
           <span className="text-xs text-spice-text-medium">
             {row.discardedAt}
@@ -161,9 +144,10 @@ export const DiscardedTabTable = ({
         render: (row) => (
           <Button
             variant="secondary"
-            className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+            className="h-8 gap-1.5 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
             onClick={() => onView(row.id)}
           >
+            <EyeIcon className="h-3.5 w-3.5" />
             View
           </Button>
         ),
