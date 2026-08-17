@@ -67,6 +67,10 @@ export interface FetchSourceDocumentsParams {
   /** Hierarchy user id(s); backend accepts repeated or comma-separated ints. */
   uploaded_by?: string | number | Array<string | number>;
   assigned?: boolean;
+  /** Assignee geography: integer hierarchy ids. */
+  division_id?: number;
+  district_id?: number;
+  upazila_id?: number;
   limit?: number;
   offset?: number;
   sort_by?: string;
@@ -258,6 +262,7 @@ export const adminSourceDocumentsApi = baseApi.injectEndpoints({
 
 export const {
   useFetchSourceDocumentsQuery,
+  useLazyFetchSourceDocumentsQuery,
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
 } = adminSourceDocumentsApi;

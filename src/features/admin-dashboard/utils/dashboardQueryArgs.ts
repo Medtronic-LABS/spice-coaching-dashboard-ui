@@ -31,6 +31,23 @@ export function buildDashboardGeoParams(
   return params;
 }
 
+export function buildTeamMemberQuestionsQueryArgs(
+  fromDate: string,
+  toDate: string,
+  geography: DashboardGeographyFilters,
+  userId: number,
+  extra: { limit?: number; offset?: number } = {},
+) {
+  return {
+    userId,
+    from_date: fromDate,
+    to_date: toDate,
+    limit: extra.limit ?? 20,
+    offset: extra.offset ?? 0,
+    ...buildDashboardGeoParams(geography),
+  };
+}
+
 export function buildTeamActivityQueryArgs(
   fromDate: string,
   toDate: string,
@@ -68,6 +85,20 @@ export function buildDocumentUsageDateGeoArgs(
   return {
     from: fromDate,
     to: toDate,
+    ...buildDashboardGeoParams(geography),
+  };
+}
+
+export function buildModuleDemandSummaryQueryArgs(
+  fromDate: string,
+  toDate: string,
+  geography: DashboardGeographyFilters,
+  extra: { top_limit?: number } = {},
+) {
+  return {
+    from_date: fromDate,
+    to_date: toDate,
+    ...(extra.top_limit !== undefined ? { top_limit: extra.top_limit } : {}),
     ...buildDashboardGeoParams(geography),
   };
 }

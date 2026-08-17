@@ -29,7 +29,6 @@ interface ExistingModuleInlineEvidenceProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
-  hideSkName?: boolean;
 }
 
 export const ExistingModuleInlineEvidence = ({
@@ -37,7 +36,6 @@ export const ExistingModuleInlineEvidence = ({
   fromDate,
   toDate,
   geography,
-  hideSkName = false,
 }: ExistingModuleInlineEvidenceProps) => {
   const { t } = useTranslation();
   const showTimestamp = canViewDemandMetadataTimestamps();
@@ -103,7 +101,6 @@ export const ExistingModuleInlineEvidence = ({
       emptyQueries={t('adminDashboard.existingModules.emptyQueries')}
       emptyRequests={t('adminDashboard.existingModules.emptyRequests')}
       showTimestamp={showTimestamp}
-      hideSkName={hideSkName}
     />
   );
 };
@@ -111,13 +108,11 @@ export const ExistingModuleInlineEvidence = ({
 interface SuggestedModuleInlineEvidenceProps {
   suggestionId: string;
   geography: DashboardGeographyFilters;
-  hideSkName?: boolean;
 }
 
 export const SuggestedModuleInlineEvidence = ({
   suggestionId,
   geography,
-  hideSkName = false,
 }: SuggestedModuleInlineEvidenceProps) => {
   const { t } = useTranslation();
   const showTimestamp = canViewDemandMetadataTimestamps();
@@ -166,7 +161,6 @@ export const SuggestedModuleInlineEvidence = ({
       emptyQueries={t('adminDashboard.suggestedModules.emptyQueries')}
       emptyRequests={t('adminDashboard.suggestedModules.emptyRequests')}
       showTimestamp={showTimestamp}
-      hideSkName={hideSkName}
       reasonLabel={reasonLabel}
     />
   );

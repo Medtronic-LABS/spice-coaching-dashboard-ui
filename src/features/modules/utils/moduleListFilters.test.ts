@@ -93,6 +93,11 @@ describe('moduleListFilters', () => {
     expect(dateRangeValidationMessage('2026-04-30', '2026-04-01')).toBe(
       'From date must be on or before to date.',
     );
+    expect(
+      dateRangeValidationMessage('2026-04-01', '2026-04-30', {
+        today: '2026-04-15',
+      }),
+    ).toBe('To date cannot be in the future.');
   });
 
   it('ignores hidden date types for badge / invalid checks on drafts', () => {
@@ -113,6 +118,12 @@ describe('moduleListFilters', () => {
       hasActiveModuleFilters({
         ...EMPTY_MODULE_LIBRARY_FILTERS,
         domain: 'rmnch',
+      }),
+    ).toBe(true);
+    expect(
+      hasActiveModuleFilters({
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        divisionId: '1',
       }),
     ).toBe(true);
   });
@@ -163,6 +174,38 @@ describe('moduleListFilters', () => {
     expect(parseFiltersFromSearchParams(params).sourceDocumentId).toBe(
       'doc-123',
     );
+  });
+
+  it('round-trips geography filters through URL params', () => {
+    const params = buildModuleListSearchParams(
+      'drafts',
+      {
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        divisionId: '1',
+        districtId: '10',
+        upazilaId: '2',
+      },
+      true,
+    );
+    expect(params.get('division_id')).toBe('1');
+    expect(params.get('district_id')).toBe('10');
+    expect(params.get('upazila_id')).toBe('2');
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      divisionId: '1',
+      districtId: '10',
+      upazilaId: '2',
+    });
+  });
+
+  it('ignores invalid geography ids in the URL', () => {
+    const params = new URLSearchParams(
+      'division_id=abc&district_id=0&upazila_id=12',
+    );
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      upazilaId: '12',
+    });
   });
 
   it('persists the all tab in URL params so it does not fall back to drafts', () => {

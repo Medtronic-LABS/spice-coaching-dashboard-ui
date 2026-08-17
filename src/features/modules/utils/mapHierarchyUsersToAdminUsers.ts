@@ -68,8 +68,12 @@ export function mapHierarchyRole(role: unknown): AdminUserRole | null {
   return null;
 }
 
-function parseUpazilaNames(record: Record<string, unknown>): string[] {
+function parseUpazilaRefs(record: Record<string, unknown>): {
+  names: string[];
+  ids: number[];
+} {
   const names: string[] = [];
+  const ids: number[] = [];
   const upazilas = record.upazilas;
 
   if (Array.isArray(upazilas)) {
@@ -79,9 +83,14 @@ function parseUpazilaNames(record: Record<string, unknown>): string[] {
         continue;
       }
       if (!item || typeof item !== 'object') continue;
-      const name = (item as Record<string, unknown>).name;
+      const row = item as Record<string, unknown>;
+      const name = row.name;
+      const id = row.id;
       if (typeof name === 'string' && name.trim()) {
         names.push(name.trim());
+      }
+      if (typeof id === 'number' && Number.isFinite(id)) {
+        ids.push(id);
       }
     }
   }
@@ -94,7 +103,7 @@ function parseUpazilaNames(record: Record<string, unknown>): string[] {
     }
   }
 
-  return names;
+  return { names, ids };
 }
 
 export function mapHierarchyUserToAdminUser(
@@ -142,7 +151,7 @@ export function mapHierarchyUserToAdminUser(
     districtFromLookup ??
     (resolvedDistrictId > 0 ? `District #${resolvedDistrictId}` : '');
 
-  const upazilas = parseUpazilaNames(record);
+  const { names: upazilas, ids: upazila_ids } = parseUpazilaRefs(record);
 
   if (!district) {
     // Assignment payloads sometimes omit district; still map the user so
@@ -157,6 +166,7 @@ export function mapHierarchyUserToAdminUser(
       district_id: resolvedDistrictId,
       upazila: upazilas[0] ?? null,
       upazilas,
+      upazila_ids,
       parent_id: typeof parentId === 'number' ? parentId : null,
     };
   }
@@ -171,6 +181,7 @@ export function mapHierarchyUserToAdminUser(
     district_id: resolvedDistrictId,
     upazila: upazilas[0] ?? null,
     upazilas,
+    upazila_ids,
     parent_id: typeof parentId === 'number' ? parentId : null,
   };
 }

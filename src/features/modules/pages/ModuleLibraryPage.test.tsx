@@ -116,9 +116,13 @@ describe('ModuleLibraryPage', () => {
       name: /^assign$/i,
     });
     expect(assignButtons.length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('link', { name: 'SPICE App — Visit Submission' }),
-    ).toBeInTheDocument();
+    const publishedTitle = screen.getByRole('link', {
+      name: 'SPICE App — Visit Submission',
+    });
+    expect(publishedTitle).toBeInTheDocument();
+    expect(publishedTitle.parentElement?.parentElement).not.toHaveAttribute(
+      'tabIndex',
+    );
     expect(
       screen.queryByRole('button', { name: /^review$/i }),
     ).not.toBeInTheDocument();
@@ -449,6 +453,60 @@ describe('ModuleLibraryPage', () => {
         within(table).queryByText('SPICE App — Visit Submission'),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('applies cascading geography filters from the drawer', async () => {
+    roleState.role = 'programManager';
+    const user = userEvent.setup();
+    renderModuleLibraryPage();
+
+    await openFiltersDrawer(user);
+    const divisionInput = await screen.findByLabelText(/^division$/i);
+    await user.click(divisionInput);
+    await user.click(await screen.findByRole('option', { name: 'Rangpur' }));
+
+    const districtInput = screen.getByLabelText(/^district$/i);
+    await user.click(districtInput);
+    expect(
+      await screen.findByRole('option', { name: 'Lalmonirhat' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Naogaon' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'Lalmonirhat' }));
+
+    const upazilaInput = screen.getByLabelText(/^upazila$/i);
+    await user.click(upazilaInput);
+    await user.click(
+      await screen.findByRole('option', { name: 'Lalmonirhat Sadar' }),
+    );
+
+    await user.click(divisionInput);
+    await user.click(await screen.findByRole('option', { name: 'Rajshahi' }));
+    expect(screen.getByLabelText(/^district$/i)).toHaveDisplayValue(
+      'All districts',
+    );
+    expect(screen.getByLabelText(/^upazila$/i)).toHaveDisplayValue(
+      'All upazilas',
+    );
+    await user.click(screen.getByLabelText(/^district$/i));
+    expect(
+      await screen.findByRole('option', { name: 'Naogaon' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Lalmonirhat' }),
+    ).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await applyFilters(user);
+
+    await openFiltersDrawer(user);
+    expect(screen.getByLabelText(/^division$/i)).toHaveDisplayValue('Rajshahi');
+    expect(screen.getByLabelText(/^district$/i)).toHaveDisplayValue(
+      'All districts',
+    );
+    expect(screen.getByLabelText(/^upazila$/i)).toHaveDisplayValue(
+      'All upazilas',
+    );
   });
 
   it('shows filtered empty state when no modules match', async () => {

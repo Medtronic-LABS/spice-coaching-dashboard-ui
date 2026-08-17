@@ -20,6 +20,7 @@ const sampleUsers: AdminUser[] = [
     district_id: 10,
     upazila: 'Hatibandha',
     upazilas: ['Hatibandha'],
+    upazila_ids: [2],
     parent_id: null,
   },
   {
@@ -32,6 +33,7 @@ const sampleUsers: AdminUser[] = [
     district_id: 10,
     upazila: 'Hatibandha',
     upazilas: ['Hatibandha'],
+    upazila_ids: [2],
     parent_id: 20,
   },
   {
@@ -44,6 +46,7 @@ const sampleUsers: AdminUser[] = [
     district_id: 10,
     upazila: 'Hatibandha',
     upazilas: ['Hatibandha'],
+    upazila_ids: [2],
     parent_id: 20,
   },
 ];

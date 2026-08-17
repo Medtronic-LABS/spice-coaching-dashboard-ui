@@ -23,15 +23,15 @@ async function createAssignmentStore() {
 }
 
 describe('buildAssignmentUsersMutationBody', () => {
-  it('includes expand_po_assignees only when provided', () => {
+  it('includes expand_po_assignees and geo id fields only when provided', () => {
     expect(
       buildAssignmentUsersMutationBody({
         user_ids: [1],
-        upazilas: ['Hatibandha'],
+        upazila_ids: [2],
       }),
     ).toEqual({
       user_ids: [1],
-      upazilas: ['Hatibandha'],
+      upazila_ids: [2],
     });
 
     expect(
@@ -41,7 +41,6 @@ describe('buildAssignmentUsersMutationBody', () => {
       }),
     ).toEqual({
       user_ids: [1],
-      upazilas: undefined,
       expand_po_assignees: true,
     });
 
@@ -52,7 +51,6 @@ describe('buildAssignmentUsersMutationBody', () => {
       }),
     ).toEqual({
       user_ids: [1],
-      upazilas: undefined,
       expand_po_assignees: false,
     });
   });
@@ -84,7 +82,6 @@ describe('adminAssignmentApi assignment requests', () => {
     expect(request.method).toBe('PUT');
     expect(request.body).toEqual({
       user_ids: [20],
-      upazilas: undefined,
       expand_po_assignees: true,
     });
   });
@@ -107,9 +104,29 @@ describe('adminAssignmentApi assignment requests', () => {
     const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
     expect(request.body).toEqual({
       user_ids: [21],
-      upazilas: undefined,
     });
     expect(request.body).not.toHaveProperty('expand_po_assignees');
+  });
+
+  it('sends upazila_ids on geographical replace', async () => {
+    mockBaseQuerySpy.mockResolvedValue({
+      data: { added_count: 2, removed_count: 0, assignment_ids: ['a1', 'a2'] },
+    });
+    const { adminAssignmentApi, store } = await createAssignmentStore();
+
+    await store
+      .dispatch(
+        adminAssignmentApi.endpoints.replaceModuleAssignedUsers.initiate({
+          moduleId: 'mod-geo',
+          upazila_ids: [1, 2],
+        }),
+      )
+      .unwrap();
+
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(request.body).toEqual({
+      upazila_ids: [1, 2],
+    });
   });
 
   it('sends q on hierarchy users page requests when provided', async () => {

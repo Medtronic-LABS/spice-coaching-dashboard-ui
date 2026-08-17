@@ -52,6 +52,7 @@ describe('mapHierarchyUserToAdminUser', () => {
       district_id: 10,
       upazila: 'Hatibandha',
       upazilas: ['Hatibandha', 'Lalmonirhat Sadar'],
+      upazila_ids: [1, 2],
       parent_id: 20,
     });
   });
@@ -95,6 +96,7 @@ describe('mapHierarchyUserToAdminUser', () => {
     expect(mapped?.district).toBe('District #99');
     expect(mapped?.upazila).toBeNull();
     expect(mapped?.upazilas).toEqual([]);
+    expect(mapped?.upazila_ids).toEqual([]);
   });
 
   it('prefers wire district name over lookup', () => {

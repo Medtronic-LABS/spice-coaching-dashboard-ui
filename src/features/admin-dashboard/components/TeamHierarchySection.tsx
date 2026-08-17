@@ -1,13 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import {
-  Button,
-  EmptyState,
-  SearchInput,
-  Select,
-  StatusBadge,
-} from '@/components/ui';
+import { EmptyState, SearchInput, Select, StatusBadge } from '@/components/ui';
 import { useFetchTeamActivityQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import {
   DashboardHierarchySkeleton,
@@ -15,10 +9,10 @@ import {
 } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
+import { SkDetailDrawer } from '@/features/admin-dashboard/components/SkDetailDrawer';
 import type {
   DashboardGeographyFilters,
   DashboardStatusFilter,
-  HierarchyFocusSelection,
   TeamActivityMember,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -39,9 +33,8 @@ import {
   sortTeamMembers,
   type HierarchyRoleTab,
 } from '@/features/admin-dashboard/utils/teamActivity';
+import { getAuthSession } from '@/features/auth/services/authSession';
 import { cn } from '@/utils';
-
-export type { HierarchyFocusSelection };
 
 interface TeamHierarchySectionProps {
   fromDate: string;
@@ -50,8 +43,6 @@ interface TeamHierarchySectionProps {
   status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   onSortChange: (sort: TeamHierarchySortKey) => void;
-  focusUserId?: number | null;
-  onFocusChange?: (focus: HierarchyFocusSelection | null) => void;
 }
 
 const ROLE_TABS: Array<{ value: HierarchyRoleTab; labelKey: string }> = [
@@ -59,6 +50,25 @@ const ROLE_TABS: Array<{ value: HierarchyRoleTab; labelKey: string }> = [
   { value: 'po', labelKey: 'adminDashboard.hierarchy.tabs.po' },
   { value: 'sk', labelKey: 'adminDashboard.hierarchy.tabs.sk' },
 ];
+
+/** True when the logged-in Spice role is an Area Manager. */
+function isLoggedInAreaManager(): boolean {
+  return hierarchyRoleKind(getAuthSession()?.role ?? '') === 'am';
+}
+
+function visibleHierarchyRoleTabs(): Array<{
+  value: HierarchyRoleTab;
+  labelKey: string;
+}> {
+  if (isLoggedInAreaManager()) {
+    return ROLE_TABS.filter((tab) => tab.value !== 'am');
+  }
+  return ROLE_TABS;
+}
+
+function defaultHierarchyRoleTab(): HierarchyRoleTab {
+  return isLoggedInAreaManager() ? 'po' : 'am';
+}
 
 const SORT_OPTIONS: Array<{ value: TeamHierarchySortKey }> = [
   { value: 'default' },
@@ -140,8 +150,7 @@ interface HierarchyMemberRowProps {
   status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   depth: number;
-  focusUserId: number | null;
-  onFocusChange?: (focus: HierarchyFocusSelection | null) => void;
+  onSelectSk: (member: TeamActivityMember) => void;
 }
 
 const HierarchyMemberRow = ({
@@ -152,8 +161,7 @@ const HierarchyMemberRow = ({
   status,
   sortKey,
   depth,
-  focusUserId,
-  onFocusChange,
+  onSelectSk,
 }: HierarchyMemberRowProps) => {
   const { t } = useTranslation();
   const { roleLabel, childrenActionLabel } = useHierarchyLabels();
@@ -163,16 +171,6 @@ const HierarchyMemberRow = ({
   const canExpand = member.can_drill_down;
   const isSkRow =
     !member.can_drill_down || hierarchyRoleKind(member.role) === 'sk';
-  const isFocused = focusUserId === member.user_id;
-
-  const handleFocusToggle = () => {
-    if (!onFocusChange) return;
-    if (isFocused) {
-      onFocusChange(null);
-      return;
-    }
-    onFocusChange({ userId: member.user_id, userName: member.name });
-  };
 
   const descendantsQuery = useFetchTeamActivityQuery(
     buildTeamActivityQueryArgs(fromDate, toDate, geography, {
@@ -230,7 +228,6 @@ const HierarchyMemberRow = ({
         </div>
         <div className="truncate text-xs text-spice-text-muted">
           {roleLabel(member.role)}
-          {isFocused ? ` · ${t('adminDashboard.hierarchy.focusActive')}` : null}
         </div>
       </div>
     </>
@@ -241,26 +238,17 @@ const HierarchyMemberRow = ({
       className={cn(
         'border-b border-spice-border/70 last:border-b-0',
         depth > 0 && 'bg-spice-bg-tint/30',
-        isFocused && 'bg-spice-brand-primary/5',
       )}
     >
       <div className="overflow-x-auto">
         <div className="flex min-w-[48rem] items-center gap-3 px-4 py-3">
-          {onFocusChange ? (
+          {isSkRow ? (
             <button
               type="button"
-              className={cn(
-                'flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary',
-                isFocused && 'ring-1 ring-spice-brand-primary/40',
-              )}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary"
               style={{ paddingLeft: `${depth * 24}px` }}
-              onClick={handleFocusToggle}
-              aria-pressed={isFocused}
-              title={
-                isFocused
-                  ? t('adminDashboard.hierarchy.clearFocus')
-                  : t('adminDashboard.hierarchy.focusForAnalytics')
-              }
+              onClick={() => onSelectSk(member)}
+              title={t('adminDashboard.hierarchy.openSkDetail')}
             >
               {personBlock}
             </button>
@@ -309,7 +297,7 @@ const HierarchyMemberRow = ({
                   label={peopleLabel}
                 />
                 <MetricCell
-                  className="w-[5.5rem]"
+                  className="w-[9.5rem]"
                   value={inactiveValue}
                   label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
                 />
@@ -381,8 +369,7 @@ const HierarchyMemberRow = ({
                 status={status}
                 sortKey={sortKey}
                 depth={depth + 1}
-                focusUserId={focusUserId}
-                onFocusChange={onFocusChange}
+                onSelectSk={onSelectSk}
               />
             ))
           )}
@@ -399,15 +386,18 @@ export const TeamHierarchySection = ({
   status,
   sortKey,
   onSortChange,
-  focusUserId = null,
-  onFocusChange,
 }: TeamHierarchySectionProps) => {
   const { t } = useTranslation();
   const { roleLabel } = useHierarchyLabels();
-  const [roleTab, setRoleTab] = useState<HierarchyRoleTab>('am');
+  const roleTabs = useMemo(() => visibleHierarchyRoleTabs(), []);
+  const viewerIsAreaManager = isLoggedInAreaManager();
+  const [roleTab, setRoleTab] = useState<HierarchyRoleTab>(
+    defaultHierarchyRoleTab,
+  );
   const [search, setSearch] = useState('');
+  const [selectedSk, setSelectedSk] = useState<TeamActivityMember | null>(null);
 
-  const depth = hierarchyTabDepth(roleTab);
+  const depth = hierarchyTabDepth(roleTab, { viewerIsAreaManager });
   const query = useFetchTeamActivityQuery(
     buildTeamActivityQueryArgs(fromDate, toDate, geography, {
       limit: 100,
@@ -450,97 +440,96 @@ export const TeamHierarchySection = ({
         : t('adminDashboard.hierarchy.searchPlaceholderSk');
 
   return (
-    <DashboardWidgetShell
-      title={t(`adminDashboard.hierarchy.tabs.${roleTab}`)}
-      description={t(`adminDashboard.hierarchy.description.${roleTab}`)}
-      flush
-      size="lg"
-      onRefresh={() => void refetch()}
-      isRefreshing={isFetching}
-      actions={
-        <>
-          {focusUserId != null && onFocusChange ? (
-            <Button
-              variant="secondary"
-              className="h-10 text-xs"
-              onClick={() => onFocusChange(null)}
-            >
-              {t('adminDashboard.hierarchy.clearFocus')}
-            </Button>
-          ) : null}
-          <Select
-            options={sortOptions}
-            value={sortKey}
-            onChange={(value) => onSortChange(value as TeamHierarchySortKey)}
-            className="h-10 w-auto min-w-[10rem] rounded-lg border-spice-border bg-spice-bg-surface text-sm"
-          />
-          <div className="w-52 shrink-0 [&>div]:min-w-0 [&>div]:sm:min-w-0">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder={searchPlaceholder}
-              className="h-10 rounded-lg"
+    <>
+      <DashboardWidgetShell
+        title={t(`adminDashboard.hierarchy.tabs.${roleTab}`)}
+        description={t(`adminDashboard.hierarchy.description.${roleTab}`)}
+        flush
+        size="lg"
+        onRefresh={() => void refetch()}
+        isRefreshing={isFetching}
+        actions={
+          <>
+            <Select
+              options={sortOptions}
+              value={sortKey}
+              onChange={(value) => onSortChange(value as TeamHierarchySortKey)}
+              className="h-10 w-auto min-w-[10rem] rounded-lg border-spice-border bg-spice-bg-surface text-sm"
+            />
+            <div className="w-52 shrink-0 [&>div]:min-w-0 [&>div]:sm:min-w-0">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder={searchPlaceholder}
+                className="h-10 rounded-lg"
+              />
+            </div>
+          </>
+        }
+      >
+        <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4 pt-3">
+          <div className="flex gap-6" role="tablist">
+            {roleTabs.map((tab) => {
+              const isActive = roleTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={cn(
+                    '-mb-px border-b-2 pb-2.5 text-sm font-medium transition',
+                    isActive
+                      ? 'border-spice-palette-purple text-spice-palette-purple'
+                      : 'border-transparent text-spice-text-muted hover:text-spice-text-primary',
+                  )}
+                  onClick={() => setRoleTab(tab.value)}
+                >
+                  {t(tab.labelKey)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {showLoading ? (
+          <DashboardHierarchySkeleton rows={5} />
+        ) : showError ? (
+          <div className="px-4 py-4">
+            <DashboardWidgetErrorState onRetry={() => void refetch()} />
+          </div>
+        ) : members.length === 0 ? (
+          <div className="px-4 py-4">
+            <EmptyState
+              title={t('adminDashboard.hierarchy.emptyTitle')}
+              description={t('adminDashboard.hierarchy.emptyDescription')}
             />
           </div>
-        </>
-      }
-    >
-      <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4 pt-3">
-        <div className="flex gap-6" role="tablist">
-          {ROLE_TABS.map((tab) => {
-            const isActive = roleTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={cn(
-                  '-mb-px border-b-2 pb-2.5 text-sm font-medium transition',
-                  isActive
-                    ? 'border-spice-palette-purple text-spice-palette-purple'
-                    : 'border-transparent text-spice-text-muted hover:text-spice-text-primary',
-                )}
-                onClick={() => setRoleTab(tab.value)}
-              >
-                {t(tab.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {showLoading ? (
-        <DashboardHierarchySkeleton rows={5} />
-      ) : showError ? (
-        <div className="px-4 py-4">
-          <DashboardWidgetErrorState onRetry={() => void refetch()} />
-        </div>
-      ) : members.length === 0 ? (
-        <div className="px-4 py-4">
-          <EmptyState
-            title={t('adminDashboard.hierarchy.emptyTitle')}
-            description={t('adminDashboard.hierarchy.emptyDescription')}
-          />
-        </div>
-      ) : (
-        <div>
-          {members.map((member) => (
-            <HierarchyMemberRow
-              key={member.user_id}
-              member={member}
-              fromDate={fromDate}
-              toDate={toDate}
-              geography={geography}
-              status={status}
-              sortKey={sortKey}
-              depth={0}
-              focusUserId={focusUserId}
-              onFocusChange={onFocusChange}
-            />
-          ))}
-        </div>
-      )}
-    </DashboardWidgetShell>
+        ) : (
+          <div>
+            {members.map((member) => (
+              <HierarchyMemberRow
+                key={member.user_id}
+                member={member}
+                fromDate={fromDate}
+                toDate={toDate}
+                geography={geography}
+                status={status}
+                sortKey={sortKey}
+                depth={0}
+                onSelectSk={setSelectedSk}
+              />
+            ))}
+          </div>
+        )}
+      </DashboardWidgetShell>
+      <SkDetailDrawer
+        member={selectedSk}
+        fromDate={fromDate}
+        toDate={toDate}
+        geography={geography}
+        onClose={() => setSelectedSk(null)}
+      />
+    </>
   );
 };

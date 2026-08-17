@@ -1,4 +1,5 @@
 import { type InputHTMLAttributes } from 'react';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 export interface LimitedTextInputProps extends Omit<
@@ -38,7 +39,8 @@ export const LimitedTextInput = ({
         onChange={(event) => onChange(event.target.value)}
         aria-describedby={showCounter && id ? `${id}-counter` : undefined}
         className={cn(
-          'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
+          'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple disabled:cursor-not-allowed disabled:opacity-60',
+          SPICE_INPUT_FOCUS_CLASSNAME,
           inputClassName,
         )}
       />

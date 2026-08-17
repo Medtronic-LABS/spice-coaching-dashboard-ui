@@ -112,6 +112,18 @@ export interface TeamMemberQuestionItem {
   last_asked_at: string;
 }
 
+export interface TeamMemberQuestionsResponse {
+  user_id: number;
+  from_date: string;
+  to_date: string;
+  questions: TeamMemberQuestionItem[];
+  total_questions: number;
+  total_pages: number;
+  limit: number;
+  offset: number;
+  server_time_utc: string;
+}
+
 export interface DigitalHelpModuleUsageItem {
   module_id: string;
   module_family_id: string | null;
@@ -280,10 +292,11 @@ export interface DocumentUsageResponse {
   events_offset: number;
 }
 
-/** Hierarchy person selected to scope document-usage analytics. */
-export interface HierarchyFocusSelection {
-  userId: number;
-  userName: string;
+/** GET /dashboard/module-demand-summary */
+export interface ModuleDemandSummaryResponse {
+  from_date: string;
+  to_date: string;
+  summary: string;
 }
 
 export type ModuleDemandInteractionType =

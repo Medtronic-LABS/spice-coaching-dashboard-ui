@@ -11,6 +11,7 @@ describe('dashboardApi', () => {
       buildDashboardGeoParams({ division: 'Dhaka', district: '', upazila: '' }),
     ).toEqual({ division: 'Dhaka' });
     expect(dashboardApi.endpoints.fetchDigitalHelpModules).toBeDefined();
+    expect(dashboardApi.endpoints.fetchTeamMemberQuestions).toBeDefined();
     expect(dashboardApi.endpoints.fetchModuleCreationSuggestions).toBeDefined();
   });
 });

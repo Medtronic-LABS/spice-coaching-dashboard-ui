@@ -15,6 +15,7 @@ interface VideoUploadFiltersProps {
   onToggleStatus: (status: VideoUploadStatusOption['value']) => void;
   onClearAll: () => void;
   onApply: () => void;
+  geographySection: SettingsFilterSection;
 }
 
 export const VideoUploadFilters = ({
@@ -23,6 +24,7 @@ export const VideoUploadFilters = ({
   onToggleStatus,
   onClearAll,
   onApply,
+  geographySection,
 }: VideoUploadFiltersProps) => {
   const uploadedValidation = dateRangeValidationMessage(
     filters.uploadedAtFrom,
@@ -50,6 +52,7 @@ export const VideoUploadFilters = ({
           },
         ],
       },
+      geographySection,
       {
         id: 'video-upload-date-ranges',
         label: 'Date ranges',
@@ -78,7 +81,7 @@ export const VideoUploadFilters = ({
         ],
       },
     ],
-    [filters, onChange, onToggleStatus, uploadedValidation],
+    [filters, geographySection, onChange, onToggleStatus, uploadedValidation],
   );
 
   return (

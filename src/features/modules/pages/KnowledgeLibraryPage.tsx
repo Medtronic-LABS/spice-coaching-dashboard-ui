@@ -10,7 +10,11 @@ import {
   type TabItem,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
+import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { cn } from '@/utils';
 import {
   useUploadKnowledgeDocumentMutation,
   type KnowledgeUploadPayload,
@@ -512,11 +516,14 @@ export const KnowledgeLibraryPage = () => {
                         disabled={disableInputs}
                         onChange={(e) => setOriginalTitle(e.target.value)}
                         placeholder="e.g. HTN Referral Guidelines"
-                        className="h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20"
+                        className={cn(
+                          'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                          SPICE_INPUT_FOCUS_CLASSNAME,
+                        )}
                       />
                     </div>
 
-                    <div className="w-full shrink-0 space-y-2 sm:w-36">
+                    <div className="w-full shrink-0 space-y-2 sm:w-44">
                       <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
                         Thumbnail
                         {isOriginalThumbRendering &&
@@ -545,13 +552,14 @@ export const KnowledgeLibraryPage = () => {
                         }}
                         disabled={disableInputs}
                         clearable={Boolean(originalThumbnailValue)}
-                        accept="image/*"
+                        accept={IMAGE_FILE_INPUT_ACCEPT}
                         label="Optional — leave blank for none"
                         labelWhenSelected={
                           hasCustomOriginalThumbnail
                             ? 'Change custom'
                             : 'Replace with custom'
                         }
+                        hint={ADMIN_IMAGE_ACCEPT_SIZE_HINT}
                         previewAlt="Knowledge thumbnail"
                         frameClassName="aspect-square h-auto w-full"
                         previewObjectFit="contain"

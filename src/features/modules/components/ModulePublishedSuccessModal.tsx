@@ -3,6 +3,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
+import { TruncatedText } from '@/components/ui/TruncatedText';
 
 export interface ModulePublishedSuccessSummary {
   title: string;
@@ -67,11 +69,22 @@ export const ModulePublishedSuccessModal = ({
         variant="elevated"
         className="w-full max-w-xl space-y-4 border-spice-border p-4 shadow-lg sm:space-y-5 sm:p-6"
       >
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-semantic-successBg text-2xl text-spice-semantic-success">
-          ✓
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-palette-purpleLt text-spice-palette-purple ring-1 ring-spice-palette-purple/15">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-7 w-7"
+            aria-hidden
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
         </div>
         <div className="space-y-2 text-center">
-          <Badge className="bg-spice-semantic-successBg text-spice-semantic-success">
+          <Badge className="bg-spice-palette-purpleLt text-spice-palette-purple ring-1 ring-spice-palette-purple/15">
             PUBLISHED
           </Badge>
           <h2
@@ -81,8 +94,8 @@ export const ModulePublishedSuccessModal = ({
             Module is Live
           </h2>
           <p className="text-sm text-spice-text-muted">
-            {summary.title} has been published to the Module Library and is
-            ready to use.
+            <QuotedDisplayLabel text={summary.title} /> has been published to
+            the Module Library and is ready to use.
           </p>
           <p className="text-xs text-spice-text-medium">
             Redirecting to module library in {secondsLeft}s…
@@ -95,8 +108,11 @@ export const ModulePublishedSuccessModal = ({
           </div>
           <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
             <div className="text-xs text-spice-text-muted">Module</div>
-            <div className="font-semibold text-spice-text-primary">
-              {summary.title}
+            <div className="min-w-0 font-semibold text-spice-text-primary">
+              <TruncatedText
+                text={summary.title}
+                className="font-semibold text-spice-text-primary"
+              />
             </div>
             <div className="text-xs text-spice-text-muted">
               {summary.topic} · Published just now
@@ -132,8 +148,11 @@ export const ModulePublishedSuccessModal = ({
                 <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
                   SOURCE
                 </div>
-                <div className="truncate font-semibold text-spice-text-primary">
-                  {summary.sourceFileName}
+                <div className="min-w-0 font-semibold text-spice-text-primary">
+                  <TruncatedText
+                    text={summary.sourceFileName}
+                    className="font-semibold text-spice-text-primary"
+                  />
                 </div>
               </div>
             ) : null}

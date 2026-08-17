@@ -14,6 +14,7 @@ import {
   isDurationDaysInput,
   parseConfigDurationDays,
 } from '@/features/admin-configs/utils/configDuration';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 
@@ -22,8 +23,10 @@ type FeedbackState =
   | { tone: 'critical'; message: string }
   | null;
 
-const inputClassName =
-  'h-11 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm text-spice-text-primary focus:border-spice-brand-primary focus:outline-none focus:ring-2 focus:ring-spice-brand-primary/20';
+const inputClassName = cn(
+  'h-11 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+  SPICE_INPUT_FOCUS_CLASSNAME,
+);
 
 function handleDurationChange(
   value: string,

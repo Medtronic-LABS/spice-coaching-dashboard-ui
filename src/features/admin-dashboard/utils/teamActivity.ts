@@ -79,7 +79,17 @@ export function filterMembersBySearch(
   });
 }
 
-export function hierarchyTabDepth(tab: HierarchyRoleTab): number | undefined {
+export function hierarchyTabDepth(
+  tab: HierarchyRoleTab,
+  options?: { viewerIsAreaManager?: boolean },
+): number | undefined {
+  // Depth is relative to the logged-in user's position in the tree.
+  // Admin root: AM=undefined, PO=1, SK=2
+  // Area Manager root: PO=undefined (direct reports), SK=1
+  if (options?.viewerIsAreaManager) {
+    if (tab === 'sk') return 1;
+    return undefined;
+  }
   if (tab === 'po') return 1;
   if (tab === 'sk') return 2;
   return undefined;

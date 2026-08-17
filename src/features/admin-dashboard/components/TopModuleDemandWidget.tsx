@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
-import { Button, EmptyState } from '@/components/ui';
+import { Button, EmptyState, TruncatedText } from '@/components/ui';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
@@ -61,8 +61,8 @@ export const TopModuleDemandWidget = ({
   );
 
   const gridClass = showActions
-    ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_7.5rem_6.75rem]'
-    : 'grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_7.5rem]';
+    ? 'grid-cols-[minmax(0,1fr)_5rem_6rem_5.25rem]'
+    : 'grid-cols-[minmax(0,1fr)_5rem_6rem]';
 
   return (
     <DashboardWidgetShell
@@ -117,7 +117,6 @@ export const TopModuleDemandWidget = ({
                       type="button"
                       className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
                       aria-expanded={isExpanded}
-                      title={row.title}
                       onClick={() =>
                         setExpandedRowId((current) =>
                           current === row.id ? null : row.id,
@@ -128,8 +127,12 @@ export const TopModuleDemandWidget = ({
                         expanded={isExpanded}
                         className="h-3.5 w-3.5 shrink-0 text-spice-text-muted"
                       />
-                      <span className="min-w-0 flex-1 truncate">
-                        {row.title}
+                      <span className="min-w-0 flex-1">
+                        <TruncatedText
+                          text={row.title}
+                          maxChars={80}
+                          className="font-medium"
+                        />
                       </span>
                     </button>
                     <div className="hidden min-w-0 sm:block">
@@ -147,7 +150,7 @@ export const TopModuleDemandWidget = ({
                         {row.actionLabel && row.onAction ? (
                           <Button
                             variant="secondary"
-                            className="h-7 w-full px-1.5 text-[10px] leading-none"
+                            className="h-7 w-full px-0.5 py-0 text-[10px] leading-none"
                             onClick={(event) => {
                               event.stopPropagation();
                               row.onAction?.();

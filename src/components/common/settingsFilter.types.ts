@@ -84,6 +84,8 @@ export interface SettingsFilterSection {
   id: string;
   label: string;
   fields: SettingsFilterField[];
+  /** Extra classes for the field group under the section label. */
+  fieldsClassName?: string;
   /** Field layout. `2` shows two fields per row from `sm` up; stacks on smaller widths. Default `1`. */
   columns?: 1 | 2;
 }

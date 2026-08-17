@@ -95,6 +95,7 @@ function CardImageNodeView({
   );
 
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (!editable) return;
     if (displayDimensions.width && displayDimensions.height) return;
 
     const img = event.currentTarget;

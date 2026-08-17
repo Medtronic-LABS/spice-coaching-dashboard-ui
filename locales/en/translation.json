@@ -170,10 +170,10 @@
       "retry": "Try again"
     },
     "kpis": {
-      "active": "SKs active",
-      "activeTooltip": "SKs with at least one activity in the selected period",
-      "inactive": "Inactive SKs",
-      "inactiveTooltip": "SKs with no activity in the selected period",
+      "active": "Responsive SKs",
+      "activeTooltip": "SKs who were responsive at least once in the selected period",
+      "inactive": "Non-Responsive SKs",
+      "inactiveTooltip": "SKs who were non-responsive in the selected period",
       "finishedModules": "SKs completed a module",
       "finishedModulesTooltip": "SKs who completed at least one module in the selected period",
       "chatbotEngaged": "Chatbot engaged",
@@ -189,7 +189,6 @@
       "panelLabel": "Dashboard filters",
       "statusLabel": "Team view",
       "durationLabel": "Duration:",
-      "scopeNote": "Team view filters the hierarchy list on this page only (not a server metric). Division, district, and upazila refetch all dashboard widgets. Duration updates every widget.",
       "clearCustomRange": "Clear custom date range",
       "invalidRangeTitle": "Invalid date range",
       "invalidRangeDescription": "Choose a valid custom From/To range, or clear the custom range to continue.",
@@ -207,7 +206,7 @@
         "at_risk_first": "At risk first",
         "lowest_completion": "Lowest module completion",
         "lowest_chatbot": "Lowest chatbot engagement",
-        "most_inactive": "Most inactive SKs",
+        "most_inactive": "Most Non-Responsive SKs",
         "name": "Name (A–Z)"
       },
       "status": {
@@ -235,9 +234,7 @@
       "searchPlaceholderSk": "Search SKs...",
       "emptyTitle": "No team members",
       "emptyDescription": "No hierarchy rows match the current filters.",
-      "focusForAnalytics": "Focus document analytics on this person",
-      "clearFocus": "Clear focus",
-      "focusActive": "Focused",
+      "openSkDetail": "View SK detail",
       "roleLabels": {
         "am": "Area Manager",
         "po": "Program Officer",
@@ -260,12 +257,12 @@
       },
       "metrics": {
         "members": "{{count}} members",
-        "inactive": "{{count}} Inactive",
+        "inactive": "{{count}} Non-Responsive",
         "modules": "{{completed}}/{{total}} Modules",
         "chatbot": "{{count}} chatbot",
         "sksLabel": "SKs",
         "membersLabel": "members",
-        "inactiveLabel": "Inactive",
+        "inactiveLabel": "Non-Responsive",
         "modulesLabel": "Modules",
         "queriesLabel": "Queries"
       },
@@ -277,9 +274,31 @@
         "lastActive": "Last active"
       }
     },
+    "skDrawer": {
+      "title": "My SK",
+      "description": "Activity and assigned modules for {{name}}",
+      "close": "Close SK detail",
+      "modulesLabel": "Modules",
+      "queriesLabel": "Queries",
+      "modulesHeading": "Modules",
+      "activityHeading": "Activity",
+      "topQueriesHeading": "Top Queries",
+      "pending": "Pending",
+      "completed": "Completed",
+      "lastChatbotUse": "Last chatbot use",
+      "lastModule": "Last module",
+      "never": "Never",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago",
+      "emptyModules": "No assigned modules in this range.",
+      "emptyQueriesTitle": "No queries",
+      "emptyQueriesDescription": "This SK has no chatbot questions in the selected date range."
+    },
     "trainingModules": {
       "title": "Training Modules",
-      "description": "Published modules with SK completion progress in the current view.",
+      "description": "Published modules with SK completion progress.",
       "emptyTitle": "No published modules",
       "emptyDescription": "No modules were published in this date range.",
       "columns": {
@@ -334,6 +353,9 @@
     },
     "moduleDemand": {
       "sectionTitle": "Module search demand",
+      "summaryTitle": "Module demand summary",
+      "summaryDescription": "Narrative overview of digital-help usage and module creation demand for the selected filters.",
+      "summaryEmptyFallback": "No module usage or creation demand was recorded for your team between {{fromDate}} to {{toDate}}.",
       "columns": {
         "title": "Module Title",
         "searchCount": "Search Count",
@@ -345,7 +367,7 @@
       "requestFallback": "Training access requested",
       "detailDescription": "Queries and requests associated with this module or topic.",
       "occurrences": "{{count}} occurrences",
-      "usersHeading": "Users who raised this question",
+      "usersHeading": "Users who asked this question",
       "userCount": "{{count}} users",
       "interaction": {
         "chatbotServed": "Served by chatbot",
@@ -366,6 +388,7 @@
         "create": "Create Module"
       },
       "seeMore": "See more",
+      "seeLess": "See less",
       "loadingMore": "Loading…",
       "expand": "Expand widget",
       "collapse": "Collapse widget",
@@ -389,7 +412,6 @@
       "opensTitle": "Open events",
       "unknownUser": "Unknown user",
       "openDetail": "Drill down into opens for {{title}}",
-      "clearFocus": "Clear focus: {{name}}",
       "viewAll": "View all",
       "viewAllDocuments": "View all documents",
       "backToOverview": "Back to overview",
@@ -436,7 +458,7 @@
     "onTime": "On time",
     "dueSoon": "Due soon",
     "delayed": "Delayed",
-    "inactive": "Inactive",
+    "inactive": "Non-Responsive",
     "inProgress": "In progress",
     "unknown": "Unknown"
   },

@@ -14,13 +14,13 @@ export const TABLE_CELL_LABEL_MAX_LENGTH = 50;
 
 /** Fixed-width table column classes for title-like cells. */
 export const TABLE_TITLE_COLUMN_CLASS =
-  'w-[20rem] min-w-[20rem] max-w-[20rem] whitespace-normal';
+  'w-[20rem] min-w-[20rem] max-w-[20rem] overflow-hidden break-all';
 
 export const TABLE_MILESTONE_NAME_COLUMN_CLASS =
-  'w-[18rem] min-w-[18rem] max-w-[18rem] whitespace-normal';
+  'w-[18rem] min-w-[18rem] max-w-[18rem] overflow-hidden break-all';
 
 export const TABLE_MODULE_LIST_COLUMN_CLASS =
-  'w-[16rem] min-w-[16rem] max-w-[16rem] whitespace-normal';
+  'w-[16rem] min-w-[16rem] max-w-[16rem] overflow-hidden break-all';
 
 export function fieldLimitExceededMessage(
   label: string,

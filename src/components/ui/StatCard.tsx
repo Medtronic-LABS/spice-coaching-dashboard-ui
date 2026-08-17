@@ -11,7 +11,7 @@ import { cn } from '@/utils';
  *
  * Usage:
  * <StatCard label="Completion Rate" value="68%" change={5} />
- * <StatCard tone="pink" label="SKs active" value={127} outOf={155} tooltip="..." />
+ * <StatCard tone="pink" label="Responsive SKs" value={127} outOf={155} tooltip="..." />
  */
 export type StatCardTone =
   | 'pink'

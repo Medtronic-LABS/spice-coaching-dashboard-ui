@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { paths } from '@/constants/routes';
@@ -181,25 +181,42 @@ describe('DocumentSelectionPanel', () => {
     });
   });
 
-  it('toggles selection and keeps selected count', async () => {
+  it('toggles selection, locks available checkboxes, and shows selected table only when needed', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ControlledPanel />);
+
+    expect(screen.getByText(/available documents/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/selected for ingestion/i),
+    ).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     );
     expect(screen.getByTestId('selected-count')).toHaveTextContent('1');
     expect(
-      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
-    ).toBeChecked();
-    expect(
-      screen.queryByText('Selected for ingestion'),
-    ).not.toBeInTheDocument();
+      screen.getByText(/selected for ingestion \(1\)/i),
+    ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
-    );
+    // Available list keeps the row, but the checkbox is locked.
+    const availableCheckbox = screen.getByRole('checkbox', {
+      name: /hypertension guide selected/i,
+    });
+    expect(availableCheckbox).toBeChecked();
+    expect(availableCheckbox).toBeDisabled();
+
+    // Unselect from the selected table.
+    const selectedCheckbox = screen.getByRole('checkbox', {
+      name: /select hypertension guide/i,
+    });
+    expect(selectedCheckbox).toBeChecked();
+    expect(selectedCheckbox).toBeEnabled();
+    await user.click(selectedCheckbox);
+
     expect(screen.getByTestId('selected-count')).toHaveTextContent('0');
+    expect(
+      screen.queryByText(/selected for ingestion/i),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the dashed Select files picker above the table and uploads staged files', async () => {
@@ -265,8 +282,14 @@ describe('DocumentSelectionPanel', () => {
   it('shows View modules for kept existing sources during an active ingest batch', () => {
     renderWithProviders(<ControlledPanel keptExistingSourceIds={['doc-1']} />);
 
+    const hypertensionRow = screen
+      .getByText('Hypertension Guide')
+      .closest('tr');
+    expect(hypertensionRow).not.toBeNull();
     expect(
-      screen.getByRole('button', { name: /view modules/i }),
+      within(hypertensionRow as HTMLElement).getByRole('button', {
+        name: /view modules/i,
+      }),
     ).toBeInTheDocument();
   });
 

@@ -5,6 +5,7 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { cn } from '@/utils';
 
@@ -80,7 +81,7 @@ export const BadgeModuleMultiSelect = ({
             >
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/30"
+                className={cn(SPICE_CHECKBOX_CLASSNAME, 'mt-0.5')}
                 checked={checked}
                 disabled={disabled}
                 onChange={() => toggle(option.id)}

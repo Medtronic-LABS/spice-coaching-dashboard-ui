@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
+import { TruncatedText } from '@/components/ui';
 import type {
   ModuleDemandQueryRow,
   ModuleDemandUserEntry,
@@ -14,7 +15,6 @@ export const MODULE_DEMAND_VISIBLE_ROWS = 5;
 interface EvidenceQueryRowProps {
   row: ModuleDemandQueryRow;
   showTimestamp: boolean;
-  hideSkName?: boolean;
 }
 
 function ScrollableRowList({
@@ -40,17 +40,15 @@ function ScrollableRowList({
 }
 
 function UserDetailRow({
-  hideSkName,
   user,
   showTimestamp,
   interactionLabel,
 }: {
-  hideSkName: boolean;
   user: ModuleDemandUserEntry;
   showTimestamp: boolean;
   interactionLabel: string;
 }) {
-  const name = !hideSkName && user.skName ? user.skName : null;
+  const name = user.skName ? user.skName : null;
   const timestamp =
     showTimestamp && user.timestamp
       ? formatDisplayDateTime(user.timestamp)
@@ -67,8 +65,11 @@ function UserDetailRow({
         'sm:grid-cols-[minmax(8rem,1fr)_minmax(7rem,0.9fr)_minmax(8rem,0.9fr)]',
       )}
     >
-      <span className="truncate font-medium text-spice-text-primary">
-        {name ?? '—'}
+      <span className="min-w-0">
+        <TruncatedText
+          text={name ?? '—'}
+          className="font-medium text-spice-text-primary"
+        />
       </span>
       <span className="text-spice-text-muted">{interactionLabel}</span>
       <span className="whitespace-nowrap text-spice-text-muted">
@@ -81,7 +82,6 @@ function UserDetailRow({
 export const EvidenceQueryRow = ({
   row,
   showTimestamp,
-  hideSkName = false,
 }: EvidenceQueryRowProps) => {
   const { t } = useTranslation();
   const [usersOpen, setUsersOpen] = useState(false);
@@ -124,9 +124,10 @@ export const EvidenceQueryRow = ({
           <span className="h-3.5 w-3.5 shrink-0" aria-hidden />
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-spice-text-primary">
-            {row.primaryText}
-          </span>
+          <TruncatedText
+            text={row.primaryText}
+            className="text-sm font-medium text-spice-text-primary"
+          />
         </span>
         <span
           className={cn(
@@ -168,7 +169,6 @@ export const EvidenceQueryRow = ({
             {users.map((user, index) => (
               <UserDetailRow
                 key={`${user.skId ?? 'user'}-${user.timestamp ?? index}`}
-                hideSkName={hideSkName}
                 user={user}
                 showTimestamp={showTimestamp}
                 interactionLabel={interactionLabel}
@@ -189,7 +189,6 @@ interface ModuleDemandEvidenceListProps {
   emptyQueries: string;
   emptyRequests: string;
   showTimestamp: boolean;
-  hideSkName?: boolean;
   reasonLabel?: string | null;
 }
 
@@ -198,13 +197,11 @@ function EvidenceSection({
   emptyMessage,
   rows,
   showTimestamp,
-  hideSkName,
 }: {
   heading: string;
   emptyMessage: string;
   rows: ModuleDemandQueryRow[];
   showTimestamp: boolean;
-  hideSkName: boolean;
 }) {
   return (
     <section className="space-y-2">
@@ -229,7 +226,6 @@ function EvidenceSection({
               key={row.id}
               row={row}
               showTimestamp={showTimestamp}
-              hideSkName={hideSkName}
             />
           ))}
         </ScrollableRowList>
@@ -246,7 +242,6 @@ export const ModuleDemandEvidenceList = ({
   emptyQueries,
   emptyRequests,
   showTimestamp,
-  hideSkName = false,
   reasonLabel,
 }: ModuleDemandEvidenceListProps) => {
   const { t } = useTranslation();
@@ -267,7 +262,6 @@ export const ModuleDemandEvidenceList = ({
         emptyMessage={emptyQueries}
         rows={questionRows}
         showTimestamp={showTimestamp}
-        hideSkName={hideSkName}
       />
 
       <EvidenceSection
@@ -275,7 +269,6 @@ export const ModuleDemandEvidenceList = ({
         emptyMessage={emptyRequests}
         rows={requestRows}
         showTimestamp={showTimestamp}
-        hideSkName={hideSkName}
       />
     </div>
   );

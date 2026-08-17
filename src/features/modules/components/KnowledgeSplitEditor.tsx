@@ -1,8 +1,13 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { Button, ImagePicker } from '@/components/ui';
+import { Button, ImagePicker, LimitedTextInput } from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
+import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
 import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
+import { cn } from '@/utils';
 
 export interface KnowledgeSplitEditorProps {
   index: number;
@@ -92,18 +97,19 @@ export const KnowledgeSplitEditor = ({
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
               Title <span className="text-spice-semantic-error">*</span>
             </div>
-            <input
-              type="text"
+            <LimitedTextInput
+              id={`knowledge-split-title-${index}`}
               value={value.title}
+              maxLength={FIELD_LIMITS.documentTitle}
               aria-label={`${rowLabel} title`}
               disabled={disabled}
-              onChange={(e) => onChange({ ...value, title: e.target.value })}
               placeholder="e.g. HTN Referral Tips"
-              className={`h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/20 ${
+              inputClassName={
                 errors?.title
                   ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error/30'
-                  : 'border-spice-border-mid focus:border-spice-brand-primary/40'
-              }`}
+                  : 'border-spice-border-mid'
+              }
+              onChange={(title) => onChange({ ...value, title })}
             />
             {errors?.title ? (
               <p className="text-xs text-spice-semantic-error">
@@ -132,11 +138,13 @@ export const KnowledgeSplitEditor = ({
                     const nextStart = parseIntOrNaN(e.target.value);
                     onChange({ ...value, startPage: nextStart });
                   }}
-                  className={`h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/20 ${
+                  className={cn(
+                    'h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                    SPICE_INPUT_FOCUS_CLASSNAME,
                     errors?.startPage
-                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error/30'
-                      : 'border-spice-border-mid focus:border-spice-brand-primary/40'
-                  }`}
+                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error'
+                      : 'border-spice-border-mid',
+                  )}
                 />
                 {errors?.startPage ? (
                   <p className="mt-1 text-xs text-spice-semantic-error">
@@ -161,11 +169,13 @@ export const KnowledgeSplitEditor = ({
                     const nextEnd = parseIntOrNaN(e.target.value);
                     onChange({ ...value, endPage: nextEnd });
                   }}
-                  className={`h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/20 ${
+                  className={cn(
+                    'h-10 w-full rounded-lg border bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                    SPICE_INPUT_FOCUS_CLASSNAME,
                     errors?.endPage
-                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error/30'
-                      : 'border-spice-border-mid focus:border-spice-brand-primary/40'
-                  }`}
+                      ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error'
+                      : 'border-spice-border-mid',
+                  )}
                 />
                 {errors?.endPage ? (
                   <p className="mt-1 text-xs text-spice-semantic-error">
@@ -176,7 +186,7 @@ export const KnowledgeSplitEditor = ({
             </div>
           </div>
 
-          <div className="w-full shrink-0 space-y-2 sm:w-36">
+          <div className="w-full shrink-0 space-y-2 sm:w-44">
             <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
               Thumbnail{thumbnailStatus}
             </div>
@@ -200,11 +210,12 @@ export const KnowledgeSplitEditor = ({
               }}
               disabled={disabled}
               clearable={hasVisibleThumbnail}
-              accept="image/*"
+              accept={IMAGE_FILE_INPUT_ACCEPT}
               label="Optional — leave blank for none"
               labelWhenSelected={
                 hasCustomThumbnail ? 'Change custom' : 'Replace with custom'
               }
+              hint={ADMIN_IMAGE_ACCEPT_SIZE_HINT}
               previewAlt={`${rowLabel} thumbnail`}
               frameClassName="aspect-square h-auto w-full"
               previewObjectFit="contain"

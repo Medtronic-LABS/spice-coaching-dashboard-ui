@@ -1,4 +1,16 @@
 import type { AdminModuleLifecycleStatus } from '@/features/modules/api/adminModulesApi';
+import {
+  EMPTY_GEOGRAPHY_FILTERS,
+  hasActiveGeographyFilters,
+  parseGeographyIdParam,
+  type GeographyFilterState,
+} from '@/features/modules/utils/geographyFilters';
+import { isDateRangeInvalid } from '@/utils/dateInput';
+
+export {
+  dateRangeValidationMessage,
+  isDateRangeInvalid,
+} from '@/utils/dateInput';
 
 export type ModuleLibraryTab =
   | 'all'
@@ -14,7 +26,7 @@ export type ModuleDateFilterType =
   | 'activated'
   | 'deactivated';
 
-export type ModuleLibraryFilters = {
+export type ModuleLibraryFilters = GeographyFilterState & {
   domain: string;
   sourceDocumentId: string;
   createdFrom: string;
@@ -28,6 +40,7 @@ export type ModuleLibraryFilters = {
 };
 
 export const EMPTY_MODULE_LIBRARY_FILTERS: ModuleLibraryFilters = {
+  ...EMPTY_GEOGRAPHY_FILTERS,
   domain: '',
   sourceDocumentId: '',
   createdFrom: '',
@@ -110,22 +123,6 @@ function primaryDateTypeForTab(
   return 'published';
 }
 
-export function dateRangeValidationMessage(
-  dateFrom: string,
-  dateTo: string,
-): string | null {
-  const from = dateFrom.trim();
-  const to = dateTo.trim();
-  if (!from && !to) return null;
-  if (!from || !to) return 'Both from and to dates are required.';
-  if (from > to) return 'From date must be on or before to date.';
-  return null;
-}
-
-export function isDateRangeInvalid(dateFrom: string, dateTo: string): boolean {
-  return dateRangeValidationMessage(dateFrom, dateTo) !== null;
-}
-
 export function isAnyVisibleDateRangeInvalid(
   filters: ModuleLibraryFilters,
   tab: ModuleLibraryTab,
@@ -178,6 +175,7 @@ export function hasActiveModuleFilters(
   isProgramManager?: boolean,
 ): boolean {
   if (filters.domain || filters.sourceDocumentId) return true;
+  if (hasActiveGeographyFilters(filters)) return true;
   if (tab !== undefined && isProgramManager !== undefined) {
     return hasVisibleDateFilters(filters, tab, isProgramManager);
   }
@@ -244,6 +242,9 @@ export function parseFiltersFromSearchParams(
   const filters: ModuleLibraryFilters = {
     domain: params.get('domain') ?? '',
     sourceDocumentId: params.get('doc') ?? '',
+    divisionId: parseGeographyIdParam(params.get('division_id')),
+    districtId: parseGeographyIdParam(params.get('district_id')),
+    upazilaId: parseGeographyIdParam(params.get('upazila_id')),
     createdFrom: params.get('created_from') ?? '',
     createdTo: params.get('created_to') ?? '',
     publishedFrom: params.get('published_from') ?? '',
@@ -281,6 +282,9 @@ export function buildModuleListSearchParams(
   }
   if (filters.domain) params.set('domain', filters.domain);
   if (filters.sourceDocumentId) params.set('doc', filters.sourceDocumentId);
+  if (filters.divisionId) params.set('division_id', filters.divisionId);
+  if (filters.districtId) params.set('district_id', filters.districtId);
+  if (filters.upazilaId) params.set('upazila_id', filters.upazilaId);
 
   for (const type of [
     'created',

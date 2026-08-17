@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -16,7 +17,8 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import { truncateDisplayText } from '@/utils/truncateDisplayText';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
+import { cn } from '@/utils';
 import type {
   AdminV3IngestUploadPayload,
   AdminV3IngestUploadResponse,
@@ -188,15 +190,16 @@ export const DocumentSelectionPanel = ({
     () => new Set(keptExistingSourceIds),
     [keptExistingSourceIds],
   );
-  const recentlyIngestedIds = useMemo(
-    () =>
-      new Set(
-        readRecentIngestDocuments().map(
-          (document) => document.source_document_id,
-        ),
+  const recentlyIngestedIds = useMemo(() => {
+    // Re-read sessionStorage when an upload finishes or ingest batch status changes.
+    void uploadClearSignal;
+    void batchSources;
+    return new Set(
+      readRecentIngestDocuments().map(
+        (document) => document.source_document_id,
       ),
-    [uploadClearSignal, batchSources],
-  );
+    );
+  }, [uploadClearSignal, batchSources]);
   const debouncedQuery = useDebouncedValue(
     searchQuery,
     DOCUMENT_SELECTION_SEARCH_DEBOUNCE_MS,
@@ -250,7 +253,7 @@ export const DocumentSelectionPanel = ({
     sort_dir: sortDir,
   });
 
-  const rows = useMemo<DocumentSelectionRow[]>(
+  const catalogRows = useMemo<DocumentSelectionRow[]>(
     () =>
       (catalog?.source_documents ?? []).map((doc) => ({
         id: doc.id,
@@ -272,12 +275,53 @@ export const DocumentSelectionPanel = ({
     [batchSources, catalog?.source_documents, recentlyIngestedIds],
   );
 
+  const selectedRows = useMemo<DocumentSelectionRow[]>(() => {
+    const catalogById = new Map(catalogRows.map((row) => [row.id, row]));
+    return selectedDocuments.map((doc) => {
+      const catalogRow = catalogById.get(doc.id);
+      if (catalogRow) {
+        return {
+          ...catalogRow,
+          title: catalogRow.title.trim() || doc.title,
+          originalFilename: catalogRow.originalFilename || doc.originalFilename,
+          status: resolveDocumentCatalogStatus(
+            catalogRow.status || doc.status,
+            doc.id,
+            batchSources,
+            recentlyIngestedIds,
+          ),
+          uploadedAt: catalogRow.uploadedAt || doc.uploadedAt || '',
+        };
+      }
+
+      return {
+        id: doc.id,
+        title: doc.title,
+        originalFilename: doc.originalFilename,
+        sourceType: doc.sourceType,
+        status: resolveDocumentCatalogStatus(
+          doc.status,
+          doc.id,
+          batchSources,
+          recentlyIngestedIds,
+        ),
+        uploadedAt: doc.uploadedAt ?? '',
+        uploadedBy: null,
+        ingestedBy: null,
+        selection: '',
+        actions: '',
+      };
+    });
+  }, [batchSources, catalogRows, recentlyIngestedIds, selectedDocuments]);
+
   const total = catalog?.total_source_documents ?? 0;
   const totalPages = catalog?.total_pages ?? 0;
   const hasPrevPage = page > 0;
   const hasNextPage = totalPages > 0 && page + 1 < totalPages;
-  const rangeStart = rows.length ? page * pageSize + 1 : 0;
-  const rangeEnd = rows.length ? page * pageSize + rows.length : 0;
+  const rangeStart = catalogRows.length ? page * pageSize + 1 : 0;
+  const rangeEnd = catalogRows.length
+    ? page * pageSize + catalogRows.length
+    : 0;
 
   useEffect(() => {
     setPageInput(String(page + 1));
@@ -310,6 +354,7 @@ export const DocumentSelectionPanel = ({
             originalFilename: doc.originalFilename,
             sourceType: doc.sourceType,
             status: doc.status,
+            ...(doc.uploadedAt ? { uploadedAt: doc.uploadedAt } : {}),
           },
         ]);
         return;
@@ -401,8 +446,10 @@ export const DocumentSelectionPanel = ({
     uploadFiles,
   ]);
 
-  const columns: Array<ColumnDef<DocumentSelectionRow>> = useMemo(
-    () => [
+  const buildColumns = useCallback(
+    (options: {
+      lockSelected: boolean;
+    }): Array<ColumnDef<DocumentSelectionRow>> => [
       {
         key: 'selection',
         header: '',
@@ -413,13 +460,21 @@ export const DocumentSelectionPanel = ({
           const checked = selectedIds.has(row.id);
           const atCap =
             !checked && selectedDocuments.length >= MAX_DOCUMENT_SELECTION;
+          const selectionLocked = options.lockSelected && checked;
           return (
             <input
               type="checkbox"
-              className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
-              aria-label={`Select ${row.title}`}
+              className={cn(
+                SPICE_CHECKBOX_CLASSNAME,
+                'disabled:cursor-not-allowed disabled:opacity-60',
+              )}
+              aria-label={
+                selectionLocked
+                  ? `${row.title} selected`
+                  : `Select ${row.title}`
+              }
               checked={checked}
-              disabled={disabled || atCap}
+              disabled={disabled || atCap || selectionLocked}
               onChange={(event) => {
                 toggleDocument(row, event.target.checked);
               }}
@@ -441,13 +496,14 @@ export const DocumentSelectionPanel = ({
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-medium text-spice-text-primary"
-            >
-              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
-            </TruncatedText>
+            />
             {row.originalFilename && row.originalFilename !== row.title ? (
-              <p className="mt-0.5 truncate text-[11px] text-spice-text-muted">
-                {row.originalFilename}
-              </p>
+              <div className="mt-0.5 min-w-0">
+                <TruncatedText
+                  text={row.originalFilename}
+                  className="text-[11px] text-spice-text-muted"
+                />
+              </div>
             ) : null}
           </div>
         ),
@@ -511,28 +567,33 @@ export const DocumentSelectionPanel = ({
         key: 'actions',
         header: 'Actions',
         sortable: false,
+        className: 'whitespace-nowrap',
+        headerClassName: 'whitespace-nowrap',
         render: (row) => {
-          if (
-            canOpenModulesForDocument(
-              row.status,
-              row.id,
-              recentlyIngestedIds,
-              keptExistingIds,
-            )
-          ) {
-            return (
-              <Button
-                variant="secondary"
-                className="h-8 shrink-0 px-3 text-xs"
-                onClick={() => {
-                  goToModulesForSource(row.id, row.title);
-                }}
-              >
-                View modules
-              </Button>
-            );
-          }
-          return <StatusBadge status="neutral" label="Not ingested" />;
+          const canViewModules = canOpenModulesForDocument(
+            row.status,
+            row.id,
+            recentlyIngestedIds,
+            keptExistingIds,
+          );
+          return (
+            <div className="flex h-8 min-w-[9.25rem] items-center">
+              {canViewModules ? (
+                <Button
+                  variant="secondary"
+                  className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+                  onClick={() => {
+                    goToModulesForSource(row.id, row.title);
+                  }}
+                >
+                  <EyeIcon className="h-3.5 w-3.5" />
+                  View modules
+                </Button>
+              ) : (
+                <StatusBadge status="neutral" label="Not ingested" />
+              )}
+            </div>
+          );
         },
       },
     ],
@@ -545,6 +606,15 @@ export const DocumentSelectionPanel = ({
       selectedIds,
       toggleDocument,
     ],
+  );
+
+  const availableColumns = useMemo(
+    () => buildColumns({ lockSelected: true }),
+    [buildColumns],
+  );
+  const selectedColumns = useMemo(
+    () => buildColumns({ lockSelected: false }),
+    [buildColumns],
   );
 
   const uploadFieldsDisabled = disabled || isUploading;
@@ -614,7 +684,7 @@ export const DocumentSelectionPanel = ({
         />
 
         <p className="text-xs text-spice-text-muted">
-          {INGEST_ACCEPTED_FILE_TYPES_LABEL}
+          {INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100 MB
         </p>
 
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
@@ -640,46 +710,65 @@ export const DocumentSelectionPanel = ({
         </div>
       </div>
 
-      <Table<DocumentSelectionRow>
-        data={rows}
-        columns={columns}
-        keyExtractor={(row) => row.id}
-        caption="Knowledge documents available for ingestion"
-        emptyMessage={
-          isFetching
-            ? 'Loading documents…'
-            : searchQ
-              ? 'No documents match your search.'
-              : 'No documents available. Upload files above to get started.'
-        }
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onSort={handleSort}
-      />
+      <div className="space-y-2">
+        <div className="text-sm font-semibold text-spice-text-primary">
+          Available documents
+        </div>
+        <Table<DocumentSelectionRow>
+          data={catalogRows}
+          columns={availableColumns}
+          keyExtractor={(row) => row.id}
+          caption="Documents available to select for ingestion"
+          emptyMessage={
+            isFetching
+              ? 'Loading documents…'
+              : searchQ
+                ? 'No documents match your search.'
+                : 'No documents available. Upload files above to get started.'
+          }
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={handleSort}
+        />
 
-      <TablePagination
-        page={page}
-        pageSize={pageSize}
-        pageSizeOptions={DOCUMENT_SELECTION_PAGE_SIZE_OPTIONS}
-        totalItems={total}
-        totalPages={totalPages}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
-        pageInput={pageInput}
-        hasPrevPage={hasPrevPage}
-        hasNextPage={hasNextPage}
-        onPageSizeChange={(next) => {
-          setPageSize(next);
-          setPage(0);
-        }}
-        onPageInputChange={handlePageInputChange}
-        onCommitPageInput={commitPageInput}
-        onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
-        onNextPage={() => setPage((current) => current + 1)}
-        rowsPerPageAriaLabel="Document selection rows per page"
-        pageNumberAriaLabel="Document selection page number"
-        className="border-t border-spice-border px-0 pt-3"
-      />
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={DOCUMENT_SELECTION_PAGE_SIZE_OPTIONS}
+          totalItems={total}
+          totalPages={totalPages}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          pageInput={pageInput}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPageSizeChange={(next) => {
+            setPageSize(next);
+            setPage(0);
+          }}
+          onPageInputChange={handlePageInputChange}
+          onCommitPageInput={commitPageInput}
+          onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
+          onNextPage={() => setPage((current) => current + 1)}
+          rowsPerPageAriaLabel="Document selection rows per page"
+          pageNumberAriaLabel="Document selection page number"
+          className="border-t border-spice-border px-0 pt-3"
+        />
+      </div>
+
+      {selectedDocuments.length > 0 ? (
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-spice-text-primary">
+            Selected for ingestion ({selectedDocuments.length})
+          </div>
+          <Table<DocumentSelectionRow>
+            data={selectedRows}
+            columns={selectedColumns}
+            keyExtractor={(row) => `selected-${row.id}`}
+            caption="Documents selected for ingestion"
+          />
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -1,3 +1,7 @@
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
 
 export interface KnowledgeSplitValidationOptions {
@@ -28,6 +32,11 @@ export function knowledgeSplitDraftFieldErrors(
 
     if (requireTitle && !row.title.trim()) {
       errs.title = 'Title is required.';
+    } else if (row.title.trim().length > FIELD_LIMITS.documentTitle) {
+      errs.title = fieldLimitExceededMessage(
+        'Title',
+        FIELD_LIMITS.documentTitle,
+      );
     }
 
     const start = row.startPage;

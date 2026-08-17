@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
 import {
   knowledgeSplitDraftFieldErrors,
@@ -67,6 +68,13 @@ describe('knowledgeSplitDraftFieldErrors', () => {
     );
     expect(errors[0]?.startPage).toBe('Start page must be ≤ 5.');
     expect(errors[0]?.endPage).toBe('End page must be ≤ 5.');
+  });
+
+  it('flags titles over the document title limit', () => {
+    const errors = knowledgeSplitDraftFieldErrors([
+      splitDraft({ title: 'A'.repeat(FIELD_LIMITS.documentTitle + 1) }),
+    ]);
+    expect(errors[0]?.title).toBe('Title must be 200 characters or fewer.');
   });
 
   it('returns empty field errors for valid drafts', () => {

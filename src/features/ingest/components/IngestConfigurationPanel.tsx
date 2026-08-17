@@ -104,6 +104,7 @@ export const IngestConfigurationPanel = ({
               <Tooltip
                 label="About Content domain type"
                 content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                placement="top"
               />
             </span>
             <Select

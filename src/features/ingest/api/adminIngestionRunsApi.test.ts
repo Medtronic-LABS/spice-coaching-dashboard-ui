@@ -214,4 +214,44 @@ describe('adminIngestionRunsApi', () => {
     expect(data?.total_runs).toBe(21);
     expect(data?.total_pages).toBe(3);
   });
+
+  it('requests a single ingestion run by id', async () => {
+    mockBaseQuerySpy.mockResolvedValueOnce({
+      data: {
+        id: 'run-1',
+        source_document_id: 'doc-1',
+        status: 'succeeded',
+        started_at: '2026-08-15T09:00:00.000Z',
+        completed_at: '2026-08-15T09:10:00.000Z',
+        error: null,
+        document_label: 'Guide.pdf',
+        generated_module_count: 3,
+        generated_card_count: 6,
+        generated_quiz_count: 2,
+        ingested_by: { id: 7, name: 'Ada' },
+      },
+    });
+
+    const { baseApi } = await import('@/store/apis/base');
+    const { adminIngestionRunsApi } = await import('./adminIngestionRunsApi');
+    const store = configureStore({
+      reducer: { [baseApi.reducerPath]: baseApi.reducer },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(baseApi.middleware),
+    });
+
+    const result = await store.dispatch(
+      adminIngestionRunsApi.endpoints.fetchIngestionRunById.initiate('run-1'),
+    );
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+
+    expect(request.url).toBe('/admin/ingestion-runs/run-1');
+    expect(request.method).toBe('GET');
+    expect(result.data).toMatchObject({
+      id: 'run-1',
+      source_document_id: 'doc-1',
+      generated_module_count: 3,
+      status: 'succeeded',
+    });
+  });
 });

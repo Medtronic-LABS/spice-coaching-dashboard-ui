@@ -35,8 +35,13 @@ import { hasPendingMergeDecisions } from '@/features/ingest/utils/ingestMergeDec
 import {
   isIngestInProgress,
   isIngestSucceeded,
+  isTerminalIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
 import { keptExistingSourcesFromConflicts } from '@/features/ingest/utils/parseIngestDuplicateError';
+import {
+  selectedDocumentsFromIngestSourceIds,
+  selectedDocumentsFromUploadResponse,
+} from '@/features/ingest/utils/selectedDocumentsFromIngestSourceIds';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
 export const IngestDocumentPage = () => {
@@ -77,22 +82,15 @@ export const IngestDocumentPage = () => {
   >(() => readActiveIngestSession()?.kept_existing_sources ?? []);
 
   const handleUploaded = useCallback((res: AdminV3IngestUploadResponse) => {
-    const uploaded: SelectedIngestDocument[] = res.sources
-      .filter((source) => source.source_document_id)
-      .map((source) => ({
-        id: source.source_document_id,
-        title: source.title.trim() || source.source_document_id,
-        originalFilename: source.title.trim() || null,
-        sourceType: source.source_type || 'pdf',
-        status: source.status || 'uploaded',
-      }));
+    const uploaded = selectedDocumentsFromUploadResponse(res);
 
     if (uploaded.length) {
       setSelectedDocuments((previous) => {
         const withoutDupes = previous.filter(
           (doc) => !uploaded.some((item) => item.id === doc.id),
         );
-        return [...withoutDupes, ...uploaded].slice(0, MAX_DOCUMENT_SELECTION);
+        // Newest / just-resolved uploads stay at the top of the selection.
+        return [...uploaded, ...withoutDupes].slice(0, MAX_DOCUMENT_SELECTION);
       });
     }
     setUploadClearSignal((current) => current + 1);
@@ -105,12 +103,6 @@ export const IngestDocumentPage = () => {
         setActiveBatchId(res.batch_id);
         setRestoredBatchId(res.batch_id);
       }
-      const queuedIds = new Set(
-        (res.sources ?? []).map((source) => source.source_document_id),
-      );
-      setSelectedDocuments((previous) =>
-        previous.filter((document) => !queuedIds.has(document.id)),
-      );
       setSelectionPanelOpen(true);
     },
     [],
@@ -156,16 +148,21 @@ export const IngestDocumentPage = () => {
     onClear: () => {
       clearActiveIngestSession();
       setKeptExistingSources([]);
+      setSelectedDocuments([]);
     },
   });
 
   useEffect(() => {
     if (!keptExistingIngestNotice?.length) return;
+    const kept = keptExistingSourcesFromConflicts(keptExistingIngestNotice);
     setKeptExistingSources((previous) =>
-      mergeKeptExistingIngestSources(
+      mergeKeptExistingIngestSources(previous, kept),
+    );
+    setSelectedDocuments((previous) =>
+      selectedDocumentsFromIngestSourceIds({
         previous,
-        keptExistingSourcesFromConflicts(keptExistingIngestNotice),
-      ),
+        keptExistingSources: kept,
+      }),
     );
   }, [keptExistingIngestNotice]);
 
@@ -232,24 +229,6 @@ export const IngestDocumentPage = () => {
     return undefined;
   }, [accepted?.sources, batchId, selectedDocuments]);
 
-  const keptExistingRows = useMemo(
-    () =>
-      keptExistingSources.map((source) => ({
-        label:
-          source.filename?.trim() ||
-          source.title?.trim() ||
-          source.source_document_id,
-        target: {
-          sourceDocumentId: source.source_document_id,
-          title:
-            source.title?.trim() ||
-            source.filename?.trim() ||
-            source.source_document_id,
-        },
-      })),
-    [keptExistingSources],
-  );
-
   const keptExistingSourceIds = useMemo(
     () => keptExistingSources.map((source) => source.source_document_id),
     [keptExistingSources],
@@ -281,6 +260,43 @@ export const IngestDocumentPage = () => {
     statusData?.completed_at,
   ]);
 
+  // Drop session-backed selection metadata once a batch finishes so refresh and
+  // the next ingest start from a clean document picker.
+  useEffect(() => {
+    if (!batchId || !statusData || statusData.batch_id !== batchId) return;
+    if (hasPendingMergeDecisions(statusData.merge_decisions)) return;
+    if (!isTerminalIngestStatus(statusData.status)) return;
+
+    const session = readActiveIngestSession();
+    if (session?.source_document_id || session?.kept_existing_sources?.length) {
+      writeActiveIngestSession({ batch_id: batchId });
+    }
+    setKeptExistingSources([]);
+  }, [batchId, statusData]);
+
+  // Keep checkboxes aligned with the active batch only while ingestion is running.
+  useEffect(() => {
+    if (!batchId || !ingestionInProgress) return;
+    const statusSources =
+      statusData?.batch_id === batchId ? statusData.sources : undefined;
+    setSelectedDocuments((previous) =>
+      selectedDocumentsFromIngestSourceIds({
+        previous,
+        session: readActiveIngestSession(),
+        keptExistingSources,
+        acceptedSources: accepted?.sources,
+        statusSources,
+      }),
+    );
+    setSelectionPanelOpen(true);
+  }, [
+    accepted?.sources,
+    batchId,
+    ingestionInProgress,
+    keptExistingSources,
+    statusData,
+  ]);
+
   const goToDraftsForSource = useCallback(
     (sourceDocumentId: string, sourceTitle?: string) => {
       const state: ModuleLibraryLocationState = {
@@ -305,18 +321,18 @@ export const IngestDocumentPage = () => {
     [navigate],
   );
 
-  const goToModulesForSource = goToDraftsForSource;
-
   const runStartIngest = useCallback(async () => {
     if (!selectedDocuments.length) return;
+    const nextSourceIds = selectedDocuments.map((doc) => doc.id);
     setActionError('');
     setAccepted(null);
     setActiveBatchId('');
     setRestoredBatchId('');
     setKeptExistingSources([]);
+    setStatusData(null);
     clearActiveIngestSession();
     await startIngest({
-      source_document_ids: selectedDocuments.map((doc) => doc.id),
+      source_document_ids: nextSourceIds,
       assessment_mode: assessmentMode,
       quizzes_per_module: ingestModuleCountForPayload(quizzesPerModule) ?? null,
       cards_per_module: ingestModuleCountForPayload(cardsPerModule) ?? null,
@@ -333,11 +349,6 @@ export const IngestDocumentPage = () => {
     selectedDocuments,
     startIngest,
   ]);
-
-  const selectedCountLabel =
-    selectedDocuments.length === 1
-      ? '1 document selected'
-      : `${selectedDocuments.length} documents selected`;
 
   return (
     <section className="space-y-5">
@@ -392,26 +403,6 @@ export const IngestDocumentPage = () => {
         </div>
       ) : null}
 
-      {keptExistingSources.length ? (
-        <div
-          className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs text-spice-text-medium"
-          role="status"
-        >
-          <span className="font-semibold text-spice-text-primary">
-            Already ingested:
-          </span>{' '}
-          {keptExistingSources
-            .map(
-              (source) =>
-                source.filename?.trim() ||
-                source.title?.trim() ||
-                source.source_document_id,
-            )
-            .join(', ')}
-          . View existing modules below.
-        </div>
-      ) : null}
-
       <Card variant="elevated" className="min-w-0 p-4 sm:p-6">
         <IngestConfigurationPanel
           disabled={selectionDisabled}
@@ -428,68 +419,27 @@ export const IngestDocumentPage = () => {
         />
       </Card>
 
-      <div className="space-y-2">
-        <DocumentSelectionCollapsible
-          title="Document Selection"
-          open={selectionPanelOpen}
-          onOpenChange={setSelectionPanelOpen}
-          collapsedSummary="Expand to select documents or upload new files"
-          disabled={selectionExpandDisabled}
-        >
-          <DocumentSelectionPanel
-            selectedDocuments={selectedDocuments}
-            onSelectedDocumentsChange={setSelectedDocuments}
-            searchQuery={documentSearchQuery}
-            onSearchQueryChange={setDocumentSearchQuery}
-            contentDomain={contentDomain}
-            disabled={selectionDisabled}
-            uploadFiles={uploadFiles}
-            isUploading={isUploading}
-            uploadClearSignal={uploadClearSignal}
-            batchSources={statusData?.sources ?? []}
-            keptExistingSourceIds={keptExistingSourceIds}
-          />
-        </DocumentSelectionCollapsible>
-        <p className="text-xs text-spice-text-muted" aria-live="polite">
-          {selectedCountLabel}
-        </p>
-      </div>
-
-      {keptExistingRows.length ? (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-spice-text-primary">
-            Existing sources
-          </div>
-          <div className="space-y-2">
-            {keptExistingRows.map(({ label, target }) => (
-              <div
-                key={target.sourceDocumentId}
-                className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-xs"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0 font-semibold text-spice-text-primary">
-                    {label}
-                  </div>
-                  <Button
-                    className="h-8 shrink-0 px-3 text-xs"
-                    onClick={() =>
-                      goToModulesForSource(
-                        target.sourceDocumentId,
-                        target.title,
-                      )
-                    }
-                  >
-                    View modules
-                  </Button>
-                </div>
-                <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
-                  {target.sourceDocumentId}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <DocumentSelectionCollapsible
+        title="Document Selection"
+        open={selectionPanelOpen}
+        onOpenChange={setSelectionPanelOpen}
+        collapsedSummary="Expand to select documents or upload new files"
+        disabled={selectionExpandDisabled}
+      >
+        <DocumentSelectionPanel
+          selectedDocuments={selectedDocuments}
+          onSelectedDocumentsChange={setSelectedDocuments}
+          searchQuery={documentSearchQuery}
+          onSearchQueryChange={setDocumentSearchQuery}
+          contentDomain={contentDomain}
+          disabled={selectionDisabled}
+          uploadFiles={uploadFiles}
+          isUploading={isUploading}
+          uploadClearSignal={uploadClearSignal}
+          batchSources={statusData?.sources ?? []}
+          keptExistingSourceIds={keptExistingSourceIds}
+        />
+      </DocumentSelectionCollapsible>
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button
@@ -516,7 +466,7 @@ export const IngestDocumentPage = () => {
           batchId={batchId}
           isUploading={isUploading}
           uploadLabel="Uploading document…"
-          initialPollDelayMs={activeBatchId ? 5000 : 0}
+          initialPollDelayMs={accepted?.batch_id === batchId ? 5000 : 0}
           onStatusChange={handleStatusChange}
           onGoToDrafts={goToDraftsForSource}
           onGoToNeedsReview={goToNeedsReviewForSource}

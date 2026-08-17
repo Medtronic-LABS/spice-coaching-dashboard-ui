@@ -188,6 +188,11 @@ export function installModuleLibraryFetchMock(): void {
                 m.status === 'deactivated'
                   ? { id: 103, name: 'Mock Deactivator' }
                   : null,
+              retired_at: m.status === 'retired' ? createdAt : null,
+              retired_by:
+                m.status === 'retired'
+                  ? { id: 104, name: 'Mock Retirer' }
+                  : null,
               quality_flags: { flags: [] },
               chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
             };

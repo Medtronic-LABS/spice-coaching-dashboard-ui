@@ -46,6 +46,7 @@ export interface AdminModulesListItem {
   updated_at: string;
   activated_at?: string | null;
   deactivated_at?: string | null;
+  retired_at?: string | null;
   /** @deprecated Prefer `activated_at` from the modules API. */
   first_activated_at?: string | null;
   /** @deprecated Prefer `deactivated_at` from the modules API. */
@@ -56,6 +57,7 @@ export interface AdminModulesListItem {
   published_by?: ModuleActorRef | null;
   activated_by?: ModuleActorRef | null;
   deactivated_by?: ModuleActorRef | null;
+  retired_by?: ModuleActorRef | null;
   quality_flags?: { flags: string[] } | null;
   quiz_count: number;
   search_metadata?: Record<string, unknown> | null;
@@ -139,6 +141,12 @@ export interface EditAdminModuleRequestBody {
   thumbnail_storage_path?: string | null;
   /** When set, updates chatbot FAQ-only flag on the new module version. */
   chatbot_faqs_only?: boolean;
+  /** Omit to copy forward; send to update catalog domain. */
+  domain?: string;
+  /** Omit to copy forward; send to update Learning Library domain type. */
+  content_domain?: string | null;
+  /** Omit to copy forward; send to update estimated duration. */
+  estimated_minutes?: number;
 }
 
 export type AdminModuleRefresherType = 'refresher' | string;
@@ -233,6 +241,7 @@ function normalizeModuleSummary(
         : typeof item.last_deactivated_at === 'string'
           ? item.last_deactivated_at
           : null,
+    retired_at: typeof item.retired_at === 'string' ? item.retired_at : null,
     first_activated_at:
       typeof item.first_activated_at === 'string'
         ? item.first_activated_at
@@ -253,6 +262,7 @@ function normalizeModuleSummary(
     published_by: normalizeHierarchyActorRef(item.published_by),
     activated_by: normalizeHierarchyActorRef(item.activated_by),
     deactivated_by: normalizeHierarchyActorRef(item.deactivated_by),
+    retired_by: normalizeHierarchyActorRef(item.retired_by),
     quality_flags:
       item.quality_flags && typeof item.quality_flags === 'object'
         ? (item.quality_flags as { flags: string[] })
@@ -451,7 +461,7 @@ export interface EditAdminModuleResponse {
 export interface RetireModuleResponse {
   id: string;
   lifecycle_status: 'retired';
-  deprecated_at: string;
+  retired_at: string;
 }
 
 export interface DeactivateModuleRequestBody {
@@ -492,6 +502,10 @@ export interface FetchModulesQueryArgs {
   deactivated_from?: string | null;
   deactivated_to?: string | null;
   sourceDocumentId?: string | null;
+  /** Assignee geography: integer hierarchy ids. */
+  division_id?: number | null;
+  district_id?: number | null;
+  upazila_id?: number | null;
   /** Server-side search; omit when empty or below the UI minimum length. */
   q?: string | null;
   sort_by?: string | null;
@@ -588,6 +602,9 @@ export const adminModulesApi = baseApi.injectEndpoints({
         deactivated_from,
         deactivated_to,
         sourceDocumentId,
+        division_id,
+        district_id,
+        upazila_id,
         q,
         sort_by,
         sort_dir,
@@ -612,6 +629,9 @@ export const adminModulesApi = baseApi.injectEndpoints({
           ...(deactivated_from ? { deactivated_from } : {}),
           ...(deactivated_to ? { deactivated_to } : {}),
           ...(sourceDocumentId ? { source_document_id: sourceDocumentId } : {}),
+          ...(typeof division_id === 'number' ? { division_id } : {}),
+          ...(typeof district_id === 'number' ? { district_id } : {}),
+          ...(typeof upazila_id === 'number' ? { upazila_id } : {}),
           ...(q ? { q } : {}),
           ...(sort_by ? { sort_by } : {}),
           ...(sort_dir ? { sort_dir } : {}),
@@ -679,6 +699,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
+      invalidatesTags: ['ModuleDomains'],
     }),
     deleteModule: builder.mutation<RetireModuleResponse, { moduleId: string }>({
       query: ({ moduleId }) => ({

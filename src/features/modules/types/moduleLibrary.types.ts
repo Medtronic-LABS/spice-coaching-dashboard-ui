@@ -12,6 +12,8 @@ export interface ModuleLibraryItem {
   lessons: number;
   questions: number;
   durationLabel: string;
+  /** Raw estimated minutes used for publish success summary. */
+  estimatedMinutes: number;
   status: ModuleStatus;
   createdAt: string;
   lastUpdatedAt?: string;

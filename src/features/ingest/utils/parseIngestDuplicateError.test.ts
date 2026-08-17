@@ -13,6 +13,7 @@ import {
   selectFilesForConflicts,
   selectSourceDocumentIdsForConflicts,
   selectSourcesForDuplicateIngestRetry,
+  selectedIngestDocumentsFromUploadResponse,
   sourceDocumentFromDuplicateConflict,
   uploadResponseFromDuplicateConflicts,
   uploadedSourceFromConflict,
@@ -84,6 +85,35 @@ describe('uploadedSourceFromConflict', () => {
     expect(source?.source_type).toBe('pdf');
     expect(source?.content_domain).toBe('clinical');
     expect(source?.status).toBe('uploaded');
+  });
+});
+
+describe('selectedIngestDocumentsFromUploadResponse', () => {
+  it('enriches reused duplicates with existing source details', () => {
+    const docs = selectedIngestDocumentsFromUploadResponse({
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: existingSource.source_document_id,
+          title: existingSource.title,
+          source_type: 'pdf',
+          stored_path: '',
+          status: 'uploaded',
+        },
+      ],
+      skipped_duplicates: conflicts,
+    });
+
+    expect(docs).toEqual([
+      {
+        id: existingSource.source_document_id,
+        title: 'Procedure description',
+        originalFilename: 'Procedure description.pdf',
+        sourceType: 'pdf',
+        status: 'uploaded',
+        uploadedAt: existingSource.ingested_at,
+      },
+    ]);
   });
 });
 

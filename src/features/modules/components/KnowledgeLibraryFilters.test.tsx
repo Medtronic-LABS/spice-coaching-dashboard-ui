@@ -3,11 +3,19 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
 import { KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS } from '@/features/modules/utils/knowledgeLibraryFilters';
+import type { SettingsFilterSection } from '@/components/common/settingsFilter.types';
+
+const stubGeographySection: SettingsFilterSection = {
+  id: 'knowledge-geography',
+  label: 'Geography',
+  fields: [],
+};
 
 const defaultFilterProps = {
   uploaderOptions: [{ value: 'alice', label: 'alice' }],
   uploaderSearch: '',
   onUploaderSearchChange: vi.fn(),
+  geographySection: stubGeographySection,
 };
 
 describe('KnowledgeLibraryFilters', () => {
@@ -32,6 +40,25 @@ describe('KnowledgeLibraryFilters', () => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
   });
 
+  it('disables Apply when the To date is in the future', () => {
+    render(
+      <KnowledgeLibraryFilters
+        filters={{
+          ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
+          uploadedAtFrom: '2026-04-01',
+          uploadedAtTo: '2099-01-01',
+        }}
+        onChange={vi.fn()}
+        onClearAll={vi.fn()}
+        onApply={vi.fn()}
+        {...defaultFilterProps}
+      />,
+    );
+
+    expect(screen.getByText('To date cannot be in the future.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+  });
+
   it('forwards Clear All and Apply for valid filters', async () => {
     const user = userEvent.setup();
     const onClearAll = vi.fn();
@@ -51,6 +78,7 @@ describe('KnowledgeLibraryFilters', () => {
     expect(screen.getByLabelText('Uploaded by')).toBeInTheDocument();
     expect(screen.getByLabelText('Assigned')).toBeInTheDocument();
     expect(screen.getByLabelText('Ingested')).toBeInTheDocument();
+    expect(screen.getByText('Geography')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Clear All' }));
     expect(onClearAll).toHaveBeenCalledTimes(1);

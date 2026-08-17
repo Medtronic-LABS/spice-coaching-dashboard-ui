@@ -17,6 +17,31 @@ type IngestAcceptedCallback = (
   meta: { isReingest: boolean },
 ) => void;
 
+function acceptedSource(
+  sourceDocumentId: string,
+  title: string,
+): AdminV3IngestAcceptedResponse['sources'][number] {
+  return {
+    source_document_id: sourceDocumentId,
+    run_id: `run-${sourceDocumentId}`,
+    title,
+    source_type: 'pdf',
+    stored_path: `/docs/${sourceDocumentId}.pdf`,
+  };
+}
+
+function acceptedResponse(
+  batchId: string,
+  sources: AdminV3IngestAcceptedResponse['sources'],
+): AdminV3IngestAcceptedResponse {
+  return {
+    status: 'batch_queued',
+    batch_id: batchId,
+    poll_url: `/admin/v3/ingest/batches/${batchId}`,
+    sources,
+  };
+}
+
 const mocks = vi.hoisted(() => {
   const sourceDocuments = [
     {
@@ -33,6 +58,25 @@ const mocks = vi.hoisted(() => {
       uploaded_date: '2026-07-21T09:00:00Z',
       ingested_at: '2026-07-21T09:00:00Z',
       updated_at: '2026-07-21T09:00:00Z',
+      uploaded_by: null,
+      updated_by: null,
+      assigned: false,
+      sync_published_visible: true,
+    },
+    {
+      id: 'doc-2',
+      title: 'Diabetes Guide',
+      source_type: 'pdf',
+      status: 'uploaded',
+      content_domain: 'clinical',
+      authority_label: '',
+      stored_path: '/docs/diabetes.pdf',
+      original_filename: 'diabetes.pdf',
+      description: null as string | null,
+      thumbnail_storage_path: null as string | null,
+      uploaded_date: '2026-07-21T10:00:00Z',
+      ingested_at: '2026-07-21T10:00:00Z',
+      updated_at: '2026-07-21T10:00:00Z',
       uploaded_by: null,
       updated_by: null,
       assigned: false,
@@ -164,7 +208,6 @@ describe('IngestDocumentPage', () => {
     expect(
       screen.queryByRole('searchbox', { name: /search knowledge documents/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('0 documents selected')).toBeInTheDocument();
   });
 
   it('keeps the document list open after selection and only uses checkboxes', async () => {
@@ -179,14 +222,13 @@ describe('IngestDocumentPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('1 document selected')).toBeInTheDocument();
+      expect(
+        screen.getByText(/selected for ingestion \(1\)/i),
+      ).toBeInTheDocument();
     });
     expect(
       screen.getByRole('checkbox', { name: /select hypertension guide/i }),
     ).toBeChecked();
-    expect(
-      screen.queryByText('Selected for ingestion'),
-    ).not.toBeInTheDocument();
   });
 
   it('starts ingestion with selected source_document_ids without ingest upload', async () => {
@@ -213,6 +255,114 @@ describe('IngestDocumentPage', () => {
         }),
       );
     });
+  });
+
+  it('keeps selected documents checked while ingestion is in progress', async () => {
+    const user = userEvent.setup();
+    mocks.startIngest.mockImplementation(async () => {
+      mocks.onAcceptedRef.current?.(
+        acceptedResponse('batch-running', [
+          acceptedSource('doc-1', 'Hypertension Guide'),
+        ]),
+        { isReingest: false },
+      );
+      return null;
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-running',
+      status: 'running',
+      created_at: null,
+      completed_at: null,
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'running',
+          started_at: null,
+          completed_at: null,
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expand Document Selection' }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    );
+    expect(
+      screen.getByText(/selected for ingestion \(1\)/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /start ingestion/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-running',
+      );
+    });
+    expect(
+      screen.getByText(/selected for ingestion \(1\)/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    ).toBeChecked();
+  });
+
+  it('restores checkbox selection from session source ids while batch is active', async () => {
+    writeActiveIngestSession({
+      batch_id: 'batch-running',
+      source_document_id: 'doc-1',
+      title: 'Hypertension Guide',
+      kept_existing_sources: [
+        {
+          source_document_id: 'doc-existing',
+          title: 'Existing Guide',
+          filename: 'existing.pdf',
+        },
+      ],
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-running',
+      status: 'running',
+      created_at: null,
+      completed_at: null,
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'running',
+          started_at: null,
+          completed_at: null,
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/selected for ingestion \(2\)/i),
+      ).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-running',
+      );
+    });
+    expect(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    ).toBeChecked();
   });
 
   it('keeps session storage after a terminal batch status until the page is left', async () => {
@@ -254,21 +404,186 @@ describe('IngestDocumentPage', () => {
         'Batch batch-failed',
       );
     });
-    expect(readActiveIngestSession()).toEqual(
-      expect.objectContaining({
+    await waitFor(() => {
+      expect(readActiveIngestSession()).toEqual({
         batch_id: 'batch-failed',
-        kept_existing_sources: [
-          {
-            source_document_id: 'doc-existing',
-            title: 'Existing Guide',
-            filename: 'existing.pdf',
-          },
-        ],
-      }),
-    );
+      });
+    });
 
     view.unmount();
 
     expect(readActiveIngestSession()).toBeNull();
+  });
+
+  it('does not restore the previous batch selection after a terminal ingest', async () => {
+    const user = userEvent.setup();
+    mocks.startIngest.mockImplementation(async () => {
+      mocks.onAcceptedRef.current?.(
+        acceptedResponse('batch-done', [
+          acceptedSource('doc-1', 'Hypertension Guide'),
+        ]),
+        { isReingest: false },
+      );
+      return null;
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-done',
+      status: 'succeeded',
+      created_at: null,
+      completed_at: '2026-07-21T10:00:00Z',
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'succeeded',
+          started_at: null,
+          completed_at: '2026-07-21T10:00:00Z',
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expand Document Selection' }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    );
+    await user.click(screen.getByRole('button', { name: /start ingestion/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-done',
+      );
+    });
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /select diabetes guide/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/selected for ingestion \(1\)/i),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: /select diabetes guide/i }),
+    ).toBeChecked();
+  });
+
+  it('starts the next ingestion with only the newly selected documents', async () => {
+    const user = userEvent.setup();
+    mocks.startIngest.mockImplementation(async () => {
+      mocks.onAcceptedRef.current?.(
+        acceptedResponse('batch-done', [
+          acceptedSource('doc-1', 'Hypertension Guide'),
+        ]),
+        { isReingest: false },
+      );
+      return null;
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-done',
+      status: 'succeeded',
+      created_at: null,
+      completed_at: '2026-07-21T10:00:00Z',
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'succeeded',
+          started_at: null,
+          completed_at: '2026-07-21T10:00:00Z',
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Expand Document Selection' }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    );
+    await user.click(screen.getByRole('button', { name: /start ingestion/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-done',
+      );
+    });
+
+    mocks.startIngest.mockClear();
+    mocks.startIngest.mockResolvedValue(null);
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /select diabetes guide/i }),
+    );
+    await user.click(screen.getByRole('button', { name: /start ingestion/i }));
+
+    await waitFor(() => {
+      expect(mocks.startIngest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source_document_ids: ['doc-2'],
+        }),
+      );
+    });
+  });
+
+  it('loads terminal batch status immediately after refresh without the start delay', async () => {
+    writeActiveIngestSession({
+      batch_id: 'batch-done',
+      source_document_id: 'doc-1',
+      title: 'Hypertension Guide',
+    });
+    mocks.panelStatus.current = {
+      batch_id: 'batch-done',
+      status: 'succeeded',
+      created_at: null,
+      completed_at: '2026-07-21T10:00:00Z',
+      error: null,
+      sources: [
+        {
+          source_document_id: 'doc-1',
+          run_id: 'run-1',
+          document_label: 'Hypertension Guide',
+          status: 'succeeded',
+          started_at: null,
+          completed_at: '2026-07-21T10:00:00Z',
+          error: null,
+          nodes: [],
+        },
+      ],
+    };
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ingest-status')).toHaveTextContent(
+        'Batch batch-done',
+      );
+    });
+    expect(
+      screen.queryByText(/selected for ingestion/i),
+    ).not.toBeInTheDocument();
   });
 });

@@ -43,7 +43,6 @@ describe('adminDocumentAssignmentApi replace request', () => {
     expect(request.method).toBe('PUT');
     expect(request.body).toEqual({
       user_ids: [20],
-      upazilas: undefined,
       expand_po_assignees: false,
     });
   });

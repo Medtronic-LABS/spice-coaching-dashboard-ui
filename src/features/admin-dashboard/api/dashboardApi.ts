@@ -16,8 +16,10 @@ import type {
   DocumentUsageResponse,
   ModuleCreationSuggestionDetailResponse,
   ModuleCreationSuggestionListResponse,
+  ModuleDemandSummaryResponse,
   PublishedModuleCompletionsResponse,
   TeamActivityResponse,
+  TeamMemberQuestionsResponse,
 } from '@/features/admin-dashboard/types/dashboard.types';
 
 export interface DashboardDateParams {
@@ -41,6 +43,13 @@ export interface TeamActivityQuery
   sort_dir?: 'asc' | 'desc';
   /** Pending BE: hierarchy status filter. */
   status?: DashboardStatusQueryParam;
+}
+
+export interface TeamMemberQuestionsQuery
+  extends DashboardDateParams, DashboardGeoQueryParams {
+  userId: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface DigitalHelpModulesQuery extends DashboardDateParams {
@@ -71,6 +80,11 @@ export interface ModuleCreationSuggestionsQuery extends DashboardDateParams {
 export interface ModuleCreationSuggestionDetailQuery {
   suggestionId: string;
   geography: DashboardGeographyFilters;
+}
+
+export interface ModuleDemandSummaryQuery
+  extends DashboardDateParams, DashboardGeoQueryParams {
+  top_limit?: number;
 }
 
 export interface DocumentUsageQuery extends DashboardGeoQueryParams {
@@ -108,6 +122,22 @@ export const dashboardApi = baseApi.injectEndpoints({
           offset,
           user_id,
           depth,
+          ...geo,
+        },
+      }),
+    }),
+    fetchTeamMemberQuestions: builder.query<
+      TeamMemberQuestionsResponse,
+      TeamMemberQuestionsQuery
+    >({
+      extraOptions: DASHBOARD_QUERY_RETRY,
+      query: ({ userId, from_date, to_date, limit, offset, ...geo }) => ({
+        url: `/dashboard/team-activity/users/${encodeURIComponent(String(userId))}/questions`,
+        params: {
+          from_date,
+          to_date,
+          limit,
+          offset,
           ...geo,
         },
       }),
@@ -219,6 +249,37 @@ export const dashboardApi = baseApi.injectEndpoints({
         return normalized;
       },
     }),
+    fetchModuleDemandSummary: builder.query<
+      ModuleDemandSummaryResponse,
+      ModuleDemandSummaryQuery
+    >({
+      extraOptions: DASHBOARD_QUERY_RETRY,
+      query: ({ from_date, to_date, top_limit, ...geo }) => ({
+        url: '/dashboard/module-demand-summary',
+        params: {
+          from_date,
+          to_date,
+          top_limit,
+          ...geo,
+        },
+      }),
+      transformResponse: (response: unknown): ModuleDemandSummaryResponse => {
+        if (
+          typeof response !== 'object' ||
+          response === null ||
+          Array.isArray(response)
+        ) {
+          return { from_date: '', to_date: '', summary: '' };
+        }
+        const record = response as Record<string, unknown>;
+        return {
+          from_date:
+            typeof record.from_date === 'string' ? record.from_date : '',
+          to_date: typeof record.to_date === 'string' ? record.to_date : '',
+          summary: typeof record.summary === 'string' ? record.summary : '',
+        };
+      },
+    }),
     fetchDocumentUsage: builder.query<
       DocumentUsageResponse,
       DocumentUsageQuery
@@ -256,6 +317,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
 export const {
   useFetchTeamActivityQuery,
+  useFetchTeamMemberQuestionsQuery,
   useFetchDigitalHelpModulesQuery,
   useFetchDigitalHelpModuleQuestionsQuery,
   useFetchDigitalHelpModuleRequestsQuery,
@@ -264,5 +326,6 @@ export const {
   useFetchModuleCreationSuggestionsQuery,
   useFetchModuleCreationSuggestionDetailQuery,
   useLazyFetchModuleCreationSuggestionDetailQuery,
+  useFetchModuleDemandSummaryQuery,
   useFetchDocumentUsageQuery,
 } = dashboardApi;

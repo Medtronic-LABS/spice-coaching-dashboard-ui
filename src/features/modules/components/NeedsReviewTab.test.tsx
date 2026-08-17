@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { NeedsReviewTab } from './NeedsReviewTab';
+import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
+import { NeedsReviewTab } from './NeedsReviewTab';
 
 vi.mock('@/features/modules/api/adminModulesApi', async () => {
   const actual = await vi.importActual(
@@ -58,8 +60,37 @@ describe('NeedsReviewTab', () => {
 
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByText('Module')).toBeInTheDocument();
-    expect(screen.getByText('Candidate Module 1')).toBeInTheDocument();
+    const titleButton = screen.getByRole('button', {
+      name: 'Candidate Module 1',
+    });
+    expect(titleButton).toHaveClass('truncate');
+    expect(titleButton.parentElement?.parentElement).not.toHaveAttribute(
+      'tabIndex',
+    );
     expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
+  });
+
+  it('character-truncates long module titles and reveals the full title on hover', () => {
+    const title = 'A'.repeat(TABLE_CELL_LABEL_MAX_LENGTH + 20);
+    render(
+      <NeedsReviewTab
+        modules={[{ ...mockModules[0], title }]}
+        onMerge={vi.fn()}
+        onSkip={vi.fn()}
+        onView={vi.fn()}
+      />,
+    );
+
+    const displayTitle = truncateDisplayText(
+      title,
+      TABLE_CELL_LABEL_MAX_LENGTH,
+    );
+    const titleButton = screen.getByRole('button', { name: displayTitle });
+    const trigger = titleButton.parentElement?.parentElement;
+    expect(trigger).not.toBeNull();
+
+    fireEvent.mouseEnter(trigger!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(title);
   });
 
   it('toggles accordion row and shows comparison cards on click', async () => {

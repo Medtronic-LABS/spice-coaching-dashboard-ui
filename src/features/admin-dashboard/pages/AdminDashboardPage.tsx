@@ -7,12 +7,12 @@ import { buildPath, paths } from '@/constants/routes';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
 import { DocumentUsageSection } from '@/features/admin-dashboard/components/DocumentUsageSection';
+import { ModuleDemandSummaryWidget } from '@/features/admin-dashboard/components/ModuleDemandSummaryWidget';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/TopSearchedModulesWidget';
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
 import { TrainingModulesSection } from '@/features/admin-dashboard/components/TrainingModulesSection';
 import { useDashboardFilters } from '@/features/admin-dashboard/hooks/useDashboardFilters';
-import type { HierarchyFocusSelection } from '@/features/admin-dashboard/types/dashboard.types';
 import { canPerformDashboardAdminActions } from '@/features/admin-dashboard/utils/dashboardRoles';
 import { ModuleAssignmentDialog } from '@/features/modules/components/AssignmentDialog';
 import { buildOpenCreateModuleNavigationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -38,7 +38,7 @@ export const AdminDashboardPage = () => {
   const showAdminActions = canPerformDashboardAdminActions();
   const {
     filters,
-    dateRange,
+    queryDateRange,
     isDateRangeValid,
     setDurationPreset,
     setCustomFrom,
@@ -54,8 +54,9 @@ export const AdminDashboardPage = () => {
     moduleId: string;
     title: string;
   } | null>(null);
-  const [hierarchyFocus, setHierarchyFocus] =
-    useState<HierarchyFocusSelection | null>(null);
+
+  const { fromDate, toDate } = queryDateRange;
+  const { geography, status } = filters;
 
   const assignLabel = t('adminDashboard.moduleDemand.actions.assign');
   const publishLabel = t('adminDashboard.moduleDemand.actions.publish');
@@ -102,85 +103,81 @@ export const AdminDashboardPage = () => {
             </Button>
           </div>
         </Banner>
-      ) : (
-        <>
-          <DashboardKpiRow
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-            geography={filters.geography}
+      ) : null}
+
+      <DashboardKpiRow
+        fromDate={fromDate}
+        toDate={toDate}
+        geography={geography}
+      />
+
+      <TeamHierarchySection
+        fromDate={fromDate}
+        toDate={toDate}
+        geography={geography}
+        status={status}
+        sortKey={hierarchySort}
+        onSortChange={setHierarchySort}
+      />
+
+      <TrainingModulesSection
+        fromDate={fromDate}
+        toDate={toDate}
+        geography={geography}
+      />
+
+      <div className="space-y-3">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
+          {t('adminDashboard.moduleDemand.sectionTitle')}
+        </h2>
+        <ModuleDemandSummaryWidget
+          fromDate={fromDate}
+          toDate={toDate}
+          geography={geography}
+        />
+        <div className="grid items-stretch gap-3 xl:grid-cols-2">
+          <TopSearchedModulesWidget
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={geography}
+            showActions={showAdminActions}
+            assignLabel={assignLabel}
+            onAssign={(moduleId, title) =>
+              setAssignmentTarget({ moduleId, title })
+            }
           />
-
-          <TeamHierarchySection
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-            geography={filters.geography}
-            status={filters.status}
-            sortKey={hierarchySort}
-            onSortChange={setHierarchySort}
-            focusUserId={hierarchyFocus?.userId ?? null}
-            onFocusChange={setHierarchyFocus}
+          <TopSuggestedModulesWidget
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={geography}
+            showActions={showAdminActions}
+            publishLabel={publishLabel}
+            createLabel={createLabel}
+            onPublish={handlePublish}
+            onCreate={handleCreate}
           />
+        </div>
+      </div>
 
-          <TrainingModulesSection
-            fromDate={dateRange.fromDate}
-            toDate={dateRange.toDate}
-            geography={filters.geography}
-          />
+      <div className="space-y-3">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
+          {t('adminDashboard.insightsTitle')}
+        </h2>
+        <DocumentUsageSection
+          fromDate={fromDate}
+          toDate={toDate}
+          geography={geography}
+        />
+      </div>
 
-          <div className="space-y-3">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-              {t('adminDashboard.moduleDemand.sectionTitle')}
-            </h2>
-            <div className="grid items-stretch gap-3 xl:grid-cols-2">
-              <TopSearchedModulesWidget
-                fromDate={dateRange.fromDate}
-                toDate={dateRange.toDate}
-                geography={filters.geography}
-                showActions={showAdminActions}
-                assignLabel={assignLabel}
-                onAssign={(moduleId, title) =>
-                  setAssignmentTarget({ moduleId, title })
-                }
-                hideSkName={hierarchyFocus?.userId != null}
-              />
-              <TopSuggestedModulesWidget
-                fromDate={dateRange.fromDate}
-                toDate={dateRange.toDate}
-                geography={filters.geography}
-                showActions={showAdminActions}
-                publishLabel={publishLabel}
-                createLabel={createLabel}
-                onPublish={handlePublish}
-                onCreate={handleCreate}
-                hideSkName={hierarchyFocus?.userId != null}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-              {t('adminDashboard.insightsTitle')}
-            </h2>
-            <DocumentUsageSection
-              fromDate={dateRange.fromDate}
-              toDate={dateRange.toDate}
-              geography={filters.geography}
-              userId={hierarchyFocus?.userId}
-              focusUserName={hierarchyFocus?.userName}
-              onClearFocus={() => setHierarchyFocus(null)}
-            />
-          </div>
-
-          {assignmentTarget ? (
-            <ModuleAssignmentDialog
-              open
-              moduleId={assignmentTarget.moduleId}
-              moduleTitle={assignmentTarget.title}
-              onClose={() => setAssignmentTarget(null)}
-            />
-          ) : null}
-        </>
-      )}
+      {assignmentTarget ? (
+        <ModuleAssignmentDialog
+          open
+          moduleId={assignmentTarget.moduleId}
+          moduleTitle={assignmentTarget.title}
+          onClose={() => setAssignmentTarget(null)}
+        />
+      ) : null}
     </div>
   );
 };

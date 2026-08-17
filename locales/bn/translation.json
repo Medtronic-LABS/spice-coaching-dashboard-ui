@@ -171,10 +171,10 @@
       "retry": "আবার চেষ্টা করুন"
     },
     "kpis": {
-      "active": "সক্রিয় SK",
-      "activeTooltip": "নির্বাচিত সময়ে অন্তত একবার সক্রিয় থাকা SK",
-      "inactive": "নিষ্ক্রিয় SK",
-      "inactiveTooltip": "নির্বাচিত সময়ে কোনো কার্যকলাপ নেই এমন SK",
+      "active": "প্রতিক্রিয়াশীল SK",
+      "activeTooltip": "নির্বাচিত সময়ে অন্তত একবার প্রতিক্রিয়াশীল থাকা SK",
+      "inactive": "অপ্রতিক্রিয়াশীল SK",
+      "inactiveTooltip": "নির্বাচিত সময়ে অপ্রতিক্রিয়াশীল থাকা SK",
       "finishedModules": "অন্তত একটি মডিউল সম্পন্ন SK",
       "finishedModulesTooltip": "নির্বাচিত সময়ে অন্তত একটি মডিউল সম্পন্ন করা SK",
       "chatbotEngaged": "চ্যাটবট এনগেজড",
@@ -190,7 +190,6 @@
       "panelLabel": "ড্যাশবোর্ড ফিল্টার",
       "statusLabel": "টিম ভিউ",
       "durationLabel": "সময়কাল:",
-      "scopeNote": "টিম ভিউ শুধু এই পৃষ্ঠার হাইয়ারার্কি তালিকা ফিল্টার করে (সার্ভার মেট্রিক নয়)। বিভাগ, জেলা ও উপজেলা সব ড্যাশবোর্ড উইজেট রিফেচ করে। সময়কাল সব উইজেট আপডেট করে।",
       "clearCustomRange": "কাস্টম তারিখ রেঞ্জ মুছুন",
       "invalidRangeTitle": "অবৈধ তারিখ রেঞ্জ",
       "invalidRangeDescription": "একটি বৈধ কাস্টম শুরু/শেষ রেঞ্জ বেছে নিন, অথবা চালিয়ে যেতে কাস্টম রেঞ্জ মুছুন।",
@@ -208,7 +207,7 @@
         "at_risk_first": "ঝুঁকিতে প্রথম",
         "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
         "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
-        "most_inactive": "সর্বাধিক নিষ্ক্রিয় SK",
+        "most_inactive": "সর্বাধিক অপ্রতিক্রিয়াশীল SK",
         "name": "নাম (A–Z)"
       },
       "status": {
@@ -236,9 +235,7 @@
       "searchPlaceholderSk": "SK খুঁজুন...",
       "emptyTitle": "কোনো টিম মেম্বার নেই",
       "emptyDescription": "বর্তমান ফিল্টারে কোনো হায়ারার্কি সারি নেই।",
-      "focusForAnalytics": "এই ব্যক্তির উপর ডকুমেন্ট অ্যানালিটিক্স ফোকাস করুন",
-      "clearFocus": "ফোকাস সরান",
-      "focusActive": "ফোকাসড",
+      "openSkDetail": "SK বিবরণ দেখুন",
       "roleLabels": {
         "am": "এরিয়া ম্যানেজার",
         "po": "প্রোগ্রাম অফিসার",
@@ -261,12 +258,12 @@
       },
       "metrics": {
         "members": "{{count}} সদস্য",
-        "inactive": "{{count}} নিষ্ক্রিয়",
+        "inactive": "{{count}} অপ্রতিক্রিয়াশীল",
         "modules": "{{completed}}/{{total}} মডিউল",
         "chatbot": "{{count}} চ্যাটবট",
         "sksLabel": "SK",
         "membersLabel": "সদস্য",
-        "inactiveLabel": "নিষ্ক্রিয়",
+        "inactiveLabel": "অপ্রতিক্রিয়াশীল",
         "modulesLabel": "মডিউল",
         "queriesLabel": "প্রশ্ন"
       },
@@ -278,9 +275,31 @@
         "lastActive": "সর্বশেষ সক্রিয়"
       }
     },
+    "skDrawer": {
+      "title": "আমার SK",
+      "description": "{{name}}-এর কার্যকলাপ ও অ্যাসাইন করা মডিউল",
+      "close": "SK বিবরণ বন্ধ করুন",
+      "modulesLabel": "মডিউল",
+      "queriesLabel": "প্রশ্ন",
+      "modulesHeading": "মডিউল",
+      "activityHeading": "কার্যকলাপ",
+      "topQueriesHeading": "টপ প্রশ্ন",
+      "pending": "অপেক্ষমাণ",
+      "completed": "সম্পন্ন",
+      "lastChatbotUse": "শেষ চ্যাটবট ব্যবহার",
+      "lastModule": "শেষ মডিউল",
+      "never": "কখনো না",
+      "today": "আজ",
+      "yesterday": "গতকাল",
+      "daysAgo_one": "{{count}} দিন আগে",
+      "daysAgo_other": "{{count}} দিন আগে",
+      "emptyModules": "এই রেঞ্জে কোনো অ্যাসাইন করা মডিউল নেই।",
+      "emptyQueriesTitle": "কোনো প্রশ্ন নেই",
+      "emptyQueriesDescription": "নির্বাচিত তারিখ পরিসরে এই SK-এর কোনো চ্যাটবট প্রশ্ন নেই।"
+    },
     "trainingModules": {
       "title": "প্রশিক্ষণ মডিউল",
-      "description": "বর্তমান ভিউতে প্রকাশিত মডিউল ও SK সম্পন্নতার অগ্রগতি।",
+      "description": "প্রকাশিত মডিউল ও SK সম্পন্নতার অগ্রগতি।",
       "emptyTitle": "কোনো প্রকাশিত মডিউল নেই",
       "emptyDescription": "এই তারিখের রেঞ্জে কোনো মডিউল প্রকাশিত হয়নি।",
       "columns": {
@@ -335,6 +354,9 @@
     },
     "moduleDemand": {
       "sectionTitle": "মডিউল সার্চ চাহিদা",
+      "summaryTitle": "মডিউল চাহিদার সারাংশ",
+      "summaryDescription": "নির্বাচিত ফিল্টার অনুযায়ী ডিজিটাল-হেল্প ব্যবহার ও মডিউল তৈরির চাহিদার বর্ণনামূলক সারাংশ।",
+      "summaryEmptyFallback": "{{fromDate}} থেকে {{toDate}} এর মধ্যে আপনার টিমের জন্য কোনো মডিউল ব্যবহার বা তৈরির চাহিদা রেকর্ড হয়নি।",
       "columns": {
         "title": "মডিউল শিরোনাম",
         "searchCount": "সার্চ কাউন্ট",
@@ -367,6 +389,7 @@
         "create": "মডিউল তৈরি"
       },
       "seeMore": "আরও দেখুন",
+      "seeLess": "কম দেখুন",
       "loadingMore": "লোড হচ্ছে…",
       "expand": "উইজেট প্রসারিত করুন",
       "collapse": "উইজেট সংকুচিত করুন",
@@ -390,7 +413,6 @@
       "opensTitle": "ওপেন ইভেন্ট",
       "unknownUser": "অজানা ব্যবহারকারী",
       "openDetail": "{{title}} এর ওপেনে ড্রিল ডাউন করুন",
-      "clearFocus": "ফোকাস সরান: {{name}}",
       "viewAll": "সব দেখুন",
       "viewAllDocuments": "সব ডকুমেন্ট দেখুন",
       "backToOverview": "ওভারভিউতে ফিরুন",
@@ -437,7 +459,7 @@
     "onTime": "সময়ের মধ্যে",
     "dueSoon": "শিগগিরই সময়সীমা",
     "delayed": "বিলম্বিত",
-    "inactive": "নিষ্ক্রিয়",
+    "inactive": "অপ্রতিক্রিয়াশীল",
     "inProgress": "চলমান",
     "unknown": "অজানা"
   },

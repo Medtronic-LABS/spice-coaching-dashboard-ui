@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SettingsFilterRenderer } from '@/components/common/SettingsFilterRenderer';
 import type { SettingsFilterSection } from '@/components/common/settingsFilter.types';
+import { todayDateInputValue } from '@/utils/dateInput';
 
 describe('SettingsFilterRenderer', () => {
   it('renders segmented options and forwards selection', async () => {
@@ -137,5 +138,118 @@ describe('SettingsFilterRenderer', () => {
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
     expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it('caps From and To date pickers at today', () => {
+    render(
+      <SettingsFilterRenderer
+        sections={[
+          {
+            id: 'dates',
+            label: 'Date ranges',
+            fields: [
+              {
+                type: 'date-range',
+                id: 'created',
+                label: 'Created',
+                from: {
+                  id: 'created-from',
+                  value: '2026-04-01',
+                  ariaLabel: 'Created from',
+                  onChange: vi.fn(),
+                },
+                to: {
+                  id: 'created-to',
+                  value: '2026-04-10',
+                  ariaLabel: 'Created to',
+                  onChange: vi.fn(),
+                },
+              },
+            ],
+          },
+        ]}
+        onClearAll={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    );
+
+    const today = todayDateInputValue();
+    expect(screen.getByLabelText('Created from')).toHaveAttribute('max', today);
+    expect(screen.getByLabelText('Created to')).toHaveAttribute('max', today);
+  });
+
+  it('applies fieldsClassName to date-range field wrappers', () => {
+    render(
+      <SettingsFilterRenderer
+        sections={[
+          {
+            id: 'dates',
+            label: 'Date ranges',
+            fields: [
+              {
+                type: 'date-range',
+                id: 'created',
+                label: 'Created',
+                from: {
+                  id: 'created-from',
+                  value: '2026-04-01',
+                  ariaLabel: 'Created from',
+                  onChange: vi.fn(),
+                },
+                to: {
+                  id: 'created-to',
+                  value: '2026-04-10',
+                  ariaLabel: 'Created to',
+                  onChange: vi.fn(),
+                },
+              },
+            ],
+          },
+        ]}
+        onClearAll={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText('Created from').closest('div.pl-2'),
+    ).toBeNull();
+
+    render(
+      <SettingsFilterRenderer
+        sections={[
+          {
+            id: 'dates',
+            label: 'Date ranges',
+            fieldsClassName: 'pl-2',
+            fields: [
+              {
+                type: 'date-range',
+                id: 'padded',
+                label: 'Padded',
+                from: {
+                  id: 'padded-from',
+                  value: '2026-04-01',
+                  ariaLabel: 'Padded from',
+                  onChange: vi.fn(),
+                },
+                to: {
+                  id: 'padded-to',
+                  value: '2026-04-10',
+                  ariaLabel: 'Padded to',
+                  onChange: vi.fn(),
+                },
+              },
+            ],
+          },
+        ]}
+        onClearAll={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText('Padded from').closest('div.pl-2'),
+    ).not.toBeNull();
   });
 });

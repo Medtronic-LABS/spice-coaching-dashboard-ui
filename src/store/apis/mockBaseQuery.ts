@@ -142,7 +142,7 @@ interface MockConfigThreshold {
 interface MockConfigChange {
   previous_value_json: unknown | null;
   current_value_json: unknown;
-  updated_by: string;
+  updated_by: string | { id: number; name: string } | null;
   updated_at: string;
 }
 
@@ -815,6 +815,9 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
             m.status === 'deactivated'
               ? { id: 103, name: 'Mock Deactivator' }
               : null,
+          retired_at: m.status === 'retired' ? createdAt : null,
+          retired_by:
+            m.status === 'retired' ? { id: 104, name: 'Mock Retirer' } : null,
           quality_flags: { flags: [] },
           quiz_count: m.questions,
           chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
@@ -1190,6 +1193,35 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     return Array.from(expanded);
   };
 
+  const resolveAssigneeIdsFromPayload = (payload: {
+    user_ids?: number[];
+    upazila_ids?: number[];
+    district_ids?: number[];
+    division_ids?: number[];
+    expand_po_assignees?: boolean;
+  }): number[] => {
+    if (payload.user_ids !== undefined) {
+      return expandAssigneeIds(
+        payload.user_ids,
+        payload.expand_po_assignees === true,
+      );
+    }
+    const upazilaIds = new Set(payload.upazila_ids ?? []);
+    const districtIds = new Set(payload.district_ids ?? []);
+    if (upazilaIds.size === 0 && districtIds.size === 0) {
+      return [];
+    }
+    return mockHierarchyUsersForAssign
+      .filter((user) => {
+        if (upazilaIds.size > 0) {
+          if (user.role === 'AREA_MANAGER') return false;
+          return user.upazilas.some((upazila) => upazilaIds.has(upazila.id));
+        }
+        return districtIds.has(user.district_id);
+      })
+      .map((user) => user.id);
+  };
+
   const usersForIds = (userIds: number[]) =>
     mockHierarchyUsersForAssign.filter((user) => userIds.includes(user.id));
 
@@ -1197,7 +1229,9 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const payload = body as {
       source_document_id: string;
       user_ids?: number[];
-      upazilas?: string[];
+      upazila_ids?: number[];
+      district_ids?: number[];
+      division_ids?: number[];
       expand_po_assignees?: boolean;
     };
     const sourceDoc = mockSourceDocuments.find(
@@ -1212,17 +1246,19 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       };
     }
     const now = new Date().toISOString();
-    const nextIds = expandAssigneeIds(
-      payload.user_ids ?? [],
-      payload.expand_po_assignees === true,
-    );
-    // Replace assignees for this document.
-    mockDocumentAssignmentsState = mockDocumentAssignmentsState.filter(
-      (assignment) =>
-        assignment.source_document_id !== payload.source_document_id,
+    const nextIds = resolveAssigneeIdsFromPayload(payload);
+    const existingUserIds = new Set(
+      mockDocumentAssignmentsState
+        .filter(
+          (assignment) =>
+            assignment.source_document_id === payload.source_document_id &&
+            assignment.user_id !== null,
+        )
+        .map((assignment) => assignment.user_id as number),
     );
     const newIds: string[] = [];
     for (const userId of nextIds) {
+      if (existingUserIds.has(userId)) continue;
       const user = mockHierarchyUsersForAssign.find(
         (item) => item.id === userId,
       );
@@ -1299,13 +1335,12 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     if (method === 'PUT') {
       const payload = (body ?? {}) as {
         user_ids?: number[];
-        upazilas?: string[];
+        upazila_ids?: number[];
+        district_ids?: number[];
+        division_ids?: number[];
         expand_po_assignees?: boolean;
       };
-      const nextIds = expandAssigneeIds(
-        payload.user_ids ?? [],
-        payload.expand_po_assignees === true,
-      );
+      const nextIds = resolveAssigneeIdsFromPayload(payload);
       const previousIds = new Set(
         mockDocumentAssignmentsState
           .filter(
@@ -1972,6 +2007,16 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         created_by: 'system',
         updated_by: 'system',
       },
+      {
+        id: 20,
+        name: 'Naogaon',
+        division_id: 2,
+        tenant_id: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        created_by: 'system',
+        updated_by: 'system',
+      },
     ].filter((district) => {
       if (
         divisionIdFilter !== null &&
@@ -2146,7 +2191,9 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const payload = body as {
       module_id: string;
       user_ids?: number[];
-      upazilas?: string[];
+      upazila_ids?: number[];
+      district_ids?: number[];
+      division_ids?: number[];
       expand_po_assignees?: boolean;
     };
     const now = new Date().toISOString();
@@ -2155,15 +2202,19 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     );
     const titleText = moduleItem?.title?.trim() || 'Unknown';
     const title = { bn: titleText, en: titleText };
-    const nextIds = expandAssigneeIds(
-      payload.user_ids ?? [],
-      payload.expand_po_assignees === true,
-    );
-    mockAssignmentsState = mockAssignmentsState.filter(
-      (assignment) => assignment.module_id !== payload.module_id,
+    const nextIds = resolveAssigneeIdsFromPayload(payload);
+    const existingUserIds = new Set(
+      mockAssignmentsState
+        .filter(
+          (assignment) =>
+            assignment.module_id === payload.module_id &&
+            assignment.user_id !== null,
+        )
+        .map((assignment) => assignment.user_id as number),
     );
     const newIds: string[] = [];
     for (const userId of nextIds) {
+      if (existingUserIds.has(userId)) continue;
       const user = mockHierarchyUsersForAssign.find(
         (item) => item.id === userId,
       );
@@ -2232,13 +2283,12 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     if (method === 'PUT') {
       const payload = (body ?? {}) as {
         user_ids?: number[];
-        upazilas?: string[];
+        upazila_ids?: number[];
+        district_ids?: number[];
+        division_ids?: number[];
         expand_po_assignees?: boolean;
       };
-      const nextIds = expandAssigneeIds(
-        payload.user_ids ?? [],
-        payload.expand_po_assignees === true,
-      );
+      const nextIds = resolveAssigneeIdsFromPayload(payload);
       const previousIds = new Set(
         mockAssignmentsState
           .filter(

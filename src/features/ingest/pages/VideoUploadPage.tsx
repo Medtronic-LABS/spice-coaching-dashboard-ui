@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { DeleteIcon } from '@/assets/icon';
+import { DeleteIcon, EyeIcon } from '@/assets/icon';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -11,6 +11,7 @@ import {
   Banner,
   Button,
   Card,
+  LimitedTextInput,
   Loader,
   SearchInput,
   StatusBadge,
@@ -19,10 +20,16 @@ import {
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import {
+  FIELD_LIMITS,
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import { truncateDisplayText } from '@/utils/truncateDisplayText';
+import {
+  SPICE_CHECKBOX_CLASSNAME,
+  SPICE_INPUT_FOCUS_CLASSNAME,
+} from '@/constants/formControls';
+import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
+import { cn } from '@/utils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
   type AdminV3IngestAcceptedResponse,
@@ -79,6 +86,8 @@ import {
   toggleVideoUploadStatus,
   type VideoUploadFiltersState,
 } from '@/features/ingest/utils/videoUploadStatusConfig';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import {
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
@@ -170,10 +179,16 @@ function statusBadgeProps(status: string): {
     return { status: 'critical', label: status };
   }
   if (
+    normalized === 'ingesting' ||
     normalized.includes('queue') ||
-    normalized.includes('running') ||
-    normalized.includes('ingest')
+    normalized.includes('running')
   ) {
+    return { status: 'info', label: status };
+  }
+  if (normalized === 'uploaded') {
+    return { status: 'neutral', label: status };
+  }
+  if (normalized.includes('ingest')) {
     return { status: 'info', label: status };
   }
   return { status: 'neutral', label: status };
@@ -329,6 +344,15 @@ export const VideoUploadPage = () => {
     setPage(0);
     setFiltersDrawerOpen(false);
   }, [draftFilters]);
+
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'video',
+    selection: draftFilters,
+    onSelectionChange: (next) => {
+      setDraftFilters((current) => ({ ...current, ...next }));
+    },
+  });
 
   const stageVideoFiles = useCallback((files: ArrayLike<File> | null) => {
     const picked = Array.from(files ?? []);
@@ -487,6 +511,7 @@ export const VideoUploadPage = () => {
           uploaded_to: uploadedDateInputToToIso(appliedFilters.uploadedAtTo),
         }
       : {}),
+    ...toGeographyQueryParams(appliedFilters),
     limit: pageSize,
     offset: page * pageSize,
     sort_by: sortBy,
@@ -866,7 +891,7 @@ export const VideoUploadPage = () => {
         render: (row) => (
           <input
             type="checkbox"
-            className="h-4 w-4 shrink-0 rounded border-spice-border-mid text-spice-brand-primary focus:ring-spice-brand-primary/30"
+            className={SPICE_CHECKBOX_CLASSNAME}
             aria-label={`Select ${row.title}`}
             checked={selectedIds.has(row.id)}
             disabled={isUploading}
@@ -895,9 +920,7 @@ export const VideoUploadPage = () => {
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-medium text-spice-text-primary"
-            >
-              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
-            </TruncatedText>
+            />
             {row.description ? (
               <p className="mt-0.5 line-clamp-2 text-[11px] text-spice-text-muted">
                 {row.description}
@@ -1013,7 +1036,7 @@ export const VideoUploadPage = () => {
               ) : isViewModulesStatus(row.status) ? (
                 <Button
                   variant="secondary"
-                  className="h-8 shrink-0 px-3 text-xs"
+                  className="h-8 shrink-0 gap-1.5 px-3 text-xs"
                   onClick={() => {
                     goToDraftsForSource(
                       row.sourceDocumentId as string,
@@ -1021,6 +1044,7 @@ export const VideoUploadPage = () => {
                     );
                   }}
                 >
+                  <EyeIcon className="h-3.5 w-3.5" />
                   View modules
                 </Button>
               ) : (
@@ -1184,14 +1208,18 @@ export const VideoUploadPage = () => {
                           <DeleteIcon className="h-4 w-4" />
                         </Button>
                       </div>
-                      <input
+                      <LimitedTextInput
                         id={`pending-video-title-${item.key}`}
-                        type="text"
                         value={item.title}
+                        maxLength={FIELD_LIMITS.documentTitle}
                         disabled={uploadBusy}
                         aria-invalid={titleInvalid}
-                        onChange={(event) => {
-                          const value = event.target.value;
+                        inputClassName={
+                          titleInvalid
+                            ? 'h-auto rounded-md border-spice-semantic-error py-2'
+                            : 'h-auto rounded-md py-2'
+                        }
+                        onChange={(value) => {
                           updatePendingItem(item.key, { title: value });
                           if (value.trim()) {
                             setPendingTitleErrorKeys((previous) => {
@@ -1202,11 +1230,6 @@ export const VideoUploadPage = () => {
                             });
                           }
                         }}
-                        className={`w-full rounded-md border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20 ${
-                          titleInvalid
-                            ? 'border-spice-semantic-error'
-                            : 'border-spice-border'
-                        }`}
                       />
                       {titleInvalid ? (
                         <span className="text-[11px] text-spice-semantic-error">
@@ -1227,7 +1250,10 @@ export const VideoUploadPage = () => {
                             description: event.target.value,
                           })
                         }
-                        className="w-full resize-y rounded-md border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary focus:ring-2 focus:ring-spice-brand-primary/20"
+                        className={cn(
+                          'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+                          SPICE_INPUT_FOCUS_CLASSNAME,
+                        )}
                       />
                     </label>
                   </div>
@@ -1294,7 +1320,7 @@ export const VideoUploadPage = () => {
         </div>
 
         <p className="text-xs text-spice-text-muted">
-          {VIDEO_ACCEPTED_FILE_TYPES_LABEL}
+          {VIDEO_ACCEPTED_FILE_TYPES_LABEL} · {INGEST_MEDIA_MAX_UPLOAD_LABEL}
         </p>
 
         <IngestUploadProgress active={isUploading} label="Uploading videos…" />
@@ -1367,6 +1393,7 @@ export const VideoUploadPage = () => {
             }}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
         <Loader open={isLoadingVideos} label="Loading uploaded videos…" />

@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef } from 'react';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
-import { Button } from '@/components/ui';
+import { Button, TruncatedText } from '@/components/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { AdminV3IngestBatchSourceStatus } from '@/features/ingest/api/adminIngestApi';
+import { useFetchIngestionRunByIdQuery } from '@/features/ingest/api/adminIngestionRunsApi';
 import { IngestFlowStatusLabel } from '@/features/ingest/components/IngestFlowStatusLabel';
 import {
   countGeneratedModulesFromSource,
@@ -51,7 +52,14 @@ export const IngestDocumentProgressCard = ({
   const latestStepLabel = getIngestSourceStepLabel(latestStep);
   const latestStepPath = latestStep?.path ?? null;
   const latestStepRef = useRef<HTMLDivElement | null>(null);
-  const generatedModuleCount = countGeneratedModulesFromSource(source);
+  const runId = source.run_id?.trim() ?? '';
+  const { data: ingestionRun } = useFetchIngestionRunByIdQuery(runId, {
+    skip: !isCompleted || !runId,
+  });
+  const generatedModuleCount =
+    ingestionRun !== undefined
+      ? Math.max(0, Math.floor(ingestionRun.generated_module_count))
+      : countGeneratedModulesFromSource(source);
   const reviewPendingModuleCount = countReviewPendingModulesFromSource(source);
   const similarityDetected = hasSimilarityDetectedInSource(source);
   const reviewModuleCount =
@@ -102,10 +110,11 @@ export const IngestDocumentProgressCard = ({
       <div className="flex items-start gap-3 px-3 py-3">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div id={headingId} className="min-w-0">
-              <div className="truncate text-sm font-semibold text-spice-text-primary">
-                {documentName}
-              </div>
+            <div id={headingId} className="min-w-0 flex-1">
+              <TruncatedText
+                text={documentName}
+                className="text-sm font-semibold text-spice-text-primary"
+              />
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <span

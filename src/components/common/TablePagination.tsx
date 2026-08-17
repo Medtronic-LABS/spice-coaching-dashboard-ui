@@ -1,4 +1,5 @@
 import { Button, Select } from '@/components/ui';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 export interface TablePaginationProps {
@@ -86,7 +87,10 @@ export const TablePagination = ({
             step={1}
             inputMode="numeric"
             aria-label={pageNumberAriaLabel}
-            className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
+            className={cn(
+              'h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary caret-spice-palette-purple',
+              SPICE_INPUT_FOCUS_CLASSNAME,
+            )}
             value={pageInput}
             onChange={(e) => onPageInputChange(e.target.value)}
             onBlur={onCommitPageInput}

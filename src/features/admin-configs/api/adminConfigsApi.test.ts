@@ -27,6 +27,31 @@ describe('normalizeConfigThresholdChangeItem', () => {
       updated_at: '',
     });
   });
+
+  it('uses updated_by.name from actor objects and treats null as empty', () => {
+    expect(
+      normalizeConfigThresholdChangeItem({
+        previous_value_json: 2,
+        current_value_json: 1,
+        updated_by: { id: 422, name: 'Mudassar Raza' },
+        updated_at: '2026-08-17T05:48:10.167239Z',
+      }),
+    ).toEqual({
+      previous_value_json: 2,
+      current_value_json: 1,
+      updated_by: 'Mudassar Raza',
+      updated_at: '2026-08-17T05:48:10.167239Z',
+    });
+
+    expect(
+      normalizeConfigThresholdChangeItem({
+        previous_value_json: 3,
+        current_value_json: 1,
+        updated_by: null,
+        updated_at: '2026-08-14T20:09:43.027496Z',
+      }).updated_by,
+    ).toBe('');
+  });
 });
 
 describe('normalizeConfigThresholdChangeListResponse', () => {

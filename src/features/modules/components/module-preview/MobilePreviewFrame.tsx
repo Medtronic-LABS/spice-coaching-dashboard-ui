@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { TruncatedText } from '@/components/ui';
 import { cn } from '@/utils';
 
 /** Fixed phone mockup height when not filling a parent container. */
@@ -33,8 +34,11 @@ export const MobilePreviewFrame = ({
     >
       <header className="bg-spice-brand-app px-4 py-3 text-white">
         <div className="relative flex items-center justify-center gap-3">
-          <div className="min-w-0 truncate text-center text-sm font-semibold">
-            {headerTitle}
+          <div className={cn('min-w-0 flex-1', onClose && 'pr-12')}>
+            <TruncatedText
+              text={headerTitle}
+              className="text-center text-sm font-semibold"
+            />
           </div>
           {onClose ? (
             <button

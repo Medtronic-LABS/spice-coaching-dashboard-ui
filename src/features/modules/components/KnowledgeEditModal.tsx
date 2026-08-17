@@ -6,8 +6,12 @@ import {
   Modal,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
+import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
+import { cn } from '@/utils';
 
 export interface KnowledgeEditModalProps {
   open: boolean;
@@ -60,7 +64,7 @@ export function KnowledgeEditModal({
             id="knowledge-edit-title"
             className="text-lg font-semibold text-spice-text-primary"
           >
-            Edit Knowledge Asset
+            Edit Knowledge
           </h2>
 
           {error ? (
@@ -82,7 +86,10 @@ export function KnowledgeEditModal({
               maxLength={FIELD_LIMITS.documentTitle}
               disabled={disabled}
               onChange={onTitleChange}
-              inputClassName="h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:border-spice-brand-primary/40 focus:ring-2 focus:ring-spice-brand-primary/20"
+              inputClassName={cn(
+                'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+                SPICE_INPUT_FOCUS_CLASSNAME,
+              )}
             />
           </div>
 
@@ -95,9 +102,10 @@ export function KnowledgeEditModal({
               value={thumbnailValue}
               onChange={onThumbnailChange}
               disabled={disabled}
-              accept="image/*"
+              accept={IMAGE_FILE_INPUT_ACCEPT}
               label="Choose thumbnail"
               labelWhenSelected="Change thumbnail"
+              hint={THUMBNAIL_ACCEPT_SIZE_HINT}
               previewAlt="Knowledge thumbnail"
               previewObjectFit="contain"
             />

@@ -6,7 +6,14 @@ import {
   DeleteIcon,
   SaveDraftIcon,
 } from '@/assets/icon';
-import { Banner, Button, Card, EmptyState, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  Loader,
+  TruncatedText,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
@@ -226,13 +233,20 @@ export const AdminModuleQuizStep = () => {
 
       <Card variant="elevated" className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold text-spice-text-primary">
               {isReadonly ? 'Quiz questions' : 'Build quiz questions'}
             </div>
-            <div className="mt-1 text-xs text-spice-text-muted">
-              {sortedQuiz.length} questions ·{' '}
-              {resolveDisplayText(working.title, 'Module')}
+            <div className="mt-1 min-w-0 text-xs text-spice-text-muted">
+              <div className="flex min-w-0 items-center gap-1">
+                <span className="shrink-0">
+                  {sortedQuiz.length} questions ·
+                </span>
+                <TruncatedText
+                  text={resolveDisplayText(working.title, 'Module')}
+                  className="text-xs text-spice-text-muted"
+                />
+              </div>
             </div>
           </div>
           {!isReadonly && sortedQuiz.length > 0 ? (

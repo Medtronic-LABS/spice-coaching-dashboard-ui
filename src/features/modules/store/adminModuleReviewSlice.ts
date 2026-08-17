@@ -18,6 +18,8 @@ export interface AdminModuleReviewState {
   moduleId: string | null;
   working: AdminModuleDetailResponse | null;
   baseline: AdminModuleDetailResponse | null;
+  /** User has focused an editor or made an explicit edit — required before isDirty. */
+  editorFocused: boolean;
   quizContentBaselines: Record<string, QuizContentBaseline>;
   pendingExplanationReviewIds: string[];
   acknowledgedExplanationReviewIds: string[];
@@ -30,6 +32,7 @@ const initialState: AdminModuleReviewState = {
   moduleId: null,
   working: null,
   baseline: null,
+  editorFocused: false,
   quizContentBaselines: {},
   pendingExplanationReviewIds: [],
   acknowledgedExplanationReviewIds: [],
@@ -37,6 +40,10 @@ const initialState: AdminModuleReviewState = {
   explanationReviewDialogOpen: false,
   versionConflict: null,
 };
+
+function markEditorFocused(state: AdminModuleReviewState) {
+  state.editorFocused = true;
+}
 
 function resetExplanationReviewState(
   state: AdminModuleReviewState,
@@ -100,6 +107,9 @@ export function editableSnapshot(module: AdminModuleDetailResponse): string {
     quiz: module.quiz,
     thumbnail_storage_path: module.thumbnail_storage_path,
     chatbot_faqs_only: Boolean(module.chatbot_faqs_only),
+    domain: module.domain,
+    content_domain: module.content_domain ?? null,
+    estimated_minutes: module.estimated_minutes,
   });
 }
 
@@ -111,6 +121,7 @@ export const adminModuleReviewSlice = createSlice({
       state.moduleId = null;
       state.working = null;
       state.baseline = null;
+      state.editorFocused = false;
       state.quizContentBaselines = {};
       state.pendingExplanationReviewIds = [];
       state.acknowledgedExplanationReviewIds = [];
@@ -136,6 +147,7 @@ export const adminModuleReviewSlice = createSlice({
         state.moduleId = moduleId;
         state.working = data;
         state.baseline = data;
+        state.editorFocused = false;
         resetExplanationReviewState(state, data.quiz);
         return;
       }
@@ -143,6 +155,7 @@ export const adminModuleReviewSlice = createSlice({
       if (!isDirty) {
         state.working = data;
         state.baseline = data;
+        state.editorFocused = false;
         resetExplanationReviewState(state, data.quiz);
         return;
       }
@@ -158,6 +171,9 @@ export const adminModuleReviewSlice = createSlice({
         thumbnail_presigned_expires_seconds:
           state.working.thumbnail_presigned_expires_seconds,
         chatbot_faqs_only: state.working.chatbot_faqs_only,
+        domain: state.working.domain,
+        content_domain: state.working.content_domain,
+        estimated_minutes: state.working.estimated_minutes,
       };
       syncExplanationReviewState(state);
     },
@@ -165,11 +181,15 @@ export const adminModuleReviewSlice = createSlice({
       state.moduleId = action.payload.id;
       state.working = action.payload;
       state.baseline = action.payload;
+      state.editorFocused = false;
       state.versionConflict = null;
       const resolved = resolveExplanationReviewsOnSave(action.payload.quiz);
       state.quizContentBaselines = resolved.baselines;
       state.pendingExplanationReviewIds = resolved.pendingIds;
       state.acknowledgedExplanationReviewIds = resolved.acknowledgedIds;
+    },
+    markReviewEditorFocused(state) {
+      markEditorFocused(state);
     },
     updateDetails(
       state,
@@ -179,13 +199,18 @@ export const adminModuleReviewSlice = createSlice({
         thumbnail_storage_path?: string | null;
         thumbnail_presigned_url?: string | null;
         chatbot_faqs_only?: boolean;
+        domain?: string;
+        content_domain?: string | null;
+        estimated_minutes?: number;
       }>,
     ) {
       if (!state.working) return;
+      markEditorFocused(state);
       state.working = { ...state.working, ...action.payload };
     },
     setCards(state, action: PayloadAction<AdminModuleCard[]>) {
       if (!state.working) return;
+      markEditorFocused(state);
       state.working = withSyncedCards(state.working, action.payload);
     },
     updateCardAtIndex(
@@ -193,6 +218,7 @@ export const adminModuleReviewSlice = createSlice({
       action: PayloadAction<{ index: number; card: AdminModuleCard }>,
     ) {
       if (!state.working) return;
+      markEditorFocused(state);
       const cards = [...state.working.cards];
       cards[action.payload.index] = action.payload.card;
       state.working = withSyncedCards(state.working, cards);
@@ -202,6 +228,7 @@ export const adminModuleReviewSlice = createSlice({
       action: PayloadAction<{ index: number; card: AdminModuleCard }>,
     ) {
       if (!state.working) return;
+      markEditorFocused(state);
       const cards = [...state.working.cards];
       const clampedIndex = Math.max(
         0,
@@ -212,6 +239,7 @@ export const adminModuleReviewSlice = createSlice({
     },
     removeCardAtIndex(state, action: PayloadAction<{ index: number }>) {
       if (!state.working) return;
+      markEditorFocused(state);
       const cards = [...state.working.cards];
       if (action.payload.index < 0 || action.payload.index >= cards.length)
         return;
@@ -220,6 +248,7 @@ export const adminModuleReviewSlice = createSlice({
     },
     setQuiz(state, action: PayloadAction<AdminModuleQuizItem[]>) {
       if (!state.working) return;
+      markEditorFocused(state);
       state.working = withSyncedQuiz(state.working, action.payload);
       syncExplanationReviewState(state);
     },
@@ -258,6 +287,7 @@ export const adminModuleReviewSlice = createSlice({
     discardChanges(state) {
       if (!state.baseline) return;
       state.working = state.baseline;
+      state.editorFocused = false;
       resetExplanationReviewState(state, state.baseline.quiz);
     },
     setVersionConflict(
@@ -276,6 +306,7 @@ export const {
   clearAdminModuleReview,
   hydrateFromServer,
   markSaved,
+  markReviewEditorFocused,
   updateDetails,
   setCards,
   updateCardAtIndex,
@@ -298,10 +329,18 @@ export const selectAdminModuleWorking = (state: RootState) =>
 export const selectAdminModuleBaseline = (state: RootState) =>
   state.adminModuleReview.baseline;
 
-export const selectAdminModuleReviewIsDirty = (state: RootState): boolean => {
+export const selectAdminModuleReviewHasContentChanges = (
+  state: RootState,
+): boolean => {
   const { working, baseline } = state.adminModuleReview;
   if (!working || !baseline) return false;
   return editableSnapshot(working) !== editableSnapshot(baseline);
+};
+
+export const selectAdminModuleReviewIsDirty = (state: RootState): boolean => {
+  const { editorFocused } = state.adminModuleReview;
+  if (!editorFocused) return false;
+  return selectAdminModuleReviewHasContentChanges(state);
 };
 
 export const selectPendingExplanationReviewIds = (state: RootState): string[] =>

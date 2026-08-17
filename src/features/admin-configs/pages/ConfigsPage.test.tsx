@@ -77,7 +77,31 @@ describe('ConfigsPage configuration history', () => {
     expect(
       within(table).getByText(formatDisplayDateTime('2026-07-02T12:00:00Z')),
     ).toBeInTheDocument();
+    expect(within(table).getByText('admin')).toBeInTheDocument();
     expect(within(table).getByText('30')).toBeInTheDocument();
+  });
+
+  it('shows actor names from updated_by objects and an em dash when null', async () => {
+    seedMockConfigChanges('quiz_reattempt_validity_days', [
+      {
+        previous_value_json: 2,
+        current_value_json: 1,
+        updated_by: { id: 422, name: 'Mudassar Raza' },
+        updated_at: '2026-08-17T05:48:10.167239Z',
+      },
+      {
+        previous_value_json: 3,
+        current_value_json: 2,
+        updated_by: null,
+        updated_at: '2026-08-14T20:09:43.027496Z',
+      },
+    ]);
+
+    renderWithProviders(<ConfigsPage />);
+    const table = await waitForHistoryReady('1');
+
+    expect(within(table).getByText('Mudassar Raza')).toBeInTheDocument();
+    expect(within(table).getByText('—')).toBeInTheDocument();
   });
 
   it('appends a new history row after a successful save', async () => {

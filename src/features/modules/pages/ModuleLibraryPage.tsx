@@ -50,10 +50,16 @@ import {
   NEEDS_REVIEW_TOOLTIP_CONTENT,
   NeedsReviewTab,
 } from '@/features/modules/components/NeedsReviewTab';
+import {
+  ModulePublishedSuccessModal,
+  type ModulePublishedSuccessSummary,
+} from '@/features/modules/components/ModulePublishedSuccessModal';
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type {
   ModuleLibraryItem,
   ModuleStatus,
@@ -120,6 +126,8 @@ const DEFAULT_MODULE_PAGE_SIZE = 10;
 
 const CREATE_MODULE_INPUT_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
+const PUBLISHED_ASSIGN_SLOT_CLASS =
+  'inline-flex h-8 min-w-[5.25rem] justify-start';
 
 type AdminModuleDifficultyLevel = (typeof DIFFICULTY_LEVEL_OPTIONS)[number];
 
@@ -232,6 +240,9 @@ export const ModuleLibraryPage = () => {
     null,
   );
   const [publishError, setPublishError] = useState('');
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [publishSuccessSummary, setPublishSuccessSummary] =
+    useState<ModulePublishedSuccessSummary | null>(null);
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
 
@@ -296,6 +307,7 @@ export const ModuleLibraryPage = () => {
       domain: activeFilters.domain || undefined,
       ...dateParams,
       sourceDocumentId: activeFilters.sourceDocumentId || undefined,
+      ...toGeographyQueryParams(activeFilters),
       q: searchQ,
       sort_by: sortBy,
       sort_dir: sortDir,
@@ -345,6 +357,15 @@ export const ModuleLibraryPage = () => {
     setPage(0);
     setDocumentSearch('');
   };
+
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'module',
+    selection: draftFilters,
+    onSelectionChange: (next) => {
+      setDraftFilters((current) => ({ ...current, ...next }));
+    },
+  });
 
   const handleTabChange = (value: string) => {
     setTab(value as ModuleLibraryTab);
@@ -532,6 +553,7 @@ export const ModuleLibraryPage = () => {
       lessons: m.card_count,
       questions: m.quiz_count,
       durationLabel: `~${formatEstimatedMinutesDisplay(m.estimated_minutes)}`,
+      estimatedMinutes: m.estimated_minutes,
       status: (m.lifecycle_status as ModuleStatus) ?? 'draft',
       createdAt: formatDisplayDateTime(m.created_at),
       lastUpdatedAt: formatDisplayDateTime(m.updated_at || m.created_at),
@@ -634,7 +656,6 @@ export const ModuleLibraryPage = () => {
               <TruncatedText
                 text={row.title}
                 maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
-                focusable
               >
                 {isNeedsReviewStatus(row.status) ? (
                   <button
@@ -643,7 +664,7 @@ export const ModuleLibraryPage = () => {
                       setExpandedReviewModuleId(row.id);
                       setTab('needs_review');
                     }}
-                    className="block w-full truncate text-left font-semibold text-spice-brand-primary hover:underline"
+                    className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline"
                   >
                     {displayTitle}
                   </button>
@@ -653,7 +674,7 @@ export const ModuleLibraryPage = () => {
                       ':moduleId',
                       encodeURIComponent(row.id),
                     )}
-                    className="block truncate font-semibold text-spice-brand-primary hover:underline"
+                    className="block truncate break-all font-semibold text-spice-brand-primary hover:underline"
                   >
                     {displayTitle}
                   </Link>
@@ -735,17 +756,19 @@ export const ModuleLibraryPage = () => {
           if (row.status === 'published') {
             return (
               <div className="flex justify-start gap-2">
-                {isAssignablePublishedModule(row) ? (
-                  <Button
-                    className="h-8 px-3 text-xs"
-                    onClick={() => {
-                      setAssignmentModule({ id: row.id, title: row.title });
-                      setAssignmentOpen(true);
-                    }}
-                  >
-                    Assign
-                  </Button>
-                ) : null}
+                <div className={PUBLISHED_ASSIGN_SLOT_CLASS}>
+                  {isAssignablePublishedModule(row) ? (
+                    <Button
+                      className="h-8 w-full px-3 text-xs"
+                      onClick={() => {
+                        setAssignmentModule({ id: row.id, title: row.title });
+                        setAssignmentOpen(true);
+                      }}
+                    >
+                      Assign
+                    </Button>
+                  ) : null}
+                </div>
                 {isProgramManager ? (
                   <Button
                     variant="secondary"
@@ -795,6 +818,14 @@ export const ModuleLibraryPage = () => {
                     setPublishingModuleId(row.id);
                     try {
                       await publishModule({ moduleId: row.id }).unwrap();
+                      setPublishSuccessSummary({
+                        title: row.title,
+                        topic: row.category,
+                        lessonCount: row.lessons,
+                        quizCount: row.questions,
+                        estimateMinutes: row.estimatedMinutes,
+                      });
+                      setPublishSuccessOpen(true);
                       refreshModuleList();
                     } catch (error) {
                       setPublishError(
@@ -855,6 +886,17 @@ export const ModuleLibraryPage = () => {
 
   return (
     <section className="space-y-5">
+      {publishSuccessSummary ? (
+        <ModulePublishedSuccessModal
+          open={publishSuccessOpen}
+          summary={publishSuccessSummary}
+          onRedirect={() => {
+            setPublishSuccessOpen(false);
+            setPublishSuccessSummary(null);
+            setTab('published');
+          }}
+        />
+      ) : null}
       <Loader
         open={
           isCreating ||
@@ -989,6 +1031,7 @@ export const ModuleLibraryPage = () => {
                     <Tooltip
                       label="About Content domain type"
                       content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                      placement="top"
                     />
                   </span>
                   <Select
@@ -1375,6 +1418,7 @@ export const ModuleLibraryPage = () => {
             onChange={setDraftFilters}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 

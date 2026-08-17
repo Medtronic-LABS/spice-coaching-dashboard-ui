@@ -6,7 +6,9 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 import { type ColumnDef, Table } from '@/components/common/Table';
 import {
   SettingsFilterDrawer,
@@ -39,7 +41,6 @@ import {
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { useLazyGetAdminFilePresignedUrlQuery } from '@/features/modules/api/adminFilesApi';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import { truncateDisplayText } from '@/utils/truncateDisplayText';
 import {
   knowledgeDownloadFilename,
   downloadFileAs,
@@ -58,8 +59,10 @@ import {
   uploadedDateInputToToIso,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
@@ -181,6 +184,7 @@ export const KnowledgeLibraryTable = () => {
       ...(appliedDrawerFilters.assigned
         ? { assigned: appliedDrawerFilters.assigned === 'true' }
         : {}),
+      ...toGeographyQueryParams(appliedDrawerFilters),
       sort_by: sortBy,
       sort_dir: sortOrder,
       limit: pageSize,
@@ -315,6 +319,15 @@ export const KnowledgeLibraryTable = () => {
     setPage(0);
   };
 
+  const geographySection = useGeographyFilterOptions({
+    enabled: filtersDrawerOpen,
+    idPrefix: 'knowledge',
+    selection: draftDrawerFilters,
+    onSelectionChange: (next) => {
+      setDraftDrawerFilters((current) => ({ ...current, ...next }));
+    },
+  });
+
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
     setSortBy(nextSortBy as typeof sortBy);
     setSortOrder(nextSortDir);
@@ -405,12 +418,13 @@ export const KnowledgeLibraryTable = () => {
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
               className="font-semibold"
-            >
-              {truncateDisplayText(row.title, TABLE_CELL_LABEL_MAX_LENGTH)}
-            </TruncatedText>
+            />
             {row.originalFilename ? (
-              <div className="mt-0.5 truncate text-xs text-spice-text-muted">
-                {row.originalFilename}
+              <div className="mt-0.5 min-w-0">
+                <TruncatedText
+                  text={row.originalFilename}
+                  className="text-xs text-spice-text-muted"
+                />
               </div>
             ) : null}
           </div>
@@ -563,7 +577,7 @@ export const KnowledgeLibraryTable = () => {
 
   return (
     <div className="space-y-4">
-      <Loader open={isLoading} label="Loading knowledge assets…" />
+      <Loader open={isLoading} label="Loading knowledge…" />
 
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -573,8 +587,8 @@ export const KnowledgeLibraryTable = () => {
             </div>
             <div className="text-xs text-spice-text-muted">
               {total
-                ? `${total} knowledge asset${total === 1 ? '' : 's'}`
-                : 'No knowledge assets match your filters.'}
+                ? `${total} knowledge document${total === 1 ? '' : 's'}`
+                : 'No knowledge documents match your filters.'}
               {isFetching && !isLoading ? (
                 <span className="ml-2">Updating…</span>
               ) : null}
@@ -641,6 +655,7 @@ export const KnowledgeLibraryTable = () => {
             uploaderSearch={uploaderSearch}
             onUploaderSearchChange={setUploaderSearch}
             uploadersLoading={uploadersLoading}
+            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 
@@ -688,7 +703,10 @@ export const KnowledgeLibraryTable = () => {
                 step={1}
                 inputMode="numeric"
                 aria-label="Page number"
-                className="h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
+                className={cn(
+                  'h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary caret-spice-palette-purple',
+                  SPICE_INPUT_FOCUS_CLASSNAME,
+                )}
                 value={pageInput}
                 onChange={(e) => handlePageInputChange(e.target.value)}
                 onBlur={commitPageInput}

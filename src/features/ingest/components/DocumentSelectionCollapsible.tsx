@@ -84,16 +84,18 @@ export const DocumentSelectionCollapsible = ({
         </button>
       </div>
 
-      {open ? (
-        <div
-          id={panelId}
-          role="region"
-          aria-labelledby={headingId}
-          className="border-t border-spice-border px-4 py-4"
-        >
-          {children}
-        </div>
-      ) : null}
+      <div
+        id={panelId}
+        role="region"
+        aria-labelledby={headingId}
+        hidden={!open}
+        className={cn(
+          'border-t border-spice-border px-4 py-4',
+          !open && 'hidden',
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 };

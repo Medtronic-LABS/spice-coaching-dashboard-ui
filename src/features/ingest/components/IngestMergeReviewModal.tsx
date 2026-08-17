@@ -1,3 +1,4 @@
+import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { Badge, Banner, Button, Card, Modal, Tooltip } from '@/components/ui';
 import type { BannerProps } from '@/components/ui/Banner';
@@ -157,10 +158,11 @@ export const IngestMergeReviewModal = ({
           <div>
             <Button
               variant="secondary"
-              className="h-8 text-xs"
+              className="h-8 gap-1.5 text-xs"
               disabled={isSubmitting}
               onClick={() => onViewModule(row)}
             >
+              <EyeIcon className="h-3.5 w-3.5" />
               View Module
             </Button>
             {!matchedModuleId ? (
