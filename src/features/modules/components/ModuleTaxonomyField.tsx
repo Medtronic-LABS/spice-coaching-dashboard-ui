@@ -50,14 +50,16 @@ export const ModuleTaxonomyField = ({
   const selectClass = cn('select-arrow', fieldClass);
 
   useEffect(() => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    if (options.includes(trimmed)) {
-      setUseCustom(false);
+    // Keep custom-entry until the user picks an existing option.
+    if (useCustom) {
       return;
     }
-    setUseCustom(true);
-  }, [value, options]);
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    if (!options.includes(trimmed)) {
+      setUseCustom(true);
+    }
+  }, [options, useCustom, value]);
 
   const selectValue = useCustom ? OTHER_VALUE : value;
   const labelContent = hideLabel ? null : (

@@ -289,7 +289,7 @@ export const SettingsFilterRenderer = ({
             <SectionLabel>{section.label}</SectionLabel>
             <div
               className={cn(
-                'gap-3',
+                'gap-3 pl-4',
                 (section.columns ?? 1) === 2
                   ? 'grid grid-cols-1 sm:grid-cols-2'
                   : 'flex flex-col',

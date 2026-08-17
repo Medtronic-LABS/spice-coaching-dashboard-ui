@@ -29,11 +29,12 @@ import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminM
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import {
-  updateDetails,
   markReviewEditorFocused,
+  updateDetails,
 } from '@/features/modules/store/adminModuleReviewSlice';
 import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
 import {
+  MAX_ESTIMATED_MINUTES_DIGITS,
   formatEstimatedMinutesFieldValue,
   getEstimatedMinutesValidationError,
   parseEstimatedMinutesInput,
@@ -74,8 +75,16 @@ export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const { working, isLoading, error, refetch, isSaving, save, formatError } =
-    useAdminModuleReviewEditor(moduleId);
+  const {
+    working,
+    baseline,
+    isLoading,
+    error,
+    refetch,
+    isSaving,
+    save,
+    formatError,
+  } = useAdminModuleReviewEditor(moduleId);
 
   const isReadonly = useAdminModuleReviewReadonly();
   const { data: catalogDomainOptions = [] } = useFetchModuleDomainOptionsQuery(
@@ -115,11 +124,12 @@ export const AdminModuleDetailsStep = () => {
     useAdminModuleThumbnailUpload(save);
 
   const domainOptions = useMemo(() => {
-    if (!working?.domain || catalogDomainOptions.includes(working.domain)) {
+    const savedDomain = baseline?.domain?.trim();
+    if (!savedDomain || catalogDomainOptions.includes(savedDomain)) {
       return catalogDomainOptions;
     }
-    return [working.domain, ...catalogDomainOptions];
-  }, [catalogDomainOptions, working?.domain]);
+    return [savedDomain, ...catalogDomainOptions];
+  }, [baseline?.domain, catalogDomainOptions]);
 
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
@@ -257,6 +267,7 @@ export const AdminModuleDetailsStep = () => {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
+                    maxLength={MAX_ESTIMATED_MINUTES_DIGITS}
                     autoComplete="off"
                     aria-label="Estimated minutes"
                     aria-invalid={Boolean(estimatedMinutesError)}

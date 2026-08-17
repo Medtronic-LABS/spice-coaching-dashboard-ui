@@ -1,6 +1,23 @@
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ModuleTaxonomyField } from './ModuleTaxonomyField';
+
+function LiveValueInOptionsField() {
+  const catalog = ['rmnch', 'clinical'];
+  const [value, setValue] = useState('');
+  const options =
+    value.trim() && !catalog.includes(value) ? [value, ...catalog] : catalog;
+
+  return (
+    <ModuleTaxonomyField
+      label="Domain"
+      value={value}
+      options={options}
+      onChange={setValue}
+    />
+  );
+}
 
 describe('ModuleTaxonomyField', () => {
   it('shows a text input when there are no existing options', () => {
@@ -54,6 +71,19 @@ describe('ModuleTaxonomyField', () => {
     expect(onChange.mock.calls.map(([value]) => value).join('')).toBe(
       'Hypertension',
     );
+  });
+
+  it('keeps the custom input while typing even if options later include the value', async () => {
+    const user = userEvent.setup();
+
+    render(<LiveValueInOptionsField />);
+
+    await user.selectOptions(screen.getByLabelText(/^domain$/i), '__other__');
+    const customInput = screen.getByLabelText(/^new domain$/i);
+    await user.type(customInput, 'Hypertension');
+
+    expect(customInput).toHaveValue('Hypertension');
+    expect(screen.getByLabelText(/^domain$/i)).toHaveValue('__other__');
   });
 
   it('marks the field as required when requested', () => {

@@ -108,9 +108,10 @@ import {
 } from '@/features/modules/constants/createModuleFormDefaults';
 import { normalizeModuleTaxonomyLabel } from '@/features/modules/utils/normalizeModuleTaxonomyLabel';
 import {
-  getEstimatedMinutesValidationError,
   MAX_ESTIMATED_MINUTES,
+  MAX_ESTIMATED_MINUTES_DIGITS,
   formatEstimatedMinutesFieldValue,
+  getEstimatedMinutesValidationError,
   parseEstimatedMinutesInput,
 } from '@/features/modules/utils/estimatedMinutesValidation';
 
@@ -1056,6 +1057,7 @@ export const ModuleLibraryPage = () => {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
+                    maxLength={MAX_ESTIMATED_MINUTES_DIGITS}
                     autoComplete="off"
                     className={cn(
                       CREATE_MODULE_INPUT_CLASS,

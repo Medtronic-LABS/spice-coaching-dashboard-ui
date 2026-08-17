@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { paths } from '@/constants/routes';
+import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimatedMinutesValidation';
 import { mockModuleLibrary } from '@/store/apis/mockData';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleLibraryPage } from './ModuleLibraryPage';
@@ -887,6 +888,32 @@ describe('ModuleLibraryPage', () => {
     await user.clear(estimatedMinutesInput);
     await user.type(estimatedMinutesInput, '61');
 
+    expect(
+      within(dialog).getByText(/estimated minutes cannot exceed 60\./i),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /create draft/i }),
+    ).toBeDisabled();
+  });
+
+  it('blocks a third digit in estimated minutes', async () => {
+    roleState.role = 'programManager';
+    const user = userEvent.setup();
+    renderModuleLibraryPage();
+
+    await user.click(screen.getByRole('button', { name: /create module/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /create module/i });
+    const estimatedMinutesInput =
+      within(dialog).getByLabelText(/^estimated minutes$/i);
+    expect(estimatedMinutesInput).toHaveAttribute(
+      'maxLength',
+      String(MAX_ESTIMATED_MINUTES_DIGITS),
+    );
+    await user.clear(estimatedMinutesInput);
+    await user.type(estimatedMinutesInput, '999');
+
+    expect(estimatedMinutesInput).toHaveValue('99');
     expect(
       within(dialog).getByText(/estimated minutes cannot exceed 60\./i),
     ).toBeInTheDocument();

@@ -6,12 +6,13 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
-import { baseAdminModuleDetail } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import {
   adminModuleReviewReducer,
   editableSnapshot,
 } from '@/features/modules/store/adminModuleReviewSlice';
+import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimatedMinutesValidation';
+import { baseAdminModuleDetail } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
 import { baseApi } from '@/store/apis/base';
 import { AdminModuleDetailsStep } from './AdminModuleDetailsStep';
 
@@ -176,6 +177,41 @@ describe('AdminModuleDetailsStep', () => {
     expect(baseline).toBeTruthy();
     if (!working || !baseline) return;
     expect(editableSnapshot(working)).not.toBe(editableSnapshot(baseline));
+  });
+
+  it('lets the user type a new domain after choosing Enter new', async () => {
+    const user = userEvent.setup();
+    const { store } = renderDetailsStep();
+
+    await user.selectOptions(screen.getByLabelText(/^domain$/i), 'Enter new…');
+    const customInput = screen.getByLabelText(/^new domain$/i);
+    await user.type(customInput, 'Hypertension');
+
+    expect(customInput).toHaveValue('Hypertension');
+    expect(store.getState().adminModuleReview.working?.domain).toBe(
+      'Hypertension',
+    );
+  });
+
+  it('blocks a third digit in estimated minutes', async () => {
+    const user = userEvent.setup();
+    const { store } = renderDetailsStep();
+
+    const input = screen.getByLabelText(/^estimated minutes$/i);
+    expect(input).toHaveAttribute(
+      'maxLength',
+      String(MAX_ESTIMATED_MINUTES_DIGITS),
+    );
+    await user.clear(input);
+    await user.type(input, '999');
+
+    expect(input).toHaveValue('99');
+    expect(store.getState().adminModuleReview.working?.estimated_minutes).toBe(
+      99,
+    );
+    expect(
+      screen.getByText(/estimated minutes cannot exceed 60\./i),
+    ).toBeInTheDocument();
   });
 
   it('disables continue and save when estimated minutes are invalid', async () => {
