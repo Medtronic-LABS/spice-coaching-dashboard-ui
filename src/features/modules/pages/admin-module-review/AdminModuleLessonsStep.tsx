@@ -27,6 +27,7 @@ import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import {
   selectAdminModuleBaseline,
   insertCardAtIndex,
+  markReviewEditorFocused,
   removeCardAtIndex,
   setCards,
   updateCardAtIndex,
@@ -222,6 +223,10 @@ export const AdminModuleLessonsStep = () => {
       return current >= cards.length ? cards.length - 1 : current;
     });
   }, [cards.length]);
+
+  const handleEditorFocus = useCallback(() => {
+    dispatch(markReviewEditorFocused());
+  }, [dispatch]);
 
   const updateSelectedCard = (patch: Partial<AdminModuleCard>) => {
     if (!selectedCard) return;
@@ -472,6 +477,7 @@ export const AdminModuleLessonsStep = () => {
                     }
                     maxLength={FIELD_LIMITS.cardTitle}
                     disabled={busy || isReadonly}
+                    onFocus={handleEditorFocus}
                     onChange={(value) =>
                       updateSelectedCard({
                         title: patchLocaleField(
@@ -493,6 +499,7 @@ export const AdminModuleLessonsStep = () => {
                 <RichTextEditor
                   key={`card-body-${selectedIndex}-${selectedCard.id}-${editorRevision}`}
                   value={selectedBody}
+                  onEditorFocus={handleEditorFocus}
                   onChange={(body) =>
                     updateSelectedCard({
                       body: setLocaleRichBody(

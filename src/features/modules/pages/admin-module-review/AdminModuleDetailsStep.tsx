@@ -28,7 +28,10 @@ import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminMod
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
-import { updateDetails } from '@/features/modules/store/adminModuleReviewSlice';
+import {
+  updateDetails,
+  markReviewEditorFocused,
+} from '@/features/modules/store/adminModuleReviewSlice';
 import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
 import {
   formatEstimatedMinutesFieldValue,
@@ -99,6 +102,10 @@ export const AdminModuleDetailsStep = () => {
     },
     [closeDraftValidation, moduleId, navigate],
   );
+
+  const handleEditorFocus = useCallback(() => {
+    dispatch(markReviewEditorFocused());
+  }, [dispatch]);
 
   useEffect(() => {
     registerEditorContext({ phase: 'card', index: 0 });
@@ -210,6 +217,7 @@ export const AdminModuleDetailsStep = () => {
                   }
                   disabled={busy}
                   aria-label="Domain type"
+                  onFocus={handleEditorFocus}
                   onChange={(value) =>
                     dispatch(
                       updateDetails({
@@ -252,6 +260,7 @@ export const AdminModuleDetailsStep = () => {
                     autoComplete="off"
                     aria-label="Estimated minutes"
                     aria-invalid={Boolean(estimatedMinutesError)}
+                    onFocus={handleEditorFocus}
                     className={cn(
                       COMPACT_CONTROL_CLASS,
                       estimatedMinutesError &&
@@ -388,6 +397,7 @@ export const AdminModuleDetailsStep = () => {
               }
               maxLength={FIELD_LIMITS.moduleTitle}
               disabled={busy || isReadonly}
+              onFocus={handleEditorFocus}
               onChange={(value) =>
                 dispatch(
                   updateDetails({
@@ -412,6 +422,7 @@ export const AdminModuleDetailsStep = () => {
                   : (working.description?.bn ?? '')
               }
               disabled={busy || isReadonly}
+              onFocus={handleEditorFocus}
               onChange={(e) =>
                 dispatch(
                   updateDetails({

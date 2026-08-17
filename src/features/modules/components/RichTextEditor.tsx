@@ -41,6 +41,8 @@ function headingLabel(level: 1 | 2 | 3 | 4 | 5 | 6): string {
 export interface RichTextEditorProps {
   value: RichBlock[];
   onChange: (next: RichBlock[]) => void;
+  /** Called when the user focuses the editor surface (before any edits are emitted). */
+  onEditorFocus?: () => void;
   minHeightClassName?: string;
   readOnly?: boolean;
   placeholder?: string;
@@ -60,6 +62,7 @@ function applyBlocksToEditor(editor: Editor, blocks: RichBlock[]): void {
 export const RichTextEditor = ({
   value,
   onChange,
+  onEditorFocus,
   minHeightClassName = 'min-h-[220px]',
   readOnly = false,
   placeholder = 'Bangla content…',
@@ -69,10 +72,12 @@ export const RichTextEditor = ({
   const editorRef = useRef<Editor | null>(null);
   const readOnlyRef = useRef(readOnly);
   const onChangeRef = useRef(onChange);
+  const onEditorFocusRef = useRef(onEditorFocus);
   const valueRef = useRef(value);
   const lastEmittedJsonRef = useRef(serializeBlocks(value));
   const suppressOnChangeRef = useRef(true);
   const editorReadyRef = useRef(false);
+  const hasUserFocusedRef = useRef(false);
   const uploadFileRef = useUploadAdminFileMutation()[0];
   const insertMediaRef = useRef<(file: File, pos?: number) => Promise<void>>(
     async () => undefined,
@@ -83,7 +88,14 @@ export const RichTextEditor = ({
 
   readOnlyRef.current = readOnly;
   onChangeRef.current = onChange;
+  onEditorFocusRef.current = onEditorFocus;
   valueRef.current = value;
+
+  const markEditorFocusedByUser = () => {
+    if (hasUserFocusedRef.current) return;
+    hasUserFocusedRef.current = true;
+    onEditorFocusRef.current?.();
+  };
 
   const publishEditorBlocks = (editor: Editor) => {
     const nextBlocks = tiptapDocToBlocks(editor.getJSON());
@@ -175,6 +187,7 @@ export const RichTextEditor = ({
     editable: !readOnly,
     onCreate: ({ editor: createdEditor }) => {
       editorReadyRef.current = false;
+      hasUserFocusedRef.current = false;
       suppressOnChangeRef.current = true;
       applyBlocksToEditor(createdEditor, valueRef.current);
       lastEmittedJsonRef.current = serializeBlocks(valueRef.current);
@@ -187,12 +200,19 @@ export const RichTextEditor = ({
       if (!editorReadyRef.current) return;
       if (suppressOnChangeRef.current) return;
       if (!transaction.docChanged) return;
+      if (!hasUserFocusedRef.current) return;
       publishEditorBlocks(nextEditor);
     },
     editorProps: {
       attributes: {
         class: `${minHeightClassName} ${editorSurfaceClassName} bg-[#f3f4fb] p-4`,
         'data-placeholder': placeholder,
+      },
+      handleDOMEvents: {
+        focus: () => {
+          markEditorFocusedByUser();
+          return false;
+        },
       },
       handleDrop: (view, event, _slice, moved) => {
         if (moved || readOnlyRef.current) return false;
