@@ -72,7 +72,11 @@ import {
   type AssignmentUserLevelMode,
 } from '@/features/modules/utils/assignmentDialogHelpers';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { buildAssignmentSuccessLocationState } from '@/features/modules/types/assignmentSuccessNavigation.types';
+import {
+  buildAssignmentSuccessLocationState,
+  type AssignmentSuccessLocationState,
+} from '@/features/modules/types/assignmentSuccessNavigation.types';
+import { AssignmentSuccessModal } from '@/features/modules/components/AssignmentSuccessModal';
 import { cn } from '@/utils';
 
 type AssignmentTab = 'user' | 'geographical';
@@ -323,6 +327,15 @@ export const AssignmentDialog = ({
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
   const noun = entityNoun(target);
+  const [successState, setSuccessState] =
+    useState<AssignmentSuccessLocationState | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setSuccessState(null);
+    }
+  }, [open]);
+
   const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
   const [userLevelMode, setUserLevelMode] =
     useState<AssignmentUserLevelMode>('po_sk');
@@ -989,16 +1002,21 @@ export const AssignmentDialog = ({
     assignedUsers: AssignedUserEntry[],
     removedUsers: AssignedUserEntry[],
   ) => {
-    onClose();
-    navigate(paths.moduleAssigned, {
-      state: buildAssignmentSuccessLocationState(target, {
-        ...(assignmentType ? { assignmentType } : {}),
-        assignedCount: countAssignedUsers(assignedUsers),
-        assignedUsers,
-        removedUsers,
-        assignedAt: new Date().toISOString(),
-      }),
+    const nextState = buildAssignmentSuccessLocationState(target, {
+      ...(assignmentType ? { assignmentType } : {}),
+      assignedCount: countAssignedUsers(assignedUsers),
+      assignedUsers,
+      removedUsers,
+      assignedAt: new Date().toISOString(),
     });
+
+    if (target.kind === 'sourceDocument') {
+      setSuccessState(nextState);
+      return;
+    }
+
+    onClose();
+    navigate(paths.moduleAssigned, { state: nextState });
   };
 
   const handleAssign = async () => {
@@ -1066,6 +1084,22 @@ export const AssignmentDialog = ({
       );
     }
   };
+
+  if (!open && !successState) return null;
+
+  if (successState && target.kind === 'sourceDocument') {
+    return (
+      <AssignmentSuccessModal
+        open
+        state={successState}
+        onClose={() => {
+          setSuccessState(null);
+          onClose();
+        }}
+        onAssignMore={() => setSuccessState(null)}
+      />
+    );
+  }
 
   if (!open) return null;
 

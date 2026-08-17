@@ -146,6 +146,7 @@
         "assignMoreDocument": "Assign document to more users",
         "assignMoreVideo": "Assign video to more users",
         "assignMoreHint": "Add more users to this module",
+        "done": "Done",
         "goDashboard": "Go to Dashboard",
         "goDashboardHint": "Track progress in the Module Completion widget"
       },
