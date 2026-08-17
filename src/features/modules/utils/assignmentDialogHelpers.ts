@@ -28,6 +28,21 @@ interface NamedEntity {
   name: string;
 }
 
+/** Merge a paginated catalog page, deduping by entity id when appending. */
+export function mergeNamedEntityPages<T extends NamedEntity>(
+  prev: T[],
+  incoming: T[],
+  append: boolean,
+): T[] {
+  const merged = append ? [...prev, ...incoming] : incoming;
+  const seen = new Set<number>();
+  return merged.filter((entity) => {
+    if (seen.has(entity.id)) return false;
+    seen.add(entity.id);
+    return true;
+  });
+}
+
 /** Keep a selected entity visible when it is not in the current loaded page. */
 export function buildNamedEntityComboboxOptions(
   allOption: ComboboxOption,
@@ -78,7 +93,7 @@ export function getUserLevelEmptyMessage(
   mode: AssignmentUserLevelMode,
 ): string {
   if (mode === 'sk') return 'No SK users found.';
-  return 'No program organizers found.';
+  return 'No users found.';
 }
 
 export function hierarchyRoleForMode(
@@ -184,6 +199,35 @@ export function hasAssignmentUserFilters(input: {
     input.upazilaId !== null ||
     input.searchQuery.trim().length > 0
   );
+}
+
+/** Whether upazila refetch is meaningful for the current division/district selection. */
+export function canRefreshUpazilaCatalog(options: {
+  selectedDivisionId: number | null;
+  selectedDistrictId: number | null;
+}): boolean {
+  return !(
+    options.selectedDivisionId !== null && options.selectedDistrictId === null
+  );
+}
+
+/** Show a refetch control when the catalog failed or returned no filter options. */
+export function shouldShowGeoCatalogRefresh(options: {
+  loadedCount: number;
+  catalogLoading: boolean;
+  isError?: boolean;
+  anyGeoLoading?: boolean;
+  catalogPending?: boolean;
+}): boolean {
+  if (
+    options.anyGeoLoading ||
+    options.catalogLoading ||
+    options.catalogPending
+  ) {
+    return false;
+  }
+  if (options.isError) return true;
+  return options.loadedCount === 0;
 }
 
 export function baselineUpazilaIds(users: AdminUser[]): number[] {

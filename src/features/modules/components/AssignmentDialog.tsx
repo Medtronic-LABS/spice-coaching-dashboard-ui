@@ -1,5 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { RefreshIcon } from '@/assets/icon';
 import {
   Banner,
   Button,
@@ -56,11 +65,15 @@ import {
   hierarchyRoleForMode,
   idsToAddWhenSelectingPo,
   idsToRemoveWhenClearingPo,
+  mergeNamedEntityPages,
   resolveNamedEntitySelection,
+  shouldShowGeoCatalogRefresh,
+  canRefreshUpazilaCatalog,
   type AssignmentUserLevelMode,
 } from '@/features/modules/utils/assignmentDialogHelpers';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { buildAssignmentSuccessLocationState } from '@/features/modules/types/assignmentSuccessNavigation.types';
+import { cn } from '@/utils';
 
 type AssignmentTab = 'user' | 'geographical';
 
@@ -100,10 +113,64 @@ interface AssignmentDialogProps {
   target: AssignmentDialogTarget;
 }
 
-interface FetchRetryButtonProps {
+interface GeoCatalogRefreshButtonProps {
+  onRefresh: () => void;
+  isRefreshing?: boolean;
+}
+
+/** Matches admin-dashboard widget refresh control styling. */
+function GeoCatalogRefreshButton({
+  onRefresh,
+  isRefreshing = false,
+}: GeoCatalogRefreshButtonProps) {
+  const { t } = useTranslation();
+  const label = t('common.refresh');
+
+  return (
+    <Button
+      variant="secondary"
+      className="h-9 w-9 shrink-0 px-0"
+      onClick={onRefresh}
+      aria-label={label}
+      title={label}
+      disabled={isRefreshing}
+    >
+      <RefreshIcon className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+    </Button>
+  );
+}
+
+interface GeoFilterFieldProps {
   label: string;
-  onRetry: () => void;
-  disabled?: boolean;
+  showRefresh: boolean;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+  children: ReactNode;
+}
+
+function GeoFilterField({
+  label,
+  showRefresh,
+  onRefresh,
+  isRefreshing,
+  children,
+}: GeoFilterFieldProps) {
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <span className="block text-xs font-semibold leading-5 text-spice-text-primary">
+        {label}
+      </span>
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">{children}</div>
+        {showRefresh ? (
+          <GeoCatalogRefreshButton
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 interface UserAssignmentStatus {
@@ -115,34 +182,6 @@ interface UserAssignmentStatus {
 function entityNoun(target: AssignmentDialogTarget): string {
   if (target.kind === 'module') return 'module';
   return target.noun;
-}
-
-function FetchRetryButton({ label, onRetry, disabled }: FetchRetryButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onRetry}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-spice-text-muted transition-colors hover:bg-spice-bg-tint hover:text-spice-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <svg
-        className="h-4 w-4"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"
-        />
-      </svg>
-    </button>
-  );
 }
 
 interface UserSelectionListProps {
@@ -160,6 +199,7 @@ interface UserSelectionListProps {
   onSelectAll: () => void;
   onToggleUser: (userId: number) => void;
   emptyMessage: string;
+  errorMessage?: string;
 }
 
 function UserSelectionList({
@@ -177,24 +217,17 @@ function UserSelectionList({
   onSelectAll,
   onToggleUser,
   emptyMessage,
+  errorMessage = 'Failed to load users. Please try again.',
 }: UserSelectionListProps) {
+  const { t } = useTranslation();
   const allSelected =
     users.length > 0 && users.every((user) => desiredUserIds.includes(user.id));
 
   return (
     <div className="overflow-hidden rounded-lg border border-spice-border">
       <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
-        <div className="flex items-center gap-1.5">
-          <span>{title}</span>
-          {isError ? (
-            <FetchRetryButton
-              label="Retry loading users"
-              onRetry={onRetry}
-              disabled={isFetching}
-            />
-          ) : null}
-        </div>
-        {users.length > 0 && !allSelected ? (
+        <span>{title}</span>
+        {users.length > 0 && !allSelected && !isError ? (
           <button
             type="button"
             onClick={onSelectAll}
@@ -217,8 +250,20 @@ function UserSelectionList({
             Loading users…
           </div>
         ) : isError ? (
-          <div className="p-4 text-center text-sm text-spice-text-muted">
-            Failed to load users.
+          <div className="flex flex-col items-center gap-3 px-4 py-6 text-center">
+            <p className="text-sm text-spice-text-muted">{errorMessage}</p>
+            <Button
+              variant="secondary"
+              className="h-8 gap-1.5 px-3 text-xs"
+              onClick={onRetry}
+              disabled={isFetching}
+            >
+              <RefreshIcon
+                className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')}
+                aria-hidden="true"
+              />
+              {t('adminDashboard.widgetError.retry')}
+            </Button>
           </div>
         ) : users.length === 0 ? (
           <div className="p-4 text-center text-sm text-spice-text-muted">
@@ -321,6 +366,10 @@ export const AssignmentDialog = ({
   >([]);
   const [filterUpazilasTotal, setFilterUpazilasTotal] = useState(0);
   const [filterUpazilasOffset, setFilterUpazilasOffset] = useState(0);
+  const [divisionsCatalogPending, setDivisionsCatalogPending] = useState(false);
+  const [districtsCatalogPending, setDistrictsCatalogPending] = useState(false);
+  const [filterUpazilasCatalogPending, setFilterUpazilasCatalogPending] =
+    useState(false);
 
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const debouncedUserSearchQuery = useDebouncedValue(
@@ -485,21 +534,30 @@ export const AssignmentDialog = ({
       const requestSeq = append
         ? divisionsRequestSeqRef.current
         : ++divisionsRequestSeqRef.current;
-      const nameQuery = debouncedDivisionSearchQuery.trim();
-      const result = await triggerDivisionsPage({
-        limit: ASSIGNMENT_LIST_PAGE_SIZE,
-        offset,
-        ...(nameQuery ? { q: nameQuery } : {}),
-      });
-      if (requestSeq !== divisionsRequestSeqRef.current) return;
-      if ('error' in result && result.error) return;
-      const page = result.data;
-      if (!page) return;
-      setDivisionsTotal(page.total);
-      setDivisionsOffset(page.offset + page.divisions.length);
-      setLoadedDivisions((prev) =>
-        append ? [...prev, ...page.divisions] : page.divisions,
-      );
+      if (!append) {
+        setDivisionsCatalogPending(true);
+      }
+      try {
+        const nameQuery = debouncedDivisionSearchQuery.trim();
+        const result = await triggerDivisionsPage({
+          limit: ASSIGNMENT_LIST_PAGE_SIZE,
+          offset,
+          ...(nameQuery ? { q: nameQuery } : {}),
+        });
+        if (requestSeq !== divisionsRequestSeqRef.current) return;
+        if ('error' in result && result.error) return;
+        const page = result.data;
+        if (!page) return;
+        setDivisionsTotal(page.total);
+        setDivisionsOffset(page.offset + page.divisions.length);
+        setLoadedDivisions((prev) =>
+          mergeNamedEntityPages(prev, page.divisions, append),
+        );
+      } finally {
+        if (!append && requestSeq === divisionsRequestSeqRef.current) {
+          setDivisionsCatalogPending(false);
+        }
+      }
     },
     [debouncedDivisionSearchQuery, triggerDivisionsPage],
   );
@@ -509,24 +567,33 @@ export const AssignmentDialog = ({
       const requestSeq = append
         ? districtsRequestSeqRef.current
         : ++districtsRequestSeqRef.current;
-      const nameQuery = debouncedDistrictSearchQuery.trim();
-      const result = await triggerDistrictsPage({
-        limit: ASSIGNMENT_LIST_PAGE_SIZE,
-        offset,
-        ...(selectedDivisionId !== null
-          ? { divisionId: selectedDivisionId }
-          : {}),
-        ...(nameQuery ? { q: nameQuery } : {}),
-      });
-      if (requestSeq !== districtsRequestSeqRef.current) return;
-      if ('error' in result && result.error) return;
-      const page = result.data;
-      if (!page) return;
-      setDistrictsTotal(page.total);
-      setDistrictsOffset(page.offset + page.districts.length);
-      setLoadedDistricts((prev) =>
-        append ? [...prev, ...page.districts] : page.districts,
-      );
+      if (!append) {
+        setDistrictsCatalogPending(true);
+      }
+      try {
+        const nameQuery = debouncedDistrictSearchQuery.trim();
+        const result = await triggerDistrictsPage({
+          limit: ASSIGNMENT_LIST_PAGE_SIZE,
+          offset,
+          ...(selectedDivisionId !== null
+            ? { divisionId: selectedDivisionId }
+            : {}),
+          ...(nameQuery ? { q: nameQuery } : {}),
+        });
+        if (requestSeq !== districtsRequestSeqRef.current) return;
+        if ('error' in result && result.error) return;
+        const page = result.data;
+        if (!page) return;
+        setDistrictsTotal(page.total);
+        setDistrictsOffset(page.offset + page.districts.length);
+        setLoadedDistricts((prev) =>
+          mergeNamedEntityPages(prev, page.districts, append),
+        );
+      } finally {
+        if (!append && requestSeq === districtsRequestSeqRef.current) {
+          setDistrictsCatalogPending(false);
+        }
+      }
     },
     [debouncedDistrictSearchQuery, selectedDivisionId, triggerDistrictsPage],
   );
@@ -536,24 +603,33 @@ export const AssignmentDialog = ({
       const requestSeq = append
         ? filterUpazilasRequestSeqRef.current
         : ++filterUpazilasRequestSeqRef.current;
-      const nameQuery = debouncedFilterUpazilaSearchQuery.trim();
-      const result = await triggerFilterUpazilasPage({
-        limit: ASSIGNMENT_LIST_PAGE_SIZE,
-        offset,
-        ...(selectedDistrictId !== null
-          ? { districtId: selectedDistrictId }
-          : {}),
-        ...(nameQuery ? { q: nameQuery } : {}),
-      });
-      if (requestSeq !== filterUpazilasRequestSeqRef.current) return;
-      if ('error' in result && result.error) return;
-      const page = result.data;
-      if (!page) return;
-      setFilterUpazilasTotal(page.total);
-      setFilterUpazilasOffset(page.offset + page.upazilas.length);
-      setFilterLoadedUpazilas((prev) =>
-        append ? [...prev, ...page.upazilas] : page.upazilas,
-      );
+      if (!append) {
+        setFilterUpazilasCatalogPending(true);
+      }
+      try {
+        const nameQuery = debouncedFilterUpazilaSearchQuery.trim();
+        const result = await triggerFilterUpazilasPage({
+          limit: ASSIGNMENT_LIST_PAGE_SIZE,
+          offset,
+          ...(selectedDistrictId !== null
+            ? { districtId: selectedDistrictId }
+            : {}),
+          ...(nameQuery ? { q: nameQuery } : {}),
+        });
+        if (requestSeq !== filterUpazilasRequestSeqRef.current) return;
+        if ('error' in result && result.error) return;
+        const page = result.data;
+        if (!page) return;
+        setFilterUpazilasTotal(page.total);
+        setFilterUpazilasOffset(page.offset + page.upazilas.length);
+        setFilterLoadedUpazilas((prev) =>
+          mergeNamedEntityPages(prev, page.upazilas, append),
+        );
+      } finally {
+        if (!append && requestSeq === filterUpazilasRequestSeqRef.current) {
+          setFilterUpazilasCatalogPending(false);
+        }
+      }
     },
     [
       debouncedFilterUpazilaSearchQuery,
@@ -602,6 +678,7 @@ export const AssignmentDialog = ({
   );
 
   const resetFilterUpazilaState = () => {
+    setFilterUpazilasCatalogPending(true);
     setSelectedUpazilaId(null);
     setSelectedUpazilaName('');
     setFilterUpazilaSearchQuery('');
@@ -611,6 +688,8 @@ export const AssignmentDialog = ({
   };
 
   const resetDistrictAndBelow = () => {
+    setDistrictsCatalogPending(true);
+    setFilterUpazilasCatalogPending(true);
     setSelectedDistrictId(null);
     setSelectedDistrictName('');
     setDistrictSearchQuery('');
@@ -620,23 +699,36 @@ export const AssignmentDialog = ({
     resetFilterUpazilaState();
   };
 
-  useEffect(() => {
-    if (!open) return;
-    setActiveTab('user');
-    setUserLevelMode('po_sk');
+  const resetGeographyFilters = () => {
+    setDivisionsCatalogPending(true);
+    setDistrictsCatalogPending(true);
+    setFilterUpazilasCatalogPending(true);
     setSelectedDivisionId(null);
     setSelectedDivisionName('');
     setDivisionSearchQuery('');
     setLoadedDivisions([]);
     setDivisionsTotal(0);
     setDivisionsOffset(0);
-    setSelectedDistrictId(null);
-    setSelectedDistrictName('');
-    setDistrictSearchQuery('');
-    setLoadedDistricts([]);
-    setDistrictsTotal(0);
-    setDistrictsOffset(0);
-    resetFilterUpazilaState();
+    resetDistrictAndBelow();
+  };
+
+  const handleAssignmentTabChange = (value: string) => {
+    const nextTab = value as AssignmentTab;
+    if (nextTab === activeTab) return;
+    resetGeographyFilters();
+    setActiveTab(nextTab);
+    setErrorMsg('');
+    void loadDivisionsPage(0, false);
+    if (nextTab === 'user') {
+      void loadDistrictsPage(0, false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveTab('user');
+    setUserLevelMode('po_sk');
+    resetGeographyFilters();
     setUserSearchQuery('');
     setErrorMsg('');
     setLoadedUsers([]);
@@ -671,17 +763,11 @@ export const AssignmentDialog = ({
 
   useEffect(() => {
     if (!open) return;
-    setLoadedDivisions([]);
-    setDivisionsTotal(0);
-    setDivisionsOffset(0);
     void loadDivisionsPage(0, false);
   }, [loadDivisionsPage, open]);
 
   useEffect(() => {
     if (!open) return;
-    setLoadedDistricts([]);
-    setDistrictsTotal(0);
-    setDistrictsOffset(0);
     void loadDistrictsPage(0, false);
   }, [loadDistrictsPage, open]);
 
@@ -695,9 +781,6 @@ export const AssignmentDialog = ({
 
   useEffect(() => {
     if (!open || activeTab !== 'user') return;
-    setFilterLoadedUpazilas([]);
-    setFilterUpazilasTotal(0);
-    setFilterUpazilasOffset(0);
     void loadFilterUpazilasPage(0, false);
   }, [activeTab, loadFilterUpazilasPage, open, selectedDistrictId]);
 
@@ -723,18 +806,21 @@ export const AssignmentDialog = ({
   };
 
   const retryDivisions = () => {
+    setDivisionsCatalogPending(true);
     setLoadedDivisions([]);
     setDivisionsOffset(0);
     void loadDivisionsPage(0, false);
   };
 
   const retryDistricts = () => {
+    setDistrictsCatalogPending(true);
     setLoadedDistricts([]);
     setDistrictsOffset(0);
     void loadDistrictsPage(0, false);
   };
 
   const retryFilterUpazilas = () => {
+    setFilterUpazilasCatalogPending(true);
     setFilterLoadedUpazilas([]);
     setFilterUpazilasOffset(0);
     void loadFilterUpazilasPage(0, false);
@@ -983,10 +1069,50 @@ export const AssignmentDialog = ({
 
   if (!open) return null;
 
+  const divisionsCatalogLoading =
+    (loadingDivisions || fetchingDivisions) && loadedDivisions.length === 0;
+  const districtsCatalogLoading =
+    (loadingDistricts || fetchingDistricts) && loadedDistricts.length === 0;
+  const filterUpazilasCatalogLoading =
+    (loadingFilterUpazilas || fetchingFilterUpazilas) &&
+    filterLoadedUpazilas.length === 0;
   const catalogsLoading =
-    (loadingDivisions && loadedDivisions.length === 0) ||
-    (loadingDistricts && loadedDistricts.length === 0) ||
-    (loadingFilterUpazilas && filterLoadedUpazilas.length === 0);
+    divisionsCatalogLoading ||
+    districtsCatalogLoading ||
+    filterUpazilasCatalogLoading;
+  const anyGeoCatalogLoading =
+    loadingDivisions ||
+    fetchingDivisions ||
+    loadingDistricts ||
+    fetchingDistricts ||
+    loadingFilterUpazilas ||
+    fetchingFilterUpazilas;
+  const showDivisionsRefresh = shouldShowGeoCatalogRefresh({
+    loadedCount: loadedDivisions.length,
+    catalogLoading: divisionsCatalogLoading,
+    isError: divisionsError,
+    anyGeoLoading: anyGeoCatalogLoading,
+    catalogPending: divisionsCatalogPending,
+  });
+  const showDistrictsRefresh = shouldShowGeoCatalogRefresh({
+    loadedCount: loadedDistricts.length,
+    catalogLoading: districtsCatalogLoading,
+    isError: districtsError,
+    anyGeoLoading: anyGeoCatalogLoading,
+    catalogPending: districtsCatalogPending,
+  });
+  const showFilterUpazilasRefresh =
+    canRefreshUpazilaCatalog({
+      selectedDivisionId,
+      selectedDistrictId,
+    }) &&
+    shouldShowGeoCatalogRefresh({
+      loadedCount: filterLoadedUpazilas.length,
+      catalogLoading: filterUpazilasCatalogLoading,
+      isError: filterUpazilasError,
+      anyGeoLoading: anyGeoCatalogLoading,
+      catalogPending: filterUpazilasCatalogPending,
+    });
 
   const renderDivisionCombobox = (id: string) => (
     <Combobox
@@ -1002,7 +1128,7 @@ export const AssignmentDialog = ({
       searchTerm={divisionSearchQuery}
       onSearchTermChange={setDivisionSearchQuery}
       onChange={handleDivisionChange}
-      isLoading={loadingDivisions && loadedDivisions.length === 0}
+      isLoading={divisionsCatalogLoading}
       hint={
         divisionsTotal > 0
           ? `Showing ${loadedDivisions.length} of ${divisionsTotal}`
@@ -1037,7 +1163,7 @@ export const AssignmentDialog = ({
       searchTerm={districtSearchQuery}
       onSearchTermChange={setDistrictSearchQuery}
       onChange={handleDistrictChange}
-      isLoading={loadingDistricts && loadedDistricts.length === 0}
+      isLoading={districtsCatalogLoading}
       hint={
         districtsTotal > 0
           ? `Showing ${loadedDistricts.length} of ${districtsTotal}`
@@ -1095,10 +1221,7 @@ export const AssignmentDialog = ({
         <Tabs
           items={ASSIGNMENT_TABS}
           value={activeTab}
-          onChange={(value) => {
-            setActiveTab(value as AssignmentTab);
-            setErrorMsg('');
-          }}
+          onChange={handleAssignmentTabChange}
         />
 
         <div className="max-h-[50vh] space-y-4 overflow-y-auto p-2">
@@ -1120,54 +1243,33 @@ export const AssignmentDialog = ({
                 />
               </label>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-spice-text-primary">
-                      Division
-                    </span>
-                    {divisionsError ? (
-                      <FetchRetryButton
-                        label="Retry loading divisions"
-                        onRetry={retryDivisions}
-                        disabled={fetchingDivisions}
-                      />
-                    ) : null}
-                  </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-start">
+                <GeoFilterField
+                  label="Division"
+                  showRefresh={showDivisionsRefresh}
+                  onRefresh={retryDivisions}
+                  isRefreshing={fetchingDivisions}
+                >
                   {renderDivisionCombobox(
                     'assignment-division-filter-combobox',
                   )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-spice-text-primary">
-                      District
-                    </span>
-                    {districtsError ? (
-                      <FetchRetryButton
-                        label="Retry loading districts"
-                        onRetry={retryDistricts}
-                        disabled={fetchingDistricts}
-                      />
-                    ) : null}
-                  </div>
+                </GeoFilterField>
+                <GeoFilterField
+                  label="District"
+                  showRefresh={showDistrictsRefresh}
+                  onRefresh={retryDistricts}
+                  isRefreshing={fetchingDistricts}
+                >
                   {renderDistrictCombobox(
                     'assignment-district-filter-combobox',
                   )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-spice-text-primary">
-                      Upazila
-                    </span>
-                    {filterUpazilasError ? (
-                      <FetchRetryButton
-                        label="Retry loading upazilas"
-                        onRetry={retryFilterUpazilas}
-                        disabled={fetchingFilterUpazilas}
-                      />
-                    ) : null}
-                  </div>
+                </GeoFilterField>
+                <GeoFilterField
+                  label="Upazila"
+                  showRefresh={showFilterUpazilasRefresh}
+                  onRefresh={retryFilterUpazilas}
+                  isRefreshing={fetchingFilterUpazilas}
+                >
                   <Combobox
                     id="assignment-upazila-filter-combobox"
                     aria-label="Upazila"
@@ -1185,9 +1287,7 @@ export const AssignmentDialog = ({
                     searchTerm={filterUpazilaSearchQuery}
                     onSearchTermChange={setFilterUpazilaSearchQuery}
                     onChange={handleFilterUpazilaChange}
-                    isLoading={
-                      loadingFilterUpazilas && filterLoadedUpazilas.length === 0
-                    }
+                    isLoading={filterUpazilasCatalogLoading}
                     hint={
                       filterUpazilasTotal > 0
                         ? `Showing ${filterLoadedUpazilas.length} of ${filterUpazilasTotal}`
@@ -1212,7 +1312,7 @@ export const AssignmentDialog = ({
                     onLoadMoreRetry={retryFilterUpazilas}
                     className="w-full"
                   />
-                </div>
+                </GeoFilterField>
               </div>
 
               <label className="block space-y-2">
@@ -1252,21 +1352,14 @@ export const AssignmentDialog = ({
 
           {activeTab === 'geographical' ? (
             <>
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Division
-                  </span>
-                  {divisionsError ? (
-                    <FetchRetryButton
-                      label="Retry loading divisions"
-                      onRetry={retryDivisions}
-                      disabled={fetchingDivisions}
-                    />
-                  ) : null}
-                </div>
+              <GeoFilterField
+                label="Division"
+                showRefresh={showDivisionsRefresh}
+                onRefresh={retryDivisions}
+                isRefreshing={fetchingDivisions}
+              >
                 {renderDivisionCombobox('assignment-geo-division-combobox')}
-              </div>
+              </GeoFilterField>
 
               <AssignmentGeoDistrictHierarchy
                 divisionId={selectedDivisionId}

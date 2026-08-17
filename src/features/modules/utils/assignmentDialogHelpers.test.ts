@@ -15,7 +15,10 @@ import {
   idsToAddWhenSelectingPo,
   idsToRemoveWhenClearingPo,
   isPoSelectionMode,
+  canRefreshUpazilaCatalog,
+  mergeNamedEntityPages,
   resolveNamedEntitySelection,
+  shouldShowGeoCatalogRefresh,
   toggleIdsInSelection,
   toggleNamesInSelection,
 } from './assignmentDialogHelpers';
@@ -67,6 +70,123 @@ const usersById = new Map<number, AdminUser>([
   [skUnderPo.id, skUnderPo],
   [independentSk.id, independentSk],
 ]);
+
+describe('shouldShowGeoCatalogRefresh', () => {
+  it('shows refresh when the catalog is empty and not loading', () => {
+    expect(
+      shouldShowGeoCatalogRefresh({
+        loadedCount: 0,
+        catalogLoading: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('hides refresh while the catalog is loading', () => {
+    expect(
+      shouldShowGeoCatalogRefresh({
+        loadedCount: 0,
+        catalogLoading: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('hides refresh when options are loaded', () => {
+    expect(
+      shouldShowGeoCatalogRefresh({
+        loadedCount: 3,
+        catalogLoading: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('shows refresh on fetch error even when options exist', () => {
+    expect(
+      shouldShowGeoCatalogRefresh({
+        loadedCount: 2,
+        catalogLoading: false,
+        isError: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('hides refresh while any geo catalog is loading', () => {
+    expect(
+      shouldShowGeoCatalogRefresh({
+        loadedCount: 0,
+        catalogLoading: false,
+        isError: true,
+        anyGeoLoading: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('hides refresh while a catalog refresh is pending', () => {
+    expect(
+      shouldShowGeoCatalogRefresh({
+        loadedCount: 0,
+        catalogLoading: false,
+        catalogPending: true,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('canRefreshUpazilaCatalog', () => {
+  it('allows refresh when no division is selected', () => {
+    expect(
+      canRefreshUpazilaCatalog({
+        selectedDivisionId: null,
+        selectedDistrictId: null,
+      }),
+    ).toBe(true);
+  });
+
+  it('allows refresh when division and district are selected', () => {
+    expect(
+      canRefreshUpazilaCatalog({
+        selectedDivisionId: 1,
+        selectedDistrictId: 10,
+      }),
+    ).toBe(true);
+  });
+
+  it('blocks refresh when division is selected without a district', () => {
+    expect(
+      canRefreshUpazilaCatalog({
+        selectedDivisionId: 1,
+        selectedDistrictId: null,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('mergeNamedEntityPages', () => {
+  it('replaces the list when append is false', () => {
+    expect(
+      mergeNamedEntityPages(
+        [{ id: 1, name: 'Old' }],
+        [{ id: 2, name: 'New' }],
+        false,
+      ),
+    ).toEqual([{ id: 2, name: 'New' }]);
+  });
+
+  it('appends and dedupes by id', () => {
+    expect(
+      mergeNamedEntityPages(
+        [{ id: 1, name: 'Rangpur' }],
+        [
+          { id: 1, name: 'Rangpur duplicate' },
+          { id: 2, name: 'Rajshahi' },
+        ],
+        true,
+      ),
+    ).toEqual([
+      { id: 1, name: 'Rangpur' },
+      { id: 2, name: 'Rajshahi' },
+    ]);
+  });
+});
 
 describe('buildNamedEntityComboboxOptions', () => {
   it('includes the all-option and loaded entities', () => {
@@ -220,7 +340,8 @@ describe('assignment mode helpers', () => {
 
   it('returns mode-specific empty messages', () => {
     expect(getUserLevelEmptyMessage('sk')).toBe('No SK users found.');
-    expect(getUserLevelEmptyMessage('po')).toBe('No program organizers found.');
+    expect(getUserLevelEmptyMessage('po')).toBe('No users found.');
+    expect(getUserLevelEmptyMessage('po_sk')).toBe('No users found.');
   });
 });
 
