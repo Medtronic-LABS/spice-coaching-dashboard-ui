@@ -466,7 +466,7 @@ export const KnowledgeLibraryTable = () => {
         className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
           <span
-            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${knowledgeStatusBadgeClassName(
+            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${knowledgeStatusBadgeClassName(
               knowledgeStatusTone(row.status),
             )}`}
           >
