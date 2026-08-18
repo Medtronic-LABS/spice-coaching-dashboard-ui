@@ -98,6 +98,7 @@ import {
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 
 type PendingVideoItem = {
   key: string;
