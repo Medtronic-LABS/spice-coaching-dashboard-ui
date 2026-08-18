@@ -14,6 +14,10 @@ import {
   type AdminModulesListItem,
 } from '@/features/modules/api/adminModulesApi';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import {
+  actorNameFromMetadata,
+  formatHierarchyActorName,
+} from '@/features/modules/types/hierarchyActor';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { truncateDisplayText } from '@/utils/truncateDisplayText';
 
@@ -84,45 +88,33 @@ function formatModuleTitle(
   return item.title?.bn || item.title?.en || 'Untitled Module';
 }
 
+function getSearchMetadata(
+  item: AdminModulesListItem | AdminModuleDetailResponse,
+): Record<string, unknown> | null | undefined {
+  return 'search_metadata' in item ? item.search_metadata : null;
+}
+
 function getCreatedBy(
   item: AdminModulesListItem | AdminModuleDetailResponse | null | undefined,
 ): string {
   if (!item) return '—';
-  const metadata = (item as AdminModulesListItem).search_metadata as Record<
-    string,
-    unknown
-  > | null;
-  if (
-    metadata &&
-    typeof metadata.created_by === 'string' &&
-    metadata.created_by.trim()
-  ) {
-    return metadata.created_by.trim();
-  }
-  if (
-    metadata &&
-    typeof metadata.author === 'string' &&
-    metadata.author.trim()
-  ) {
-    return metadata.author.trim();
-  }
-  return '—';
+  const metadata = getSearchMetadata(item);
+  return formatHierarchyActorName(
+    item.created_by?.name ??
+      actorNameFromMetadata(metadata, 'created_by') ??
+      actorNameFromMetadata(metadata, 'author'),
+  );
 }
 
 function getPublishedBy(
   item: AdminModulesListItem | AdminModuleDetailResponse | null | undefined,
 ): string {
   if (!item) return '—';
-  const metadata = (item as AdminModulesListItem).search_metadata as Record<
-    string,
-    unknown
-  > | null;
-  if (
-    metadata &&
-    typeof metadata.published_by === 'string' &&
-    metadata.published_by.trim()
-  ) {
-    return metadata.published_by.trim();
+  const publishedName =
+    item.published_by?.name ??
+    actorNameFromMetadata(getSearchMetadata(item), 'published_by');
+  if (publishedName?.trim()) {
+    return formatHierarchyActorName(publishedName);
   }
   return getCreatedBy(item);
 }

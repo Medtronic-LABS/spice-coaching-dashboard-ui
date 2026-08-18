@@ -47,6 +47,34 @@ const mockModules: AdminModulesListItem[] = [
   },
 ];
 
+const existingPublishedModule: AdminModulesListItem = {
+  ...mockModules[0],
+  id: 'existing-2',
+  title: 'Existing Published Module',
+  lifecycle_status: 'published',
+  card_count: 4,
+  quiz_count: 1,
+  estimated_minutes: 12,
+  created_at: '2026-01-01T00:00:00Z',
+  created_by: { id: 1, name: 'test user' },
+  published_by: { id: 1, name: 'test user' },
+  merge_source_module_id: null,
+  search_metadata: null,
+};
+
+const mockModulesWithActorRefs: AdminModulesListItem[] = [
+  {
+    ...mockModules[0],
+    id: 'candidate-2',
+    title: 'Candidate Module 2',
+    created_by: { id: 1, name: 'test user' },
+    published_by: { id: 1, name: 'test user' },
+    merge_source_module_id: 'existing-2',
+    merge_source_module: existingPublishedModule,
+    search_metadata: null,
+  },
+];
+
 describe('NeedsReviewTab', () => {
   it('renders modules in a tabular format', () => {
     render(
@@ -68,6 +96,7 @@ describe('NeedsReviewTab', () => {
       'tabIndex',
     );
     expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
+    expect(screen.getByText('By Dr. Jane Smith')).toBeInTheDocument();
   });
 
   it('character-truncates long module titles and reveals the full title on hover', () => {
@@ -137,5 +166,28 @@ describe('NeedsReviewTab', () => {
     await waitFor(() => {
       expect(handleSkip).toHaveBeenCalledWith('candidate-1');
     });
+  });
+
+  it('shows created_by and published_by actor names from API objects', async () => {
+    render(
+      <NeedsReviewTab
+        modules={mockModulesWithActorRefs}
+        onMerge={vi.fn()}
+        onSkip={vi.fn()}
+        onView={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('By test user')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Expand comparison'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Existing Published Module')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Created By')).toBeInTheDocument();
+    expect(screen.getByText('Published By')).toBeInTheDocument();
+    expect(screen.getAllByText('test user').length).toBeGreaterThan(0);
   });
 });

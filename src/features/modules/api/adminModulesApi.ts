@@ -114,6 +114,8 @@ export interface AdminModuleDetailResponse {
   estimated_minutes: number;
   published_at: string | null;
   created_at: string;
+  created_by?: ModuleActorRef | null;
+  published_by?: ModuleActorRef | null;
   quality_flags: { flags: string[] } | null;
   module_json: AdminModuleModuleJson;
   cards: AdminModuleCard[];
@@ -411,6 +413,8 @@ function normalizeModuleDetail(
       typeof response.published_at === 'string' ? response.published_at : null,
     created_at:
       typeof response.created_at === 'string' ? response.created_at : '',
+    created_by: normalizeHierarchyActorRef(response.created_by),
+    published_by: normalizeHierarchyActorRef(response.published_by),
     quality_flags:
       response.quality_flags && typeof response.quality_flags === 'object'
         ? (response.quality_flags as { flags: string[] })
