@@ -1,3 +1,7 @@
+import type {
+  GeographyFilterState,
+  GeographyQueryParams,
+} from '@/features/modules/utils/geographyFilters';
 import type { LocalizedString } from '@/types/localized';
 
 export type DashboardDurationPreset =
@@ -16,33 +20,10 @@ export type TeamHierarchySortKey =
   | 'most_inactive'
   | 'name';
 
-export interface DashboardGeographyFilters {
-  /** Hierarchy id used by the shared geography combobox. */
-  divisionId: string;
-  /** Hierarchy id used by the shared geography combobox. */
-  districtId: string;
-  /** Hierarchy id used by the shared geography combobox. */
-  upazilaId: string;
-  /** Division display name sent as dashboard `division` query param. */
-  division: string;
-  /** District display name (also the document-usage `district` query value). */
-  district: string;
-  /**
-   * Upazila display name. Sent as document-usage `upazila_id` because the
-   * platform currently resolves that param by name (see DASHBOARD_BE_LEFTOVERS §6).
-   */
-  upazila: string;
-}
+export type DashboardGeographyFilters = GeographyFilterState;
 
 /** Normalized geography params sent to dashboard API endpoints. */
-export interface DashboardGeoQueryParams {
-  division?: string;
-  district?: string;
-  /**
-   * Upazila display name. Param name is historical; BE resolves by name today.
-   */
-  upazila_id?: string;
-}
+export type DashboardGeoQueryParams = GeographyQueryParams;
 
 export interface DashboardDateRange {
   fromDate: string;

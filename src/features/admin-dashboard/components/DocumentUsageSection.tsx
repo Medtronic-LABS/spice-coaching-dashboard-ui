@@ -94,9 +94,9 @@ export const DocumentUsageSection = ({
   }, [
     fromDate,
     toDate,
-    geography.division,
-    geography.district,
-    geography.upazila,
+    geography.divisionId,
+    geography.districtId,
+    geography.upazilaId,
     resetDocumentsPage,
     resetEventsPage,
   ]);

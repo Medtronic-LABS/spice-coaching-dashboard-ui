@@ -2,6 +2,7 @@ import type {
   DashboardGeoQueryParams,
   DashboardGeographyFilters,
 } from '@/features/admin-dashboard/types/dashboard.types';
+import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 
 /** Shared fetch limit so dashboard widgets dedupe RTK Query cache entries. */
 export const PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT = 50;
@@ -13,9 +14,7 @@ interface TeamActivityQueryExtras {
   depth?: number;
 }
 
-function omitUndefined<T extends Record<string, unknown>>(
-  values: T,
-): Partial<T> {
+function omitUndefined<T extends object>(values: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== undefined),
   ) as Partial<T>;
@@ -24,11 +23,7 @@ function omitUndefined<T extends Record<string, unknown>>(
 export function buildDashboardGeoParams(
   geography: DashboardGeographyFilters,
 ): DashboardGeoQueryParams {
-  const params: DashboardGeoQueryParams = {};
-  if (geography.division.trim()) params.division = geography.division.trim();
-  if (geography.district.trim()) params.district = geography.district.trim();
-  if (geography.upazila.trim()) params.upazila_id = geography.upazila.trim();
-  return params;
+  return toGeographyQueryParams(geography);
 }
 
 export function buildTeamMemberQuestionsQueryArgs(

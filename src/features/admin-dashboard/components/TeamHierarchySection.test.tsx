@@ -98,8 +98,8 @@ describe('TeamHierarchySection', () => {
         toDate="2026-01-31"
         geography={{
           ...EMPTY_DASHBOARD_GEOGRAPHY,
-          division: 'Dhaka',
-          district: 'Gazipur',
+          divisionId: '1',
+          districtId: '10',
         }}
         status="all"
         sortKey="default"
@@ -114,8 +114,8 @@ describe('TeamHierarchySection', () => {
       expect.objectContaining({
         from_date: '2026-01-01',
         to_date: '2026-01-31',
-        division: 'Dhaka',
-        district: 'Gazipur',
+        division_id: 1,
+        district_id: 10,
         limit: 100,
         offset: 0,
       }),

@@ -146,7 +146,10 @@ describe('TrainingModulesSection', () => {
       <TrainingModulesSection
         fromDate="2026-01-01"
         toDate="2026-01-31"
-        geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, district: 'Gazipur' }}
+        geography={{
+          ...EMPTY_DASHBOARD_GEOGRAPHY,
+          districtId: '10',
+        }}
       />,
     );
 
@@ -154,7 +157,7 @@ describe('TrainingModulesSection', () => {
       expect.objectContaining({
         from_date: '2026-01-01',
         to_date: '2026-01-31',
-        district: 'Gazipur',
+        district_id: 10,
       }),
     );
   });

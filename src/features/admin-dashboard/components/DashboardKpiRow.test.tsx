@@ -15,7 +15,7 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
       to_date: '2026-01-31',
       limit: 1,
       offset: 0,
-      district: 'Gazipur',
+      district_id: 10,
     });
 
     return {
@@ -40,7 +40,7 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
       to_date: '2026-01-31',
       limit: PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
       offset: 0,
-      district: 'Gazipur',
+      district_id: 10,
     });
 
     return {
@@ -62,7 +62,10 @@ describe('DashboardKpiRow', () => {
       <DashboardKpiRow
         fromDate="2026-01-01"
         toDate="2026-01-31"
-        geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, district: 'Gazipur' }}
+        geography={{
+          ...EMPTY_DASHBOARD_GEOGRAPHY,
+          districtId: '10',
+        }}
       />,
     );
 

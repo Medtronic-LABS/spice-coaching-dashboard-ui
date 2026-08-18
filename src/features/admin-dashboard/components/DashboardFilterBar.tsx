@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon, CloseIcon, FiltersSlidersIcon } from '@/assets/icon';
-import { Button, Select } from '@/components/ui';
+import { Button, Select, type SelectOption } from '@/components/ui';
+import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import type {
   DashboardDurationPreset,
   DashboardFiltersState,
@@ -12,9 +13,13 @@ import { dashboardDurationLabel } from '@/features/admin-dashboard/utils/dateRan
 import {
   useFetchAdminDistrictsQuery,
   useFetchAdminDivisionsQuery,
-  useLazyFetchAdminUpazilasPageQuery,
+  useFetchAdminUpazilasQuery,
 } from '@/features/modules/api/adminAssignmentApi';
-import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
+import {
+  applyGeographyFilterChange,
+  parseGeographyId,
+  parseGeographyIdParam,
+} from '@/features/modules/utils/geographyFilters';
 import { cn } from '@/utils';
 import { todayDateInputValue } from '@/utils/dateInput';
 
@@ -24,10 +29,23 @@ function countPanelFilters(
 ): number {
   let count = 0;
   if (status !== 'all') count += 1;
-  if (geography.division.trim()) count += 1;
-  if (geography.district.trim()) count += 1;
-  if (geography.upazila.trim()) count += 1;
+  if (parseGeographyIdParam(geography.divisionId)) count += 1;
+  if (parseGeographyIdParam(geography.districtId)) count += 1;
+  if (parseGeographyIdParam(geography.upazilaId)) count += 1;
   return count;
+}
+
+function toIdSelectOptions(
+  allLabel: string,
+  items: Array<{ id: number; name: string }>,
+): SelectOption[] {
+  return [
+    { label: allLabel, value: '' },
+    ...items.map((item) => ({
+      label: item.name,
+      value: String(item.id),
+    })),
+  ];
 }
 
 interface DashboardFilterBarProps {
@@ -87,10 +105,7 @@ export const DashboardFilterBar = ({
   const filtersRef = useRef<HTMLDivElement>(null);
   const { data: districts = [] } = useFetchAdminDistrictsQuery();
   const { data: divisions = [] } = useFetchAdminDivisionsQuery();
-  const [fetchUpazilasPage] = useLazyFetchAdminUpazilasPageQuery();
-  const [upazilaOptions, setUpazilaOptions] = useState<
-    Array<{ label: string; value: string }>
-  >([]);
+  const { data: upazilas = [] } = useFetchAdminUpazilasQuery();
 
   const appliedPanelFilterCount = countPanelFilters(
     filters.status,
@@ -98,18 +113,31 @@ export const DashboardFilterBar = ({
   );
   const hasActiveFilters = appliedPanelFilterCount > 0;
 
-  const selectedDistrictId = useMemo(() => {
-    const districtName = filtersOpen
-      ? draftGeography.district
-      : filters.geography.district;
-    const match = districts.find((district) => district.name === districtName);
-    return match?.id ?? null;
-  }, [
-    districts,
-    draftGeography.district,
-    filters.geography.district,
-    filtersOpen,
-  ]);
+  const activeGeography = filtersOpen ? draftGeography : filters.geography;
+  const selectedDivisionId = parseGeographyId(activeGeography.divisionId);
+  const selectedDistrictId = parseGeographyId(activeGeography.districtId);
+
+  const visibleDistricts = useMemo(() => {
+    if (selectedDivisionId === undefined) return districts;
+    return districts.filter(
+      (district) => district.division_id === selectedDivisionId,
+    );
+  }, [districts, selectedDivisionId]);
+
+  const visibleUpazilas = useMemo(() => {
+    if (selectedDistrictId !== undefined) {
+      return upazilas.filter(
+        (upazila) => upazila.district_id === selectedDistrictId,
+      );
+    }
+    if (selectedDivisionId !== undefined) {
+      const districtIds = new Set(
+        visibleDistricts.map((district) => district.id),
+      );
+      return upazilas.filter((upazila) => districtIds.has(upazila.district_id));
+    }
+    return upazilas;
+  }, [selectedDistrictId, selectedDivisionId, upazilas, visibleDistricts]);
 
   const statusOptions = useMemo(
     () =>
@@ -121,33 +149,27 @@ export const DashboardFilterBar = ({
   );
 
   const divisionOptions = useMemo(
-    () => [
-      { label: t('adminDashboard.filters.allDivisions'), value: '' },
-      ...divisions.map((division) => ({
-        label: division.name,
-        value: division.name,
-      })),
-    ],
+    () =>
+      toIdSelectOptions(t('adminDashboard.filters.allDivisions'), divisions),
     [divisions, t],
   );
 
   const districtOptions = useMemo(
-    () => [
-      { label: t('adminDashboard.filters.allDistricts'), value: '' },
-      ...districts.map((district) => ({
-        label: district.name,
-        value: district.name,
-      })),
-    ],
-    [districts, t],
+    () =>
+      toIdSelectOptions(
+        t('adminDashboard.filters.allDistricts'),
+        visibleDistricts,
+      ),
+    [t, visibleDistricts],
   );
 
   const upazilaSelectOptions = useMemo(
-    () => [
-      { label: t('adminDashboard.filters.allUpazilas'), value: '' },
-      ...upazilaOptions,
-    ],
-    [t, upazilaOptions],
+    () =>
+      toIdSelectOptions(
+        t('adminDashboard.filters.allUpazilas'),
+        visibleUpazilas,
+      ),
+    [t, visibleUpazilas],
   );
 
   const durationOptions = useMemo(
@@ -158,24 +180,6 @@ export const DashboardFilterBar = ({
       })),
     [t],
   );
-
-  useEffect(() => {
-    void (async () => {
-      const page = await fetchUpazilasPage({
-        ...(selectedDistrictId !== null
-          ? { districtId: selectedDistrictId }
-          : {}),
-        limit: 200,
-        offset: 0,
-      }).unwrap();
-      setUpazilaOptions(
-        (page.upazilas ?? []).map((upazila) => ({
-          label: upazila.name,
-          value: upazila.name,
-        })),
-      );
-    })();
-  }, [fetchUpazilasPage, selectedDistrictId]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -222,6 +226,10 @@ export const DashboardFilterBar = ({
   const handleClearAllFilters = () => {
     setDraftStatus('all');
     setDraftGeography(EMPTY_DASHBOARD_GEOGRAPHY);
+  };
+
+  const patchDraftGeography = (patch: Partial<DashboardGeographyFilters>) => {
+    setDraftGeography((current) => applyGeographyFilterChange(current, patch));
   };
 
   const maxSelectableDate = todayDateInputValue();
@@ -277,40 +285,24 @@ export const DashboardFilterBar = ({
             <FilterField label={t('adminDashboard.filters.division')}>
               <Select
                 options={divisionOptions}
-                value={draftGeography.division}
-                onChange={(value) =>
-                  setDraftGeography({
-                    ...draftGeography,
-                    division: value,
-                  })
-                }
+                value={draftGeography.divisionId}
+                onChange={(value) => patchDraftGeography({ divisionId: value })}
                 className={selectClassName}
               />
             </FilterField>
             <FilterField label={t('adminDashboard.filters.district')}>
               <Select
                 options={districtOptions}
-                value={draftGeography.district}
-                onChange={(value) =>
-                  setDraftGeography({
-                    ...draftGeography,
-                    district: value,
-                    upazila: '',
-                  })
-                }
+                value={draftGeography.districtId}
+                onChange={(value) => patchDraftGeography({ districtId: value })}
                 className={selectClassName}
               />
             </FilterField>
             <FilterField label={t('adminDashboard.filters.upazila')}>
               <Select
                 options={upazilaSelectOptions}
-                value={draftGeography.upazila}
-                onChange={(value) =>
-                  setDraftGeography({
-                    ...draftGeography,
-                    upazila: value,
-                  })
-                }
+                value={draftGeography.upazilaId}
+                onChange={(value) => patchDraftGeography({ upazilaId: value })}
                 className={selectClassName}
               />
             </FilterField>
