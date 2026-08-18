@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -334,6 +334,17 @@ describe('VideoUploadPage', () => {
     mocks.refetchSourceDocuments.mockReset();
     mocks.refetchSourceDocuments.mockResolvedValue(undefined);
     window.sessionStorage.clear();
+  });
+
+  it('blurs the hidden file input on focus to avoid Windows Chrome scroll jump', () => {
+    renderPage();
+
+    const input = screen.getByLabelText(/upload video/i, {
+      selector: 'input',
+    }) as HTMLInputElement;
+    input.focus();
+    fireEvent.focus(input);
+    expect(document.activeElement).not.toBe(input);
   });
 
   it('caps staged video titles at the document title limit', async () => {

@@ -223,6 +223,7 @@ export const VideoUploadPage = () => {
   const pendingItemsRef = useRef<PendingVideoItem[]>([]);
   const pendingUploadMetaRef = useRef<PendingUploadMeta[]>([]);
   const thumbnailInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   const [restoredAcceptedSources, setRestoredAcceptedSources] = useState<
     AdminV3IngestAcceptedSource[]
@@ -1144,8 +1145,12 @@ export const VideoUploadPage = () => {
                       }}
                       type="file"
                       accept={VIDEO_THUMBNAIL_ACCEPT}
+                      tabIndex={-1}
                       className="sr-only"
                       disabled={uploadBusy}
+                      onFocus={(event) => {
+                        event.currentTarget.blur();
+                      }}
                       onChange={(event) => {
                         handlePendingThumbnailReplace(
                           item.key,
@@ -1228,59 +1233,77 @@ export const VideoUploadPage = () => {
             );
           })}
 
-          <label
-            aria-label={
-              pendingItems.length ? 'Add more videos' : 'Upload video'
-            }
-            className={`flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors ${dropzoneStateClasses}`}
-            onDragOver={(event) => {
-              event.preventDefault();
-              if (uploadBusy) return;
-              setIsDragActive(true);
-            }}
-            onDragLeave={() => setIsDragActive(false)}
-            onDrop={(event) => {
-              event.preventDefault();
-              setIsDragActive(false);
-              if (uploadBusy) return;
-              stageVideoFiles(event.dataTransfer.files);
-            }}
-          >
+          <div className="relative">
             <input
+              ref={videoFileInputRef}
               type="file"
               multiple
               accept={VIDEO_FILE_INPUT_ACCEPT}
+              tabIndex={-1}
               className="sr-only"
               disabled={uploadBusy}
+              aria-label={
+                pendingItems.length ? 'Add more videos' : 'Upload video'
+              }
+              onFocus={(event) => {
+                // Windows Chrome scrolls the page to reveal focused sr-only
+                // file inputs, which leaves a blank gap under the table.
+                event.currentTarget.blur();
+              }}
               onChange={(event) => {
                 const files = event.target.files;
                 stageVideoFiles(files);
                 event.target.value = '';
               }}
             />
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </span>
-            <span className="text-xs font-semibold text-spice-text-primary">
-              {pendingItems.length ? 'Add more videos' : 'Upload videos'}
-            </span>
-            <span className="text-[11px] text-spice-text-muted">
-              Click to select or drag and drop videos
-            </span>
-          </label>
+            <button
+              type="button"
+              aria-label={
+                pendingItems.length ? 'Add more videos' : 'Upload video'
+              }
+              disabled={uploadBusy}
+              className={cn(
+                'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
+                dropzoneStateClasses,
+              )}
+              onClick={() => videoFileInputRef.current?.click()}
+              onDragOver={(event) => {
+                event.preventDefault();
+                if (uploadBusy) return;
+                setIsDragActive(true);
+              }}
+              onDragLeave={() => setIsDragActive(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setIsDragActive(false);
+                if (uploadBusy) return;
+                stageVideoFiles(event.dataTransfer.files);
+              }}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </span>
+              <span className="text-xs font-semibold text-spice-text-primary">
+                {pendingItems.length ? 'Add more videos' : 'Upload videos'}
+              </span>
+              <span className="text-[11px] text-spice-text-muted">
+                Click to select or drag and drop videos
+              </span>
+            </button>
+          </div>
 
           {fileError ? <Banner tone="critical">{fileError}</Banner> : null}
         </div>
