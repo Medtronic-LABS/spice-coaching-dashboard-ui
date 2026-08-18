@@ -185,28 +185,40 @@ export function removeQuizItem(
 
 const DEFAULT_NEW_OPTION_COUNT = 4;
 
+function newQuizItemId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `temp-${crypto.randomUUID()}`;
+  }
+  return `temp-quiz-${Date.now()}`;
+}
+
+/** Blank quiz item used when creating a module or adding a question in review. */
+export function createEmptyAdminModuleQuizItem(
+  questionOrder: number,
+  id: string = newQuizItemId(),
+): AdminModuleQuizItem {
+  return {
+    id,
+    question_order: questionOrder,
+    question: { [DEPLOYMENT_PRIMARY_LOCALE]: '' },
+    case_setup: null,
+    options: {
+      [DEPLOYMENT_PRIMARY_LOCALE]: Array.from(
+        { length: DEFAULT_NEW_OPTION_COUNT },
+        () => '',
+      ),
+    },
+    correct_indices: [0],
+    explanation: null,
+    difficulty: 'medium',
+  };
+}
+
 export function addQuizItem(
   quiz: AdminModuleQuizItem[],
 ): AdminModuleQuizItem[] {
   const nextOrder = Math.max(0, ...quiz.map((q) => q.question_order ?? 0)) + 1;
-  return [
-    ...quiz,
-    {
-      id: `temp-${crypto.randomUUID()}`,
-      question_order: nextOrder,
-      question: { [DEPLOYMENT_PRIMARY_LOCALE]: '' },
-      case_setup: null,
-      options: {
-        [DEPLOYMENT_PRIMARY_LOCALE]: Array.from(
-          { length: DEFAULT_NEW_OPTION_COUNT },
-          () => '',
-        ),
-      },
-      correct_indices: [0],
-      explanation: null,
-      difficulty: 'medium',
-    },
-  ];
+  return [...quiz, createEmptyAdminModuleQuizItem(nextOrder)];
 }
 
 function cloneLocalizedString(

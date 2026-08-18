@@ -12,6 +12,7 @@ import {
   syncPendingExplanationReviews,
   type QuizContentBaseline,
 } from '@/features/modules/utils/quizExplanationReviewUtils';
+import { ensureDefaultAdminModuleReviewContent } from '@/features/modules/utils/ensureDefaultAdminModuleReviewContent';
 import type { RootState } from '@/store/store';
 
 export interface AdminModuleReviewState {
@@ -136,7 +137,8 @@ export const adminModuleReviewSlice = createSlice({
         data: AdminModuleDetailResponse;
       }>,
     ) {
-      const { moduleId, data } = action.payload;
+      const { moduleId, data: incoming } = action.payload;
+      const data = ensureDefaultAdminModuleReviewContent(incoming);
       const isNewModule = state.moduleId !== moduleId;
       const isDirty =
         state.working &&
@@ -160,7 +162,7 @@ export const adminModuleReviewSlice = createSlice({
         return;
       }
 
-      state.working = {
+      state.working = ensureDefaultAdminModuleReviewContent({
         ...data,
         title: state.working.title,
         description: state.working.description,
@@ -174,7 +176,7 @@ export const adminModuleReviewSlice = createSlice({
         domain: state.working.domain,
         content_domain: state.working.content_domain,
         estimated_minutes: state.working.estimated_minutes,
-      };
+      });
       syncExplanationReviewState(state);
     },
     markSaved(state, action: PayloadAction<AdminModuleDetailResponse>) {

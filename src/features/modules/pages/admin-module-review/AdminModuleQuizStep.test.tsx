@@ -140,20 +140,18 @@ describe('AdminModuleQuizStep editor UI', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows empty state when there are no quiz questions', () => {
+  it('seeds a blank question with four empty options when the quiz is empty', () => {
     mockModule = createMockModule([]);
-    renderQuizStep();
+    const { store } = renderQuizStep();
 
-    expect(screen.getByText('No quiz questions yet')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /add question/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /remove all/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No quiz questions yet')).not.toBeInTheDocument();
+    expect(screen.getByText('QUESTION 1')).toBeInTheDocument();
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz).toHaveLength(1);
+    expect(quiz[0]?.options.bn).toEqual(['', '', '', '']);
   });
 
-  it('adds a new question with four options from empty state', async () => {
+  it('adds a second question with four options from the default blank question', async () => {
     const user = userEvent.setup();
     mockModule = createMockModule([]);
     const { store } = renderQuizStep();
@@ -161,9 +159,9 @@ describe('AdminModuleQuizStep editor UI', () => {
     await user.click(screen.getByRole('button', { name: /add question/i }));
 
     const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
-    expect(quiz).toHaveLength(1);
-    expect(quiz[0]?.options.bn).toEqual(['', '', '', '']);
-    expect(screen.getByText('QUESTION 1')).toBeInTheDocument();
+    expect(quiz).toHaveLength(2);
+    expect(quiz[1]?.options.bn).toEqual(['', '', '', '']);
+    expect(screen.getByText('QUESTION 2')).toBeInTheDocument();
   });
 
   it('duplicates a question immediately after the source', async () => {

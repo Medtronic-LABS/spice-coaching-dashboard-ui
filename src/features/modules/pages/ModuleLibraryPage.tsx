@@ -97,10 +97,7 @@ import { INGEST_CONTENT_DOMAIN_OPTIONS } from '@/features/ingest/constants/inges
 import type { IngestContentDomain } from '@/features/ingest/api/adminIngestApi';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
-import {
-  DEPLOYMENT_PRIMARY_LOCALE,
-  resolveDisplayText,
-} from '@/config/deploymentLocale';
+import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import {
   CREATE_MODULE_FORM_DEFAULTS,
@@ -114,6 +111,8 @@ import {
   getEstimatedMinutesValidationError,
   parseEstimatedMinutesInput,
 } from '@/features/modules/utils/estimatedMinutesValidation';
+import { createEmptyAdminModuleCard } from '@/features/modules/utils/adminModuleCardUtils';
+import { createEmptyAdminModuleQuizItem } from '@/features/modules/utils/adminModuleQuizUtils';
 
 const DIFFICULTY_LEVEL_OPTIONS = ['easy', 'moderate', 'hard'] as const;
 
@@ -1202,20 +1201,8 @@ export const ModuleLibraryPage = () => {
                       difficulty_level: createForm.difficulty_level,
                       chatbot_faqs_only: createForm.chatbot_faqs_only,
                       module_json: {
-                        cards: [
-                          {
-                            id: 'card-0',
-                            title: {},
-                            body: {
-                              [DEPLOYMENT_PRIMARY_LOCALE]: [
-                                {
-                                  type: 'paragraph',
-                                  content: [{ type: 'text', text: '' }],
-                                },
-                              ],
-                            },
-                          },
-                        ],
+                        cards: [createEmptyAdminModuleCard()],
+                        quiz: [createEmptyAdminModuleQuizItem(1)],
                       },
                     }).unwrap();
                     setCreateOpen(false);

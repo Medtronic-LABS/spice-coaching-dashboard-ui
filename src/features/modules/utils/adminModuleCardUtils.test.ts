@@ -3,6 +3,7 @@ import type { AdminModuleCard } from '@/features/modules/types/adminModule.types
 import {
   adjustSelectedIndexAfterReorder,
   cardSortableId,
+  createEmptyAdminModuleCard,
   moveCardDown,
   moveCardUp,
   reorderCards,
@@ -66,5 +67,14 @@ describe('adminModuleCardUtils', () => {
     ];
     expect(cardSortableId(cards, cards[0], 0)).toBe('dup-0');
     expect(cardSortableId(cards, cards[1], 1)).toBe('dup-1');
+  });
+
+  it('createEmptyAdminModuleCard returns a blank untitled card', () => {
+    const card = createEmptyAdminModuleCard('card-empty');
+    expect(card.id).toBe('card-empty');
+    expect(card.title).toEqual({});
+    expect(card.body.bn).toEqual([
+      { type: 'paragraph', content: [{ type: 'text', text: '' }] },
+    ]);
   });
 });
