@@ -355,6 +355,8 @@
     "moduleDemand": {
       "sectionTitle": "Module search demand",
       "summaryTitle": "Module demand summary",
+      "summaryInsightsTitle": "Insights from Module Usage",
+      "demandPatternHeading": "Demand pattern",
       "summaryDescription": "Narrative overview of digital-help usage and module creation demand for the selected filters.",
       "summaryEmptyFallback": "No module usage or creation demand was recorded for your team between {{fromDate}} to {{toDate}}.",
       "columns": {

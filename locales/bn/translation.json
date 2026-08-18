@@ -356,6 +356,8 @@
     "moduleDemand": {
       "sectionTitle": "মডিউল সার্চ চাহিদা",
       "summaryTitle": "মডিউল চাহিদার সারাংশ",
+      "summaryInsightsTitle": "মডিউল ব্যবহার থেকে অন্তর্দৃষ্টি",
+      "demandPatternHeading": "চাহিদার ধরন",
       "summaryDescription": "নির্বাচিত ফিল্টার অনুযায়ী ডিজিটাল-হেল্প ব্যবহার ও মডিউল তৈরির চাহিদার বর্ণনামূলক সারাংশ।",
       "summaryEmptyFallback": "{{fromDate}} থেকে {{toDate}} এর মধ্যে আপনার টিমের জন্য কোনো মডিউল ব্যবহার বা তৈরির চাহিদা রেকর্ড হয়নি।",
       "columns": {

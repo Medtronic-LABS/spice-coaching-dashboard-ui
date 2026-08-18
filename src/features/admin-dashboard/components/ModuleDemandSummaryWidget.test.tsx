@@ -1,6 +1,5 @@
 import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ModuleDemandSummaryWidget } from '@/features/admin-dashboard/components/ModuleDemandSummaryWidget';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import { renderWithProviders } from '@/test-utils/render';
@@ -13,35 +12,37 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
   useFetchModuleDemandSummaryQuery: mocks.useFetchModuleDemandSummaryQuery,
 }));
 
+const STRUCTURED_SUMMARY = {
+  from_date: '2026-08-01',
+  to_date: '2026-08-18',
+  title: 'Insights from Module Usage',
+  date_label: 'Aug 1–18, 2026',
+  narrative:
+    'Most demand can be addressed with existing or draft content. Prioritize assigning high-demand published modules, publish matching drafts to close immediate gaps, and create new content only for topics with no existing coverage.',
+  empty_message: null,
+  demand_pattern: [
+    {
+      bucket: 'assign' as const,
+      title: 'Existing coverage',
+      description: 'Demand is concentrated around a few published modules',
+    },
+    {
+      bucket: 'publish' as const,
+      title: 'Ready to publish',
+      description: 'Some unanswered demand already has draft content',
+    },
+    {
+      bucket: 'create' as const,
+      title: 'Content gaps',
+      description: 'Remaining demand represents opportunities for new modules',
+    },
+  ],
+};
+
 describe('ModuleDemandSummaryWidget', () => {
-  beforeEach(() => {
-    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
-      configurable: true,
-      get() {
-        return 48;
-      },
-    });
-    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
-      configurable: true,
-      get() {
-        return 120;
-      },
-    });
-  });
-
-  afterEach(() => {
-    Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight');
-    Reflect.deleteProperty(HTMLElement.prototype, 'scrollHeight');
-  });
-
-  it('renders the summary prose with a refresh control', () => {
+  it('renders structured summary with narrative and demand pattern', () => {
     mocks.useFetchModuleDemandSummaryQuery.mockReturnValue({
-      data: {
-        from_date: '2026-07-01',
-        to_date: '2026-07-31',
-        summary:
-          'Between 2026-07-01 to 2026-07-31, CHWs in your scope used digital help most on: Neonatal danger signs (45 digital-help, 8 requests).',
-      },
+      data: STRUCTURED_SUMMARY,
       isLoading: false,
       isFetching: false,
       isError: false,
@@ -50,33 +51,48 @@ describe('ModuleDemandSummaryWidget', () => {
 
     renderWithProviders(
       <ModuleDemandSummaryWidget
-        fromDate="2026-07-01"
-        toDate="2026-07-31"
+        fromDate="2026-08-01"
+        toDate="2026-08-18"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
       />,
     );
 
     expect(
+      screen.getByRole('heading', {
+        name: /insights from module usage/i,
+        level: 3,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Aug 1–18, 2026')).toBeInTheDocument();
+    expect(
       screen.getByText(
-        /Neonatal danger signs \(45 digital-help, 8 requests\)/i,
+        /most demand can be addressed with existing or draft content/i,
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText(/demand pattern/i)).toBeInTheDocument();
+    expect(screen.getByText('Existing coverage')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /demand is concentrated around a few published modules/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Ready to publish')).toBeInTheDocument();
+    expect(screen.getByText('Content gaps')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /refresh/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/module demand summary/i),
-    ).not.toBeInTheDocument();
   });
 
-  it('toggles between see more and see less when summary overflows', async () => {
-    const user = userEvent.setup();
+  it('shows empty_message when the summary has no structured content', () => {
     mocks.useFetchModuleDemandSummaryQuery.mockReturnValue({
       data: {
-        from_date: '2026-07-01',
-        to_date: '2026-07-31',
-        summary:
-          'Between 2026-07-01 to 2026-07-31, CHWs in your scope used digital help most on: Neonatal danger signs (45 digital-help, 8 requests). Additional context keeps this summary long enough to clamp across three lines before revealing the rest of the narrative.',
+        from_date: '2026-08-01',
+        to_date: '2026-08-18',
+        title: '',
+        date_label: '',
+        narrative: '',
+        empty_message: 'No module demand in this range.',
+        demand_pattern: [],
       },
       isLoading: false,
       isFetching: false,
@@ -86,21 +102,14 @@ describe('ModuleDemandSummaryWidget', () => {
 
     renderWithProviders(
       <ModuleDemandSummaryWidget
-        fromDate="2026-07-01"
-        toDate="2026-07-31"
+        fromDate="2026-08-01"
+        toDate="2026-08-18"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
       />,
     );
 
-    const seeMore = await screen.findByRole('button', { name: /see more/i });
-    await user.click(seeMore);
     expect(
-      screen.getByRole('button', { name: /see less/i }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /see less/i }));
-    expect(
-      screen.getByRole('button', { name: /see more/i }),
+      screen.getByText('No module demand in this range.'),
     ).toBeInTheDocument();
   });
 
@@ -121,6 +130,8 @@ describe('ModuleDemandSummaryWidget', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /try again/i }),
+    ).toBeInTheDocument();
   });
 });

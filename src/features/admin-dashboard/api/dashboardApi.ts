@@ -6,6 +6,7 @@ import {
   normalizeSuggestionListResponse,
 } from '@/features/admin-dashboard/api/dashboardResponseNormalizers';
 import { buildDashboardGeoParams } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
+import { normalizeModuleDemandSummaryResponse } from '@/features/admin-dashboard/utils/normalizeModuleDemandSummaryResponse';
 import { baseApi } from '@/store/apis/base';
 import type {
   DashboardGeographyFilters,
@@ -263,22 +264,8 @@ export const dashboardApi = baseApi.injectEndpoints({
           ...geo,
         },
       }),
-      transformResponse: (response: unknown): ModuleDemandSummaryResponse => {
-        if (
-          typeof response !== 'object' ||
-          response === null ||
-          Array.isArray(response)
-        ) {
-          return { from_date: '', to_date: '', summary: '' };
-        }
-        const record = response as Record<string, unknown>;
-        return {
-          from_date:
-            typeof record.from_date === 'string' ? record.from_date : '',
-          to_date: typeof record.to_date === 'string' ? record.to_date : '',
-          summary: typeof record.summary === 'string' ? record.summary : '',
-        };
-      },
+      transformResponse: (response: unknown): ModuleDemandSummaryResponse =>
+        normalizeModuleDemandSummaryResponse(response),
     }),
     fetchDocumentUsage: builder.query<
       DocumentUsageResponse,

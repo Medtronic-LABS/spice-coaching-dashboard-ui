@@ -299,10 +299,26 @@ export interface DocumentUsageResponse {
 }
 
 /** GET /dashboard/module-demand-summary */
+export type ModuleDemandSummaryBucket =
+  | 'assign'
+  | 'publish'
+  | 'create'
+  | 'other';
+
+export interface ModuleDemandPatternItem {
+  bucket: ModuleDemandSummaryBucket;
+  title: string;
+  description: string;
+}
+
 export interface ModuleDemandSummaryResponse {
   from_date: string;
   to_date: string;
-  summary: string;
+  title: string;
+  date_label: string;
+  narrative: string;
+  empty_message: string | null;
+  demand_pattern: ModuleDemandPatternItem[];
 }
 
 export type ModuleDemandInteractionType =
