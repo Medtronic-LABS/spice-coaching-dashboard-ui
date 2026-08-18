@@ -170,10 +170,9 @@ describe('ModuleLibraryPage', () => {
       }),
     ).not.toBeInTheDocument();
     expect(getActionSlots(faqRow)).toEqual(['assign']);
-    expect(getActionSlot(faqRow, 'assign')).toHaveAttribute(
-      'aria-hidden',
-      'true',
-    );
+    expect(
+      within(getActionSlot(faqRow, 'assign')).getByText('—'),
+    ).toBeInTheDocument();
   });
 
   it('opens a published module from its title for supervisors', async () => {
@@ -745,6 +744,9 @@ describe('ModuleLibraryPage', () => {
     expect(
       within(getActionSlot(faqRow, 'assign')).queryByRole('button'),
     ).not.toBeInTheDocument();
+    expect(
+      within(getActionSlot(faqRow, 'assign')).getByText('—'),
+    ).toBeInTheDocument();
     expect(
       within(getActionSlot(faqRow, 'deactivate')).getByRole('button', {
         name: /^deactivate$/i,

@@ -30,6 +30,9 @@ describe('KnowledgeLibraryTable', () => {
       screen.getByRole('columnheader', { name: 'File Type' }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('columnheader', { name: 'Status' }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('columnheader', { name: 'Uploaded Date' }),
     ).toBeInTheDocument();
     expect(

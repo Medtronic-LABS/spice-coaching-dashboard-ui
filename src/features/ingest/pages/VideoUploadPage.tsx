@@ -1007,7 +1007,7 @@ export const VideoUploadPage = () => {
               ) : isViewModulesStatus(row.status) ? (
                 <Button
                   variant="secondary"
-                  className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+                  className="h-8 w-[9.25rem] shrink-0 gap-1.5 px-3 text-xs"
                   onClick={() => {
                     goToDraftsForSource(
                       row.sourceDocumentId as string,
@@ -1019,7 +1019,11 @@ export const VideoUploadPage = () => {
                   View modules
                 </Button>
               ) : (
-                <StatusBadge status="neutral" label="Not ingested" />
+                <StatusBadge
+                  status="neutral"
+                  label="Not ingested"
+                  className="min-w-0 w-[9.25rem]"
+                />
               )}
             </div>
           );

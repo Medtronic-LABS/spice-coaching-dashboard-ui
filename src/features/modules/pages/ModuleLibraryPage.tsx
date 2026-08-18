@@ -110,6 +110,10 @@ import {
   CREATE_MODULE_FORM_DEFAULTS,
   CREATE_MODULE_FORM_PLACEHOLDERS,
 } from '@/features/modules/constants/createModuleFormDefaults';
+import {
+  MODULE_LIBRARY_ACTION_BUTTON_CLASS,
+  MODULE_LIBRARY_ACTION_WIDTH_CLASS,
+} from '@/features/modules/constants/moduleLibraryActionStyles';
 import { normalizeModuleTaxonomyLabel } from '@/features/modules/utils/normalizeModuleTaxonomyLabel';
 import {
   MAX_ESTIMATED_MINUTES,
@@ -140,10 +144,10 @@ const MODULE_LIBRARY_ACTION_SLOT_CLASS: Record<
   ModuleLibraryActionSlot,
   string
 > = {
-  assign: 'inline-flex h-8 w-[5.25rem] shrink-0 justify-start',
-  review: 'inline-flex h-8 w-[5.5rem] shrink-0 justify-start',
-  publish: 'inline-flex h-8 w-[7.5rem] shrink-0 justify-start',
-  deactivate: 'inline-flex h-8 w-[7.5rem] shrink-0 justify-start',
+  assign: `inline-flex h-8 ${MODULE_LIBRARY_ACTION_WIDTH_CLASS} shrink-0 justify-start`,
+  review: `inline-flex h-8 ${MODULE_LIBRARY_ACTION_WIDTH_CLASS} shrink-0 justify-start`,
+  publish: `inline-flex h-8 ${MODULE_LIBRARY_ACTION_WIDTH_CLASS} shrink-0 justify-start`,
+  deactivate: `inline-flex h-8 ${MODULE_LIBRARY_ACTION_WIDTH_CLASS} shrink-0 justify-start`,
 };
 
 function getModuleLibraryActionSlots(
@@ -170,9 +174,15 @@ function ModuleLibraryActionSlot({
     <div
       className={MODULE_LIBRARY_ACTION_SLOT_CLASS[slot]}
       data-action-slot={slot}
-      aria-hidden={children == null ? true : undefined}
     >
-      {children ?? null}
+      {children ?? (
+        <span
+          className="inline-flex h-full w-full items-center justify-center text-xs text-spice-text-medium"
+          aria-hidden="true"
+        >
+          —
+        </span>
+      )}
     </div>
   );
 }
@@ -750,14 +760,14 @@ export const ModuleLibraryPage = () => {
             isProgramManager,
           );
           const reserveActionSlots = actionSlots.length > 0;
-          const slottedButtonClass = reserveActionSlots
+          const actionButtonClass = reserveActionSlots
             ? 'h-8 w-full px-3 text-xs'
-            : 'h-8 px-3 text-xs';
+            : MODULE_LIBRARY_ACTION_BUTTON_CLASS;
 
           const assignButton =
             row.status === 'published' && isAssignablePublishedModule(row) ? (
               <Button
-                className={slottedButtonClass}
+                className={actionButtonClass}
                 onClick={() => {
                   setAssignmentModule({ id: row.id, title: row.title });
                   setAssignmentOpen(true);
@@ -772,7 +782,7 @@ export const ModuleLibraryPage = () => {
             row.status !== 'published' &&
             row.status !== 'deactivated' ? (
               <Button
-                className={slottedButtonClass}
+                className={actionButtonClass}
                 onClick={() => {
                   if (isNeedsReviewStatus(row.status)) {
                     setExpandedReviewModuleId(row.id);
@@ -796,7 +806,7 @@ export const ModuleLibraryPage = () => {
             isProgramManager && row.status === 'draft' ? (
               <Button
                 variant="primary"
-                className={slottedButtonClass}
+                className={actionButtonClass}
                 disabled={isPublishing}
                 onClick={async () => {
                   setPublishError('');
@@ -832,7 +842,7 @@ export const ModuleLibraryPage = () => {
               <Button
                 variant="secondary"
                 className={cn(
-                  slottedButtonClass,
+                  actionButtonClass,
                   'text-spice-semantic-error hover:bg-spice-semantic-errorBg',
                 )}
                 onClick={() => {
@@ -852,7 +862,7 @@ export const ModuleLibraryPage = () => {
             isProgramManager && row.status === 'deactivated' ? (
               <Button
                 variant="primary"
-                className={slottedButtonClass}
+                className={actionButtonClass}
                 disabled={isReactivating}
                 onClick={async () => {
                   try {

@@ -65,6 +65,13 @@ type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
 };
 
+type KnowledgeStatusTone =
+  | 'processing'
+  | 'completed'
+  | 'partial'
+  | 'failed'
+  | 'neutral';
+
 const PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
 
@@ -83,6 +90,58 @@ const RefreshIcon = ({ className }: { className?: string }) => (
     <path d="M21 3v6h-6" />
   </svg>
 );
+
+function formatKnowledgeStatusDisplay(status: string | undefined): string {
+  const trimmed = (status ?? '').trim();
+  if (!trimmed) return 'Unknown';
+  return trimmed
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function knowledgeStatusTone(status: string | undefined): KnowledgeStatusTone {
+  const normalized = (status ?? '').trim().toLowerCase();
+  if (!normalized) return 'neutral';
+  if (
+    normalized === 'uploaded' ||
+    normalized === 'uploading' ||
+    normalized === 'ingesting' ||
+    normalized === 'processing' ||
+    normalized === 'running'
+  ) {
+    return 'processing';
+  }
+  if (normalized === 'partially_succeeded') return 'partial';
+  if (normalized === 'ingested' || normalized === 'completed') {
+    return 'completed';
+  }
+  if (normalized.includes('fail') || normalized.includes('error')) {
+    return 'failed';
+  }
+  return 'neutral';
+}
+
+function knowledgeStatusBadgeClassName(tone: KnowledgeStatusTone): string {
+  switch (tone) {
+    case 'processing':
+      return 'bg-spice-palette-violetLt text-spice-palette-violet';
+    case 'completed':
+      return 'bg-spice-palette-purpleLt text-spice-palette-purple';
+    case 'partial':
+      return 'bg-spice-palette-pinkLt text-spice-palette-pink';
+    case 'failed':
+      return 'bg-spice-semantic-errorBg text-spice-semantic-error';
+    case 'neutral':
+      return 'bg-spice-bg-tint text-spice-text-muted';
+    default: {
+      const exhaustiveCheck: never = tone;
+      return exhaustiveCheck;
+    }
+  }
+}
 
 export const KnowledgeLibraryTable = () => {
   const navigate = useNavigate();
@@ -397,6 +456,23 @@ export const KnowledgeLibraryTable = () => {
         key: 'fileType',
         header: 'File Type',
         render: (row) => row.fileType.toUpperCase(),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        sortKey: 'status',
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        render: (row) => (
+          <span
+            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${knowledgeStatusBadgeClassName(
+              knowledgeStatusTone(row.status),
+            )}`}
+          >
+            {formatKnowledgeStatusDisplay(row.status)}
+          </span>
+        ),
       },
       {
         key: 'uploadedAt',
