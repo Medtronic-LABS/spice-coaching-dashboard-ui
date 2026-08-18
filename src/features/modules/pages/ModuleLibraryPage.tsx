@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -6,6 +13,7 @@ import {
   Button,
   Card,
   LimitedTextInput,
+  LimitedTextarea,
   Loader,
   Modal,
   QuotedDisplayLabel,
@@ -58,8 +66,6 @@ import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignab
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
 import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
-import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
-import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type {
   ModuleLibraryItem,
   ModuleStatus,
@@ -99,6 +105,7 @@ import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
   CREATE_MODULE_FORM_DEFAULTS,
   CREATE_MODULE_FORM_PLACEHOLDERS,
@@ -126,8 +133,49 @@ const DEFAULT_MODULE_PAGE_SIZE = 10;
 
 const CREATE_MODULE_INPUT_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
-const PUBLISHED_ASSIGN_SLOT_CLASS =
-  'inline-flex h-8 min-w-[5.25rem] justify-start';
+
+type ModuleLibraryActionSlot = 'assign' | 'review' | 'publish' | 'deactivate';
+
+const MODULE_LIBRARY_ACTION_SLOT_CLASS: Record<
+  ModuleLibraryActionSlot,
+  string
+> = {
+  assign: 'inline-flex h-8 w-[5.25rem] shrink-0 justify-start',
+  review: 'inline-flex h-8 w-[5.5rem] shrink-0 justify-start',
+  publish: 'inline-flex h-8 w-[7.5rem] shrink-0 justify-start',
+  deactivate: 'inline-flex h-8 w-[7.5rem] shrink-0 justify-start',
+};
+
+function getModuleLibraryActionSlots(
+  tab: ModuleLibraryTab,
+  isProgramManager: boolean,
+): ModuleLibraryActionSlot[] {
+  if (tab === 'published') {
+    return isProgramManager ? ['assign', 'deactivate'] : ['assign'];
+  }
+  if (tab === 'drafts') {
+    return ['review', 'publish'];
+  }
+  return [];
+}
+
+function ModuleLibraryActionSlot({
+  slot,
+  children,
+}: {
+  slot: ModuleLibraryActionSlot;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={MODULE_LIBRARY_ACTION_SLOT_CLASS[slot]}
+      data-action-slot={slot}
+      aria-hidden={children == null ? true : undefined}
+    >
+      {children ?? null}
+    </div>
+  );
+}
 
 type AdminModuleDifficultyLevel = (typeof DIFFICULTY_LEVEL_OPTIONS)[number];
 
@@ -190,17 +238,20 @@ export const ModuleLibraryPage = () => {
     setFilters,
     resolveExternalViewSearch,
   } = useModuleListFilters(isProgramManager);
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_MODULE_PAGE_SIZE);
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(0);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
 
   useEffect(() => {
-    setPage(0);
-  }, [searchQ]);
-
-  useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
+    resetPage();
+  }, [searchQ, resetPage]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [expandedReviewModuleId, setExpandedReviewModuleId] = useState<
@@ -287,9 +338,9 @@ export const ModuleLibraryPage = () => {
     (newSortBy: string, newSortDir: 'asc' | 'desc') => {
       setSortBy(newSortBy);
       setSortDir(newSortDir);
-      setPage(0);
+      resetPage();
     },
-    [],
+    [resetPage],
   );
 
   const { data: domainOptions = [], refetch: refetchDomainOptions } =
@@ -307,7 +358,6 @@ export const ModuleLibraryPage = () => {
       domain: activeFilters.domain || undefined,
       ...dateParams,
       sourceDocumentId: activeFilters.sourceDocumentId || undefined,
-      ...toGeographyQueryParams(activeFilters),
       q: searchQ,
       sort_by: sortBy,
       sort_dir: sortDir,
@@ -320,6 +370,10 @@ export const ModuleLibraryPage = () => {
   );
   const totalModules = modulesPage?.total_modules ?? 0;
   const totalPages = modulesPage?.total_pages ?? 0;
+
+  useEffect(() => {
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   const refreshModuleList = useCallback(() => {
     if (dateRangeInvalid || modulesQueryUninitialized) return;
@@ -358,15 +412,6 @@ export const ModuleLibraryPage = () => {
     setDocumentSearch('');
   };
 
-  const geographySection = useGeographyFilterOptions({
-    enabled: filtersDrawerOpen,
-    idPrefix: 'module',
-    selection: draftFilters,
-    onSelectionChange: (next) => {
-      setDraftFilters((current) => ({ ...current, ...next }));
-    },
-  });
-
   const handleTabChange = (value: string) => {
     setTab(value as ModuleLibraryTab);
     setPage(0);
@@ -385,7 +430,7 @@ export const ModuleLibraryPage = () => {
           : {},
       );
       nextSearch = query ? `?${query}` : '';
-      setPage(0);
+      resetPage();
     }
     if (state.sourceDocumentId) {
       appendRecentIngestDocument({
@@ -432,6 +477,7 @@ export const ModuleLibraryPage = () => {
     location.search,
     location.state,
     navigate,
+    resetPage,
     resolveExternalViewSearch,
     tab,
   ]);
@@ -606,37 +652,6 @@ export const ModuleLibraryPage = () => {
     ? page * pageSize + currentTabItemCount
     : 0;
 
-  useEffect(() => {
-    if (totalPages > 0 && page >= totalPages) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) &&
-      parsed >= 1 &&
-      (totalPages <= 0 || parsed <= totalPages);
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    const parsed = Number.parseInt(raw, 10);
-    if (parsed < 1) return;
-    if (totalPages > 0 && parsed > totalPages) return;
-    setPageInput(raw);
-  };
-
   const columns: Array<ColumnDef<ModuleLibraryItem>> = useMemo(
     () => [
       {
@@ -728,125 +743,36 @@ export const ModuleLibraryPage = () => {
       {
         key: 'id',
         header: 'Actions',
-        className: 'text-left',
+        className: 'text-left whitespace-nowrap',
         render: (row) => {
-          if (row.status === 'deactivated') {
-            if (!isProgramManager) return null;
-            return (
-              <div className="flex justify-start gap-2">
-                <Button
-                  variant="primary"
-                  className="h-8 px-3 text-xs"
-                  disabled={isReactivating}
-                  onClick={async () => {
-                    try {
-                      await reactivateModule({ moduleId: row.id }).unwrap();
-                      refreshModuleList();
-                    } catch {
-                      // Refetch keeps the list consistent if partial failure occurs.
-                      refreshModuleList();
-                    }
-                  }}
-                >
-                  {isReactivating ? 'Activating…' : 'Activate'}
-                </Button>
-              </div>
-            );
-          }
-          if (row.status === 'published') {
-            return (
-              <div className="flex justify-start gap-2">
-                <div className={PUBLISHED_ASSIGN_SLOT_CLASS}>
-                  {isAssignablePublishedModule(row) ? (
-                    <Button
-                      className="h-8 w-full px-3 text-xs"
-                      onClick={() => {
-                        setAssignmentModule({ id: row.id, title: row.title });
-                        setAssignmentOpen(true);
-                      }}
-                    >
-                      Assign
-                    </Button>
-                  ) : null}
-                </div>
-                {isProgramManager ? (
-                  <Button
-                    variant="secondary"
-                    className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
-                    onClick={() => {
-                      setDeactivateError('');
-                      setDeactivateModuleData({
-                        id: row.id,
-                        title: row.title,
-                      });
-                      setDeactivateConfirmOpen(true);
-                    }}
-                  >
-                    Deactivate
-                  </Button>
-                ) : null}
-              </div>
-            );
-          }
-          if (!isProgramManager) {
-            return null;
-          }
-          if (row.status === 'draft') {
-            const isPublishingRow =
-              isPublishing && publishingModuleId === row.id;
-            return (
-              <div className="flex justify-start gap-2">
-                <Button
-                  className="h-8 px-3 text-xs"
-                  onClick={() => {
-                    navigate(
-                      paths.adminModuleReviewDetails.replace(
-                        ':moduleId',
-                        encodeURIComponent(row.id),
-                      ),
-                    );
-                  }}
-                >
-                  Review
-                </Button>
-                <Button
-                  variant="primary"
-                  className="h-8 px-3 text-xs"
-                  disabled={isPublishing}
-                  onClick={async () => {
-                    setPublishError('');
-                    setPublishingModuleId(row.id);
-                    try {
-                      await publishModule({ moduleId: row.id }).unwrap();
-                      setPublishSuccessSummary({
-                        title: row.title,
-                        topic: row.category,
-                        lessonCount: row.lessons,
-                        quizCount: row.questions,
-                        estimateMinutes: row.estimatedMinutes,
-                      });
-                      setPublishSuccessOpen(true);
-                      refreshModuleList();
-                    } catch (error) {
-                      setPublishError(
-                        formatRtkQueryError(error) ||
-                          'Failed to publish module. Please try again.',
-                      );
-                      refreshModuleList();
-                    } finally {
-                      setPublishingModuleId(null);
-                    }
-                  }}
-                >
-                  {isPublishingRow ? 'Publishing…' : 'Publish'}
-                </Button>
-              </div>
-            );
-          }
-          return (
-            <div className="flex justify-start gap-2">
+          const actionSlots = getModuleLibraryActionSlots(
+            tab,
+            isProgramManager,
+          );
+          const reserveActionSlots = actionSlots.length > 0;
+          const slottedButtonClass = reserveActionSlots
+            ? 'h-8 w-full px-3 text-xs'
+            : 'h-8 px-3 text-xs';
+
+          const assignButton =
+            row.status === 'published' && isAssignablePublishedModule(row) ? (
               <Button
-                className="h-8 px-3 text-xs"
+                className={slottedButtonClass}
+                onClick={() => {
+                  setAssignmentModule({ id: row.id, title: row.title });
+                  setAssignmentOpen(true);
+                }}
+              >
+                Assign
+              </Button>
+            ) : null;
+
+          const reviewButton =
+            isProgramManager &&
+            row.status !== 'published' &&
+            row.status !== 'deactivated' ? (
+              <Button
+                className={slottedButtonClass}
                 onClick={() => {
                   if (isNeedsReviewStatus(row.status)) {
                     setExpandedReviewModuleId(row.id);
@@ -863,6 +789,117 @@ export const ModuleLibraryPage = () => {
               >
                 {isNeedsReviewStatus(row.status) ? 'Resolve' : 'Review'}
               </Button>
+            ) : null;
+
+          const isPublishingRow = isPublishing && publishingModuleId === row.id;
+          const publishButton =
+            isProgramManager && row.status === 'draft' ? (
+              <Button
+                variant="primary"
+                className={slottedButtonClass}
+                disabled={isPublishing}
+                onClick={async () => {
+                  setPublishError('');
+                  setPublishingModuleId(row.id);
+                  try {
+                    await publishModule({ moduleId: row.id }).unwrap();
+                    setPublishSuccessSummary({
+                      title: row.title,
+                      topic: row.category,
+                      lessonCount: row.lessons,
+                      quizCount: row.questions,
+                      estimateMinutes: row.estimatedMinutes,
+                    });
+                    setPublishSuccessOpen(true);
+                    refreshModuleList();
+                  } catch (error) {
+                    setPublishError(
+                      formatRtkQueryError(error) ||
+                        'Failed to publish module. Please try again.',
+                    );
+                    refreshModuleList();
+                  } finally {
+                    setPublishingModuleId(null);
+                  }
+                }}
+              >
+                {isPublishingRow ? 'Publishing…' : 'Publish'}
+              </Button>
+            ) : null;
+
+          const deactivateButton =
+            isProgramManager && row.status === 'published' ? (
+              <Button
+                variant="secondary"
+                className={cn(
+                  slottedButtonClass,
+                  'text-spice-semantic-error hover:bg-spice-semantic-errorBg',
+                )}
+                onClick={() => {
+                  setDeactivateError('');
+                  setDeactivateModuleData({
+                    id: row.id,
+                    title: row.title,
+                  });
+                  setDeactivateConfirmOpen(true);
+                }}
+              >
+                Deactivate
+              </Button>
+            ) : null;
+
+          const activateButton =
+            isProgramManager && row.status === 'deactivated' ? (
+              <Button
+                variant="primary"
+                className={slottedButtonClass}
+                disabled={isReactivating}
+                onClick={async () => {
+                  try {
+                    await reactivateModule({ moduleId: row.id }).unwrap();
+                    refreshModuleList();
+                  } catch {
+                    // Refetch keeps the list consistent if partial failure occurs.
+                    refreshModuleList();
+                  }
+                }}
+              >
+                {isReactivating ? 'Activating…' : 'Activate'}
+              </Button>
+            ) : null;
+
+          const packedActions = [
+            { key: 'assign', node: assignButton },
+            { key: 'review', node: reviewButton },
+            { key: 'publish', node: publishButton },
+            { key: 'deactivate', node: deactivateButton ?? activateButton },
+          ].filter((action) => action.node != null);
+
+          if (!reserveActionSlots) {
+            if (packedActions.length === 0) return null;
+            return (
+              <div className="flex justify-start gap-2">
+                {packedActions.map((action) => (
+                  <Fragment key={action.key}>{action.node}</Fragment>
+                ))}
+              </div>
+            );
+          }
+
+          const slotContent: Record<ModuleLibraryActionSlot, ReactNode> = {
+            assign: assignButton,
+            review: reviewButton,
+            publish: publishButton,
+            deactivate: deactivateButton ?? activateButton,
+          };
+
+          return (
+            <div className="flex justify-start gap-2">
+              {actionSlots.map((slot) => (
+                <ModuleLibraryActionSlot key={slot} slot={slot}>
+                  {slotContent[slot]}
+                </ModuleLibraryActionSlot>
+              ))}
             </div>
           );
         },
@@ -994,17 +1031,19 @@ export const ModuleLibraryPage = () => {
                   <span className="text-xs font-semibold text-spice-text-primary">
                     Description (BN)
                   </span>
-                  <textarea
-                    className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+                  <LimitedTextarea
+                    id="create-module-description-bn"
                     value={createForm.description_bn}
+                    maxLength={FIELD_LIMITS.description}
                     disabled={isCreating}
-                    onChange={(e) =>
+                    placeholder="মডিউল বিবরণ…"
+                    textareaClassName="min-h-[84px] border-spice-border"
+                    onChange={(description_bn) =>
                       setCreateForm((prev) => ({
                         ...prev,
-                        description_bn: e.target.value,
+                        description_bn,
                       }))
                     }
-                    placeholder="মডিউল বিবরণ…"
                   />
                 </label>
               </div>
@@ -1160,6 +1199,15 @@ export const ModuleLibraryPage = () => {
                     setCreateError('Domain is required.');
                     return;
                   }
+                  if (domainRaw.length > FIELD_LIMITS.taxonomy) {
+                    setCreateError(
+                      fieldLimitExceededMessage(
+                        'Domain',
+                        FIELD_LIMITS.taxonomy,
+                      ),
+                    );
+                    return;
+                  }
                   const titleBn = createForm.title_bn.trim();
                   if (titleBn.length > FIELD_LIMITS.moduleTitle) {
                     setCreateError(
@@ -1170,9 +1218,18 @@ export const ModuleLibraryPage = () => {
                     );
                     return;
                   }
+                  const descriptionBn = createForm.description_bn.trim();
+                  if (descriptionBn.length > FIELD_LIMITS.description) {
+                    setCreateError(
+                      fieldLimitExceededMessage(
+                        'Description',
+                        FIELD_LIMITS.description,
+                      ),
+                    );
+                    return;
+                  }
                   try {
                     const domain = normalizeModuleTaxonomyLabel(domainRaw);
-                    const descriptionBn = createForm.description_bn.trim();
                     const created = await createModule({
                       title: {
                         bn: titleBn,
@@ -1407,7 +1464,6 @@ export const ModuleLibraryPage = () => {
             onChange={setDraftFilters}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
-            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 

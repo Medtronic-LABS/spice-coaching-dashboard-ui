@@ -7,7 +7,14 @@ import {
 } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import { todayDateInputValue } from '@/utils/dateInput';
 
-const fetchUpazilasPage = vi.hoisted(() => vi.fn());
+const fetchUpazilasPage = vi.hoisted(() =>
+  vi.fn(() => ({
+    unwrap: () =>
+      Promise.resolve({
+        upazilas: [],
+      }),
+  })),
+);
 
 vi.mock('@/features/modules/api/adminAssignmentApi', () => ({
   useFetchAdminDistrictsQuery: () => ({ data: [] }),

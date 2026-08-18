@@ -54,6 +54,14 @@ describe('KnowledgeSplitEditor', () => {
       'maxLength',
       String(FIELD_LIMITS.documentTitle),
     );
+    expect(screen.getByLabelText('Split 1 start page')).toHaveAttribute(
+      'maxLength',
+      '1',
+    );
+    expect(screen.getByLabelText('Split 1 end page')).toHaveAttribute(
+      'maxLength',
+      '1',
+    );
   });
 
   it('shows PDF auto preview and clearing leaves an intentional blank thumbnail', async () => {

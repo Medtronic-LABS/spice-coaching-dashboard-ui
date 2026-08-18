@@ -120,6 +120,24 @@ describe('ConfigsPage configuration history', () => {
     expect(within(table).getByText('30')).toBeInTheDocument();
   });
 
+  it('blocks extra digits beyond the 365-day budget', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConfigsPage />);
+
+    const input = await screen.findByLabelText(
+      /quiz reattempt validity days/i,
+      { timeout: FIND_TIMEOUT_MS },
+    );
+    expect(input).toHaveAttribute('maxLength', '3');
+
+    await user.clear(input);
+    await user.type(input, '9999');
+    expect(input).toHaveValue('999');
+    expect(
+      screen.getByText(/duration cannot exceed 365 days/i),
+    ).toBeInTheDocument();
+  });
+
   it('paginates history with the shared table controls', async () => {
     const user = userEvent.setup();
     seedMockConfigChanges('quiz_reattempt_validity_days', [

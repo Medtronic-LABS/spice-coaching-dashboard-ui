@@ -40,7 +40,6 @@ export interface ModuleLibraryFiltersProps {
   onClearAll: () => void;
   onApply: () => void;
   applyDisabled?: boolean;
-  geographySection: SettingsFilterSection;
 }
 
 export const ModuleLibraryFilters = ({
@@ -60,7 +59,6 @@ export const ModuleLibraryFilters = ({
   onClearAll,
   onApply,
   applyDisabled = false,
-  geographySection,
 }: ModuleLibraryFiltersProps) => {
   const dateTypes = getAvailableDateFilterTypes(tab, isProgramManager);
   const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
@@ -111,7 +109,6 @@ export const ModuleLibraryFilters = ({
           },
         ],
       },
-      geographySection,
       {
         id: 'module-library-date-ranges',
         label: 'Date ranges',
@@ -158,7 +155,6 @@ export const ModuleLibraryFilters = ({
       dateTypes,
       domainOptions,
       filters,
-      geographySection,
       onChange,
       onSourceDocumentChange,
       onSourceDocumentSearchChange,

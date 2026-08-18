@@ -1,9 +1,14 @@
-/** Max input length for short admin labels (Unicode code points). */
+/** Max input length by field category (HTML `maxLength` / UTF-16 units). */
 export const FIELD_LIMITS = {
   milestoneName: 80,
-  moduleTitle: 120,
+  taxonomy: 80,
+  searchQuery: 100,
   cardTitle: 100,
+  moduleTitle: 120,
+  quizOption: 150,
   documentTitle: 200,
+  quizQuestion: 300,
+  description: 500,
 } as const;
 
 /** Inline confirmation modals show this many characters before an ellipsis. */

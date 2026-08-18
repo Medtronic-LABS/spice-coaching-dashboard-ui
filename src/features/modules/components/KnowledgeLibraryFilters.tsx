@@ -25,7 +25,6 @@ export interface KnowledgeLibraryFiltersProps {
   uploaderSearch: string;
   onUploaderSearchChange: (term: string) => void;
   uploadersLoading?: boolean;
-  geographySection: SettingsFilterSection;
 }
 
 export const KnowledgeLibraryFilters = ({
@@ -38,7 +37,6 @@ export const KnowledgeLibraryFilters = ({
   uploaderSearch,
   onUploaderSearchChange,
   uploadersLoading = false,
-  geographySection,
 }: KnowledgeLibraryFiltersProps) => {
   const dateRangeInvalid = isKnowledgeDrawerDateRangeInvalid(filters);
 
@@ -97,7 +95,6 @@ export const KnowledgeLibraryFilters = ({
           },
         ],
       },
-      geographySection,
       {
         id: 'knowledge-library-date-ranges',
         label: 'Date ranges',
@@ -128,7 +125,6 @@ export const KnowledgeLibraryFilters = ({
     ],
     [
       filters,
-      geographySection,
       onChange,
       onUploaderSearchChange,
       selectedUploaderLabel,

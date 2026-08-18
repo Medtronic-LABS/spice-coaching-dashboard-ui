@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { useTablePageInput } from '@/features/admin-dashboard/hooks/useTablePageInput';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 
 describe('useTablePageInput', () => {
   it('commits a valid 1-based page input', () => {
@@ -15,6 +15,15 @@ describe('useTablePageInput', () => {
 
     expect(result.current.page).toBe(2);
     expect(result.current.pageInput).toBe('3');
+  });
+
+  it('caps extra digits then keeps only an in-range page', () => {
+    const { result } = renderHook(() => useTablePageInput(5));
+
+    act(() => {
+      result.current.handlePageInputChange('12');
+    });
+    expect(result.current.pageInput).toBe('1');
   });
 
   it('rejects invalid input and restores the current page', () => {

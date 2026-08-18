@@ -48,6 +48,7 @@ import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSource
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
@@ -205,11 +206,18 @@ export const DocumentSelectionPanel = ({
     DOCUMENT_SELECTION_SEARCH_DEBOUNCE_MS,
   );
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(
     DEFAULT_DOCUMENT_SELECTION_PAGE_SIZE,
   );
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(0);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
   const [sortBy, setSortBy] = useState('uploaded_date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -235,8 +243,8 @@ export const DocumentSelectionPanel = ({
   );
 
   useEffect(() => {
-    setPage(0);
-  }, [searchQ, pageSize]);
+    resetPage();
+  }, [searchQ, pageSize, resetPage]);
 
   const {
     data: catalog,
@@ -324,14 +332,8 @@ export const DocumentSelectionPanel = ({
     : 0;
 
   useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
-
-  useEffect(() => {
-    if (totalPages > 0 && page >= totalPages) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   const setSelectionFromDocs = useCallback(
     (next: SelectedIngestDocument[]) => {
@@ -372,33 +374,8 @@ export const DocumentSelectionPanel = ({
       setSortDir(nextSortDir);
       setPage(0);
     },
-    [],
+    [setPage],
   );
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) &&
-      parsed >= 1 &&
-      (totalPages <= 0 || parsed <= totalPages);
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    const parsed = Number.parseInt(raw, 10);
-    if (parsed < 1) return;
-    if (totalPages > 0 && parsed > totalPages) return;
-    setPageInput(raw);
-  };
 
   const handlePendingFilesChange = (next: File[]) => {
     setUploadComplete(false);

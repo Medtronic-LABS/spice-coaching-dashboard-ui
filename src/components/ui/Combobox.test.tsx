@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Combobox, type ComboboxOption } from '@/components/ui/Combobox';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 
 const OPTIONS: ComboboxOption[] = [
   { label: 'All documents', value: '' },
@@ -72,6 +73,10 @@ describe('Combobox', () => {
     const input = screen.getByRole('combobox');
     await user.click(input);
     expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(input).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.searchQuery),
+    );
 
     await user.click(
       screen.getByRole('option', { name: 'Hypertension guide' }),

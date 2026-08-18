@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   LimitedTextInput,
+  LimitedTextarea,
   Loader,
   SearchInput,
   StatusBadge,
@@ -24,13 +25,10 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import {
-  SPICE_CHECKBOX_CLASSNAME,
-  SPICE_INPUT_FOCUS_CLASSNAME,
-} from '@/constants/formControls';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
-import { cn } from '@/utils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
   type AdminV3IngestAcceptedResponse,
   type AdminV3IngestAcceptedSource,
@@ -86,8 +84,6 @@ import {
   toggleVideoUploadStatus,
   type VideoUploadFiltersState,
 } from '@/features/ingest/utils/videoUploadStatusConfig';
-import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
-import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import {
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
@@ -252,9 +248,16 @@ export const VideoUploadPage = () => {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_VIDEO_PAGE_SIZE);
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(1);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<VideoUploadFiltersState>(
     EMPTY_VIDEO_UPLOAD_FILTERS,
@@ -319,8 +322,8 @@ export const VideoUploadPage = () => {
   }, [appliedFilters]);
 
   useEffect(() => {
-    setPage(0);
-  }, [searchQ]);
+    resetPage();
+  }, [searchQ, resetPage]);
 
   const handleOpenFiltersDrawer = useCallback(() => {
     setDraftFilters(appliedFilters);
@@ -335,24 +338,15 @@ export const VideoUploadPage = () => {
   const handleClearDraftFilters = useCallback(() => {
     setDraftFilters(EMPTY_VIDEO_UPLOAD_FILTERS);
     setAppliedFilters(EMPTY_VIDEO_UPLOAD_FILTERS);
-    setPage(0);
-  }, []);
+    resetPage();
+  }, [resetPage]);
 
   const handleApplyFilters = useCallback(() => {
     if (isVideoUploadDateRangeInvalid(draftFilters)) return;
     setAppliedFilters(normalizeVideoUploadFilters(draftFilters));
-    setPage(0);
+    resetPage();
     setFiltersDrawerOpen(false);
-  }, [draftFilters]);
-
-  const geographySection = useGeographyFilterOptions({
-    enabled: filtersDrawerOpen,
-    idPrefix: 'video',
-    selection: draftFilters,
-    onSelectionChange: (next) => {
-      setDraftFilters((current) => ({ ...current, ...next }));
-    },
-  });
+  }, [draftFilters, resetPage]);
 
   const stageVideoFiles = useCallback((files: ArrayLike<File> | null) => {
     const picked = Array.from(files ?? []);
@@ -484,9 +478,9 @@ export const VideoUploadPage = () => {
     (newSortBy: string, newSortDir: 'asc' | 'desc') => {
       setSortBy(newSortBy);
       setSortDir(newSortDir);
-      setPage(0);
+      resetPage();
     },
-    [],
+    [resetPage],
   );
 
   const {
@@ -511,7 +505,6 @@ export const VideoUploadPage = () => {
           uploaded_to: uploadedDateInputToToIso(appliedFilters.uploadedAtTo),
         }
       : {}),
-    ...toGeographyQueryParams(appliedFilters),
     limit: pageSize,
     offset: page * pageSize,
     sort_by: sortBy,
@@ -583,32 +576,8 @@ export const VideoUploadPage = () => {
   const rangeEnd = serverRows.length ? page * pageSize + serverRows.length : 0;
 
   useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
-
-  useEffect(() => {
-    if (page >= totalPages) setPage(totalPages - 1);
-  }, [page, totalPages]);
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) && parsed >= 1 && parsed <= totalPages;
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    setPageInput(raw);
-  };
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   const uploadPendingThumbnails = useCallback(
     async (
@@ -1241,19 +1210,16 @@ export const VideoUploadPage = () => {
                       <span className="text-xs font-semibold text-spice-text-primary">
                         Description
                       </span>
-                      <textarea
+                      <LimitedTextarea
+                        id={`pending-video-description-${item.key}`}
                         value={item.description}
+                        maxLength={FIELD_LIMITS.description}
                         disabled={uploadBusy}
                         rows={2}
-                        onChange={(event) =>
-                          updatePendingItem(item.key, {
-                            description: event.target.value,
-                          })
+                        textareaClassName="min-h-0 rounded-md border-spice-border-mid"
+                        onChange={(description) =>
+                          updatePendingItem(item.key, { description })
                         }
-                        className={cn(
-                          'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
-                          SPICE_INPUT_FOCUS_CLASSNAME,
-                        )}
                       />
                     </label>
                   </div>
@@ -1393,7 +1359,6 @@ export const VideoUploadPage = () => {
             }}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
-            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
         <Loader open={isLoadingVideos} label="Loading uploaded videos…" />

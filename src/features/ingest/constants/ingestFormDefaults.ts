@@ -2,9 +2,16 @@ import type {
   IngestAssessmentMode,
   IngestContentDomain,
 } from '@/features/ingest/api/adminIngestApi';
+import {
+  maxDigitsForLimit,
+  parseCappedIntegerInput,
+} from '@/utils/digitLimitedInteger';
 
 export const INGEST_MODULE_COUNT_MIN = 1;
 export const INGEST_MODULE_COUNT_MAX = 7;
+export const INGEST_MODULE_COUNT_MAX_DIGITS = maxDigitsForLimit(
+  INGEST_MODULE_COUNT_MAX,
+);
 
 export const INGEST_MODULE_COUNT_RANGE_LABEL = `Enter a number from ${INGEST_MODULE_COUNT_MIN} to ${INGEST_MODULE_COUNT_MAX}.`;
 
@@ -39,4 +46,16 @@ export function ingestModuleCountForPayload(
 ): number | undefined {
   if (value === '' || !isIngestModuleCountInRange(value)) return undefined;
   return value;
+}
+
+/** Optional 1–7 count: empty stays empty; extra digits are dropped. */
+export function parseOptionalIngestModuleCountInput(
+  raw: string,
+): IngestModuleCountInput {
+  if (raw.trim() === '') {
+    return '';
+  }
+
+  const parsed = parseCappedIntegerInput(raw, INGEST_MODULE_COUNT_MAX_DIGITS);
+  return Number.isFinite(parsed) ? parsed : '';
 }

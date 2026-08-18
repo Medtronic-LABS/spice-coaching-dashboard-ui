@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { setCurrentRole, type AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
@@ -138,6 +139,21 @@ describe('AdminModuleQuizStep editor UI', () => {
     expect(
       screen.getByRole('button', { name: /continue to review/i }),
     ).toBeInTheDocument();
+  });
+
+  it('caps question, option, and explanation inputs', () => {
+    renderQuizStep();
+
+    expect(
+      screen.getAllByPlaceholderText('Type your question…')[0],
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.quizQuestion));
+    expect(screen.getAllByPlaceholderText('Option 1')[0]).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.quizOption),
+    );
+    expect(
+      screen.getAllByPlaceholderText('Write an explanation…')[0],
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
   });
 
   it('seeds a blank question with four empty options when the quiz is empty', () => {

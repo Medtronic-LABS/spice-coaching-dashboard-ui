@@ -21,6 +21,7 @@ import {
   Tabs,
   getTabsA11yIds,
 } from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 
 describe('ui components', () => {
   it('renders basic UI building blocks', () => {
@@ -143,6 +144,10 @@ describe('ui components', () => {
     });
     expect(screen.getByTestId('search-input-icon')).toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledWith('hi');
+    expect(screen.getByLabelText('Search')).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.searchQuery),
+    );
   });
 
   it('SearchInput defaults aria-label when not provided', () => {

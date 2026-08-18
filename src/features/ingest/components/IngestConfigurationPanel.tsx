@@ -6,10 +6,12 @@ import type {
 import { CONTENT_DOMAIN_TYPE_TOOLTIP } from '@/features/ingest/constants/ingestConfigurationTooltips';
 import {
   INGEST_MODULE_COUNT_MAX,
+  INGEST_MODULE_COUNT_MAX_DIGITS,
   INGEST_MODULE_COUNT_MIN,
   INGEST_MODULE_COUNT_RANGE_LABEL,
   type IngestModuleCountInput,
   isIngestModuleCountInRange,
+  parseOptionalIngestModuleCountInput,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
   INGEST_ASSESSMENT_MODE_OPTIONS,
@@ -34,20 +36,6 @@ export interface IngestConfigurationPanelProps {
   onIngestionInstructionsChange: (value: string) => void;
   instructionsPlaceholder?: string;
   className?: string;
-}
-
-function parseOptionalModuleCount(
-  raw: string,
-  onChange: (value: IngestModuleCountInput) => void,
-) {
-  if (raw === '') {
-    onChange('');
-    return;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isNaN(parsed)) {
-    onChange(parsed);
-  }
 }
 
 export const IngestConfigurationPanel = ({
@@ -126,13 +114,19 @@ export const IngestConfigurationPanel = ({
               </span>
             </span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+              autoComplete="off"
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={cardsPerModule}
               disabled={disabled}
+              aria-label="Learning material per module"
               onChange={(e) =>
-                parseOptionalModuleCount(e.target.value, onCardsPerModuleChange)
+                onCardsPerModuleChange(
+                  parseOptionalIngestModuleCountInput(e.target.value),
+                )
               }
               placeholder="e.g. 5"
             />
@@ -157,15 +151,18 @@ export const IngestConfigurationPanel = ({
               </span>
             </span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+              autoComplete="off"
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={quizzesPerModule}
               disabled={disabled}
+              aria-label="Quizzes per module"
               onChange={(e) =>
-                parseOptionalModuleCount(
-                  e.target.value,
-                  onQuizzesPerModuleChange,
+                onQuizzesPerModuleChange(
+                  parseOptionalIngestModuleCountInput(e.target.value),
                 )
               }
               placeholder="e.g. 5"

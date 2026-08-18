@@ -11,13 +11,69 @@ import {
   resolveDashboardDateRange,
   seedCustomRangeFromPreset,
 } from '@/features/admin-dashboard/utils/dateRange';
+import type { GeographyFilterState } from '@/features/modules/utils/geographyFilters';
 import { clampDateInputToToday } from '@/utils/dateInput';
 
 export const EMPTY_DASHBOARD_GEOGRAPHY: DashboardGeographyFilters = {
+  divisionId: '',
+  districtId: '',
+  upazilaId: '',
   division: '',
   district: '',
   upazila: '',
 };
+
+export function geographyIdsFromDashboard(
+  geography: DashboardGeographyFilters,
+): GeographyFilterState {
+  return {
+    divisionId: geography.divisionId,
+    districtId: geography.districtId,
+    upazilaId: geography.upazilaId,
+  };
+}
+
+function resolveGeographyName(
+  selectedId: string,
+  liveName: string,
+  appliedId: string,
+  appliedName: string,
+): string {
+  if (!selectedId) return '';
+  if (liveName && liveName !== selectedId) return liveName;
+  if (appliedId === selectedId) return appliedName;
+  return liveName;
+}
+
+export function dashboardGeographyFromDraft(
+  selection: GeographyFilterState,
+  names: { division: string; district: string; upazila: string },
+  previous: DashboardGeographyFilters,
+): DashboardGeographyFilters {
+  return {
+    divisionId: selection.divisionId,
+    districtId: selection.districtId,
+    upazilaId: selection.upazilaId,
+    division: resolveGeographyName(
+      selection.divisionId,
+      names.division,
+      previous.divisionId,
+      previous.division,
+    ),
+    district: resolveGeographyName(
+      selection.districtId,
+      names.district,
+      previous.districtId,
+      previous.district,
+    ),
+    upazila: resolveGeographyName(
+      selection.upazilaId,
+      names.upazila,
+      previous.upazilaId,
+      previous.upazila,
+    ),
+  };
+}
 
 export const DEFAULT_DASHBOARD_FILTERS: DashboardFiltersState = {
   durationPreset: 'this_month',
@@ -48,7 +104,12 @@ export function useDashboardFilters() {
   };
 
   const dateRange = useMemo(
-    () => resolveDashboardDateRange(filters),
+    () =>
+      resolveDashboardDateRange({
+        durationPreset,
+        customFrom,
+        customTo,
+      }),
     [durationPreset, customFrom, customTo],
   );
 

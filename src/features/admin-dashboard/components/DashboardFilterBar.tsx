@@ -160,13 +160,11 @@ export const DashboardFilterBar = ({
   );
 
   useEffect(() => {
-    if (!selectedDistrictId) {
-      setUpazilaOptions((current) => (current.length === 0 ? current : []));
-      return;
-    }
     void (async () => {
       const page = await fetchUpazilasPage({
-        districtId: selectedDistrictId,
+        ...(selectedDistrictId !== null
+          ? { districtId: selectedDistrictId }
+          : {}),
         limit: 200,
         offset: 0,
       }).unwrap();
@@ -314,7 +312,6 @@ export const DashboardFilterBar = ({
                   })
                 }
                 className={selectClassName}
-                disabled={!draftGeography.district}
               />
             </FilterField>
             <div className="space-y-3 border-t border-spice-border pt-3">

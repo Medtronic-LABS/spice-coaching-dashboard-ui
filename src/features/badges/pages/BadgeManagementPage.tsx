@@ -70,6 +70,7 @@ import {
 } from '@/constants/fieldLimits';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const BADGE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
@@ -157,9 +158,16 @@ export const BadgeManagementPage = () => {
   const [appliedFilters, setAppliedFilters] =
     useState<BadgeManagementFilters>(EMPTY_BADGE_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_BADGE_PAGE_SIZE);
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(0);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
 
   const [form, setForm] = useState<BadgeFormState>(emptyForm);
   const [formOpen, setFormOpen] = useState(false);
@@ -366,43 +374,12 @@ export const BadgeManagementPage = () => {
     (catalogList?.total ?? catalogList?.badges.length ?? totalBadges) >= 2;
 
   useEffect(() => {
-    setPage(0);
-  }, [appliedFilters, debouncedQuery, pageSize]);
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
-
-  useEffect(() => {
-    if (totalPages > 0 && page >= totalPages) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) &&
-      parsed >= 1 &&
-      (totalPages <= 0 || parsed <= totalPages);
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    const parsed = Number.parseInt(raw, 10);
-    if (parsed < 1) return;
-    if (totalPages > 0 && parsed > totalPages) return;
-    setPageInput(raw);
-  };
+    resetPage();
+  }, [appliedFilters, debouncedQuery, pageSize, resetPage]);
 
   const createdByOptions = useMemo(() => {
     const set = new Set<string>();
@@ -596,7 +573,7 @@ export const BadgeManagementPage = () => {
     setQuery('');
     setDraftFilters(EMPTY_BADGE_FILTERS);
     setAppliedFilters(EMPTY_BADGE_FILTERS);
-    setPage(0);
+    resetPage();
     setIsEnteringSequenceEdit(true);
 
     try {
@@ -629,7 +606,7 @@ export const BadgeManagementPage = () => {
     } finally {
       setIsEnteringSequenceEdit(false);
     }
-  }, [fetchBadgeCatalog]);
+  }, [fetchBadgeCatalog, resetPage]);
 
   const handleSequenceReorder = useCallback(
     (fromIndex: number, toIndex: number) => {

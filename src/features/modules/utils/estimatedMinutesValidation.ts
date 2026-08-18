@@ -1,8 +1,15 @@
+import {
+  maxDigitsForLimit,
+  parseCappedIntegerInput,
+} from '@/utils/digitLimitedInteger';
+
 /** Maximum allowed estimated duration in minutes for create/edit fields. */
 export const MAX_ESTIMATED_MINUTES = 60;
 
 /** Users cannot enter more than two digits (the value cap is 60). */
-export const MAX_ESTIMATED_MINUTES_DIGITS = 2;
+export const MAX_ESTIMATED_MINUTES_DIGITS = maxDigitsForLimit(
+  MAX_ESTIMATED_MINUTES,
+);
 
 export const ESTIMATED_MINUTES_REQUIRED_ERROR =
   'Estimated minutes are required.';
@@ -30,15 +37,8 @@ export function getEstimatedMinutesValidationError(
  * 0 (required validation).
  */
 export function parseEstimatedMinutesInput(raw: string): number {
-  const digits = raw.trim().replace(/\D/g, '');
-  if (digits === '') {
-    return 0;
-  }
-
-  const capped = digits.slice(0, MAX_ESTIMATED_MINUTES_DIGITS);
-  const normalized = capped.replace(/^0+(?=\d)/, '');
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
+  const parsed = parseCappedIntegerInput(raw, MAX_ESTIMATED_MINUTES_DIGITS);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 /** Controlled field display value; always without leading zeros. */

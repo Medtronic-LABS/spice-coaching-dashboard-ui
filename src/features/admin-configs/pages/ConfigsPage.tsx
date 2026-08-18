@@ -8,11 +8,11 @@ import {
 import { ConfigHistoryTable } from '@/features/admin-configs/components/ConfigHistoryTable';
 import {
   DURATION_MAX_DAYS,
-  DURATION_VALIDATION_ERROR,
+  DURATION_MAX_DIGITS,
   formatConfigDurationValue,
   getDurationValidationError,
-  isDurationDaysInput,
   parseConfigDurationDays,
+  parseDurationDaysInput,
 } from '@/features/admin-configs/utils/configDuration';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
@@ -33,13 +33,9 @@ function handleDurationChange(
   setDuration: (next: string) => void,
   setError: (message: string) => void,
 ) {
-  if (isDurationDaysInput(value)) {
-    setDuration(value);
-    setError(getDurationValidationError(value) ?? '');
-    return;
-  }
-
-  setError(DURATION_VALIDATION_ERROR);
+  const next = parseDurationDaysInput(value);
+  setDuration(next);
+  setError(getDurationValidationError(next) ?? '');
 }
 
 function getMutationErrorMessage(error: unknown): string {
@@ -182,6 +178,8 @@ export const ConfigsPage = () => {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                maxLength={DURATION_MAX_DIGITS}
+                autoComplete="off"
                 value={assignmentDurationDays}
                 disabled={isSaving}
                 onChange={(event) => {

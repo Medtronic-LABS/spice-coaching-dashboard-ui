@@ -3,6 +3,10 @@ import {
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
+import {
+  maxDigitsForLimit,
+  parseCappedIntegerInput,
+} from '@/utils/digitLimitedInteger';
 
 export interface KnowledgeSplitValidationOptions {
   /** When known, page numbers must be within 1..pageCount. */
@@ -83,4 +87,22 @@ export function knowledgeSplitDraftHasFieldErrors(
 ): boolean {
   const errors = knowledgeSplitDraftFieldErrors(splits, options);
   return errors.some((e) => Boolean(e.title || e.startPage || e.endPage));
+}
+
+/** Fallback when page count is unknown (PDF not loaded). */
+export const KNOWLEDGE_SPLIT_PAGE_FALLBACK_DIGITS = 6;
+
+export function knowledgeSplitPageMaxDigits(pageCount?: number | null): number {
+  if (typeof pageCount === 'number' && pageCount >= 1) {
+    return maxDigitsForLimit(pageCount);
+  }
+
+  return KNOWLEDGE_SPLIT_PAGE_FALLBACK_DIGITS;
+}
+
+export function parseKnowledgeSplitPageInput(
+  raw: string,
+  pageCount?: number | null,
+): number {
+  return parseCappedIntegerInput(raw, knowledgeSplitPageMaxDigits(pageCount));
 }

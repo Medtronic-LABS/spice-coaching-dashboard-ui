@@ -5,16 +5,19 @@ import {
   Card,
   FileDropzone,
   ImagePicker,
+  LimitedTextInput,
   Tabs,
   Tooltip,
   type TabItem,
 } from '@/components/ui';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
-import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import { cn } from '@/utils';
 import {
   useUploadKnowledgeDocumentMutation,
   type KnowledgeUploadPayload,
@@ -237,6 +240,12 @@ export const KnowledgeLibraryPage = () => {
         const title = originalTitle.trim();
         if (!title) {
           setActionError('Title is required for Upload Original.');
+          return;
+        }
+        if (title.length > FIELD_LIMITS.documentTitle) {
+          setActionError(
+            fieldLimitExceededMessage('Title', FIELD_LIMITS.documentTitle),
+          );
           return;
         }
 
@@ -510,16 +519,14 @@ export const KnowledgeLibraryPage = () => {
                         Title{' '}
                         <span className="text-spice-semantic-error">*</span>
                       </div>
-                      <input
-                        type="text"
+                      <LimitedTextInput
+                        id="knowledge-original-title"
+                        aria-label="Title"
                         value={originalTitle}
                         disabled={disableInputs}
-                        onChange={(e) => setOriginalTitle(e.target.value)}
+                        maxLength={FIELD_LIMITS.documentTitle}
+                        onChange={setOriginalTitle}
                         placeholder="e.g. HTN Referral Guidelines"
-                        className={cn(
-                          'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
-                          SPICE_INPUT_FOCUS_CLASSNAME,
-                        )}
                       />
                     </div>
 

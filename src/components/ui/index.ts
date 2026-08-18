@@ -21,6 +21,8 @@ export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
 export { LimitedTextInput } from '@/components/ui/LimitedTextInput';
 export type { LimitedTextInputProps } from '@/components/ui/LimitedTextInput';
+export { LimitedTextarea } from '@/components/ui/LimitedTextarea';
+export type { LimitedTextareaProps } from '@/components/ui/LimitedTextarea';
 export { ListItem } from '@/components/ui/ListItem';
 export { Loader } from '@/components/ui/Loader';
 export type { LoaderProps } from '@/components/ui/Loader';

@@ -1,10 +1,6 @@
 import type { FetchSourceDocumentsParams } from '@/features/modules/api/adminSourceDocumentsApi';
 import { dateRangeValidationMessage } from '@/features/modules/utils/moduleListFilters';
 import {
-  EMPTY_GEOGRAPHY_FILTERS,
-  hasActiveGeographyFilters,
-} from '@/features/modules/utils/geographyFilters';
-import {
   KNOWLEDGE_LIBRARY_FILTER_DEFAULTS,
   type KnowledgeLibraryFilterState,
 } from '@/features/modules/types/knowledgeLibrary.types';
@@ -12,14 +8,7 @@ import {
 /** Drawer-only filter fields (search/sort/status stay outside). */
 export type KnowledgeLibraryDrawerFilters = Pick<
   KnowledgeLibraryFilterState,
-  | 'uploadedAtFrom'
-  | 'uploadedAtTo'
-  | 'uploadedBy'
-  | 'assigned'
-  | 'ingested'
-  | 'divisionId'
-  | 'districtId'
-  | 'upazilaId'
+  'uploadedAtFrom' | 'uploadedAtTo' | 'uploadedBy' | 'assigned' | 'ingested'
 >;
 
 export const KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS: KnowledgeLibraryDrawerFilters =
@@ -29,7 +18,6 @@ export const KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS: KnowledgeLibraryDrawerFil
     uploadedBy: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.uploadedBy,
     assigned: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.assigned,
     ingested: KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.ingested,
-    ...EMPTY_GEOGRAPHY_FILTERS,
   };
 
 export function hasActiveKnowledgeDrawerFilters(
@@ -40,8 +28,7 @@ export function hasActiveKnowledgeDrawerFilters(
     filters.uploadedAtTo ||
     filters.uploadedBy ||
     filters.assigned ||
-    filters.ingested ||
-    hasActiveGeographyFilters(filters),
+    filters.ingested,
   );
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import type { AdminModuleCard } from '@/features/modules/types/adminModule.types';
 import {
@@ -124,5 +125,45 @@ describe('validateAdminModuleDraftContent', () => {
         ],
       }),
     ).toThrow(/needs an explanation/i);
+  });
+
+  it('rejects quiz question, option, and explanation over the field limits', () => {
+    expect(() =>
+      validateAdminModuleDraftContent({
+        cards: [],
+        quiz: [
+          {
+            ...filledQuiz,
+            question: { bn: 'Q'.repeat(FIELD_LIMITS.quizQuestion + 1) },
+          },
+        ],
+      }),
+    ).toThrow(/Question must be 300 characters or fewer/i);
+
+    expect(() =>
+      validateAdminModuleDraftContent({
+        cards: [],
+        quiz: [
+          {
+            ...filledQuiz,
+            options: {
+              bn: ['A', 'B'.repeat(FIELD_LIMITS.quizOption + 1), 'C', 'D'],
+            },
+          },
+        ],
+      }),
+    ).toThrow(/Option 2 must be 150 characters or fewer/i);
+
+    expect(() =>
+      validateAdminModuleDraftContent({
+        cards: [],
+        quiz: [
+          {
+            ...filledQuiz,
+            explanation: { bn: 'E'.repeat(FIELD_LIMITS.description + 1) },
+          },
+        ],
+      }),
+    ).toThrow(/Explanation must be 500 characters or fewer/i);
   });
 });

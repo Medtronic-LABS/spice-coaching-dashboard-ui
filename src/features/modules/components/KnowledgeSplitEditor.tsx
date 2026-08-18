@@ -5,7 +5,11 @@ import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { usePdfPageThumbnail } from '@/features/modules/hooks/usePdfPageThumbnail';
-import type { KnowledgeSplitDraftFieldErrors } from '@/features/modules/utils/knowledgeSplitValidation';
+import {
+  knowledgeSplitPageMaxDigits,
+  parseKnowledgeSplitPageInput,
+  type KnowledgeSplitDraftFieldErrors,
+} from '@/features/modules/utils/knowledgeSplitValidation';
 import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibrary.types';
 import { cn } from '@/utils';
 
@@ -22,13 +26,6 @@ export interface KnowledgeSplitEditorProps {
   pdfDocument?: PDFDocumentProxy | null;
   /** Known page count for input max + helper copy. */
   pageCount?: number | null;
-}
-
-function parseIntOrNaN(value: string): number {
-  const trimmed = value.trim();
-  if (!trimmed) return Number.NaN;
-  const num = Number(trimmed);
-  return Number.isFinite(num) ? Math.trunc(num) : Number.NaN;
 }
 
 export const KnowledgeSplitEditor = ({
@@ -59,8 +56,7 @@ export const KnowledgeSplitEditor = ({
       : autoThumbnailUrl;
 
   const hasVisibleThumbnail = Boolean(thumbnailValue);
-  const pageMax =
-    typeof pageCount === 'number' && pageCount >= 1 ? pageCount : undefined;
+  const pageMaxDigits = knowledgeSplitPageMaxDigits(pageCount);
 
   let thumbnailStatus = '';
   if (isAutoThumbnailRendering && autoThumbEnabled) {
@@ -124,18 +120,21 @@ export const KnowledgeSplitEditor = ({
                   <span className="text-spice-semantic-error">*</span>
                 </div>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min={1}
-                  max={pageMax}
-                  step={1}
+                  pattern="[0-9]*"
+                  maxLength={pageMaxDigits}
+                  autoComplete="off"
                   value={
                     Number.isFinite(value.startPage) ? value.startPage : ''
                   }
                   aria-label={`${rowLabel} start page`}
                   disabled={disabled}
                   onChange={(e) => {
-                    const nextStart = parseIntOrNaN(e.target.value);
+                    const nextStart = parseKnowledgeSplitPageInput(
+                      e.target.value,
+                      pageCount,
+                    );
                     onChange({ ...value, startPage: nextStart });
                   }}
                   className={cn(
@@ -157,16 +156,19 @@ export const KnowledgeSplitEditor = ({
                   End page <span className="text-spice-semantic-error">*</span>
                 </div>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min={1}
-                  max={pageMax}
-                  step={1}
+                  pattern="[0-9]*"
+                  maxLength={pageMaxDigits}
+                  autoComplete="off"
                   value={Number.isFinite(value.endPage) ? value.endPage : ''}
                   aria-label={`${rowLabel} end page`}
                   disabled={disabled}
                   onChange={(e) => {
-                    const nextEnd = parseIntOrNaN(e.target.value);
+                    const nextEnd = parseKnowledgeSplitPageInput(
+                      e.target.value,
+                      pageCount,
+                    );
                     onChange({ ...value, endPage: nextEnd });
                   }}
                   className={cn(

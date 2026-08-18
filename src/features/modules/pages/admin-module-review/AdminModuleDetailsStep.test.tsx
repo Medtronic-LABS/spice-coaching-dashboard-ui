@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppRole } from '@/constants/role';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import {
@@ -125,6 +126,51 @@ describe('AdminModuleDetailsStep', () => {
     expect(screen.getByTitle('Edit estimated minutes')).toBeInTheDocument();
   });
 
+  it('sizes domain, domain type, and estimated minutes to content with overflow ellipsis', () => {
+    renderDetailsStep();
+
+    const domain = screen.getByLabelText(/^domain$/i);
+    const domainType = screen.getByLabelText(/^domain type$/i);
+    const estimatedMinutes = screen.getByLabelText(/^estimated minutes$/i);
+
+    expect(domain).toHaveClass('truncate');
+    expect(domainType).toHaveClass('truncate');
+    expect(estimatedMinutes).toHaveClass('truncate');
+    expect(domain).not.toHaveClass('w-[13.5rem]');
+    expect(domainType).not.toHaveClass('w-[13.5rem]');
+    expect(estimatedMinutes).not.toHaveClass('w-[13.5rem]');
+    expect(domain.closest('[class*="max-w-[13.5rem]"]')).not.toBeNull();
+    expect(domainType.closest('[class*="max-w-[13.5rem]"]')).not.toBeNull();
+    expect(
+      estimatedMinutes.closest('[class*="max-w-[13.5rem]"]'),
+    ).not.toBeNull();
+  });
+
+  it('truncates long read-only domain, domain type, and estimated minutes', () => {
+    mockModule = baseAdminModuleDetail({
+      lifecycle_status: 'published',
+      domain:
+        'community based hypertension counselling across upazila health complexes',
+      estimated_minutes: 45,
+    });
+    renderDetailsStep();
+
+    const domain = screen.getByText(
+      'Community Based Hypertension Counselling Across Upazila Health Complexes',
+    );
+    const domainType = screen.getByText('Clinical');
+    const estimatedMinutes = screen.getByText('45 minutes');
+
+    expect(domain).toHaveClass('truncate');
+    expect(domainType).toHaveClass('truncate');
+    expect(estimatedMinutes).toHaveClass('truncate');
+    expect(domain.closest('[class*="max-w-[13.5rem]"]')).not.toBeNull();
+    expect(domainType.closest('[class*="max-w-[13.5rem]"]')).not.toBeNull();
+    expect(
+      estimatedMinutes.closest('[class*="max-w-[13.5rem]"]'),
+    ).not.toBeNull();
+  });
+
   it('updates title fields in the review store', async () => {
     const user = userEvent.setup();
     const { store } = renderDetailsStep();
@@ -185,6 +231,11 @@ describe('AdminModuleDetailsStep', () => {
 
     await user.selectOptions(screen.getByLabelText(/^domain$/i), 'Enter new…');
     const customInput = screen.getByLabelText(/^new domain$/i);
+    expect(customInput).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(screen.getByText(`0/${FIELD_LIMITS.taxonomy}`)).toBeInTheDocument();
     await user.type(customInput, 'Hypertension');
 
     expect(customInput).toHaveValue('Hypertension');
@@ -212,6 +263,16 @@ describe('AdminModuleDetailsStep', () => {
     expect(
       screen.getByText(/estimated minutes cannot exceed 60\./i),
     ).toBeInTheDocument();
+  });
+
+  it('caps module description at the field limit', () => {
+    renderDetailsStep();
+
+    const description = screen.getByLabelText(/description \(bn\)/i);
+    expect(description).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.description),
+    );
   });
 
   it('disables continue and save when estimated minutes are invalid', async () => {

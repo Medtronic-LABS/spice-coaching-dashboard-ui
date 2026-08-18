@@ -11,7 +11,7 @@ import { DocumentUsageDetailView } from '@/features/admin-dashboard/components/d
 import { DocumentUsageDocumentsAllView } from '@/features/admin-dashboard/components/document-usage/DocumentUsageDocumentsAllView';
 import { DocumentUsageOverview } from '@/features/admin-dashboard/components/document-usage/DocumentUsageOverview';
 import { DocumentUsageTopAllView } from '@/features/admin-dashboard/components/document-usage/DocumentUsageTopAllView';
-import { useTablePageInput } from '@/features/admin-dashboard/hooks/useTablePageInput';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import type {
   DashboardGeographyFilters,
   DocumentUsageDocumentRow,

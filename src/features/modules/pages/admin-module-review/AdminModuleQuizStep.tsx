@@ -11,9 +11,12 @@ import {
   Button,
   Card,
   EmptyState,
+  LimitedTextarea,
+  LimitedTextInput,
   Loader,
   TruncatedText,
 } from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
@@ -57,6 +60,7 @@ import {
   readLocaleText,
   setLocaleOptions,
 } from '@/types/localized';
+import { cn } from '@/utils';
 
 // Quiz editing is BN-only for now. EN UI is intentionally hidden.
 
@@ -337,9 +341,9 @@ export const AdminModuleQuizStep = () => {
                           <span className="text-xs font-semibold text-spice-text-primary">
                             Question
                           </span>
-                          <input
+                          <LimitedTextInput
+                            id={`quiz-question-${m.id}`}
                             data-quiz-field="question"
-                            className="w-full rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
                             value={
                               isReadonly
                                 ? readLocaleText(
@@ -348,14 +352,15 @@ export const AdminModuleQuizStep = () => {
                                   )
                                 : (m.question[DEPLOYMENT_PRIMARY_LOCALE] ?? '')
                             }
+                            maxLength={FIELD_LIMITS.quizQuestion}
                             disabled={busy || isReadonly}
                             onFocus={() => setFocusedQuizIndex(index)}
-                            onChange={(event) =>
+                            onChange={(value) =>
                               updateQuiz(m.id, {
                                 question: patchLocaleField(
                                   m.question,
                                   DEPLOYMENT_PRIMARY_LOCALE,
-                                  event.target.value,
+                                  value,
                                 ),
                               })
                             }
@@ -383,7 +388,7 @@ export const AdminModuleQuizStep = () => {
                             return (
                               <label
                                 key={`${m.id}-${optionIndex}`}
-                                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                                className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${
                                   isCorrect
                                     ? 'border-green-500 bg-green-50'
                                     : 'border-spice-border bg-spice-bg-surface'
@@ -392,6 +397,7 @@ export const AdminModuleQuizStep = () => {
                                 <input
                                   type="radio"
                                   name={`correct-${m.id}`}
+                                  className="mt-2.5"
                                   checked={isCorrect}
                                   disabled={busy || isReadonly}
                                   onChange={() =>
@@ -400,17 +406,18 @@ export const AdminModuleQuizStep = () => {
                                     })
                                   }
                                 />
-                                <input
+                                <LimitedTextInput
+                                  id={`quiz-option-${m.id}-${optionIndex}`}
                                   data-quiz-field="options"
-                                  className="w-full bg-transparent outline-none"
+                                  className="min-w-0 flex-1"
+                                  inputClassName="h-8 border-0 bg-transparent px-0"
                                   value={option}
+                                  maxLength={FIELD_LIMITS.quizOption}
                                   disabled={busy || isReadonly}
                                   onFocus={() => setFocusedQuizIndex(index)}
-                                  onChange={(event) => {
+                                  onChange={(value) => {
                                     const next = displayOptions.map((o, i) =>
-                                      i === optionIndex
-                                        ? event.target.value
-                                        : o,
+                                      i === optionIndex ? value : o,
                                     );
                                     updateQuiz(m.id, {
                                       options: setLocaleOptions(
@@ -423,14 +430,14 @@ export const AdminModuleQuizStep = () => {
                                   placeholder={`Option ${optionIndex + 1}`}
                                 />
                                 {isCorrect ? (
-                                  <span className="shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
+                                  <span className="mt-1.5 shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
                                     CORRECT ANSWER
                                   </span>
                                 ) : null}
                                 {!isReadonly ? (
                                   <button
                                     type="button"
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-spice-semantic-error transition-colors hover:bg-spice-semantic-errorBg disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="mt-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-spice-semantic-error transition-colors hover:bg-spice-semantic-errorBg disabled:cursor-not-allowed disabled:opacity-50"
                                     disabled={
                                       busy || displayOptions.length <= 2
                                     }
@@ -488,13 +495,14 @@ export const AdminModuleQuizStep = () => {
                           <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
                             Explanation shown for wrong answers
                           </div>
-                          <textarea
+                          <LimitedTextarea
+                            id={`quiz-explanation-${m.id}`}
                             data-quiz-explanation-id={m.id}
-                            className={`min-h-[100px] w-full resize-y rounded-md border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none ${
-                              pendingReviewSet.has(m.id)
-                                ? 'border-spice-semantic-error ring-1 ring-spice-semantic-error'
-                                : 'border-spice-border'
-                            }`}
+                            textareaClassName={cn(
+                              'min-h-[100px]',
+                              pendingReviewSet.has(m.id) &&
+                                'border-spice-semantic-error ring-1 ring-spice-semantic-error',
+                            )}
                             value={
                               isReadonly
                                 ? readLocaleText(
@@ -504,18 +512,19 @@ export const AdminModuleQuizStep = () => {
                                 : (m.explanation?.[DEPLOYMENT_PRIMARY_LOCALE] ??
                                   '')
                             }
+                            maxLength={FIELD_LIMITS.description}
                             disabled={busy || isReadonly}
                             onFocus={() => {
                               setFocusedQuizIndex(index);
                               acknowledgeReview(m.id);
                             }}
-                            onChange={(event) => {
+                            onChange={(value) => {
                               acknowledgeReview(m.id);
                               updateQuiz(m.id, {
                                 explanation: patchLocaleField(
                                   m.explanation ?? {},
                                   DEPLOYMENT_PRIMARY_LOCALE,
-                                  event.target.value,
+                                  value,
                                 ),
                               });
                             }}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { ModuleTaxonomyField } from './ModuleTaxonomyField';
 
 function LiveValueInOptionsField() {
@@ -33,6 +34,11 @@ describe('ModuleTaxonomyField', () => {
 
     expect(screen.getByLabelText(/^domain$/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('rmnch')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('rmnch')).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(screen.getByText(`0/${FIELD_LIMITS.taxonomy}`)).toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
@@ -67,6 +73,11 @@ describe('ModuleTaxonomyField', () => {
     expect(onChange).toHaveBeenLastCalledWith('');
 
     const customInput = screen.getByLabelText(/^new domain$/i);
+    expect(customInput).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(screen.getByText(`0/${FIELD_LIMITS.taxonomy}`)).toBeInTheDocument();
     await user.type(customInput, 'Hypertension');
     expect(onChange.mock.calls.map(([value]) => value).join('')).toBe(
       'Hypertension',
@@ -99,6 +110,28 @@ describe('ModuleTaxonomyField', () => {
 
     expect(screen.getByLabelText(/domain/i)).toBeRequired();
     expect(screen.getByText('*')).toBeInTheDocument();
+  });
+
+  it('hides the character counter when showCounter is false', async () => {
+    const user = userEvent.setup();
+    render(
+      <ModuleTaxonomyField
+        label="Domain"
+        value=""
+        options={['rmnch']}
+        showCounter={false}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText(/^domain$/i), '__other__');
+    expect(screen.getByLabelText(/^new domain$/i)).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(
+      screen.queryByText(`0/${FIELD_LIMITS.taxonomy}`),
+    ).not.toBeInTheDocument();
   });
 
   it('hides the visible label when asked and keeps an accessible name', () => {

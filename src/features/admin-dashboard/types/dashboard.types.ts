@@ -17,6 +17,12 @@ export type TeamHierarchySortKey =
   | 'name';
 
 export interface DashboardGeographyFilters {
+  /** Hierarchy id used by the shared geography combobox. */
+  divisionId: string;
+  /** Hierarchy id used by the shared geography combobox. */
+  districtId: string;
+  /** Hierarchy id used by the shared geography combobox. */
+  upazilaId: string;
   /** Division display name sent as dashboard `division` query param. */
   division: string;
   /** District display name (also the document-usage `district` query value). */

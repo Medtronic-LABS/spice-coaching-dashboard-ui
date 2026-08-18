@@ -355,6 +355,9 @@ describe('VideoUploadPage', () => {
       'maxLength',
       String(FIELD_LIMITS.documentTitle),
     );
+    expect(
+      screen.getByLabelText(/^description/i, { selector: 'textarea' }),
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
   });
 
   it('stages a video, uploads it, then starts ingest with source ids', async () => {
@@ -682,33 +685,6 @@ describe('VideoUploadPage', () => {
     await waitFor(() => {
       expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_from');
       expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_to');
-    });
-  });
-
-  it('sends geography assignment filters with the uploaded videos query', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(
-      screen.getByRole('button', { name: /open video filters/i }),
-    );
-    const dialog = screen.getByRole('dialog', { name: 'Filters' });
-    await user.click(within(dialog).getByLabelText(/^division$/i));
-    await user.click(await screen.findByRole('option', { name: 'Rangpur' }));
-    await user.click(within(dialog).getByLabelText(/^district$/i));
-    await user.click(
-      await screen.findByRole('option', { name: 'Lalmonirhat' }),
-    );
-    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
-
-    await waitFor(() => {
-      expect(latestUploadedVideosQuery()).toEqual(
-        expect.objectContaining({
-          source_type: 'video',
-          division_id: 1,
-          district_id: 10,
-        }),
-      );
     });
   });
 

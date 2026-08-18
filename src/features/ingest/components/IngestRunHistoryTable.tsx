@@ -26,6 +26,7 @@ import {
 import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
@@ -52,9 +53,16 @@ type IngestRunHistoryRow = {
 
 export const IngestRunHistoryTable = () => {
   const navigate = useNavigate();
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_RUN_HISTORY_PAGE_SIZE);
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(0);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
   const [pollIntervalMs, setPollIntervalMs] = useState(0);
   const [sortBy, setSortBy] = useState<string | undefined>('started_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -69,14 +77,14 @@ export const IngestRunHistoryTable = () => {
     (newSortBy: string, newSortDir: 'asc' | 'desc') => {
       setSortBy(newSortBy);
       setSortDir(newSortDir);
-      setPage(0);
+      resetPage();
     },
-    [],
+    [resetPage],
   );
 
   useEffect(() => {
-    setPage(0);
-  }, [searchQ]);
+    resetPage();
+  }, [searchQ, resetPage]);
 
   const queryArgs = useMemo(
     () => ({
@@ -148,14 +156,8 @@ export const IngestRunHistoryTable = () => {
   const rangeEnd = rows.length ? pageOffset + rows.length : 0;
 
   useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
-
-  useEffect(() => {
-    if (totalPages > 0 && page >= totalPages) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   const openGeneratedModules = useCallback(
     (row: IngestRunHistoryRow) => {
@@ -169,31 +171,6 @@ export const IngestRunHistoryTable = () => {
     },
     [navigate],
   );
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) &&
-      parsed >= 1 &&
-      (totalPages === 0 || parsed <= totalPages);
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    const parsed = Number.parseInt(raw, 10);
-    if (parsed < 1) return;
-    if (totalPages > 0 && parsed > totalPages) return;
-    setPageInput(raw);
-  };
 
   const columns: Array<ColumnDef<IngestRunHistoryRow>> = useMemo(
     () => [
