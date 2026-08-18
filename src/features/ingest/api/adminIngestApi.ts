@@ -309,6 +309,31 @@ export const adminIngestApi = baseApi.injectEndpoints({
         },
       }),
     }),
+    retryIngestBatch: builder.mutation<
+      AdminV3IngestMergeDecisionResponse,
+      string
+    >({
+      query: (batchId) => ({
+        url: `/admin/ingest/batches/${encodeURIComponent(batchId)}/retry`,
+        method: 'POST',
+        responseHandler: async (response: Response) => {
+          const text = await response.text();
+          if (!text.trim()) {
+            return {
+              status: response.status === 202 ? 'accepted' : 'ok',
+            } satisfies AdminV3IngestMergeDecisionResponse;
+          }
+          try {
+            return JSON.parse(text) as AdminV3IngestMergeDecisionResponse;
+          } catch {
+            return {
+              status: 'ok',
+              detail: text,
+            } satisfies AdminV3IngestMergeDecisionResponse;
+          }
+        },
+      }),
+    }),
     getIngestStatusByDocument: builder.query<
       AdminV3IngestStatusResponse,
       string
@@ -335,6 +360,7 @@ export const {
   useStartIngestBatchMutation,
   useGetIngestBatchStatusQuery,
   useSubmitIngestMergeDecisionMutation,
+  useRetryIngestBatchMutation,
   useGetIngestStatusByDocumentQuery,
   useGetIngestStatusByRunIdQuery,
 } = adminIngestApi;

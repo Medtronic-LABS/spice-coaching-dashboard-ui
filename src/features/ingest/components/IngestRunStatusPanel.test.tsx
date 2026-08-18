@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AdminV3IngestBatchStatusResponse } from '@/features/ingest/api/adminIngestApi';
@@ -7,9 +7,11 @@ import { IngestRunStatusPanel } from './IngestRunStatusPanel';
 const mocks = vi.hoisted(() => ({
   useGetIngestBatchStatusQuery: vi.fn(),
   useSubmitIngestMergeDecisionMutation: vi.fn(),
+  useRetryIngestBatchMutation: vi.fn(),
   useFetchIngestionRunByIdQuery: vi.fn(),
   refetch: vi.fn(),
   submitMergeDecision: vi.fn(),
+  retryIngestBatch: vi.fn(),
 }));
 
 vi.mock('@/features/ingest/api/adminIngestApi', async (importOriginal) => {
@@ -22,6 +24,7 @@ vi.mock('@/features/ingest/api/adminIngestApi', async (importOriginal) => {
     useGetIngestBatchStatusQuery: mocks.useGetIngestBatchStatusQuery,
     useSubmitIngestMergeDecisionMutation:
       mocks.useSubmitIngestMergeDecisionMutation,
+    useRetryIngestBatchMutation: mocks.useRetryIngestBatchMutation,
   };
 });
 
@@ -94,12 +97,21 @@ describe('IngestRunStatusPanel', () => {
   beforeEach(() => {
     mocks.useGetIngestBatchStatusQuery.mockReset();
     mocks.useSubmitIngestMergeDecisionMutation.mockReset();
+    mocks.useRetryIngestBatchMutation.mockReset();
     mocks.useFetchIngestionRunByIdQuery.mockReset();
     mocks.refetch.mockReset();
     mocks.submitMergeDecision.mockReset();
+    mocks.retryIngestBatch.mockReset();
+    mocks.retryIngestBatch.mockReturnValue({
+      unwrap: vi.fn().mockResolvedValue({ status: 'accepted' }),
+    });
     mocks.useSubmitIngestMergeDecisionMutation.mockReturnValue([
       mocks.submitMergeDecision,
       { isLoading: false },
+    ]);
+    mocks.useRetryIngestBatchMutation.mockReturnValue([
+      mocks.retryIngestBatch,
+      { isLoading: false, error: undefined },
     ]);
     mocks.useFetchIngestionRunByIdQuery.mockReturnValue({
       data: undefined,
@@ -596,6 +608,46 @@ describe('IngestRunStatusPanel', () => {
 
     await user.click(screen.getByRole('button', { name: /retry status/i }));
     expect(mocks.refetch).toHaveBeenCalled();
+  });
+
+  it('does not show retry when the batch is not failed', () => {
+    mockQuery({ data: makeStatus({ status: 'running' }) });
+    render(<IngestRunStatusPanel batchId="batch-1" />);
+
+    expect(
+      screen.queryByRole('button', { name: /^retry$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('retries a failed batch by id', async () => {
+    const user = userEvent.setup();
+    mockQuery({
+      data: makeStatus({
+        status: 'failed',
+        sources: [
+          {
+            source_document_id: 'doc-1',
+            run_id: 'run-1',
+            document_label: 'HTN',
+            status: 'failed',
+            started_at: null,
+            completed_at: null,
+            error: null,
+            nodes: [],
+          },
+        ],
+      }),
+    });
+    render(<IngestRunStatusPanel batchId="batch-1" />);
+
+    await user.click(screen.getByRole('button', { name: /^retry$/i }));
+
+    await waitFor(() => {
+      expect(mocks.retryIngestBatch).toHaveBeenCalledWith('batch-1');
+    });
+    await waitFor(() => {
+      expect(mocks.refetch).toHaveBeenCalled();
+    });
   });
 
   it('delays polling until the initial delay elapses', () => {
