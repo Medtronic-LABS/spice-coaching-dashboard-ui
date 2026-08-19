@@ -116,7 +116,7 @@ describe('TeamHierarchySection', () => {
         to_date: '2026-01-31',
         division_id: 1,
         district_id: 10,
-        limit: 100,
+        limit: 20,
         offset: 0,
       }),
     );

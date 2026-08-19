@@ -66,6 +66,10 @@ export const InfiniteScrollContainer = ({
     if (!root || !sentinel) return;
 
     let cancelled = false;
+    const isRootScrollable =
+      root.scrollHeight > root.clientHeight && root.clientHeight > 0;
+    const observerRoot = isRootScrollable ? root : null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (cancelled) return;
@@ -73,7 +77,7 @@ export const InfiniteScrollContainer = ({
         observer.disconnect();
         onLoadMoreRef.current();
       },
-      { root, rootMargin },
+      { root: observerRoot, rootMargin },
     );
 
     observer.observe(sentinel);
@@ -84,11 +88,7 @@ export const InfiniteScrollContainer = ({
   }, [disabled, error, hasMore, isLoadingMore, loadedCount, rootMargin]);
 
   return (
-    <div
-      ref={rootRef}
-      className={cn('overflow-y-auto', className)}
-      onScroll={onScroll}
-    >
+    <div ref={rootRef} className={cn('min-h-0', className)} onScroll={onScroll}>
       {children}
       {error && hasMore ? (
         <div className="flex items-center justify-center gap-2 px-3 py-2 text-sm text-spice-text-muted">
