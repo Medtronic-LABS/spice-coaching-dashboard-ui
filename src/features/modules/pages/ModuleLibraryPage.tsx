@@ -47,6 +47,7 @@ import {
   useFetchModulesQuery,
   useOverrideMergeModuleMutation,
   useReactivateModuleMutation,
+  useSplitMergeModuleMutation,
 } from '@/features/modules/api/adminModulesApi';
 import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
@@ -308,10 +309,16 @@ export const ModuleLibraryPage = () => {
   const [publishSuccessSummary, setPublishSuccessSummary] =
     useState<ModulePublishedSuccessSummary | null>(null);
   const [overrideMergeModule] = useOverrideMergeModuleMutation();
+  const [splitMergeModule] = useSplitMergeModuleMutation();
   const [deleteModule] = useDeleteModuleMutation();
 
   const handleOverrideMerge = async (moduleId: string) => {
     await overrideMergeModule({ moduleId }).unwrap();
+    refreshModuleList();
+  };
+
+  const handleKeepNewReview = async (moduleId: string) => {
+    await splitMergeModule({ moduleId }).unwrap();
     refreshModuleList();
   };
 
@@ -1417,7 +1424,7 @@ export const ModuleLibraryPage = () => {
                       Needs Review
                       <Tooltip
                         as="span"
-                        label="Needs Review merge and skip information"
+                        label="Needs Review Keep New, Discard New, and Merge information"
                         content={NEEDS_REVIEW_TOOLTIP_CONTENT}
                         placement="bottom"
                       />
@@ -1483,7 +1490,8 @@ export const ModuleLibraryPage = () => {
             modules={isFetchingModules ? [] : modulesForList}
             isLoading={isFetchingModules}
             onMerge={handleOverrideMerge}
-            onSkip={handleSkipReview}
+            onDiscardNew={handleSkipReview}
+            onKeepNew={handleKeepNewReview}
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}

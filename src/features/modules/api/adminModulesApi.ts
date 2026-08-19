@@ -490,6 +490,14 @@ export interface ReactivateModuleResponse {
   last_reactivated_at: string;
 }
 
+export interface SplitMergeModuleResponse {
+  primary_module_id: string;
+  secondary_module_id: string;
+  source_module_id: string;
+  primary_lifecycle_status: AdminModuleLifecycleStatus;
+  secondary_lifecycle_status: AdminModuleLifecycleStatus;
+}
+
 export interface FetchModulesQueryArgs {
   limit: number;
   offset: number;
@@ -740,6 +748,15 @@ export const adminModulesApi = baseApi.injectEndpoints({
         method: 'POST',
       }),
     }),
+    splitMergeModule: builder.mutation<
+      SplitMergeModuleResponse,
+      { moduleId: string }
+    >({
+      query: ({ moduleId }) => ({
+        url: `/admin/ingest/modules/${encodeURIComponent(moduleId)}/split-merge`,
+        method: 'POST',
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -755,4 +772,5 @@ export const {
   useDeactivateModuleMutation,
   useReactivateModuleMutation,
   useOverrideMergeModuleMutation,
+  useSplitMergeModuleMutation,
 } = adminModulesApi;

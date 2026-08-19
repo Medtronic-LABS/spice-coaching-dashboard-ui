@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronIcon, EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Button, Card, ErrorState, TruncatedText } from '@/components/ui';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Tooltip,
+  TruncatedText,
+} from '@/components/ui';
 import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
@@ -26,7 +32,9 @@ interface NeedsReviewTabProps {
   isLoading?: boolean;
   error?: unknown;
   onMerge: (moduleId: string) => Promise<void>;
-  onSkip: (moduleId: string) => Promise<void>;
+  onDiscardNew: (moduleId: string) => Promise<void>;
+  /** Wired when the keep-new API is available. */
+  onKeepNew?: (moduleId: string) => Promise<void>;
   onView?: (moduleId: string) => void;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
@@ -47,34 +55,47 @@ type NeedsReviewTableRow = {
   raw: AdminModulesListItem;
   existingModule: AdminModulesListItem | AdminModuleDetailResponse | null;
   existingModuleId: string | null | undefined;
+  mergeSecondaryModuleId: string | null;
 };
 
 export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
-  <div className="space-y-3.5 p-3.5 text-xs max-w-sm">
+  <div className="max-w-sm space-y-3.5 p-3.5 text-xs">
     <div className="border-b border-spice-border/60 pb-3">
-      <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-spice-semantic-infoBg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-info">
+          Keep New
+        </span>
+      </div>
+      <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
+        Moves the new module to{' '}
+        <strong className="text-spice-text-primary">Drafts</strong> with no
+        impact on the existing module. The merge preview is discarded.
+      </p>
+    </div>
+    <div className="border-b border-spice-border/60 pb-3">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-text-muted ring-1 ring-spice-border/50">
+          Discard New
+        </span>
+      </div>
+      <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
+        Discards the new module and merge preview. The existing module remains
+        unchanged, including all assignments, learner progress, quiz attempts,
+        telemetry, and analytics.
+      </p>
+    </div>
+    <div>
+      <div className="mb-1.5 flex items-center gap-1.5">
         <span className="inline-flex items-center rounded-md bg-spice-semantic-warningBg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-warning">
           Merge
         </span>
       </div>
-      <p className="pl-3 text-spice-text-medium leading-relaxed text-[11px]">
-        Moves the new module to{' '}
-        <strong className="text-spice-text-primary">Drafts</strong>. The
-        existing similar module is{' '}
-        <strong className="text-spice-text-primary">discarded</strong> and moved
-        to the Discarded tab. All assignments, learner progress, quiz attempts,
-        telemetry, and analytics associated with the existing module are
+      <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
+        Moves the merged module to{' '}
+        <strong className="text-spice-text-primary">Drafts</strong> and discards
+        the existing and new modules. All assignments, learner progress, quiz
+        attempts, telemetry, and analytics linked to the existing module are
         permanently removed.
-      </p>
-    </div>
-    <div>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-text-muted ring-1 ring-spice-border/50">
-          Skip
-        </span>
-      </div>
-      <p className="pl-3 text-spice-text-medium leading-relaxed text-[11px]">
-        Deletes the new module. The existing module remains unchanged.
       </p>
     </div>
   </div>
@@ -159,68 +180,146 @@ function resolveExistingModule(primary: AdminModulesListItem): {
   return { existingModule, existingModuleId };
 }
 
+function resolveMergeSecondaryModuleId(
+  primary: AdminModulesListItem,
+  existingModuleId: string | null | undefined,
+): string | null {
+  const metadataId = getSearchMetadata(primary)?.merge_secondary_module_id;
+  const fromMetadata =
+    typeof metadataId === 'string' && metadataId.trim()
+      ? metadataId.trim()
+      : null;
+  const candidate = primary.merge_secondary_module_id?.trim() || fromMetadata;
+  if (!candidate) return null;
+  if (candidate === primary.id) return null;
+  if (existingModuleId && candidate === existingModuleId) return null;
+  return candidate;
+}
+
+function getQuizCount(
+  target: AdminModulesListItem | AdminModuleDetailResponse,
+): number {
+  if ('quiz_count' in target && typeof target.quiz_count === 'number') {
+    return target.quiz_count;
+  }
+  if ('quiz' in target && Array.isArray(target.quiz)) {
+    return target.quiz.length;
+  }
+  return 0;
+}
+
+type ComparisonBadgeVariant = 'warning' | 'info' | 'success';
+
+function comparisonPanelTone(variant: ComparisonBadgeVariant): {
+  borderLeftColor: string;
+  badgeStyle: string;
+} {
+  switch (variant) {
+    case 'warning':
+      return {
+        borderLeftColor: 'border-l-spice-semantic-warning',
+        badgeStyle:
+          'bg-spice-semantic-warningBg text-spice-semantic-warning border-spice-semantic-warning/20',
+      };
+    case 'info':
+      return {
+        borderLeftColor: 'border-l-spice-semantic-info',
+        badgeStyle:
+          'bg-spice-semantic-infoBg text-spice-semantic-info border-spice-semantic-info/20',
+      };
+    case 'success':
+      return {
+        borderLeftColor: 'border-l-spice-semantic-success',
+        badgeStyle:
+          'bg-spice-semantic-successBg text-spice-semantic-success border-spice-semantic-success/20',
+      };
+    default: {
+      const exhaustiveCheck: never = variant;
+      return exhaustiveCheck;
+    }
+  }
+}
+
 function ModuleCardPanel({
   headerLabel,
+  headerInfo,
   badgeText,
   badgeVariant = 'warning',
   children,
 }: {
   headerLabel: string;
+  headerInfo: { label: string; content: string };
   badgeText?: string;
-  badgeVariant?: 'warning' | 'info';
+  badgeVariant?: ComparisonBadgeVariant;
   children: React.ReactNode;
 }) {
-  const borderLeftColor =
-    badgeVariant === 'warning' ? 'border-l-amber-500' : 'border-l-indigo-500';
-  const badgeStyle =
-    badgeVariant === 'warning'
-      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-      : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20';
+  const { borderLeftColor, badgeStyle } = comparisonPanelTone(badgeVariant);
 
   return (
     <div
-      className={`rounded-xl border border-spice-border border-l-4 ${borderLeftColor} bg-spice-bg-surface overflow-hidden shadow-sm transition-all hover:shadow-md`}
+      className={`min-w-0 max-w-full rounded-xl border border-spice-border border-l-4 ${borderLeftColor} bg-spice-bg-surface overflow-hidden shadow-sm`}
     >
-      <div className="px-4 py-2.5 bg-spice-bg-tint/40 border-b border-spice-border flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-spice-text-muted">
-          {headerLabel}
+      <div className="flex items-center justify-between gap-2 border-b border-spice-border bg-spice-bg-tint/40 px-3 py-2">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="truncate">{headerLabel}</span>
+          <Tooltip
+            label={headerInfo.label}
+            content={headerInfo.content}
+            placement="bottom"
+          />
         </span>
         {badgeText ? (
           <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${badgeStyle}`}
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${badgeStyle}`}
           >
             {badgeText}
           </span>
         ) : null}
       </div>
-      <div className="px-5 py-4 space-y-4">{children}</div>
+      <div className="space-y-3 px-3 py-3">{children}</div>
     </div>
   );
 }
 
-function ExistingModulePanel({
-  existingModule,
-  existingModuleId,
+function ComparisonModulePanel({
+  headerLabel,
+  headerInfo,
+  badgeVariant,
+  module,
+  moduleId,
   onView,
   isOpen,
+  emptyMessage,
+  loadingMessage,
+  fallbackStatus,
 }: {
-  existingModule?: AdminModulesListItem | AdminModuleDetailResponse | null;
-  existingModuleId?: string | null;
+  headerLabel: string;
+  headerInfo: { label: string; content: string };
+  badgeVariant: ComparisonBadgeVariant;
+  module?: AdminModulesListItem | AdminModuleDetailResponse | null;
+  moduleId?: string | null;
   onView: (moduleId: string) => void;
   isOpen: boolean;
+  emptyMessage: string;
+  loadingMessage: string;
+  fallbackStatus?: string;
 }) {
   const { data: fetchedModule, isLoading } = useGetModuleDetailQuery(
-    existingModuleId ?? '',
-    { skip: !isOpen || Boolean(existingModule) || !existingModuleId },
+    moduleId ?? '',
+    { skip: !isOpen || Boolean(module) || !moduleId },
   );
 
-  const target = existingModule ?? fetchedModule;
+  const target = module ?? fetchedModule;
 
   if (isLoading && !target) {
     return (
-      <ModuleCardPanel headerLabel="Existing Module" badgeVariant="info">
-        <div className="flex h-36 items-center justify-center text-xs text-spice-text-muted animate-pulse">
-          Loading existing module details…
+      <ModuleCardPanel
+        headerLabel={headerLabel}
+        headerInfo={headerInfo}
+        badgeVariant={badgeVariant}
+      >
+        <div className="flex h-32 items-center justify-center text-xs text-spice-text-muted animate-pulse">
+          {loadingMessage}
         </div>
       </ModuleCardPanel>
     );
@@ -228,38 +327,41 @@ function ExistingModulePanel({
 
   if (!target) {
     return (
-      <ModuleCardPanel headerLabel="Existing Module" badgeVariant="info">
-        <div className="flex h-36 items-center justify-center text-xs text-spice-text-muted">
-          No matching existing module linkage found.
+      <ModuleCardPanel
+        headerLabel={headerLabel}
+        headerInfo={headerInfo}
+        badgeVariant={badgeVariant}
+      >
+        <div className="flex h-32 items-center justify-center text-center text-xs text-spice-text-muted">
+          {emptyMessage}
         </div>
       </ModuleCardPanel>
     );
   }
 
-  const quizCount =
-    (target as AdminModulesListItem).quiz_count ??
-    ('quiz' in target && Array.isArray(target.quiz) ? target.quiz.length : 0);
-
-  const targetStatus =
-    target.lifecycle_status || (target as { status?: string }).status;
+  const targetStatus = target.lifecycle_status || fallbackStatus;
   const isPublished = targetStatus?.toLowerCase() === 'published';
 
   return (
-    <ModuleCardPanel headerLabel="Existing Module" badgeVariant="info">
-      <div className="flex items-start justify-between gap-3 pb-3 border-b border-spice-border/30 mb-1">
-        <div className="min-w-0 flex-1 py-1">
-          <h4 className="text-sm font-semibold leading-snug text-spice-text-primary">
+    <ModuleCardPanel
+      headerLabel={headerLabel}
+      headerInfo={headerInfo}
+      badgeVariant={badgeVariant}
+    >
+      <div className="mb-1 flex items-start justify-between gap-2 border-b border-spice-border/30 pb-2">
+        <div className="min-w-0 flex-1 py-0.5">
+          <h4 className="truncate text-sm font-semibold leading-snug text-spice-text-primary">
             {formatModuleTitle(target)}
           </h4>
           {target.category ? (
-            <span className="mt-1.5 inline-block rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] text-spice-text-muted font-medium">
+            <span className="mt-1 inline-block max-w-full truncate rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] font-medium text-spice-text-muted">
               {target.category}
             </span>
           ) : null}
         </div>
         <Button
           variant="secondary"
-          className="h-8 shrink-0 gap-1.5 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+          className="h-7 shrink-0 gap-1 px-2 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
           onClick={() => onView(target.id)}
         >
           <EyeIcon className="h-3.5 w-3.5" />
@@ -267,9 +369,9 @@ function ExistingModulePanel({
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-3 text-xs">
+      <div className="grid grid-cols-1 gap-2 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-2.5 text-xs sm:grid-cols-2">
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
             Status
           </span>
           <div className="mt-1">
@@ -277,15 +379,15 @@ function ExistingModulePanel({
           </div>
         </div>
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
             Lessons / Quizzes
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
-            {target.card_count} lessons • {quizCount} quizzes
+            {target.card_count} lessons • {getQuizCount(target)} quizzes
           </span>
         </div>
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
             Duration
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
@@ -293,18 +395,18 @@ function ExistingModulePanel({
           </span>
         </div>
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
             Created On
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
             {target.created_at ? formatDisplayDateTime(target.created_at) : '—'}
           </span>
         </div>
-        <div className="col-span-2 border-t border-spice-border/40 pt-2">
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+        <div className="border-t border-spice-border/40 pt-2 sm:col-span-2">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
             {isPublished ? 'Published By' : 'Created By'}
           </span>
-          <span className="mt-0.5 block font-medium text-spice-text-medium">
+          <span className="mt-0.5 block truncate font-medium text-spice-text-medium">
             {isPublished ? getPublishedBy(target) : getCreatedBy(target)}
           </span>
         </div>
@@ -318,7 +420,8 @@ export const NeedsReviewTab = ({
   isLoading,
   error,
   onMerge,
-  onSkip,
+  onDiscardNew,
+  onKeepNew,
   onView,
   sortBy,
   sortDir,
@@ -327,7 +430,9 @@ export const NeedsReviewTab = ({
   emptyMessage,
 }: NeedsReviewTabProps) => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
-  const [actionType, setActionType] = useState<'merge' | 'skip' | null>(null);
+  const [actionType, setActionType] = useState<
+    'keep_new' | 'discard_new' | 'merge' | null
+  >(null);
   const [actionError, setActionError] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -384,12 +489,25 @@ export const NeedsReviewTab = ({
     }
   };
 
-  const handleSkipClick = async (moduleId: string) => {
+  const handleKeepNewClick = async (moduleId: string) => {
+    if (!onKeepNew) return;
     try {
       setActionError('');
       setSubmittingId(moduleId);
-      setActionType('skip');
-      await onSkip(moduleId);
+      setActionType('keep_new');
+      await onKeepNew(moduleId);
+    } finally {
+      setSubmittingId(null);
+      setActionType(null);
+    }
+  };
+
+  const handleDiscardNewClick = async (moduleId: string) => {
+    try {
+      setActionError('');
+      setSubmittingId(moduleId);
+      setActionType('discard_new');
+      await onDiscardNew(moduleId);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -400,6 +518,10 @@ export const NeedsReviewTab = ({
     return (modules ?? []).map((primary) => {
       const { existingModule, existingModuleId } =
         resolveExistingModule(primary);
+      const mergeSecondaryModuleId = resolveMergeSecondaryModuleId(
+        primary,
+        existingModuleId,
+      );
       const createdBy = getCreatedBy(primary);
 
       return {
@@ -416,6 +538,7 @@ export const NeedsReviewTab = ({
         raw: primary,
         existingModule,
         existingModuleId,
+        mergeSecondaryModuleId,
       };
     });
   }, [modules]);
@@ -552,17 +675,29 @@ export const NeedsReviewTab = ({
       render: (row) => {
         const isSubmittingThis = submittingId === row.id;
         return (
-          <div className="flex items-center justify-start gap-2">
+          <div className="flex flex-wrap items-center justify-start gap-2">
             <Button
               variant="secondary"
-              className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+              className="h-8 px-2.5 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
               disabled={isSubmittingThis}
-              onClick={() => void handleSkipClick(row.id)}
+              onClick={() => void handleKeepNewClick(row.id)}
             >
-              {isSubmittingThis && actionType === 'skip' ? 'Skipping…' : 'Skip'}
+              {isSubmittingThis && actionType === 'keep_new'
+                ? 'Keeping…'
+                : 'Keep New'}
             </Button>
             <Button
-              className="h-8 px-3.5 text-xs font-semibold bg-spice-brand-primary hover:bg-spice-brand-primary/90 text-white shadow-xs"
+              variant="secondary"
+              className="h-8 px-2.5 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+              disabled={isSubmittingThis}
+              onClick={() => void handleDiscardNewClick(row.id)}
+            >
+              {isSubmittingThis && actionType === 'discard_new'
+                ? 'Discarding…'
+                : 'Discard New'}
+            </Button>
+            <Button
+              className="h-8 px-3 text-xs font-semibold bg-spice-brand-primary hover:bg-spice-brand-primary/90 text-white shadow-xs"
               disabled={isSubmittingThis}
               onClick={() => void handleMergeClick(row.id)}
             >
@@ -617,82 +752,51 @@ export const NeedsReviewTab = ({
           const primary = row.raw;
 
           return (
-            <div className="grid gap-4 md:grid-cols-2">
-              <ModuleCardPanel headerLabel="New Module" badgeVariant="warning">
-                <div className="flex items-start justify-between gap-3 pb-3 border-b border-spice-border/30 mb-1">
-                  <div className="min-w-0 flex-1 py-1">
-                    <h4 className="text-sm font-semibold leading-snug text-spice-text-primary">
-                      {formatModuleTitle(primary)}
-                    </h4>
-                    {primary.category ? (
-                      <span className="mt-1.5 inline-block rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] text-spice-text-muted font-medium">
-                        {primary.category}
-                      </span>
-                    ) : null}
-                  </div>
-                  <Button
-                    variant="secondary"
-                    className="h-8 shrink-0 gap-1.5 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                    onClick={() => handleViewClick(primary.id)}
-                  >
-                    <EyeIcon className="h-3.5 w-3.5" />
-                    View
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-3 text-xs">
-                  <div>
-                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                      Status
-                    </span>
-                    <div className="mt-1">
-                      <ModuleStatusBadge status="review_pending" />
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                      Lessons / Quizzes
-                    </span>
-                    <span className="mt-1 block font-medium text-spice-text-primary">
-                      {primary.card_count} lessons • {primary.quiz_count}{' '}
-                      quizzes
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                      Duration
-                    </span>
-                    <span className="mt-1 block font-medium text-spice-text-primary">
-                      {primary.estimated_minutes} min
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                      Created On
-                    </span>
-                    <span className="mt-1 block font-medium text-spice-text-primary">
-                      {primary.created_at
-                        ? formatDisplayDateTime(primary.created_at)
-                        : '—'}
-                    </span>
-                  </div>
-                  <div className="col-span-2 border-t border-spice-border/40 pt-2">
-                    <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                      Created By
-                    </span>
-                    <span className="mt-0.5 block font-medium text-spice-text-medium">
-                      {getCreatedBy(primary)}
-                    </span>
-                  </div>
-                </div>
-              </ModuleCardPanel>
-
-              <ExistingModulePanel
-                existingModule={row.existingModule}
-                existingModuleId={row.existingModuleId}
-                onView={handleViewClick}
-                isOpen
-              />
+            <div className="w-0 min-w-full overflow-hidden">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <ComparisonModulePanel
+                  headerLabel="New Module"
+                  headerInfo={{
+                    label: 'About new module',
+                    content: 'Newly generated module from the document',
+                  }}
+                  badgeVariant="warning"
+                  module={primary}
+                  moduleId={primary.id}
+                  onView={handleViewClick}
+                  isOpen
+                  emptyMessage="New module details are unavailable."
+                  loadingMessage="Loading new module details…"
+                  fallbackStatus="review_pending"
+                />
+                <ComparisonModulePanel
+                  headerLabel="Existing Module"
+                  headerInfo={{
+                    label: 'About existing module',
+                    content: 'Already published/existing module',
+                  }}
+                  badgeVariant="info"
+                  module={row.existingModule}
+                  moduleId={row.existingModuleId}
+                  onView={handleViewClick}
+                  isOpen
+                  emptyMessage="No matching existing module linkage found."
+                  loadingMessage="Loading existing module details…"
+                />
+                <ComparisonModulePanel
+                  headerLabel="Merge Preview"
+                  headerInfo={{
+                    label: 'About merge preview',
+                    content: 'Shows what the module will look like if merged',
+                  }}
+                  badgeVariant="success"
+                  moduleId={row.mergeSecondaryModuleId}
+                  onView={handleViewClick}
+                  isOpen
+                  emptyMessage="No merge preview is available yet."
+                  loadingMessage="Loading merge preview…"
+                />
+              </div>
             </div>
           );
         }}
