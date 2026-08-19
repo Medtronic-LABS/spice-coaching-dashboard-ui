@@ -88,7 +88,11 @@ export const InfiniteScrollContainer = ({
   }, [disabled, error, hasMore, isLoadingMore, loadedCount, rootMargin]);
 
   return (
-    <div ref={rootRef} className={cn('min-h-0', className)} onScroll={onScroll}>
+    <div
+      ref={rootRef}
+      className={cn('overflow-y-auto', className)}
+      onScroll={onScroll}
+    >
       {children}
       {error && hasMore ? (
         <div className="flex items-center justify-center gap-2 px-3 py-2 text-sm text-spice-text-muted">
