@@ -295,6 +295,9 @@ export const ModuleLibraryPage = () => {
     useDeactivateModuleMutation();
   const [reactivateModule, { isLoading: isReactivating }] =
     useReactivateModuleMutation();
+  const [reactivatingModuleId, setReactivatingModuleId] = useState<
+    string | null
+  >(null);
   const [publishModule, { isLoading: isPublishing }] =
     usePublishModuleMutation();
   const [publishingModuleId, setPublishingModuleId] = useState<string | null>(
@@ -356,9 +359,9 @@ export const ModuleLibraryPage = () => {
   const { data: domainOptions = [], refetch: refetchDomainOptions } =
     useFetchModuleDomainOptionsQuery({});
   const {
-    data: modulesPage,
+    currentData: currentModulesPage,
     refetch,
-    isLoading: isLoadingModules,
+    isFetching: isFetchingModules,
     isUninitialized: modulesQueryUninitialized,
   } = useFetchModulesQuery(
     {
@@ -375,11 +378,11 @@ export const ModuleLibraryPage = () => {
     { skip: dateRangeInvalid },
   );
   const modulesForList = useMemo(
-    () => (dateRangeInvalid ? [] : (modulesPage?.modules ?? [])),
-    [dateRangeInvalid, modulesPage?.modules],
+    () => (dateRangeInvalid ? [] : (currentModulesPage?.modules ?? [])),
+    [dateRangeInvalid, currentModulesPage?.modules],
   );
-  const totalModules = modulesPage?.total_modules ?? 0;
-  const totalPages = modulesPage?.total_pages ?? 0;
+  const totalModules = currentModulesPage?.total_modules ?? 0;
+  const totalPages = currentModulesPage?.total_pages ?? 0;
 
   useEffect(() => {
     setPaginationTotalPages(totalPages);
@@ -807,8 +810,9 @@ export const ModuleLibraryPage = () => {
               <Button
                 variant="primary"
                 className={actionButtonClass}
-                disabled={isPublishing}
+                disabled={isPublishingRow}
                 onClick={async () => {
+                  if (isPublishing) return;
                   setPublishError('');
                   setPublishingModuleId(row.id);
                   try {
@@ -858,23 +862,28 @@ export const ModuleLibraryPage = () => {
               </Button>
             ) : null;
 
+          const isReactivatingRow =
+            isReactivating && reactivatingModuleId === row.id;
           const activateButton =
             isProgramManager && row.status === 'deactivated' ? (
               <Button
                 variant="primary"
                 className={actionButtonClass}
-                disabled={isReactivating}
+                disabled={isReactivatingRow}
                 onClick={async () => {
+                  if (isReactivating) return;
+                  setReactivatingModuleId(row.id);
                   try {
                     await reactivateModule({ moduleId: row.id }).unwrap();
                     refreshModuleList();
                   } catch {
-                    // Refetch keeps the list consistent if partial failure occurs.
                     refreshModuleList();
+                  } finally {
+                    setReactivatingModuleId(null);
                   }
                 }}
               >
-                {isReactivating ? 'Activating…' : 'Activate'}
+                {isReactivatingRow ? 'Activating…' : 'Activate'}
               </Button>
             ) : null;
 
@@ -945,13 +954,7 @@ export const ModuleLibraryPage = () => {
         />
       ) : null}
       <Loader
-        open={
-          isCreating ||
-          isDeactivating ||
-          isReactivating ||
-          isPublishing ||
-          (!dateRangeInvalid && isLoadingModules)
-        }
+        open={isCreating || isDeactivating || isReactivating || isPublishing}
         label={
           isCreating
             ? 'Creating module…'
@@ -959,9 +962,7 @@ export const ModuleLibraryPage = () => {
               ? 'Deactivating module…'
               : isReactivating
                 ? 'Activating module…'
-                : isPublishing
-                  ? 'Publishing module…'
-                  : 'Loading modules…'
+                : 'Publishing module…'
         }
       />
       {publishError ? <Banner tone="critical">{publishError}</Banner> : null}
@@ -1479,8 +1480,8 @@ export const ModuleLibraryPage = () => {
 
         {tab === 'needs_review' ? (
           <NeedsReviewTab
-            modules={modulesForList}
-            isLoading={isLoadingModules}
+            modules={isFetchingModules ? [] : modulesForList}
+            isLoading={isFetchingModules}
             onMerge={handleOverrideMerge}
             onSkip={handleSkipReview}
             sortBy={sortBy}
@@ -1491,8 +1492,8 @@ export const ModuleLibraryPage = () => {
           />
         ) : tab === 'discarded' ? (
           <DiscardedTabTable
-            modules={modulesForList}
-            isLoading={isLoadingModules}
+            modules={isFetchingModules ? [] : modulesForList}
+            isLoading={isFetchingModules}
             onView={handleViewModule}
             sortBy={sortBy}
             sortDir={sortDir}
@@ -1501,11 +1502,11 @@ export const ModuleLibraryPage = () => {
         ) : (
           <Table<ModuleLibraryItem>
             density="comfortable"
-            data={filtered}
+            data={isFetchingModules ? [] : filtered}
             columns={columns}
             keyExtractor={(r) => r.id}
             caption={tableCaption}
-            emptyMessage={emptyMessage}
+            emptyMessage={isFetchingModules ? 'Loading modules…' : emptyMessage}
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}

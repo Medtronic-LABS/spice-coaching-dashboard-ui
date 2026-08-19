@@ -26,7 +26,6 @@ import { KnowledgeEditModal } from '@/features/modules/components/KnowledgeEditM
 import { KnowledgeRetireModal } from '@/features/modules/components/KnowledgeRetireModal';
 import { KnowledgeThumbnailCell } from '@/features/modules/components/KnowledgeThumbnailCell';
 import { AssignmentDialog } from '@/features/modules/components/AssignmentDialog';
-import { usePostDocumentViewedTelemetryMutation } from '@/features/admin-dashboard/api/telemetryApi';
 import {
   useFetchKnowledgeUploadersQuery,
   useRetireKnowledgeDocumentMutation,
@@ -209,8 +208,6 @@ export const KnowledgeLibraryTable = () => {
     useUpdateSourceDocumentThumbnailMutation();
   const [retireKnowledgeDocument, { isLoading: isRetiring }] =
     useRetireKnowledgeDocumentMutation();
-  const [postDocumentViewedTelemetry] =
-    usePostDocumentViewedTelemetryMutation();
 
   const drawerDateRangeInvalid =
     isKnowledgeDrawerDateRangeInvalid(appliedDrawerFilters);
@@ -546,14 +543,6 @@ export const KnowledgeLibraryTable = () => {
                         object_name: row.storedPath,
                         disposition: 'attachment',
                       }).unwrap();
-                      try {
-                        await postDocumentViewedTelemetry({
-                          source_document_id: row.id,
-                          document_title: row.title,
-                        }).unwrap();
-                      } catch {
-                        // Telemetry should not block downloads.
-                      }
                       await downloadFileAs(res.presigned_url, downloadName);
                     } catch (err) {
                       setDownloadError(formatRtkQueryError(err));
@@ -589,7 +578,6 @@ export const KnowledgeLibraryTable = () => {
       isPatchingTitle,
       isReplacingThumbnail,
       isRetiring,
-      postDocumentViewedTelemetry,
       triggerPresignedUrl,
     ],
   );
