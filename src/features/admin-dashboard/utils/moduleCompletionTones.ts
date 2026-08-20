@@ -1,5 +1,6 @@
-export const MODULE_COMPLETION_ON_TRACK_PERCENT = 75;
-export const MODULE_COMPLETION_WATCH_PERCENT = 55;
+export const MODULE_COMPLETION_GREEN_THRESHOLD = 75;
+export const MODULE_COMPLETION_BLUE_THRESHOLD = 50;
+export const MODULE_COMPLETION_ORANGE_THRESHOLD = 25;
 
 export const MODULE_COMPLETION_TONES = {
   onTrack: {
@@ -9,6 +10,10 @@ export const MODULE_COMPLETION_TONES = {
   watch: {
     barClassName: 'bg-spice-palette-blue',
     textClassName: 'text-spice-palette-blue',
+  },
+  fair: {
+    barClassName: 'bg-spice-palette-amber',
+    textClassName: 'text-spice-palette-amber',
   },
   atRisk: {
     barClassName: 'bg-spice-palette-red',
@@ -22,11 +27,14 @@ export type ModuleCompletionRowTone =
 export function resolveModuleCompletionTone(
   percent: number,
 ): ModuleCompletionRowTone {
-  if (percent >= MODULE_COMPLETION_ON_TRACK_PERCENT) {
+  if (percent > MODULE_COMPLETION_GREEN_THRESHOLD) {
     return MODULE_COMPLETION_TONES.onTrack;
   }
-  if (percent >= MODULE_COMPLETION_WATCH_PERCENT) {
+  if (percent > MODULE_COMPLETION_BLUE_THRESHOLD) {
     return MODULE_COMPLETION_TONES.watch;
+  }
+  if (percent > MODULE_COMPLETION_ORANGE_THRESHOLD) {
+    return MODULE_COMPLETION_TONES.fair;
   }
   return MODULE_COMPLETION_TONES.atRisk;
 }
