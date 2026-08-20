@@ -80,8 +80,7 @@ export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
       </div>
       <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
         Discards the new module and merge preview. The existing module remains
-        unchanged, including all assignments, learner progress, quiz attempts,
-        telemetry, and analytics.
+        unchanged.
       </p>
     </div>
     <div>
