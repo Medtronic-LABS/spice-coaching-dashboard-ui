@@ -191,6 +191,7 @@ export interface PublishedModuleCompletionItem {
   title: LocalizedString | null;
   published_at: string;
   completed_sk_count: number;
+  assigned_sk_count: number;
   total_descendant_sk_count: number;
 }
 

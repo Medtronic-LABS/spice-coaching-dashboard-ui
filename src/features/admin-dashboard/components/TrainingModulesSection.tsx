@@ -173,7 +173,8 @@ export const TrainingModulesSection = ({
               <tbody>
                 {modules.map((row: PublishedModuleCompletionItem) => {
                   const title = resolveDisplayText(row.title);
-                  const total = row.total_descendant_sk_count;
+                  const total =
+                    row.assigned_sk_count ?? row.total_descendant_sk_count;
                   const completed = row.completed_sk_count;
                   const percent = total > 0 ? (completed / total) * 100 : 0;
                   const tone = resolveModuleCompletionTone(percent);
