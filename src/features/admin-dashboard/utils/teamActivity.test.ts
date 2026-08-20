@@ -32,13 +32,13 @@ function member(partial: Partial<TeamActivityMember>): TeamActivityMember {
 
 describe('toTeamActivitySortParams', () => {
   it('maps dropdown keys to backend sort_by / sort_dir', () => {
-    expect(toTeamActivitySortParams('default')).toEqual({
-      sort_by: 'name',
-      sort_dir: 'asc',
-    });
     expect(toTeamActivitySortParams('name')).toEqual({
       sort_by: 'name',
       sort_dir: 'asc',
+    });
+    expect(toTeamActivitySortParams('name_desc')).toEqual({
+      sort_by: 'name',
+      sort_dir: 'desc',
     });
     expect(toTeamActivitySortParams('at_risk_first')).toEqual({
       sort_by: 'performance_status',

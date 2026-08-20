@@ -106,7 +106,7 @@ describe('TeamHierarchySection', () => {
           divisionId: '1',
           districtId: '10',
         }}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -140,7 +140,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -168,7 +168,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -206,7 +206,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -224,7 +224,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -282,6 +282,25 @@ describe('TeamHierarchySection', () => {
     );
   });
 
+  it('sends backend sort params for name Z–A', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="name_desc"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'name',
+        sort_dir: 'desc',
+      }),
+    );
+  });
+
   it('sends backend sort params for at-risk first', () => {
     renderWithProviders(
       <TeamHierarchySection
@@ -326,7 +345,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -354,7 +373,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -369,7 +388,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );

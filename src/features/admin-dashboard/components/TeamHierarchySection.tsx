@@ -77,11 +77,11 @@ function defaultHierarchyRoleTab(): HierarchyRoleTab {
 }
 
 const SORT_OPTIONS: Array<{ value: TeamHierarchySortKey }> = [
-  { value: 'default' },
+  { value: 'name' },
+  { value: 'name_desc' },
   { value: 'at_risk_first' },
   { value: 'lowest_completion' },
   { value: 'lowest_chatbot' },
-  { value: 'name' },
 ];
 
 function useHierarchyLabels() {
@@ -533,12 +533,7 @@ export const TeamHierarchySection = ({
   const sortOptions = useMemo(
     () =>
       SORT_OPTIONS.map((option) => ({
-        label:
-          option.value === 'default'
-            ? `${t('adminDashboard.filters.sortLabel')} ${t(
-                `adminDashboard.filters.sort.${option.value}`,
-              )}`
-            : t(`adminDashboard.filters.sort.${option.value}`),
+        label: t(`adminDashboard.filters.sort.${option.value}`),
         value: option.value,
       })),
     [t],

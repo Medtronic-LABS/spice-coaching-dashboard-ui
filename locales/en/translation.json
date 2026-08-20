@@ -200,13 +200,12 @@
       },
       "from": "From",
       "to": "To",
-      "sortLabel": "Sort:",
       "sort": {
-        "default": "Default",
         "at_risk_first": "Needs Most Attention",
         "lowest_completion": "Lowest Module Completion",
         "lowest_chatbot": "Lowest Chatbot Engagement",
-        "name": "Name (A–Z)"
+        "name": "Name (A–Z)",
+        "name_desc": "Name (Z–A)"
       },
       "status": {
         "on_track": "On track",

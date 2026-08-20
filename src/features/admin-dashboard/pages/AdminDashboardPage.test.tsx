@@ -122,7 +122,7 @@ describe('AdminDashboardPage', () => {
       setCustomFrom: vi.fn(),
       setCustomTo: vi.fn(),
       setGeography: vi.fn(),
-      hierarchySort: 'default',
+      hierarchySort: 'name',
       setHierarchySort: vi.fn(),
       clearCustomDateRange: vi.fn(),
     });
