@@ -189,7 +189,6 @@
       "clearAll": "সব ফিল্টার মুছুন",
       "activeCount": "{{count}}টি ফিল্টার প্রয়োগ করা হয়েছে",
       "panelLabel": "ড্যাশবোর্ড ফিল্টার",
-      "statusLabel": "টিম ভিউ",
       "durationLabel": "সময়কাল:",
       "clearCustomRange": "কাস্টম তারিখ রেঞ্জ মুছুন",
       "invalidRangeTitle": "অবৈধ তারিখ রেঞ্জ",
@@ -205,14 +204,12 @@
       "sortLabel": "সাজান:",
       "sort": {
         "default": "ডিফল্ট",
-        "at_risk_first": "ঝুঁকিতে প্রথম",
+        "at_risk_first": "সবচেয়ে বেশি মনোযোগ প্রয়োজন",
         "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
         "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
-        "most_inactive": "সর্বাধিক অপ্রতিক্রিয়াশীল SK",
         "name": "নাম (A–Z)"
       },
       "status": {
-        "all": "সব স্ট্যাটাস",
         "on_track": "ঠিক পথে",
         "at_risk": "ঝুঁকিতে"
       },

@@ -44,6 +44,7 @@ const sk: TeamActivityMember = {
   chatbot_modules: [],
   refreshers_generated: 0,
   refreshers_completed: 0,
+  performance_status: 'at_risk',
 };
 
 function questionsQuery(

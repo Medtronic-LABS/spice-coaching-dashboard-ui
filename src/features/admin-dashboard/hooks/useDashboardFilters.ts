@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import type {
   DashboardFiltersState,
   DashboardGeographyFilters,
-  DashboardStatusFilter,
   DashboardDurationPreset,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -21,7 +20,6 @@ export const DEFAULT_DASHBOARD_FILTERS: DashboardFiltersState = {
   durationPreset: 'this_month',
   customFrom: '',
   customTo: '',
-  status: 'all',
   geography: EMPTY_DASHBOARD_GEOGRAPHY,
 };
 
@@ -30,7 +28,6 @@ export function useDashboardFilters() {
     useState<DashboardDurationPreset>(DEFAULT_DASHBOARD_FILTERS.durationPreset);
   const [customFrom, setCustomFromState] = useState('');
   const [customTo, setCustomToState] = useState('');
-  const [status, setStatus] = useState<DashboardStatusFilter>('all');
   const [geography, setGeography] = useState<DashboardGeographyFilters>(
     EMPTY_DASHBOARD_GEOGRAPHY,
   );
@@ -41,7 +38,6 @@ export function useDashboardFilters() {
     durationPreset,
     customFrom,
     customTo,
-    status,
     geography,
   };
 
@@ -97,7 +93,6 @@ export function useDashboardFilters() {
     setDurationPreset,
     setCustomFrom,
     setCustomTo,
-    setStatus,
     setGeography,
     hierarchySort,
     setHierarchySort,

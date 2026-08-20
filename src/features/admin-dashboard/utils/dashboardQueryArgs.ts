@@ -1,6 +1,8 @@
 import type {
   DashboardGeoQueryParams,
   DashboardGeographyFilters,
+  TeamActivityApiSortBy,
+  TeamActivityApiSortDir,
 } from '@/features/admin-dashboard/types/dashboard.types';
 import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 
@@ -12,6 +14,9 @@ interface TeamActivityQueryExtras {
   offset?: number;
   user_id?: number;
   depth?: number;
+  q?: string;
+  sort_by?: TeamActivityApiSortBy;
+  sort_dir?: TeamActivityApiSortDir;
 }
 
 function omitUndefined<T extends object>(values: T): Partial<T> {

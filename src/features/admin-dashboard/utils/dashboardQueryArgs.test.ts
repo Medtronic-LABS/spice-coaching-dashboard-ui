@@ -116,6 +116,31 @@ describe('dashboardQueryArgs', () => {
     });
   });
 
+  it('includes team activity search and sort extras', () => {
+    expect(
+      buildTeamActivityQueryArgs(
+        '2026-01-01',
+        '2026-01-31',
+        EMPTY_DASHBOARD_GEOGRAPHY,
+        {
+          limit: 20,
+          offset: 0,
+          q: 'rina',
+          sort_by: 'module_completion',
+          sort_dir: 'asc',
+        },
+      ),
+    ).toEqual({
+      from_date: '2026-01-01',
+      to_date: '2026-01-31',
+      limit: 20,
+      offset: 0,
+      q: 'rina',
+      sort_by: 'module_completion',
+      sort_dir: 'asc',
+    });
+  });
+
   it('builds team member questions args with geography filters', () => {
     expect(
       buildTeamMemberQuestionsQueryArgs(

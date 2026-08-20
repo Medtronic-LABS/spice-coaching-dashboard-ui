@@ -43,7 +43,6 @@ export const AdminDashboardPage = () => {
     setDurationPreset,
     setCustomFrom,
     setCustomTo,
-    setStatus,
     setGeography,
     hierarchySort,
     setHierarchySort,
@@ -56,7 +55,7 @@ export const AdminDashboardPage = () => {
   } | null>(null);
 
   const { fromDate, toDate } = queryDateRange;
-  const { geography, status } = filters;
+  const { geography } = filters;
 
   const assignLabel = t('adminDashboard.moduleDemand.actions.assign');
   const publishLabel = t('adminDashboard.moduleDemand.actions.publish');
@@ -78,7 +77,6 @@ export const AdminDashboardPage = () => {
       onDurationChange={setDurationPreset}
       onCustomFromChange={setCustomFrom}
       onCustomToChange={setCustomTo}
-      onStatusChange={setStatus}
       onGeographyChange={setGeography}
     />
   );
@@ -115,7 +113,6 @@ export const AdminDashboardPage = () => {
         fromDate={fromDate}
         toDate={toDate}
         geography={geography}
-        status={status}
         sortKey={hierarchySort}
         onSortChange={setHierarchySort}
       />

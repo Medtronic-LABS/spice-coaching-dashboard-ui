@@ -19,6 +19,8 @@ import type {
   ModuleCreationSuggestionListResponse,
   ModuleDemandSummaryResponse,
   PublishedModuleCompletionsResponse,
+  TeamActivityApiSortBy,
+  TeamActivityApiSortDir,
   TeamActivityResponse,
   TeamMemberQuestionsResponse,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -28,22 +30,16 @@ export interface DashboardDateParams {
   to_date: string;
 }
 
-export type DashboardStatusQueryParam = 'all' | 'on_track' | 'at_risk';
-
 export interface TeamActivityQuery
   extends DashboardDateParams, DashboardGeoQueryParams {
   limit?: number;
   offset?: number;
   user_id?: number;
   depth?: number;
-  /** Pending BE: search before pagination. */
+  /** Case-insensitive substring on current-level member name. */
   q?: string;
-  /** Pending BE: sort key aligned with hierarchy sort dropdown. */
-  sort_by?: string;
-  /** Pending BE: `asc` | `desc`. */
-  sort_dir?: 'asc' | 'desc';
-  /** Pending BE: hierarchy status filter. */
-  status?: DashboardStatusQueryParam;
+  sort_by?: TeamActivityApiSortBy;
+  sort_dir?: TeamActivityApiSortDir;
 }
 
 export interface TeamMemberQuestionsQuery
@@ -113,6 +109,9 @@ export const dashboardApi = baseApi.injectEndpoints({
         offset,
         user_id,
         depth,
+        q,
+        sort_by,
+        sort_dir,
         ...geo
       }) => ({
         url: '/dashboard/team-activity',
@@ -123,6 +122,9 @@ export const dashboardApi = baseApi.injectEndpoints({
           offset,
           user_id,
           depth,
+          q,
+          sort_by,
+          sort_dir,
           ...geo,
         },
       }),

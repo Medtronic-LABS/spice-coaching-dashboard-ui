@@ -10,15 +10,23 @@ export type DashboardDurationPreset =
   | 'this_month'
   | 'custom';
 
-export type DashboardStatusFilter = 'all' | 'on_track' | 'at_risk';
-
 export type TeamHierarchySortKey =
   | 'default'
   | 'at_risk_first'
   | 'lowest_completion'
   | 'lowest_chatbot'
-  | 'most_inactive'
   | 'name';
+
+/** GET /dashboard/team-activity `sort_by` values. */
+export type TeamActivityApiSortBy =
+  | 'name'
+  | 'chatbot_engagement'
+  | 'module_completion'
+  | 'performance_status';
+
+export type TeamActivityApiSortDir = 'asc' | 'desc';
+
+export type TeamActivityPerformanceStatus = 'on_track' | 'at_risk';
 
 export type DashboardGeographyFilters = GeographyFilterState;
 
@@ -34,7 +42,6 @@ export interface DashboardFiltersState {
   durationPreset: DashboardDurationPreset;
   customFrom: string;
   customTo: string;
-  status: DashboardStatusFilter;
   geography: DashboardGeographyFilters;
 }
 
@@ -75,6 +82,8 @@ export interface TeamActivityMember {
   chatbot_modules: TeamMemberChatbotModuleUsage[];
   refreshers_generated: number;
   refreshers_completed: number;
+  /** Server-computed 60% module-completion cascade (SK → PO → AM). */
+  performance_status: TeamActivityPerformanceStatus;
   /** Descendant rollup for AM/PO rows; present without expanding the hierarchy. */
   summary?: TeamActivitySummary;
 }

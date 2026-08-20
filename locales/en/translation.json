@@ -188,7 +188,6 @@
       "clearAll": "Clear all filters",
       "activeCount": "{{count}} filters applied",
       "panelLabel": "Dashboard filters",
-      "statusLabel": "Team view",
       "durationLabel": "Duration:",
       "clearCustomRange": "Clear custom date range",
       "invalidRangeTitle": "Invalid date range",
@@ -204,14 +203,12 @@
       "sortLabel": "Sort:",
       "sort": {
         "default": "Default",
-        "at_risk_first": "At risk first",
-        "lowest_completion": "Lowest module completion",
-        "lowest_chatbot": "Lowest chatbot engagement",
-        "most_inactive": "Most Non-Responsive SKs",
+        "at_risk_first": "Needs Most Attention",
+        "lowest_completion": "Lowest Module Completion",
+        "lowest_chatbot": "Lowest Chatbot Engagement",
         "name": "Name (A–Z)"
       },
       "status": {
-        "all": "All statuses",
         "on_track": "On track",
         "at_risk": "At risk"
       },

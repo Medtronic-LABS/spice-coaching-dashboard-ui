@@ -1,5 +1,6 @@
 import type {
-  DashboardStatusFilter,
+  TeamActivityApiSortBy,
+  TeamActivityApiSortDir,
   TeamActivityMember,
   TeamActivityResponse,
   TeamHierarchySortKey,
@@ -35,7 +36,7 @@ export function resolveMemberDescendantInactiveCount(
 export type HierarchyRoleTab = 'am' | 'po' | 'sk';
 
 export function isMemberAtRisk(member: TeamActivityMember): boolean {
-  return !member.is_active && !member.has_completed_module_in_range;
+  return member.performance_status === 'at_risk';
 }
 
 export function memberInitials(name: string): string {
@@ -62,30 +63,29 @@ export function memberModuleStats(member: TeamActivityMember): {
   };
 }
 
-export function filterMembersBySearch(
-  members: TeamActivityMember[],
-  query: string,
-  resolveRoleLabel: (role: string) => string,
-): TeamActivityMember[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return members;
-  return members.filter((member) => {
-    const roleLabel = resolveRoleLabel(member.role).toLowerCase();
-    return (
-      member.name.toLowerCase().includes(normalized) ||
-      roleLabel.includes(normalized) ||
-      member.role.toLowerCase().includes(normalized)
-    );
-  });
+/** Maps hierarchy sort dropdown values to GET /dashboard/team-activity params. */
+export function toTeamActivitySortParams(sortKey: TeamHierarchySortKey): {
+  sort_by?: TeamActivityApiSortBy;
+  sort_dir?: TeamActivityApiSortDir;
+} {
+  switch (sortKey) {
+    case 'at_risk_first':
+      return { sort_by: 'performance_status', sort_dir: 'asc' };
+    case 'lowest_chatbot':
+      return { sort_by: 'chatbot_engagement', sort_dir: 'asc' };
+    case 'lowest_completion':
+      return { sort_by: 'module_completion', sort_dir: 'asc' };
+    case 'name':
+    case 'default':
+    default:
+      return { sort_by: 'name', sort_dir: 'asc' };
+  }
 }
 
 export function hierarchyTabDepth(
   tab: HierarchyRoleTab,
   options?: { viewerIsAreaManager?: boolean },
 ): number | undefined {
-  // Depth is relative to the logged-in user's position in the tree.
-  // Admin root: AM=undefined, PO=1, SK=2
-  // Area Manager root: PO=undefined (direct reports), SK=1
   if (options?.viewerIsAreaManager) {
     if (tab === 'sk') return 1;
     return undefined;
@@ -104,72 +104,6 @@ export function hierarchyChildrenActionKind(
   if (normalized.includes('AREA')) return 'pos';
   if (normalized === 'PO' || normalized.includes('PROGRAM')) return 'sks';
   return 'generic';
-}
-
-export function filterTeamMembersByStatus(
-  members: TeamActivityMember[],
-  status: DashboardStatusFilter,
-): TeamActivityMember[] {
-  if (status === 'all') return members;
-  if (status === 'at_risk') {
-    return members.filter((member) => isMemberAtRisk(member));
-  }
-  return members.filter((member) => !isMemberAtRisk(member));
-}
-
-function moduleCompletionRate(member: TeamActivityMember): number {
-  const assigned = member.assigned_modules.length;
-  if (assigned === 0) return member.has_completed_module_in_range ? 1 : 0;
-  const completed = member.assigned_modules.filter(
-    (module) => module.completed_in_range,
-  ).length;
-  return completed / assigned;
-}
-
-function inactiveScore(member: TeamActivityMember): number {
-  if (!member.last_active_at) return Number.POSITIVE_INFINITY;
-  const parsed = Date.parse(member.last_active_at);
-  if (Number.isNaN(parsed)) return Number.POSITIVE_INFINITY;
-  return Date.now() - parsed;
-}
-
-export function sortTeamMembers(
-  members: TeamActivityMember[],
-  sortKey: TeamHierarchySortKey,
-): TeamActivityMember[] {
-  const copy = [...members];
-  switch (sortKey) {
-    case 'at_risk_first':
-      return copy.sort((a, b) => {
-        const aRisk = isMemberAtRisk(a);
-        const bRisk = isMemberAtRisk(b);
-        if (aRisk !== bRisk) return aRisk ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-    case 'lowest_completion':
-      return copy.sort((a, b) => {
-        const delta = moduleCompletionRate(a) - moduleCompletionRate(b);
-        if (delta !== 0) return delta;
-        return a.name.localeCompare(b.name);
-      });
-    case 'lowest_chatbot':
-      return copy.sort((a, b) => {
-        const delta = a.chatbot_query_count - b.chatbot_query_count;
-        if (delta !== 0) return delta;
-        return a.name.localeCompare(b.name);
-      });
-    case 'most_inactive':
-      return copy.sort((a, b) => {
-        const delta = inactiveScore(a) - inactiveScore(b);
-        if (delta !== 0) return delta;
-        return a.name.localeCompare(b.name);
-      });
-    case 'name':
-      return copy.sort((a, b) => a.name.localeCompare(b.name));
-    case 'default':
-    default:
-      return copy;
-  }
 }
 
 export type HierarchyRoleKind = 'am' | 'po' | 'sk' | 'unknown';

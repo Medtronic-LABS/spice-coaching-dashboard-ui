@@ -50,7 +50,6 @@ function renderFilterBar(
       onDurationChange={vi.fn()}
       onCustomFromChange={vi.fn()}
       onCustomToChange={vi.fn()}
-      onStatusChange={vi.fn()}
       onGeographyChange={vi.fn()}
       {...extra}
     />,
@@ -95,6 +94,8 @@ describe('DashboardFilterBar', () => {
     expect(
       within(upazilaSelect).getByRole('option', { name: 'Hatibandha' }),
     ).toBeInTheDocument();
+    expect(within(panel).queryByText('Team view')).not.toBeInTheDocument();
+    expect(within(panel).queryByText('All statuses')).not.toBeInTheDocument();
   });
 
   it('applies division, district, and upazila as hierarchy ids', async () => {

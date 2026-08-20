@@ -18,7 +18,6 @@ import { DashboardWidgetShell } from '@/features/admin-dashboard/components/Dash
 import { SkDetailDrawer } from '@/features/admin-dashboard/components/SkDetailDrawer';
 import type {
   DashboardGeographyFilters,
-  DashboardStatusFilter,
   TeamActivityMember,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -26,8 +25,6 @@ import { buildTeamActivityQueryArgs } from '@/features/admin-dashboard/utils/das
 import { resolveModuleCompletionTone } from '@/features/admin-dashboard/utils/moduleCompletionTones';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import {
-  filterMembersBySearch,
-  filterTeamMembersByStatus,
   hierarchyChildrenActionKind,
   hierarchyRoleKind,
   hierarchyTabDepth,
@@ -36,22 +33,23 @@ import {
   memberModuleStats,
   resolveMemberDescendantInactiveCount,
   resolveMemberDescendantSkCount,
-  sortTeamMembers,
+  toTeamActivitySortParams,
   type HierarchyRoleTab,
 } from '@/features/admin-dashboard/utils/teamActivity';
 import { getAuthSession } from '@/features/auth/services/authSession';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/utils';
 
 interface TeamHierarchySectionProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
-  status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   onSortChange: (sort: TeamHierarchySortKey) => void;
 }
 
 const TEAM_HIERARCHY_PAGE_LIMIT = 20;
+const TEAM_HIERARCHY_SEARCH_DEBOUNCE_MS = 300;
 
 const ROLE_TABS: Array<{ value: HierarchyRoleTab; labelKey: string }> = [
   { value: 'am', labelKey: 'adminDashboard.hierarchy.tabs.am' },
@@ -83,7 +81,6 @@ const SORT_OPTIONS: Array<{ value: TeamHierarchySortKey }> = [
   { value: 'at_risk_first' },
   { value: 'lowest_completion' },
   { value: 'lowest_chatbot' },
-  { value: 'most_inactive' },
   { value: 'name' },
 ];
 
@@ -155,7 +152,6 @@ interface HierarchyMemberRowProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
-  status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   depth: number;
   onSelectSk: (member: TeamActivityMember) => void;
@@ -166,7 +162,6 @@ const HierarchyMemberRow = ({
   fromDate,
   toDate,
   geography,
-  status,
   sortKey,
   depth,
   onSelectSk,
@@ -194,6 +189,7 @@ const HierarchyMemberRow = ({
     geography.divisionId,
     geography.districtId,
     geography.upazilaId,
+    sortKey,
   ]);
 
   const descendantsQuery = useFetchTeamActivityQuery(
@@ -201,6 +197,7 @@ const HierarchyMemberRow = ({
       user_id: member.user_id,
       limit: TEAM_HIERARCHY_PAGE_LIMIT,
       offset: descendantOffset,
+      ...toTeamActivitySortParams(sortKey),
     }),
     { skip: !canExpand || !expanded },
   );
@@ -235,10 +232,7 @@ const HierarchyMemberRow = ({
     });
   }, [descendantMembersData, descendantOffset, expanded]);
 
-  const children = useMemo(() => {
-    const base = accumulatedDescendants;
-    return sortTeamMembers(filterTeamMembersByStatus(base, status), sortKey);
-  }, [accumulatedDescendants, sortKey, status]);
+  const children = accumulatedDescendants;
 
   const loadedInactiveChildCount = children.filter(
     (child) => !child.is_active,
@@ -435,7 +429,6 @@ const HierarchyMemberRow = ({
                   fromDate={fromDate}
                   toDate={toDate}
                   geography={geography}
-                  status={status}
                   sortKey={sortKey}
                   depth={depth + 1}
                   onSelectSk={onSelectSk}
@@ -453,18 +446,21 @@ export const TeamHierarchySection = ({
   fromDate,
   toDate,
   geography,
-  status,
   sortKey,
   onSortChange,
 }: TeamHierarchySectionProps) => {
   const { t } = useTranslation();
-  const { roleLabel } = useHierarchyLabels();
   const roleTabs = useMemo(() => visibleHierarchyRoleTabs(), []);
   const viewerIsAreaManager = isLoggedInAreaManager();
   const [roleTab, setRoleTab] = useState<HierarchyRoleTab>(
     defaultHierarchyRoleTab,
   );
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(
+    search,
+    TEAM_HIERARCHY_SEARCH_DEBOUNCE_MS,
+  );
+  const nameQuery = debouncedSearch.trim() || undefined;
   const [selectedSk, setSelectedSk] = useState<TeamActivityMember | null>(null);
   const [offset, setOffset] = useState(0);
   const [accumulatedMembers, setAccumulatedMembers] = useState<
@@ -480,6 +476,8 @@ export const TeamHierarchySection = ({
     geography.divisionId,
     geography.districtId,
     geography.upazilaId,
+    nameQuery,
+    sortKey,
   ]);
 
   const depth = hierarchyTabDepth(roleTab, { viewerIsAreaManager });
@@ -488,6 +486,8 @@ export const TeamHierarchySection = ({
       limit: TEAM_HIERARCHY_PAGE_LIMIT,
       offset,
       depth,
+      q: nameQuery,
+      ...toTeamActivitySortParams(sortKey),
     }),
   );
   const { refetch, isFetching } = query;
@@ -517,15 +517,7 @@ export const TeamHierarchySection = ({
     });
   }, [membersData, offset]);
 
-  const members = useMemo(() => {
-    const base = accumulatedMembers;
-    const filtered = filterMembersBySearch(
-      filterTeamMembersByStatus(base, status),
-      search,
-      roleLabel,
-    );
-    return sortTeamMembers(filtered, sortKey);
-  }, [accumulatedMembers, roleLabel, search, sortKey, status]);
+  const members = accumulatedMembers;
 
   const hasMore =
     ((query.currentData ?? query.data)?.offset ?? offset) +
@@ -649,7 +641,6 @@ export const TeamHierarchySection = ({
                 fromDate={fromDate}
                 toDate={toDate}
                 geography={geography}
-                status={status}
                 sortKey={sortKey}
                 depth={0}
                 onSelectSk={setSelectedSk}

@@ -7,7 +7,6 @@ import type {
   DashboardDurationPreset,
   DashboardFiltersState,
   DashboardGeographyFilters,
-  DashboardStatusFilter,
 } from '@/features/admin-dashboard/types/dashboard.types';
 import { dashboardDurationLabel } from '@/features/admin-dashboard/utils/dateRange';
 import {
@@ -23,12 +22,8 @@ import {
 import { cn } from '@/utils';
 import { todayDateInputValue } from '@/utils/dateInput';
 
-function countPanelFilters(
-  status: DashboardStatusFilter,
-  geography: DashboardGeographyFilters,
-): number {
+function countPanelFilters(geography: DashboardGeographyFilters): number {
   let count = 0;
-  if (status !== 'all') count += 1;
   if (parseGeographyIdParam(geography.divisionId)) count += 1;
   if (parseGeographyIdParam(geography.districtId)) count += 1;
   if (parseGeographyIdParam(geography.upazilaId)) count += 1;
@@ -53,7 +48,6 @@ interface DashboardFilterBarProps {
   onDurationChange: (preset: DashboardDurationPreset) => void;
   onCustomFromChange: (value: string) => void;
   onCustomToChange: (value: string) => void;
-  onStatusChange: (status: DashboardStatusFilter) => void;
   onGeographyChange: (geography: DashboardGeographyFilters) => void;
 }
 
@@ -62,12 +56,6 @@ const DURATION_OPTIONS: Array<{ value: DashboardDurationPreset }> = [
   { value: 'this_week' },
   { value: 'this_month' },
   { value: 'custom' },
-];
-
-const STATUS_OPTIONS: Array<{ value: DashboardStatusFilter }> = [
-  { value: 'all' },
-  { value: 'on_track' },
-  { value: 'at_risk' },
 ];
 
 function FilterField({
@@ -92,14 +80,10 @@ export const DashboardFilterBar = ({
   onDurationChange,
   onCustomFromChange,
   onCustomToChange,
-  onStatusChange,
   onGeographyChange,
 }: DashboardFilterBarProps) => {
   const { t } = useTranslation();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [draftStatus, setDraftStatus] = useState<DashboardStatusFilter>(
-    filters.status,
-  );
   const [draftGeography, setDraftGeography] =
     useState<DashboardGeographyFilters>(filters.geography);
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -107,10 +91,7 @@ export const DashboardFilterBar = ({
   const { data: divisions = [] } = useFetchAdminDivisionsQuery();
   const { data: upazilas = [] } = useFetchAdminUpazilasQuery();
 
-  const appliedPanelFilterCount = countPanelFilters(
-    filters.status,
-    filters.geography,
-  );
+  const appliedPanelFilterCount = countPanelFilters(filters.geography);
   const hasActiveFilters = appliedPanelFilterCount > 0;
 
   const activeGeography = filtersOpen ? draftGeography : filters.geography;
@@ -138,15 +119,6 @@ export const DashboardFilterBar = ({
     }
     return upazilas;
   }, [selectedDistrictId, selectedDivisionId, upazilas, visibleDistricts]);
-
-  const statusOptions = useMemo(
-    () =>
-      STATUS_OPTIONS.map((option) => ({
-        label: t(`adminDashboard.filters.status.${option.value}`),
-        value: option.value,
-      })),
-    [t],
-  );
 
   const divisionOptions = useMemo(
     () =>
@@ -204,7 +176,6 @@ export const DashboardFilterBar = ({
   };
 
   const openFiltersPanel = () => {
-    setDraftStatus(filters.status);
     setDraftGeography(filters.geography);
     setFiltersOpen(true);
   };
@@ -218,13 +189,11 @@ export const DashboardFilterBar = ({
   };
 
   const handleApplyFilters = () => {
-    onStatusChange(draftStatus);
     onGeographyChange(draftGeography);
     setFiltersOpen(false);
   };
 
   const handleClearAllFilters = () => {
-    setDraftStatus('all');
     setDraftGeography(EMPTY_DASHBOARD_GEOGRAPHY);
   };
 
@@ -272,16 +241,6 @@ export const DashboardFilterBar = ({
             role="dialog"
             aria-label={t('adminDashboard.filters.panelLabel')}
           >
-            <FilterField label={t('adminDashboard.filters.statusLabel')}>
-              <Select
-                options={statusOptions}
-                value={draftStatus}
-                onChange={(value) =>
-                  setDraftStatus(value as DashboardStatusFilter)
-                }
-                className={selectClassName}
-              />
-            </FilterField>
             <FilterField label={t('adminDashboard.filters.division')}>
               <Select
                 options={divisionOptions}

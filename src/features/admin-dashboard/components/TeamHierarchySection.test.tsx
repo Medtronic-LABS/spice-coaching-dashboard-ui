@@ -1,13 +1,16 @@
-import { screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import type { TeamActivityMember } from '@/features/admin-dashboard/types/dashboard.types';
+import type { AuthUser } from '@/features/auth/types/auth.types';
 import { renderWithProviders } from '@/test-utils/render';
 
 const useFetchTeamActivityQuery = vi.hoisted(() => vi.fn());
-const getAuthSession = vi.hoisted(() => vi.fn(() => null));
+const getAuthSession = vi.hoisted(() =>
+  vi.fn<() => Pick<AuthUser, 'role'> | null>(() => null),
+);
 
 vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
   useFetchTeamActivityQuery: (
@@ -52,6 +55,7 @@ function member(
     chatbot_modules: [],
     refreshers_generated: 0,
     refreshers_completed: 0,
+    performance_status: 'on_track',
     ...partial,
   };
 }
@@ -82,6 +86,7 @@ const sk = member({
 describe('TeamHierarchySection', () => {
   beforeEach(() => {
     getAuthSession.mockReturnValue(null);
+    useFetchTeamActivityQuery.mockReset();
     useFetchTeamActivityQuery.mockImplementation(
       (args: { depth?: number; user_id?: number }) => {
         if (args.user_id != null) return idleQuery([sk]);
@@ -101,7 +106,6 @@ describe('TeamHierarchySection', () => {
           divisionId: '1',
           districtId: '10',
         }}
-        status="all"
         sortKey="default"
         onSortChange={vi.fn()}
       />,
@@ -118,11 +122,13 @@ describe('TeamHierarchySection', () => {
         district_id: 10,
         limit: 20,
         offset: 0,
+        sort_by: 'name',
+        sort_dir: 'asc',
       }),
     );
     expect(screen.getByText('Non-Responsive')).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'Most Non-Responsive SKs' }),
+      screen.getByRole('option', { name: 'Needs Most Attention' }),
     ).toBeInTheDocument();
   });
 
@@ -134,7 +140,6 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        status="all"
         sortKey="default"
         onSortChange={vi.fn()}
       />,
@@ -163,7 +168,6 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        status="all"
         sortKey="default"
         onSortChange={vi.fn()}
       />,
@@ -177,7 +181,15 @@ describe('TeamHierarchySection', () => {
     await user.click(screen.getByRole('button', { name: 'View POs' }));
 
     expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 1 }),
+      expect.objectContaining({
+        user_id: 1,
+        sort_by: 'name',
+        sort_dir: 'asc',
+      }),
+      expect.objectContaining({ skip: false }),
+    );
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.not.objectContaining({ q: expect.anything() }),
       expect.objectContaining({ skip: false }),
     );
     expect(screen.getByText('Rokeya Akter')).toBeInTheDocument();
@@ -194,7 +206,6 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        status="all"
         sortKey="default"
         onSortChange={vi.fn()}
       />,
@@ -204,5 +215,177 @@ describe('TeamHierarchySection', () => {
     await user.click(screen.getByRole('button', { name: /Rokeya Akter/i }));
 
     expect(screen.getByText('SK drawer Rokeya Akter')).toBeInTheDocument();
+  });
+
+  it('sends name search q after debounce', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="default"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByPlaceholderText(/search area managers/i),
+      'Rina',
+    );
+
+    await waitFor(
+      () => {
+        expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+          expect.objectContaining({ q: 'Rina' }),
+        );
+      },
+      { timeout: 1500 },
+    );
+  });
+
+  it('sends backend sort params for lowest completion', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="lowest_completion"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'module_completion',
+        sort_dir: 'asc',
+      }),
+    );
+  });
+
+  it('sends backend sort params for lowest chatbot', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="lowest_chatbot"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'chatbot_engagement',
+        sort_dir: 'asc',
+      }),
+    );
+  });
+
+  it('sends backend sort params for at-risk first', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="at_risk_first"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'performance_status',
+        sort_dir: 'asc',
+      }),
+    );
+  });
+
+  it('shows at-risk badge from performance_status even when the member is active', async () => {
+    const user = userEvent.setup();
+    useFetchTeamActivityQuery.mockImplementation(
+      (args: { depth?: number; user_id?: number }) => {
+        if (args.depth === 2) {
+          return idleQuery([
+            member({
+              user_id: 42,
+              name: 'Rokeya Akter',
+              role: 'SK',
+              can_drill_down: false,
+              is_active: true,
+              performance_status: 'at_risk',
+            }),
+          ]);
+        }
+        return idleQuery([areaManager]);
+      },
+    );
+
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="default"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'SKs' }));
+    expect(screen.getByText('At risk')).toBeInTheDocument();
+  });
+
+  it('shows on-track badge from performance_status even when the member is inactive', () => {
+    useFetchTeamActivityQuery.mockImplementation(() =>
+      idleQuery([
+        member({
+          user_id: 1,
+          name: 'Rina Area Manager',
+          role: 'AREA_MANAGER',
+          can_drill_down: true,
+          is_active: false,
+          performance_status: 'on_track',
+        }),
+      ]),
+    );
+
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="default"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('On track')).toBeInTheDocument();
+  });
+
+  it('omits q for whitespace-only search', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="default"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByPlaceholderText(/search area managers/i),
+      '   ',
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 400);
+      });
+    });
+    expect(useFetchTeamActivityQuery).not.toHaveBeenCalledWith(
+      expect.objectContaining({ q: expect.anything() }),
+    );
   });
 });
