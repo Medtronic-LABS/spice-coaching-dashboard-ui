@@ -20,7 +20,10 @@ export type { InfiniteScrollContainerProps } from '@/components/ui/InfiniteScrol
 export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
 export { LimitedTextInput } from '@/components/ui/LimitedTextInput';
-export type { LimitedTextInputProps } from '@/components/ui/LimitedTextInput';
+export type {
+  LimitedTextInputCounterPlacement,
+  LimitedTextInputProps,
+} from '@/components/ui/LimitedTextInput';
 export { LimitedTextarea } from '@/components/ui/LimitedTextarea';
 export type { LimitedTextareaProps } from '@/components/ui/LimitedTextarea';
 export { ListItem } from '@/components/ui/ListItem';

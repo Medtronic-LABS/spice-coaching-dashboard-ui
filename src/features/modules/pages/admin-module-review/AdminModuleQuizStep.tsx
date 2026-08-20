@@ -388,7 +388,7 @@ export const AdminModuleQuizStep = () => {
                             return (
                               <label
                                 key={`${m.id}-${optionIndex}`}
-                                className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${
+                                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
                                   isCorrect
                                     ? 'border-green-500 bg-green-50'
                                     : 'border-spice-border bg-spice-bg-surface'
@@ -397,7 +397,7 @@ export const AdminModuleQuizStep = () => {
                                 <input
                                   type="radio"
                                   name={`correct-${m.id}`}
-                                  className="mt-2.5"
+                                  className="shrink-0"
                                   checked={isCorrect}
                                   disabled={busy || isReadonly}
                                   onChange={() =>
@@ -411,6 +411,7 @@ export const AdminModuleQuizStep = () => {
                                   data-quiz-field="options"
                                   className="min-w-0 flex-1"
                                   inputClassName="h-8 border-0 bg-transparent px-0"
+                                  counterPlacement="inline"
                                   value={option}
                                   maxLength={FIELD_LIMITS.quizOption}
                                   disabled={busy || isReadonly}
@@ -430,14 +431,14 @@ export const AdminModuleQuizStep = () => {
                                   placeholder={`Option ${optionIndex + 1}`}
                                 />
                                 {isCorrect ? (
-                                  <span className="mt-1.5 shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
+                                  <span className="shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
                                     CORRECT ANSWER
                                   </span>
                                 ) : null}
                                 {!isReadonly ? (
                                   <button
                                     type="button"
-                                    className="mt-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-spice-semantic-error transition-colors hover:bg-spice-semantic-errorBg disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-spice-semantic-error transition-colors hover:bg-spice-semantic-errorBg disabled:cursor-not-allowed disabled:opacity-50"
                                     disabled={
                                       busy || displayOptions.length <= 2
                                     }
