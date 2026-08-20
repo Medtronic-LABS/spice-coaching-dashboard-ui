@@ -225,20 +225,20 @@
     },
     "hierarchy": {
       "description": {
-        "am": "Tap \"View POs\" to expand and see program officers and SKs",
-        "po": "Tap \"View SKs\" to expand and see SKs under this program officer",
+        "am": "Tap \"View POs\" to expand and see program organizers and SKs",
+        "po": "Tap \"View SKs\" to expand and see SKs under this program organizer",
         "sk": "Tap a row to see full SK detail"
       },
       "emptyChildren": "No direct reports in this range.",
       "searchPlaceholder": "Search area managers...",
-      "searchPlaceholderPo": "Search program officers...",
+      "searchPlaceholderPo": "Search program organizers...",
       "searchPlaceholderSk": "Search SKs...",
       "emptyTitle": "No team members",
       "emptyDescription": "No hierarchy rows match the current filters.",
       "openSkDetail": "View SK detail",
       "roleLabels": {
         "am": "Area Manager",
-        "po": "Program Officer",
+        "po": "Program Organizer",
         "sk": "Shasthya Kormi"
       },
       "viewChildrenActions": {
@@ -253,7 +253,7 @@
       },
       "tabs": {
         "am": "Area Managers",
-        "po": "Program Officers",
+        "po": "Program Organizers",
         "sk": "SKs"
       },
       "metrics": {

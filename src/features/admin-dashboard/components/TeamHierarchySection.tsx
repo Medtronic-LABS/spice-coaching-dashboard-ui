@@ -367,11 +367,6 @@ const HierarchyMemberRow = ({
                   value={inactiveValue}
                   label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
                 />
-                <MetricCell
-                  className="w-[6.5rem]"
-                  value={`${modules.completed}/${modules.total}`}
-                  label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
-                />
 
                 <div className="flex w-[5.75rem] justify-end">
                   <StatusBadge

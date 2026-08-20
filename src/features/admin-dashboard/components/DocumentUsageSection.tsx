@@ -348,7 +348,7 @@ export const DocumentUsageSection = ({
     <DashboardWidgetShell
       title={shellTitle}
       description={shellDescription}
-      size="xl"
+      size="xxl"
       flush
       actions={headerActions}
       onRefresh={() => void refetch()}

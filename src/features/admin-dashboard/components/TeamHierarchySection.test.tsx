@@ -144,11 +144,11 @@ describe('TeamHierarchySection', () => {
       screen.queryByRole('tab', { name: 'Area Managers' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('tab', { name: 'Program Officers' }),
+      screen.getByRole('tab', { name: 'Program Organizers' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'SKs' })).toBeInTheDocument();
     expect(
-      screen.getByRole('tab', { name: 'Program Officers' }),
+      screen.getByRole('tab', { name: 'Program Organizers' }),
     ).toHaveAttribute('aria-selected', 'true');
     // AM viewers: PO tab is direct reports (no depth). depth=1 would be SKs.
     expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
