@@ -106,7 +106,7 @@ describe('TeamHierarchySection', () => {
           divisionId: '1',
           districtId: '10',
         }}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -140,7 +140,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -168,7 +168,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -206,7 +206,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -224,7 +224,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -326,7 +326,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -354,7 +354,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -369,7 +369,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );

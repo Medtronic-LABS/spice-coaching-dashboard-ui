@@ -32,10 +32,6 @@ function member(partial: Partial<TeamActivityMember>): TeamActivityMember {
 
 describe('toTeamActivitySortParams', () => {
   it('maps dropdown keys to backend sort_by / sort_dir', () => {
-    expect(toTeamActivitySortParams('default')).toEqual({
-      sort_by: 'name',
-      sort_dir: 'asc',
-    });
     expect(toTeamActivitySortParams('name')).toEqual({
       sort_by: 'name',
       sort_dir: 'asc',

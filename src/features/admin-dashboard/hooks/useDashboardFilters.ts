@@ -32,7 +32,7 @@ export function useDashboardFilters() {
     EMPTY_DASHBOARD_GEOGRAPHY,
   );
   const [hierarchySort, setHierarchySort] =
-    useState<TeamHierarchySortKey>('default');
+    useState<TeamHierarchySortKey>('name');
 
   const filters: DashboardFiltersState = {
     durationPreset,

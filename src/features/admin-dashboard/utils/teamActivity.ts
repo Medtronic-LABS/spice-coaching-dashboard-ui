@@ -76,7 +76,6 @@ export function toTeamActivitySortParams(sortKey: TeamHierarchySortKey): {
     case 'lowest_completion':
       return { sort_by: 'module_completion', sort_dir: 'asc' };
     case 'name':
-    case 'default':
     default:
       return { sort_by: 'name', sort_dir: 'asc' };
   }

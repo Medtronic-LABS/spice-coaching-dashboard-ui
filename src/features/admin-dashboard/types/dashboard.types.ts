@@ -11,11 +11,10 @@ export type DashboardDurationPreset =
   | 'custom';
 
 export type TeamHierarchySortKey =
-  | 'default'
+  | 'name'
   | 'at_risk_first'
   | 'lowest_completion'
-  | 'lowest_chatbot'
-  | 'name';
+  | 'lowest_chatbot';
 
 /** GET /dashboard/team-activity `sort_by` values. */
 export type TeamActivityApiSortBy =

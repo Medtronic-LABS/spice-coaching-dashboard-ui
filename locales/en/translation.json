@@ -200,9 +200,7 @@
       },
       "from": "From",
       "to": "To",
-      "sortLabel": "Sort:",
       "sort": {
-        "default": "Default",
         "at_risk_first": "Needs Most Attention",
         "lowest_completion": "Lowest Module Completion",
         "lowest_chatbot": "Lowest Chatbot Engagement",
