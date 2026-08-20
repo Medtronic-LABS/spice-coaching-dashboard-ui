@@ -75,8 +75,6 @@ export function toTeamActivitySortParams(sortKey: TeamHierarchySortKey): {
       return { sort_by: 'chatbot_engagement', sort_dir: 'asc' };
     case 'lowest_completion':
       return { sort_by: 'module_completion', sort_dir: 'asc' };
-    case 'name_desc':
-      return { sort_by: 'name', sort_dir: 'desc' };
     case 'name':
     default:
       return { sort_by: 'name', sort_dir: 'asc' };

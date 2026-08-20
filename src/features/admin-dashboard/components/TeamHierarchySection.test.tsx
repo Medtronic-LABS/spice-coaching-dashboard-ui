@@ -282,25 +282,6 @@ describe('TeamHierarchySection', () => {
     );
   });
 
-  it('sends backend sort params for name Z–A', () => {
-    renderWithProviders(
-      <TeamHierarchySection
-        fromDate="2026-01-01"
-        toDate="2026-01-31"
-        geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        sortKey="name_desc"
-        onSortChange={vi.fn()}
-      />,
-    );
-
-    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sort_by: 'name',
-        sort_dir: 'desc',
-      }),
-    );
-  });
-
   it('sends backend sort params for at-risk first', () => {
     renderWithProviders(
       <TeamHierarchySection

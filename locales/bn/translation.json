@@ -205,8 +205,7 @@
         "at_risk_first": "সবচেয়ে বেশি মনোযোগ প্রয়োজন",
         "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
         "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
-        "name": "নাম (A–Z)",
-        "name_desc": "নাম (Z–A)"
+        "name": "নাম (A–Z)"
       },
       "status": {
         "on_track": "ঠিক পথে",

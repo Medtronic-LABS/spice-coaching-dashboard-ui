@@ -78,7 +78,6 @@ function defaultHierarchyRoleTab(): HierarchyRoleTab {
 
 const SORT_OPTIONS: Array<{ value: TeamHierarchySortKey }> = [
   { value: 'name' },
-  { value: 'name_desc' },
   { value: 'at_risk_first' },
   { value: 'lowest_completion' },
   { value: 'lowest_chatbot' },

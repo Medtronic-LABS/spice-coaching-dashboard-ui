@@ -12,7 +12,6 @@ export type DashboardDurationPreset =
 
 export type TeamHierarchySortKey =
   | 'name'
-  | 'name_desc'
   | 'at_risk_first'
   | 'lowest_completion'
   | 'lowest_chatbot';
