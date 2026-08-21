@@ -4,6 +4,9 @@ import type { KnowledgeSplitDraft } from '@/features/modules/types/knowledgeLibr
 import {
   knowledgeSplitDraftFieldErrors,
   knowledgeSplitDraftHasFieldErrors,
+  knowledgeSplitPageMaxDigits,
+  KNOWLEDGE_SPLIT_PAGE_FALLBACK_DIGITS,
+  parseKnowledgeSplitPageInput,
 } from './knowledgeSplitValidation';
 
 function splitDraft(
@@ -83,6 +86,29 @@ describe('knowledgeSplitDraftFieldErrors', () => {
       { pageCount: 5 },
     );
     expect(errors[0]).toEqual({});
+  });
+});
+
+describe('parseKnowledgeSplitPageInput', () => {
+  it('caps extra digits to the page-count budget', () => {
+    expect(knowledgeSplitPageMaxDigits(5)).toBe(1);
+    expect(parseKnowledgeSplitPageInput('999', 5)).toBe(9);
+    expect(parseKnowledgeSplitPageInput('12', 12)).toBe(12);
+    expect(parseKnowledgeSplitPageInput('123', 12)).toBe(12);
+    expect(parseKnowledgeSplitPageInput('', 5)).toBeNaN();
+  });
+
+  it('falls back to six digits when page count is unknown', () => {
+    expect(knowledgeSplitPageMaxDigits(null)).toBe(
+      KNOWLEDGE_SPLIT_PAGE_FALLBACK_DIGITS,
+    );
+    expect(knowledgeSplitPageMaxDigits(undefined)).toBe(
+      KNOWLEDGE_SPLIT_PAGE_FALLBACK_DIGITS,
+    );
+    expect(knowledgeSplitPageMaxDigits(0)).toBe(
+      KNOWLEDGE_SPLIT_PAGE_FALLBACK_DIGITS,
+    );
+    expect(parseKnowledgeSplitPageInput('1234567', null)).toBe(123456);
   });
 });
 

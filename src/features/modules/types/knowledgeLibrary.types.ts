@@ -1,8 +1,3 @@
-import {
-  EMPTY_GEOGRAPHY_FILTERS,
-  type GeographyFilterState,
-} from '@/features/modules/utils/geographyFilters';
-
 /** Upload mode: full document vs page-range splits (mutually exclusive). */
 export type KnowledgeUploadMode = 'original' | 'split';
 
@@ -52,7 +47,7 @@ export function createEmptyKnowledgeSplitDraft(): KnowledgeSplitDraft {
 export type KnowledgeYesNoFilter = '' | 'true' | 'false';
 
 /** List/filter state for the knowledge library (not the filters drawer component). */
-export interface KnowledgeLibraryFilterState extends GeographyFilterState {
+export interface KnowledgeLibraryFilterState {
   q: string;
   status: KnowledgeLibraryStatusTab;
   uploadedAtFrom: string;
@@ -75,7 +70,6 @@ export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilterState = {
   uploadedBy: '',
   assigned: '',
   ingested: '',
-  ...EMPTY_GEOGRAPHY_FILTERS,
   sortBy: 'uploaded_date',
   sortOrder: 'desc',
   page: 0,

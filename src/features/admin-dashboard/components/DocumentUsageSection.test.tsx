@@ -43,7 +43,10 @@ describe('DocumentUsageSection', () => {
       <DocumentUsageSection
         fromDate="2026-01-01"
         toDate="2026-01-31"
-        geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, division: 'Dhaka' }}
+        geography={{
+          ...EMPTY_DASHBOARD_GEOGRAPHY,
+          divisionId: '1',
+        }}
       />,
     );
 
@@ -51,7 +54,7 @@ describe('DocumentUsageSection', () => {
       expect.objectContaining({
         from: '2026-01-01',
         to: '2026-01-31',
-        division: 'Dhaka',
+        division_id: 1,
       }),
       expect.anything(),
     );

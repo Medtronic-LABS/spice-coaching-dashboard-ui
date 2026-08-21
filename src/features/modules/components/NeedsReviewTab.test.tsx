@@ -17,6 +17,19 @@ vi.mock('@/features/modules/api/adminModulesApi', async () => {
         if (options?.skip) {
           return { data: undefined, isLoading: false };
         }
+        if (id === 'merge-secondary-1') {
+          return {
+            data: {
+              id,
+              title: 'Merged Module Title',
+              lifecycle_status: 'draft',
+              card_count: 6,
+              estimated_minutes: 20,
+              created_at: '2026-08-02T00:00:00Z',
+            },
+            isLoading: false,
+          };
+        }
         return {
           data: {
             id,
@@ -47,13 +60,41 @@ const mockModules: AdminModulesListItem[] = [
   },
 ];
 
+const existingPublishedModule: AdminModulesListItem = {
+  ...mockModules[0],
+  id: 'existing-2',
+  title: 'Existing Published Module',
+  lifecycle_status: 'published',
+  card_count: 4,
+  quiz_count: 1,
+  estimated_minutes: 12,
+  created_at: '2026-01-01T00:00:00Z',
+  created_by: { id: 1, name: 'test user' },
+  published_by: { id: 1, name: 'test user' },
+  merge_source_module_id: null,
+  search_metadata: null,
+};
+
+const mockModulesWithActorRefs: AdminModulesListItem[] = [
+  {
+    ...mockModules[0],
+    id: 'candidate-2',
+    title: 'Candidate Module 2',
+    created_by: { id: 1, name: 'test user' },
+    published_by: { id: 1, name: 'test user' },
+    merge_source_module_id: 'existing-2',
+    merge_source_module: existingPublishedModule,
+    search_metadata: null,
+  },
+];
+
 describe('NeedsReviewTab', () => {
   it('renders modules in a tabular format', () => {
     render(
       <NeedsReviewTab
         modules={mockModules}
         onMerge={vi.fn()}
-        onSkip={vi.fn()}
+        onDiscardNew={vi.fn()}
         onView={vi.fn()}
       />,
     );
@@ -68,6 +109,7 @@ describe('NeedsReviewTab', () => {
       'tabIndex',
     );
     expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
+    expect(screen.getByText('By Dr. Jane Smith')).toBeInTheDocument();
   });
 
   it('character-truncates long module titles and reveals the full title on hover', () => {
@@ -76,7 +118,7 @@ describe('NeedsReviewTab', () => {
       <NeedsReviewTab
         modules={[{ ...mockModules[0], title }]}
         onMerge={vi.fn()}
-        onSkip={vi.fn()}
+        onDiscardNew={vi.fn()}
         onView={vi.fn()}
       />,
     );
@@ -98,7 +140,7 @@ describe('NeedsReviewTab', () => {
       <NeedsReviewTab
         modules={mockModules}
         onMerge={vi.fn()}
-        onSkip={vi.fn()}
+        onDiscardNew={vi.fn()}
         onView={vi.fn()}
       />,
     );
@@ -109,33 +151,92 @@ describe('NeedsReviewTab', () => {
     await waitFor(() => {
       expect(screen.getByText('Existing Module Title')).toBeInTheDocument();
     });
+    expect(screen.getByText('New Module')).toBeInTheDocument();
+    expect(screen.getByText('Existing Module')).toBeInTheDocument();
+    expect(screen.getByText('Merge Preview')).toBeInTheDocument();
+    expect(
+      screen.getByText('No merge preview is available yet.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('About new module')).toBeInTheDocument();
+    expect(screen.getByLabelText('About existing module')).toBeInTheDocument();
+    expect(screen.getByLabelText('About merge preview')).toBeInTheDocument();
   });
 
-  it('triggers merge and skip handlers when buttons are clicked', async () => {
+  it('triggers keep new, discard new, and merge handlers when buttons are clicked', async () => {
     const handleMerge = vi.fn().mockResolvedValue(undefined);
-    const handleSkip = vi.fn().mockResolvedValue(undefined);
+    const handleDiscardNew = vi.fn().mockResolvedValue(undefined);
+    const handleKeepNew = vi.fn().mockResolvedValue(undefined);
 
     render(
       <NeedsReviewTab
         modules={mockModules}
         onMerge={handleMerge}
-        onSkip={handleSkip}
+        onDiscardNew={handleDiscardNew}
+        onKeepNew={handleKeepNew}
         onView={vi.fn()}
       />,
     );
 
-    const mergeButtons = screen.getAllByRole('button', { name: 'Merge' });
-    fireEvent.click(mergeButtons[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Keep New' })[0]);
+    await waitFor(() => {
+      expect(handleKeepNew).toHaveBeenCalledWith('candidate-1');
+    });
 
+    fireEvent.click(screen.getAllByRole('button', { name: 'Discard New' })[0]);
+    await waitFor(() => {
+      expect(handleDiscardNew).toHaveBeenCalledWith('candidate-1');
+    });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Merge' })[0]);
     await waitFor(() => {
       expect(handleMerge).toHaveBeenCalledWith('candidate-1');
     });
+  });
 
-    const skipButtons = screen.getAllByRole('button', { name: 'Skip' });
-    fireEvent.click(skipButtons[0]);
+  it('shows created_by and published_by actor names from API objects', async () => {
+    render(
+      <NeedsReviewTab
+        modules={mockModulesWithActorRefs}
+        onMerge={vi.fn()}
+        onDiscardNew={vi.fn()}
+        onView={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('By test user')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Expand comparison'));
 
     await waitFor(() => {
-      expect(handleSkip).toHaveBeenCalledWith('candidate-1');
+      expect(screen.getByText('Existing Published Module')).toBeInTheDocument();
     });
+
+    expect(screen.getByText('Created By')).toBeInTheDocument();
+    expect(screen.getByText('Published By')).toBeInTheDocument();
+    expect(screen.getAllByText('test user').length).toBeGreaterThan(0);
+  });
+
+  it('loads the merge preview from merge_secondary_module_id', async () => {
+    render(
+      <NeedsReviewTab
+        modules={[
+          {
+            ...mockModules[0],
+            merge_secondary_module_id: 'merge-secondary-1',
+          },
+        ]}
+        onMerge={vi.fn()}
+        onDiscardNew={vi.fn()}
+        onView={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Expand comparison'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Merged Module Title')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Merge Preview')).toBeInTheDocument();
+    expect(screen.getByText('Candidate Module 1')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
 import {
@@ -7,11 +7,16 @@ import {
   Card,
   ImagePicker,
   LimitedTextInput,
+  LimitedTextarea,
   Loader,
   Select,
+  TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
-import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
 import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
 import {
@@ -29,11 +34,12 @@ import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminM
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import {
-  updateDetails,
   markReviewEditorFocused,
+  updateDetails,
 } from '@/features/modules/store/adminModuleReviewSlice';
 import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
 import {
+  MAX_ESTIMATED_MINUTES_DIGITS,
   formatEstimatedMinutesFieldValue,
   getEstimatedMinutesValidationError,
   parseEstimatedMinutesInput,
@@ -48,7 +54,46 @@ import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const COMPACT_CONTROL_CLASS =
-  'h-8 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-2 text-xs font-semibold text-spice-text-primary';
+  'h-8 w-full min-w-0 truncate rounded-lg border border-spice-border bg-spice-bg-surface px-2 text-xs font-semibold text-spice-text-primary';
+const SUMMARY_VALUE_MAX_CLASS = 'max-w-[13.5rem]';
+
+function SummaryFitControl({
+  sizerText,
+  selectArrow = false,
+  children,
+}: {
+  sizerText: string;
+  selectArrow?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn('w-fit min-w-0 overflow-hidden', SUMMARY_VALUE_MAX_CLASS)}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'invisible block h-0 w-max max-w-full overflow-hidden whitespace-nowrap text-xs font-semibold',
+          selectArrow ? 'pl-2 pr-10' : 'px-2',
+        )}
+      >
+        {sizerText.trim() ? sizerText : '\u00a0'}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function SummaryReadonlyValue({ text }: { text: string }) {
+  return (
+    <div className={cn('w-fit min-w-0', SUMMARY_VALUE_MAX_CLASS)}>
+      <TruncatedText
+        text={text}
+        className="font-semibold text-spice-text-primary"
+      />
+    </div>
+  );
+}
 
 function SummaryFieldLabel({
   label,
@@ -74,8 +119,16 @@ export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { moduleId = '' } = useParams<{ moduleId: string }>();
-  const { working, isLoading, error, refetch, isSaving, save, formatError } =
-    useAdminModuleReviewEditor(moduleId);
+  const {
+    working,
+    baseline,
+    isLoading,
+    error,
+    refetch,
+    isSaving,
+    save,
+    formatError,
+  } = useAdminModuleReviewEditor(moduleId);
 
   const isReadonly = useAdminModuleReviewReadonly();
   const { data: catalogDomainOptions = [] } = useFetchModuleDomainOptionsQuery(
@@ -115,11 +168,12 @@ export const AdminModuleDetailsStep = () => {
     useAdminModuleThumbnailUpload(save);
 
   const domainOptions = useMemo(() => {
-    if (!working?.domain || catalogDomainOptions.includes(working.domain)) {
+    const savedDomain = baseline?.domain?.trim();
+    if (!savedDomain || catalogDomainOptions.includes(savedDomain)) {
       return catalogDomainOptions;
     }
-    return [working.domain, ...catalogDomainOptions];
-  }, [catalogDomainOptions, working?.domain]);
+    return [savedDomain, ...catalogDomainOptions];
+  }, [baseline?.domain, catalogDomainOptions]);
 
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
@@ -142,13 +196,29 @@ export const AdminModuleDetailsStep = () => {
   const busyLabel = isUploading ? 'Uploading image…' : 'Saving module…';
   const qualityFlagLabels: string[] = working.quality_flags?.flags ?? [];
   const canEditMetadata = !isReadonly;
-  const domainError = normalizeModuleTaxonomyLabel(working.domain)
-    ? null
-    : 'Domain is required.';
+  const normalizedDomain = normalizeModuleTaxonomyLabel(working.domain);
+  const domainError = !normalizedDomain
+    ? 'Domain is required.'
+    : working.domain.trim().length > FIELD_LIMITS.taxonomy
+      ? fieldLimitExceededMessage('Domain', FIELD_LIMITS.taxonomy)
+      : null;
   const estimatedMinutesError = getEstimatedMinutesValidationError(
     working.estimated_minutes,
   );
-  const metadataInvalid = Boolean(domainError || estimatedMinutesError);
+  const descriptionBnValue = working.description?.bn ?? '';
+  const descriptionError =
+    !isReadonly && descriptionBnValue.length > FIELD_LIMITS.description
+      ? fieldLimitExceededMessage('Description', FIELD_LIMITS.description)
+      : null;
+  const metadataInvalid = Boolean(
+    domainError || estimatedMinutesError || descriptionError,
+  );
+  const domainDisplay = formatModuleDomainLabel(working.domain) || '—';
+  const domainTypeDisplay =
+    formatModuleContentDomainLabel(working.content_domain) || '—';
+  const estimatedMinutesDisplay = `${working.estimated_minutes} ${
+    working.estimated_minutes === 1 ? 'minute' : 'minutes'
+  }`;
 
   return (
     <section className="space-y-4">
@@ -177,7 +247,7 @@ export const AdminModuleDetailsStep = () => {
             <div className="flex justify-between items-start gap-3 py-1.5 border-b border-spice-border/40">
               <SummaryFieldLabel label="Domain" editable={canEditMetadata} />
               {canEditMetadata ? (
-                <div className="w-[13.5rem] shrink-0">
+                <div className="w-full min-w-0 max-w-[13.5rem]">
                   <ModuleTaxonomyField
                     id="admin-module-domain"
                     label="Domain"
@@ -197,9 +267,7 @@ export const AdminModuleDetailsStep = () => {
                   ) : null}
                 </div>
               ) : (
-                <span className="font-semibold text-spice-text-primary">
-                  {formatModuleDomainLabel(working.domain) || '—'}
-                </span>
+                <SummaryReadonlyValue text={domainDisplay} />
               )}
             </div>
             <div className="flex justify-between items-center gap-3 py-1.5 border-b border-spice-border/40">
@@ -208,29 +276,28 @@ export const AdminModuleDetailsStep = () => {
                 editable={canEditMetadata}
               />
               {canEditMetadata ? (
-                <Select
-                  className={cn(COMPACT_CONTROL_CLASS, 'w-[13.5rem] shrink-0')}
-                  options={INGEST_CONTENT_DOMAIN_OPTIONS}
-                  value={
-                    working.content_domain ??
-                    INGEST_FORM_DEFAULTS.content_domain
-                  }
-                  disabled={busy}
-                  aria-label="Domain type"
-                  onFocus={handleEditorFocus}
-                  onChange={(value) =>
-                    dispatch(
-                      updateDetails({
-                        content_domain: value,
-                      }),
-                    )
-                  }
-                />
+                <SummaryFitControl sizerText={domainTypeDisplay} selectArrow>
+                  <Select
+                    className={COMPACT_CONTROL_CLASS}
+                    options={INGEST_CONTENT_DOMAIN_OPTIONS}
+                    value={
+                      working.content_domain ??
+                      INGEST_FORM_DEFAULTS.content_domain
+                    }
+                    disabled={busy}
+                    aria-label="Domain type"
+                    onFocus={handleEditorFocus}
+                    onChange={(value) =>
+                      dispatch(
+                        updateDetails({
+                          content_domain: value,
+                        }),
+                      )
+                    }
+                  />
+                </SummaryFitControl>
               ) : (
-                <span className="font-semibold text-spice-text-primary">
-                  {formatModuleContentDomainLabel(working.content_domain) ||
-                    '—'}
-                </span>
+                <SummaryReadonlyValue text={domainTypeDisplay} />
               )}
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
@@ -251,46 +318,50 @@ export const AdminModuleDetailsStep = () => {
                 editable={canEditMetadata}
               />
               {canEditMetadata ? (
-                <div className="w-[13.5rem] shrink-0">
-                  <input
-                    id="admin-module-estimated-minutes"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    autoComplete="off"
-                    aria-label="Estimated minutes"
-                    aria-invalid={Boolean(estimatedMinutesError)}
-                    onFocus={handleEditorFocus}
-                    className={cn(
-                      COMPACT_CONTROL_CLASS,
-                      estimatedMinutesError &&
-                        'border-spice-semantic-error ring-1 ring-spice-semantic-error',
-                    )}
-                    value={formatEstimatedMinutesFieldValue(
+                <div className="min-w-0">
+                  <SummaryFitControl
+                    sizerText={formatEstimatedMinutesFieldValue(
                       working.estimated_minutes,
                     )}
-                    disabled={busy}
-                    onChange={(e) =>
-                      dispatch(
-                        updateDetails({
-                          estimated_minutes: parseEstimatedMinutesInput(
-                            e.target.value,
-                          ),
-                        }),
-                      )
-                    }
-                  />
+                  >
+                    <input
+                      id="admin-module-estimated-minutes"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={MAX_ESTIMATED_MINUTES_DIGITS}
+                      autoComplete="off"
+                      aria-label="Estimated minutes"
+                      aria-invalid={Boolean(estimatedMinutesError)}
+                      onFocus={handleEditorFocus}
+                      className={cn(
+                        COMPACT_CONTROL_CLASS,
+                        estimatedMinutesError &&
+                          'border-spice-semantic-error ring-1 ring-spice-semantic-error',
+                      )}
+                      value={formatEstimatedMinutesFieldValue(
+                        working.estimated_minutes,
+                      )}
+                      disabled={busy}
+                      onChange={(e) =>
+                        dispatch(
+                          updateDetails({
+                            estimated_minutes: parseEstimatedMinutesInput(
+                              e.target.value,
+                            ),
+                          }),
+                        )
+                      }
+                    />
+                  </SummaryFitControl>
                   {estimatedMinutesError ? (
-                    <p className="mt-1 text-[11px] text-spice-semantic-error">
+                    <p className="mt-1 max-w-[13.5rem] text-[11px] text-spice-semantic-error">
                       {estimatedMinutesError}
                     </p>
                   ) : null}
                 </div>
               ) : (
-                <span className="font-semibold text-spice-text-primary">
-                  {working.estimated_minutes}{' '}
-                  {working.estimated_minutes === 1 ? 'minute' : 'minutes'}
-                </span>
+                <SummaryReadonlyValue text={estimatedMinutesDisplay} />
               )}
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
@@ -414,27 +485,38 @@ export const AdminModuleDetailsStep = () => {
             <span className="text-xs text-spice-text-muted">
               Description (BN)
             </span>
-            <textarea
-              className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+            <LimitedTextarea
+              id="admin-module-description-bn"
               value={
                 isReadonly
                   ? readLocaleText(working.description, 'bn')
-                  : (working.description?.bn ?? '')
+                  : descriptionBnValue
               }
+              maxLength={FIELD_LIMITS.description}
               disabled={busy || isReadonly}
               onFocus={handleEditorFocus}
-              onChange={(e) =>
+              textareaClassName={cn(
+                'min-h-[100px] border-spice-border',
+                descriptionError &&
+                  'border-spice-semantic-error ring-1 ring-spice-semantic-error',
+              )}
+              onChange={(value) =>
                 dispatch(
                   updateDetails({
                     description: patchLocaleField(
                       working.description ?? {},
                       'bn',
-                      e.target.value,
+                      value,
                     ),
                   }),
                 )
               }
             />
+            {descriptionError ? (
+              <p className="text-xs text-spice-semantic-error">
+                {descriptionError}
+              </p>
+            ) : null}
           </label>
         </div>
 

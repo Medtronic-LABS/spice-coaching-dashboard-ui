@@ -3,7 +3,7 @@ import { Card } from '@/components/ui';
 import { DashboardWidgetRefreshButton } from '@/features/admin-dashboard/components/DashboardWidgetRefreshButton';
 import { cn } from '@/utils';
 
-export type DashboardWidgetShellSize = 'md' | 'lg' | 'xl';
+export type DashboardWidgetShellSize = 'md' | 'lg' | 'xl' | 'xxl';
 
 interface DashboardWidgetShellProps {
   title: string;
@@ -39,6 +39,7 @@ const SIZE_MAX_HEIGHT: Record<DashboardWidgetShellSize, string> = {
   md: 'max-h-[28rem]',
   lg: 'max-h-[32rem]',
   xl: 'max-h-[40rem]',
+  xxl: 'max-h-[50rem]',
 };
 
 /**

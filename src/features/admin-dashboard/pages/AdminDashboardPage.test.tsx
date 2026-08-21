@@ -113,7 +113,6 @@ describe('AdminDashboardPage', () => {
         durationPreset: 'custom',
         customFrom: '2026-08-01',
         customTo: '',
-        status: 'all',
         geography: EMPTY_DASHBOARD_GEOGRAPHY,
       },
       dateRange: { fromDate: '2026-08-01', toDate: '' },
@@ -122,9 +121,8 @@ describe('AdminDashboardPage', () => {
       setDurationPreset: vi.fn(),
       setCustomFrom: vi.fn(),
       setCustomTo: vi.fn(),
-      setStatus: vi.fn(),
       setGeography: vi.fn(),
-      hierarchySort: 'default',
+      hierarchySort: 'name',
       setHierarchySort: vi.fn(),
       clearCustomDateRange: vi.fn(),
     });

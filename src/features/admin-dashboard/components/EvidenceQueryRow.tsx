@@ -61,8 +61,8 @@ function UserDetailRow({
   return (
     <div
       className={cn(
-        'grid gap-x-3 gap-y-1 rounded-md border border-spice-border/50 bg-spice-bg-surface px-2.5 py-2 text-xs',
-        'sm:grid-cols-[minmax(8rem,1fr)_minmax(7rem,0.9fr)_minmax(8rem,0.9fr)]',
+        'grid items-center gap-x-2 gap-y-1 rounded-md border border-spice-border/50 bg-spice-bg-surface px-2.5 py-2 text-xs',
+        'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.3fr)]',
       )}
     >
       <span className="min-w-0">
@@ -71,9 +71,17 @@ function UserDetailRow({
           className="font-medium text-spice-text-primary"
         />
       </span>
-      <span className="text-spice-text-muted">{interactionLabel}</span>
-      <span className="whitespace-nowrap text-spice-text-muted">
-        {timestamp ?? '—'}
+      <span className="min-w-0">
+        <TruncatedText
+          text={interactionLabel}
+          className="text-[11px] text-spice-text-muted"
+        />
+      </span>
+      <span className="min-w-0 text-right">
+        <TruncatedText
+          text={timestamp ?? '—'}
+          className="text-[11px] tabular-nums text-spice-text-muted"
+        />
       </span>
     </div>
   );
@@ -156,13 +164,15 @@ export const EvidenceQueryRow = ({
 
           <div
             className={cn(
-              'hidden gap-x-3 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted sm:grid',
-              'sm:grid-cols-[minmax(8rem,1fr)_minmax(7rem,0.9fr)_minmax(8rem,0.9fr)]',
+              'grid gap-x-2 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted',
+              'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.3fr)]',
             )}
           >
             <span>{t('adminDashboard.moduleDemand.metadata.skName')}</span>
             <span>{t('adminDashboard.moduleDemand.metadata.interaction')}</span>
-            <span>{t('adminDashboard.moduleDemand.metadata.timestamp')}</span>
+            <span className="text-right">
+              {t('adminDashboard.moduleDemand.metadata.timestamp')}
+            </span>
           </div>
 
           <ScrollableRowList itemCount={users.length}>

@@ -35,12 +35,6 @@ describe('videoUploadStatusConfig', () => {
         uploadedAtFrom: '2026-01-01',
       }),
     ).toBe(true);
-    expect(
-      hasActiveVideoUploadFilters({
-        ...EMPTY_VIDEO_UPLOAD_FILTERS,
-        districtId: '10',
-      }),
-    ).toBe(true);
   });
 
   it('flags invalid uploaded date ranges', () => {
@@ -70,16 +64,11 @@ describe('videoUploadStatusConfig', () => {
         statuses: ['failed', 'bogus', 'failed'],
         uploadedAtFrom: ' 2026-01-01 ',
         uploadedAtTo: ' 2026-01-31 ',
-        divisionId: ' 1 ',
-        districtId: '10abc',
       }),
     ).toEqual({
       statuses: ['failed'],
       uploadedAtFrom: '2026-01-01',
       uploadedAtTo: '2026-01-31',
-      divisionId: '1',
-      districtId: '',
-      upazilaId: '',
     });
   });
 

@@ -1,5 +1,9 @@
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import { cardMediaTiptapAttributeConfig } from '@/features/modules/tiptap/cardMediaAttrs';
+import {
+  cardMediaClipboardDomAttrs,
+  cardMediaClipboardPlugin,
+} from '@/features/modules/tiptap/cardMediaClipboard';
 import { RichTextMediaNodeHeader } from '@/features/modules/tiptap/RichTextMediaNodeHeader';
 import {
   initialDisplayDimensions,
@@ -170,6 +174,7 @@ function CardImageNodeView({
       as="div"
       className={`my-2 inline-block w-fit max-w-full ${editable ? 'cursor-grab active:cursor-grabbing' : ''}`}
       data-card-image=""
+      {...cardMediaClipboardDomAttrs(objectName, legacySrc)}
       contentEditable={false}
       {...(editable ? { 'data-drag-handle': '' } : {})}
     >
@@ -244,5 +249,8 @@ export const CardImageExtension = Image.extend({
   },
   addNodeView() {
     return ReactNodeViewRenderer(CardImageNodeView);
+  },
+  addProseMirrorPlugins() {
+    return [cardMediaClipboardPlugin];
   },
 });

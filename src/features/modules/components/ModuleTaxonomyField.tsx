@@ -1,4 +1,6 @@
 import { useEffect, useId, useState } from 'react';
+import { LimitedTextInput } from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { cn } from '@/utils';
 
@@ -17,6 +19,7 @@ export interface ModuleTaxonomyFieldProps {
   required?: boolean;
   emptyOptionLabel?: string;
   hideLabel?: boolean;
+  showCounter?: boolean;
   inputClassName?: string;
   onChange: (value: string) => void;
   id?: string;
@@ -36,6 +39,7 @@ export const ModuleTaxonomyField = ({
   required = false,
   emptyOptionLabel,
   hideLabel = false,
+  showCounter = true,
   inputClassName,
   onChange,
   id: idProp,
@@ -50,14 +54,16 @@ export const ModuleTaxonomyField = ({
   const selectClass = cn('select-arrow', fieldClass);
 
   useEffect(() => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    if (options.includes(trimmed)) {
-      setUseCustom(false);
+    // Keep custom-entry until the user picks an existing option.
+    if (useCustom) {
       return;
     }
-    setUseCustom(true);
-  }, [value, options]);
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    if (!options.includes(trimmed)) {
+      setUseCustom(true);
+    }
+  }, [options, useCustom, value]);
 
   const selectValue = useCustom ? OTHER_VALUE : value;
   const labelContent = hideLabel ? null : (
@@ -74,19 +80,25 @@ export const ModuleTaxonomyField = ({
 
   if (inputOnly) {
     return (
-      <label className="block space-y-1" htmlFor={customInputId}>
-        {labelContent}
-        <input
+      <div className="block space-y-1">
+        {labelContent ? (
+          <label className="block" htmlFor={customInputId}>
+            {labelContent}
+          </label>
+        ) : null}
+        <LimitedTextInput
           id={customInputId}
-          className={fieldClass}
           value={value}
           disabled={disabled}
           required={required}
+          maxLength={FIELD_LIMITS.taxonomy}
+          showCounter={showCounter}
           placeholder={placeholder ?? `New ${label.toLowerCase()}`}
           aria-label={hideLabel ? label : undefined}
-          onChange={(event) => onChange(event.target.value)}
+          inputClassName={fieldClass}
+          onChange={onChange}
         />
-      </label>
+      </div>
     );
   }
 
@@ -126,15 +138,17 @@ export const ModuleTaxonomyField = ({
         </select>
       </label>
       {useCustom ? (
-        <input
+        <LimitedTextInput
           id={customInputId}
-          className={fieldClass}
           value={value}
           disabled={disabled}
           required={required}
+          maxLength={FIELD_LIMITS.taxonomy}
+          showCounter={showCounter}
           placeholder={placeholder ?? `New ${label.toLowerCase()}`}
           aria-label={`New ${label.toLowerCase()}`}
-          onChange={(event) => onChange(event.target.value)}
+          inputClassName={fieldClass}
+          onChange={onChange}
         />
       ) : null}
     </div>

@@ -1,13 +1,17 @@
-import { screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import type { TeamActivityMember } from '@/features/admin-dashboard/types/dashboard.types';
+import type { AuthUser } from '@/features/auth/types/auth.types';
 import { renderWithProviders } from '@/test-utils/render';
 
 const useFetchTeamActivityQuery = vi.hoisted(() => vi.fn());
-const getAuthSession = vi.hoisted(() => vi.fn(() => null));
+const getAuthSession = vi.hoisted(() =>
+  vi.fn<() => Pick<AuthUser, 'role'> | null>(() => null),
+);
 
 vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
   useFetchTeamActivityQuery: (
@@ -52,8 +56,19 @@ function member(
     chatbot_modules: [],
     refreshers_generated: 0,
     refreshers_completed: 0,
+    performance_status: 'on_track',
     ...partial,
   };
+}
+
+function metricText(
+  expected: string,
+): (_: string, el: Element | null) => boolean {
+  return (_content, el) =>
+    Boolean(
+      el?.classList.contains('tabular-nums') &&
+      el.textContent?.replace(/\s+/g, ' ').trim() === expected,
+    );
 }
 
 const areaManager = member({
@@ -82,6 +97,7 @@ const sk = member({
 describe('TeamHierarchySection', () => {
   beforeEach(() => {
     getAuthSession.mockReturnValue(null);
+    useFetchTeamActivityQuery.mockReset();
     useFetchTeamActivityQuery.mockImplementation(
       (args: { depth?: number; user_id?: number }) => {
         if (args.user_id != null) return idleQuery([sk]);
@@ -98,11 +114,10 @@ describe('TeamHierarchySection', () => {
         toDate="2026-01-31"
         geography={{
           ...EMPTY_DASHBOARD_GEOGRAPHY,
-          division: 'Dhaka',
-          district: 'Gazipur',
+          divisionId: '1',
+          districtId: '10',
         }}
-        status="all"
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -114,15 +129,17 @@ describe('TeamHierarchySection', () => {
       expect.objectContaining({
         from_date: '2026-01-01',
         to_date: '2026-01-31',
-        division: 'Dhaka',
-        district: 'Gazipur',
-        limit: 100,
+        division_id: 1,
+        district_id: 10,
+        limit: 20,
         offset: 0,
+        sort_by: 'name',
+        sort_dir: 'asc',
       }),
     );
     expect(screen.getByText('Non-Responsive')).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'Most Non-Responsive SKs' }),
+      screen.getByRole('option', { name: 'Needs Most Attention' }),
     ).toBeInTheDocument();
   });
 
@@ -134,8 +151,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        status="all"
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -144,11 +160,11 @@ describe('TeamHierarchySection', () => {
       screen.queryByRole('tab', { name: 'Area Managers' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('tab', { name: 'Program Officers' }),
+      screen.getByRole('tab', { name: 'Program Organizers' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'SKs' })).toBeInTheDocument();
     expect(
-      screen.getByRole('tab', { name: 'Program Officers' }),
+      screen.getByRole('tab', { name: 'Program Organizers' }),
     ).toHaveAttribute('aria-selected', 'true');
     // AM viewers: PO tab is direct reports (no depth). depth=1 would be SKs.
     expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
@@ -163,8 +179,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        status="all"
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -177,7 +192,15 @@ describe('TeamHierarchySection', () => {
     await user.click(screen.getByRole('button', { name: 'View POs' }));
 
     expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 1 }),
+      expect.objectContaining({
+        user_id: 1,
+        sort_by: 'name',
+        sort_dir: 'asc',
+      }),
+      expect.objectContaining({ skip: false }),
+    );
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.not.objectContaining({ q: expect.anything() }),
       expect.objectContaining({ skip: false }),
     );
     expect(screen.getByText('Rokeya Akter')).toBeInTheDocument();
@@ -194,8 +217,7 @@ describe('TeamHierarchySection', () => {
         fromDate="2026-01-01"
         toDate="2026-01-31"
         geography={EMPTY_DASHBOARD_GEOGRAPHY}
-        status="all"
-        sortKey="default"
+        sortKey="name"
         onSortChange={vi.fn()}
       />,
     );
@@ -204,5 +226,320 @@ describe('TeamHierarchySection', () => {
     await user.click(screen.getByRole('button', { name: /Rokeya Akter/i }));
 
     expect(screen.getByText('SK drawer Rokeya Akter')).toBeInTheDocument();
+  });
+
+  it('sends name search q after debounce', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="name"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByPlaceholderText(/search area managers/i),
+      'Rina',
+    );
+
+    await waitFor(
+      () => {
+        expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+          expect.objectContaining({ q: 'Rina' }),
+        );
+      },
+      { timeout: 1500 },
+    );
+  });
+
+  it('sends backend sort params for lowest completion', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="lowest_completion"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'module_completion',
+        sort_dir: 'asc',
+      }),
+    );
+  });
+
+  it('sends backend sort params for lowest chatbot', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="lowest_chatbot"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'chatbot_engagement',
+        sort_dir: 'asc',
+      }),
+    );
+  });
+
+  it('sends backend sort params for at-risk first', () => {
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="at_risk_first"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(useFetchTeamActivityQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'performance_status',
+        sort_dir: 'asc',
+      }),
+    );
+  });
+
+  it('shows at-risk badge from performance_status even when the member is active', async () => {
+    const user = userEvent.setup();
+    useFetchTeamActivityQuery.mockImplementation(
+      (args: { depth?: number; user_id?: number }) => {
+        if (args.depth === 2) {
+          return idleQuery([
+            member({
+              user_id: 42,
+              name: 'Rokeya Akter',
+              role: 'SK',
+              can_drill_down: false,
+              is_active: true,
+              performance_status: 'at_risk',
+            }),
+          ]);
+        }
+        return idleQuery([areaManager]);
+      },
+    );
+
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="name"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'SKs' }));
+    expect(screen.getByText('At risk')).toBeInTheDocument();
+  });
+
+  it('shows on-track badge from performance_status even when the member is inactive', () => {
+    useFetchTeamActivityQuery.mockImplementation(() =>
+      idleQuery([
+        member({
+          user_id: 1,
+          name: 'Rina Area Manager',
+          role: 'AREA_MANAGER',
+          can_drill_down: true,
+          is_active: false,
+          performance_status: 'on_track',
+        }),
+      ]),
+    );
+
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="name"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('On track')).toBeInTheDocument();
+  });
+
+  it('omits q for whitespace-only search', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderWithProviders(
+      <TeamHierarchySection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+        sortKey="name"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByPlaceholderText(/search area managers/i),
+      '   ',
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 400);
+      });
+    });
+    expect(useFetchTeamActivityQuery).not.toHaveBeenCalledWith(
+      expect.objectContaining({ q: expect.anything() }),
+    );
+  });
+
+  it('refreshes SK metrics when the same user_ids return updated activity after a date change', async () => {
+    const user = userEvent.setup();
+    const engagedSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      is_chatbot_engaged: true,
+      chatbot_query_count: 3,
+      assigned_modules: [
+        {
+          module_id: 'm1',
+          title: { en: 'Module A' },
+          completed_in_range: false,
+          completed_at: null,
+        },
+      ],
+    });
+    const idleSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      is_chatbot_engaged: false,
+      chatbot_query_count: 0,
+      assigned_modules: [],
+    });
+
+    useFetchTeamActivityQuery.mockImplementation(
+      (args: { from_date?: string; depth?: number; user_id?: number }) => {
+        const skForRange = args.from_date === '2026-08-01' ? idleSk : engagedSk;
+        if (args.user_id != null) return idleQuery([skForRange]);
+        if (args.depth === 2) return idleQuery([skForRange]);
+        return idleQuery([areaManager]);
+      },
+    );
+
+    function DateRangeHarness() {
+      const [fromDate, setFromDate] = useState('2026-08-21');
+      const [toDate, setToDate] = useState('2026-08-21');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setFromDate('2026-08-01');
+              setToDate('2026-08-01');
+            }}
+          >
+            Apply Aug 1
+          </button>
+          <TeamHierarchySection
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={EMPTY_DASHBOARD_GEOGRAPHY}
+            sortKey="name"
+            onSortChange={vi.fn()}
+          />
+        </>
+      );
+    }
+
+    renderWithProviders(<DateRangeHarness />);
+
+    await user.click(screen.getByRole('tab', { name: 'SKs' }));
+    expect(screen.getByText('Zulfikur Rehman')).toBeInTheDocument();
+    expect(screen.getByText(metricText('3 Queries'))).toBeInTheDocument();
+    expect(screen.getByText(/0\/1/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Apply Aug 1' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(metricText('0 Queries'))).toBeInTheDocument();
+    });
+    expect(screen.getByText(/0\/0/)).toBeInTheDocument();
+    expect(screen.queryByText(metricText('3 Queries'))).not.toBeInTheDocument();
+  });
+
+  it('refreshes nested descendant SK metrics after a date change', async () => {
+    const user = userEvent.setup();
+    const engagedSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      chatbot_query_count: 3,
+    });
+    const idleSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      chatbot_query_count: 0,
+    });
+
+    useFetchTeamActivityQuery.mockImplementation(
+      (args: { from_date?: string; depth?: number; user_id?: number }) => {
+        const skForRange = args.from_date === '2026-08-01' ? idleSk : engagedSk;
+        if (args.user_id != null) return idleQuery([skForRange]);
+        if (args.depth === 2) return idleQuery([skForRange]);
+        return idleQuery([areaManager]);
+      },
+    );
+
+    function DateRangeHarness() {
+      const [fromDate, setFromDate] = useState('2026-08-21');
+      const [toDate, setToDate] = useState('2026-08-21');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setFromDate('2026-08-01');
+              setToDate('2026-08-01');
+            }}
+          >
+            Apply Aug 1
+          </button>
+          <TeamHierarchySection
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={EMPTY_DASHBOARD_GEOGRAPHY}
+            sortKey="name"
+            onSortChange={vi.fn()}
+          />
+        </>
+      );
+    }
+
+    renderWithProviders(<DateRangeHarness />);
+
+    await user.click(screen.getByRole('button', { name: 'View POs' }));
+    expect(screen.getByText('Zulfikur Rehman')).toBeInTheDocument();
+    expect(screen.getByText(metricText('3 Queries'))).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Apply Aug 1' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(metricText('0 Queries'))).toBeInTheDocument();
+    });
+    expect(screen.queryByText(metricText('3 Queries'))).not.toBeInTheDocument();
   });
 });

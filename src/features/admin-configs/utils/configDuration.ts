@@ -1,5 +1,12 @@
+import {
+  capNumericDigits,
+  maxDigitsForLimit,
+  stripLeadingZeros,
+} from '@/utils/digitLimitedInteger';
+
 export const DURATION_VALIDATION_ERROR = 'Please enter a valid number of days.';
 export const DURATION_MAX_DAYS = 365;
+export const DURATION_MAX_DIGITS = maxDigitsForLimit(DURATION_MAX_DAYS);
 export const DURATION_MAX_VALIDATION_ERROR = `Duration cannot exceed ${DURATION_MAX_DAYS} days.`;
 
 export function parseConfigDurationDays(value: unknown): number | null {
@@ -23,6 +30,11 @@ export function formatConfigDurationValue(value: unknown): string {
 
 export function isDurationDaysInput(value: string): boolean {
   return value === '' || /^\d+$/.test(value);
+}
+
+/** Controlled duration field text: digits only, at most 3, no leading zeros. */
+export function parseDurationDaysInput(raw: string): string {
+  return stripLeadingZeros(capNumericDigits(raw, DURATION_MAX_DIGITS));
 }
 
 export function getDurationValidationError(value: string): string | null {

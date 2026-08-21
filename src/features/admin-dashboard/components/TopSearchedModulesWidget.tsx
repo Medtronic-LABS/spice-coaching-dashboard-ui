@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetchDigitalHelpModulesQuery } from '@/features/admin-dashboard/api/dashboardApi';
+import { DashboardActorViewToggle } from '@/features/admin-dashboard/components/DashboardActorViewToggle';
 import {
   TopModuleDemandWidget,
   type TopModuleDemandRow,
@@ -11,6 +12,7 @@ import {
   useAccumulatedModuleDemandPages,
 } from '@/features/admin-dashboard/hooks/useTopModuleDemandPagination';
 import type {
+  DashboardActorView,
   DashboardGeographyFilters,
   DigitalHelpModuleUsageItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -63,8 +65,14 @@ export const TopSearchedModulesWidget = ({
   onAssign,
 }: TopSearchedModulesWidgetProps) => {
   const { t } = useTranslation();
+  const [actorView, setActorView] = useState<DashboardActorView>('sk');
   const [offset, setOffset] = useState(0);
-  const filterKey = buildModuleDemandFilterKey(fromDate, toDate, geography);
+  const filterKey = buildModuleDemandFilterKey(
+    fromDate,
+    toDate,
+    geography,
+    actorView,
+  );
 
   const query = useFetchDigitalHelpModulesQuery(
     {
@@ -73,6 +81,7 @@ export const TopSearchedModulesWidget = ({
       limit: TOP_MODULE_DEMAND_LIMIT,
       offset,
       geography,
+      view: actorView,
     },
     { skip },
   );
@@ -143,12 +152,20 @@ export const TopSearchedModulesWidget = ({
       hasMore={hasMore}
       onSeeMore={handleSeeMore}
       isLoadingMore={isLoadingMore}
+      headerActions={
+        <DashboardActorViewToggle
+          value={actorView}
+          onChange={setActorView}
+          label={t('adminDashboard.moduleDemand.actorViewLabel')}
+        />
+      }
       renderExpandedContent={(rowId) => (
         <ExistingModuleInlineEvidence
           moduleId={rowId}
           fromDate={fromDate}
           toDate={toDate}
           geography={geography}
+          actorView={actorView}
         />
       )}
     />

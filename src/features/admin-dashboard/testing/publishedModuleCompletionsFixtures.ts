@@ -13,6 +13,7 @@ export function buildPublishedModuleCompletionItem(
     title: { bn: `${LONG_MODULE_TITLE} ${index}` },
     published_at: '2026-01-15T00:00:00Z',
     completed_sk_count: index + 1,
+    assigned_sk_count: 10,
     total_descendant_sk_count: 10,
     ...overrides,
   };

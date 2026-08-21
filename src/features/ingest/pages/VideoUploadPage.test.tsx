@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -336,6 +336,17 @@ describe('VideoUploadPage', () => {
     window.sessionStorage.clear();
   });
 
+  it('blurs the hidden file input on focus to avoid Windows Chrome scroll jump', () => {
+    renderPage();
+
+    const input = screen.getByLabelText(/upload video/i, {
+      selector: 'input',
+    }) as HTMLInputElement;
+    input.focus();
+    fireEvent.focus(input);
+    expect(document.activeElement).not.toBe(input);
+  });
+
   it('caps staged video titles at the document title limit', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -355,6 +366,9 @@ describe('VideoUploadPage', () => {
       'maxLength',
       String(FIELD_LIMITS.documentTitle),
     );
+    expect(
+      screen.getByLabelText(/^description/i, { selector: 'textarea' }),
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
   });
 
   it('stages a video, uploads it, then starts ingest with source ids', async () => {
@@ -682,33 +696,6 @@ describe('VideoUploadPage', () => {
     await waitFor(() => {
       expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_from');
       expect(latestUploadedVideosQuery()).not.toHaveProperty('uploaded_to');
-    });
-  });
-
-  it('sends geography assignment filters with the uploaded videos query', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(
-      screen.getByRole('button', { name: /open video filters/i }),
-    );
-    const dialog = screen.getByRole('dialog', { name: 'Filters' });
-    await user.click(within(dialog).getByLabelText(/^division$/i));
-    await user.click(await screen.findByRole('option', { name: 'Rangpur' }));
-    await user.click(within(dialog).getByLabelText(/^district$/i));
-    await user.click(
-      await screen.findByRole('option', { name: 'Lalmonirhat' }),
-    );
-    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
-
-    await waitFor(() => {
-      expect(latestUploadedVideosQuery()).toEqual(
-        expect.objectContaining({
-          source_type: 'video',
-          division_id: 1,
-          district_id: 10,
-        }),
-      );
     });
   });
 

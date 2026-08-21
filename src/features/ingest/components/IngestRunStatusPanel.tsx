@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Banner, Button, Card, Loader } from '@/components/ui';
 import {
   useGetIngestBatchStatusQuery,
+  useRetryIngestBatchMutation,
   type AdminV3IngestBatchStatusResponse,
 } from '@/features/ingest/api/adminIngestApi';
 import { IngestDocumentProgressCard } from '@/features/ingest/components/IngestDocumentProgressCard';
@@ -79,6 +80,8 @@ export const IngestRunStatusPanel = ({
     pollingInterval: pollingIntervalMs,
     refetchOnMountOrArgChange: true,
   });
+  const [retryIngestBatch, { isLoading: isRetrying, error: retryError }] =
+    useRetryIngestBatchMutation();
 
   useEffect(() => {
     if (!batchId || !pollReady) {
@@ -100,6 +103,29 @@ export const IngestRunStatusPanel = ({
   const batchFailureMessage =
     extractIngestBatchFailureTooltipMessage(statusData);
   const sources = statusData?.sources ?? [];
+  const canRetryIngestion =
+    ingestRunStatusTone(statusData?.status) === 'failed';
+
+  const handleRetryIngestion = async () => {
+    if (!batchId || !canRetryIngestion || isRetrying) return;
+    try {
+      await retryIngestBatch(batchId).unwrap();
+      await refetch();
+    } catch {
+      // Retry error is rendered from mutation state.
+    }
+  };
+
+  const retryAction = canRetryIngestion ? (
+    <Button
+      variant="secondary"
+      className="h-8 text-xs"
+      disabled={isRetrying}
+      onClick={() => void handleRetryIngestion()}
+    >
+      {isRetrying ? 'Retrying…' : 'Retry'}
+    </Button>
+  ) : null;
 
   const progressLabel = useMemo(() => {
     if (!batchId) return emptyLabel;
@@ -157,8 +183,11 @@ export const IngestRunStatusPanel = ({
           </div>
         </div>
 
-        {!ingestionSucceeded && successAction ? (
-          <div>{successAction}</div>
+        {retryAction || (!ingestionSucceeded && successAction) ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {retryAction}
+            {!ingestionSucceeded ? successAction : null}
+          </div>
         ) : null}
       </div>
 
@@ -173,6 +202,10 @@ export const IngestRunStatusPanel = ({
             Retry status
           </Button>
         </div>
+      ) : null}
+
+      {retryError ? (
+        <Banner tone="critical">{formatRtkQueryError(retryError)}</Banner>
       ) : null}
 
       <Loader

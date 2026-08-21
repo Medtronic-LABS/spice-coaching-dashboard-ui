@@ -1,3 +1,7 @@
+import type {
+  GeographyFilterState,
+  GeographyQueryParams,
+} from '@/features/modules/utils/geographyFilters';
 import type { LocalizedString } from '@/types/localized';
 
 export type DashboardDurationPreset =
@@ -6,37 +10,30 @@ export type DashboardDurationPreset =
   | 'this_month'
   | 'custom';
 
-export type DashboardStatusFilter = 'all' | 'on_track' | 'at_risk';
-
 export type TeamHierarchySortKey =
-  | 'default'
+  | 'name'
   | 'at_risk_first'
   | 'lowest_completion'
-  | 'lowest_chatbot'
-  | 'most_inactive'
-  | 'name';
+  | 'lowest_chatbot';
 
-export interface DashboardGeographyFilters {
-  /** Division display name sent as dashboard `division` query param. */
-  division: string;
-  /** District display name (also the document-usage `district` query value). */
-  district: string;
-  /**
-   * Upazila display name. Sent as document-usage `upazila_id` because the
-   * platform currently resolves that param by name (see DASHBOARD_BE_LEFTOVERS §6).
-   */
-  upazila: string;
-}
+/** GET /dashboard/team-activity `sort_by` values. */
+export type TeamActivityApiSortBy =
+  | 'name'
+  | 'chatbot_engagement'
+  | 'module_completion'
+  | 'performance_status';
+
+export type TeamActivityApiSortDir = 'asc' | 'desc';
+
+export type TeamActivityPerformanceStatus = 'on_track' | 'at_risk';
+
+export type DashboardGeographyFilters = GeographyFilterState;
+
+/** Optional actor lens for digital-help and module-creation-suggestion APIs (`view`). */
+export type DashboardActorView = 'po' | 'sk';
 
 /** Normalized geography params sent to dashboard API endpoints. */
-export interface DashboardGeoQueryParams {
-  division?: string;
-  district?: string;
-  /**
-   * Upazila display name. Param name is historical; BE resolves by name today.
-   */
-  upazila_id?: string;
-}
+export type DashboardGeoQueryParams = GeographyQueryParams;
 
 export interface DashboardDateRange {
   fromDate: string;
@@ -47,7 +44,6 @@ export interface DashboardFiltersState {
   durationPreset: DashboardDurationPreset;
   customFrom: string;
   customTo: string;
-  status: DashboardStatusFilter;
   geography: DashboardGeographyFilters;
 }
 
@@ -88,6 +84,8 @@ export interface TeamActivityMember {
   chatbot_modules: TeamMemberChatbotModuleUsage[];
   refreshers_generated: number;
   refreshers_completed: number;
+  /** Server-computed 60% module-completion cascade (SK → PO → AM). */
+  performance_status: TeamActivityPerformanceStatus;
   /** Descendant rollup for AM/PO rows; present without expanding the hierarchy. */
   summary?: TeamActivitySummary;
 }
@@ -195,6 +193,7 @@ export interface PublishedModuleCompletionItem {
   title: LocalizedString | null;
   published_at: string;
   completed_sk_count: number;
+  assigned_sk_count: number;
   total_descendant_sk_count: number;
 }
 
@@ -293,10 +292,26 @@ export interface DocumentUsageResponse {
 }
 
 /** GET /dashboard/module-demand-summary */
+export type ModuleDemandSummaryBucket =
+  | 'assign'
+  | 'publish'
+  | 'create'
+  | 'other';
+
+export interface ModuleDemandPatternItem {
+  bucket: ModuleDemandSummaryBucket;
+  title: string;
+  description: string;
+}
+
 export interface ModuleDemandSummaryResponse {
   from_date: string;
   to_date: string;
-  summary: string;
+  title: string;
+  date_label: string;
+  narrative: string;
+  empty_message: string | null;
+  demand_pattern: ModuleDemandPatternItem[];
 }
 
 export type ModuleDemandInteractionType =

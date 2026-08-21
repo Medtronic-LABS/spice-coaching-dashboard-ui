@@ -1,7 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import { EmptyState, SearchInput, Select, StatusBadge } from '@/components/ui';
+import {
+  EmptyState,
+  InfiniteScrollContainer,
+  SearchInput,
+  Select,
+  StatusBadge,
+} from '@/components/ui';
 import { useFetchTeamActivityQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import {
   DashboardHierarchySkeleton,
@@ -12,7 +18,6 @@ import { DashboardWidgetShell } from '@/features/admin-dashboard/components/Dash
 import { SkDetailDrawer } from '@/features/admin-dashboard/components/SkDetailDrawer';
 import type {
   DashboardGeographyFilters,
-  DashboardStatusFilter,
   TeamActivityMember,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -20,8 +25,6 @@ import { buildTeamActivityQueryArgs } from '@/features/admin-dashboard/utils/das
 import { resolveModuleCompletionTone } from '@/features/admin-dashboard/utils/moduleCompletionTones';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import {
-  filterMembersBySearch,
-  filterTeamMembersByStatus,
   hierarchyChildrenActionKind,
   hierarchyRoleKind,
   hierarchyTabDepth,
@@ -30,20 +33,23 @@ import {
   memberModuleStats,
   resolveMemberDescendantInactiveCount,
   resolveMemberDescendantSkCount,
-  sortTeamMembers,
+  toTeamActivitySortParams,
   type HierarchyRoleTab,
 } from '@/features/admin-dashboard/utils/teamActivity';
 import { getAuthSession } from '@/features/auth/services/authSession';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/utils';
 
 interface TeamHierarchySectionProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
-  status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   onSortChange: (sort: TeamHierarchySortKey) => void;
 }
+
+const TEAM_HIERARCHY_PAGE_LIMIT = 20;
+const TEAM_HIERARCHY_SEARCH_DEBOUNCE_MS = 300;
 
 const ROLE_TABS: Array<{ value: HierarchyRoleTab; labelKey: string }> = [
   { value: 'am', labelKey: 'adminDashboard.hierarchy.tabs.am' },
@@ -71,12 +77,10 @@ function defaultHierarchyRoleTab(): HierarchyRoleTab {
 }
 
 const SORT_OPTIONS: Array<{ value: TeamHierarchySortKey }> = [
-  { value: 'default' },
+  { value: 'name' },
   { value: 'at_risk_first' },
   { value: 'lowest_completion' },
   { value: 'lowest_chatbot' },
-  { value: 'most_inactive' },
-  { value: 'name' },
 ];
 
 function useHierarchyLabels() {
@@ -147,7 +151,6 @@ interface HierarchyMemberRowProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
-  status: DashboardStatusFilter;
   sortKey: TeamHierarchySortKey;
   depth: number;
   onSelectSk: (member: TeamActivityMember) => void;
@@ -158,7 +161,6 @@ const HierarchyMemberRow = ({
   fromDate,
   toDate,
   geography,
-  status,
   sortKey,
   depth,
   onSelectSk,
@@ -166,26 +168,70 @@ const HierarchyMemberRow = ({
   const { t } = useTranslation();
   const { roleLabel, childrenActionLabel } = useHierarchyLabels();
   const [expanded, setExpanded] = useState(false);
+  const [descendantOffset, setDescendantOffset] = useState(0);
+  const [accumulatedDescendants, setAccumulatedDescendants] = useState<
+    TeamActivityMember[]
+  >([]);
+
   const modules = memberModuleStats(member);
   const atRisk = isMemberAtRisk(member);
   const canExpand = member.can_drill_down;
   const isSkRow =
     !member.can_drill_down || hierarchyRoleKind(member.role) === 'sk';
 
+  useEffect(() => {
+    setDescendantOffset(0);
+  }, [
+    expanded,
+    fromDate,
+    toDate,
+    geography.divisionId,
+    geography.districtId,
+    geography.upazilaId,
+    sortKey,
+  ]);
+
   const descendantsQuery = useFetchTeamActivityQuery(
     buildTeamActivityQueryArgs(fromDate, toDate, geography, {
       user_id: member.user_id,
-      limit: 100,
-      offset: 0,
+      limit: TEAM_HIERARCHY_PAGE_LIMIT,
+      offset: descendantOffset,
+      ...toTeamActivitySortParams(sortKey),
     }),
     { skip: !canExpand || !expanded },
   );
   const descendantsUi = resolveDashboardQueryUiState(descendantsQuery);
+  const descendantMembersData =
+    descendantsQuery.currentData?.members ?? descendantsQuery.data?.members;
+  const totalDescendants =
+    descendantsQuery.currentData?.total_members ??
+    descendantsQuery.data?.total_members ??
+    0;
 
-  const children = useMemo(() => {
-    const base = descendantsQuery.data?.members ?? [];
-    return sortTeamMembers(filterTeamMembersByStatus(base, status), sortKey);
-  }, [descendantsQuery.data?.members, sortKey, status]);
+  useEffect(() => {
+    if (!descendantMembersData || !expanded) return;
+    setAccumulatedDescendants((prev) => {
+      if (descendantOffset === 0) {
+        // Prefer member object identity over user_id so date/filter refetches
+        // with the same roster still replace stale activity fields.
+        if (
+          prev.length === descendantMembersData.length &&
+          prev.every((item, idx) => item === descendantMembersData[idx])
+        ) {
+          return prev;
+        }
+        return descendantMembersData;
+      }
+      const existingIds = new Set(prev.map((item) => item.user_id));
+      const newItems = descendantMembersData.filter(
+        (item) => !existingIds.has(item.user_id),
+      );
+      if (newItems.length === 0) return prev;
+      return [...prev, ...newItems];
+    });
+  }, [descendantMembersData, descendantOffset, expanded]);
+
+  const children = accumulatedDescendants;
 
   const loadedInactiveChildCount = children.filter(
     (child) => !child.is_active,
@@ -216,6 +262,19 @@ const HierarchyMemberRow = ({
         : '—';
 
   const peopleLabel = t('adminDashboard.hierarchy.metrics.sksLabel');
+
+  const hasMoreDescendants =
+    ((descendantsQuery.currentData ?? descendantsQuery.data)?.offset ??
+      descendantOffset) +
+      TEAM_HIERARCHY_PAGE_LIMIT <
+    totalDescendants;
+  const isLoadingMoreDescendants =
+    descendantOffset > 0 && descendantsQuery.isFetching;
+
+  const handleLoadMoreDescendants = useCallback(() => {
+    if (!hasMoreDescendants || descendantsQuery.isFetching) return;
+    setDescendantOffset((prev) => prev + TEAM_HIERARCHY_PAGE_LIMIT);
+  }, [hasMoreDescendants, descendantsQuery.isFetching]);
 
   const personBlock = (
     <>
@@ -301,11 +360,6 @@ const HierarchyMemberRow = ({
                   value={inactiveValue}
                   label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
                 />
-                <MetricCell
-                  className="w-[6.5rem]"
-                  value={`${modules.completed}/${modules.total}`}
-                  label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
-                />
 
                 <div className="flex w-[5.75rem] justify-end">
                   <StatusBadge
@@ -343,11 +397,11 @@ const HierarchyMemberRow = ({
 
       {expanded ? (
         <div>
-          {descendantsUi.showLoading ? (
+          {descendantsUi.showLoading && descendantOffset === 0 ? (
             <div className="px-4 py-3">
               <DashboardTableSkeleton rows={3} columns={4} />
             </div>
-          ) : descendantsUi.showError ? (
+          ) : descendantsUi.showError && descendantOffset === 0 ? (
             <div className="px-4 py-3">
               <DashboardWidgetErrorState
                 compact
@@ -359,19 +413,27 @@ const HierarchyMemberRow = ({
               {t('adminDashboard.hierarchy.emptyChildren')}
             </p>
           ) : (
-            children.map((child) => (
-              <HierarchyMemberRow
-                key={child.user_id}
-                member={child}
-                fromDate={fromDate}
-                toDate={toDate}
-                geography={geography}
-                status={status}
-                sortKey={sortKey}
-                depth={depth + 1}
-                onSelectSk={onSelectSk}
-              />
-            ))
+            <InfiniteScrollContainer
+              hasMore={hasMoreDescendants}
+              onLoadMore={handleLoadMoreDescendants}
+              loadedCount={children.length}
+              isLoadingMore={isLoadingMoreDescendants}
+              error={descendantsUi.showError}
+              onRetry={() => void descendantsQuery.refetch()}
+            >
+              {children.map((child) => (
+                <HierarchyMemberRow
+                  key={child.user_id}
+                  member={child}
+                  fromDate={fromDate}
+                  toDate={toDate}
+                  geography={geography}
+                  sortKey={sortKey}
+                  depth={depth + 1}
+                  onSelectSk={onSelectSk}
+                />
+              ))}
+            </InfiniteScrollContainer>
           )}
         </div>
       ) : null}
@@ -383,50 +445,96 @@ export const TeamHierarchySection = ({
   fromDate,
   toDate,
   geography,
-  status,
   sortKey,
   onSortChange,
 }: TeamHierarchySectionProps) => {
   const { t } = useTranslation();
-  const { roleLabel } = useHierarchyLabels();
   const roleTabs = useMemo(() => visibleHierarchyRoleTabs(), []);
   const viewerIsAreaManager = isLoggedInAreaManager();
   const [roleTab, setRoleTab] = useState<HierarchyRoleTab>(
     defaultHierarchyRoleTab,
   );
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(
+    search,
+    TEAM_HIERARCHY_SEARCH_DEBOUNCE_MS,
+  );
+  const nameQuery = debouncedSearch.trim() || undefined;
   const [selectedSk, setSelectedSk] = useState<TeamActivityMember | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [accumulatedMembers, setAccumulatedMembers] = useState<
+    TeamActivityMember[]
+  >([]);
+
+  useEffect(() => {
+    setOffset(0);
+  }, [
+    roleTab,
+    fromDate,
+    toDate,
+    geography.divisionId,
+    geography.districtId,
+    geography.upazilaId,
+    nameQuery,
+    sortKey,
+  ]);
 
   const depth = hierarchyTabDepth(roleTab, { viewerIsAreaManager });
   const query = useFetchTeamActivityQuery(
     buildTeamActivityQueryArgs(fromDate, toDate, geography, {
-      limit: 100,
-      offset: 0,
+      limit: TEAM_HIERARCHY_PAGE_LIMIT,
+      offset,
       depth,
+      q: nameQuery,
+      ...toTeamActivitySortParams(sortKey),
     }),
   );
-  const { data, refetch, isFetching } = query;
+  const { refetch, isFetching } = query;
+  const membersData = query.currentData?.members ?? query.data?.members;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
+  const totalMembers =
+    query.currentData?.total_members ?? query.data?.total_members ?? 0;
 
-  const members = useMemo(() => {
-    const base = data?.members ?? [];
-    const filtered = filterMembersBySearch(
-      filterTeamMembersByStatus(base, status),
-      search,
-      roleLabel,
-    );
-    return sortTeamMembers(filtered, sortKey);
-  }, [data?.members, roleLabel, search, sortKey, status]);
+  useEffect(() => {
+    if (!membersData) return;
+    setAccumulatedMembers((prev) => {
+      if (offset === 0) {
+        // Prefer member object identity over user_id so date/filter refetches
+        // with the same roster still replace stale activity fields.
+        if (
+          prev.length === membersData.length &&
+          prev.every((item, idx) => item === membersData[idx])
+        ) {
+          return prev;
+        }
+        return membersData;
+      }
+      const existingIds = new Set(prev.map((item) => item.user_id));
+      const newItems = membersData.filter(
+        (item) => !existingIds.has(item.user_id),
+      );
+      if (newItems.length === 0) return prev;
+      return [...prev, ...newItems];
+    });
+  }, [membersData, offset]);
+
+  const members = accumulatedMembers;
+
+  const hasMore =
+    ((query.currentData ?? query.data)?.offset ?? offset) +
+      TEAM_HIERARCHY_PAGE_LIMIT <
+    totalMembers;
+  const isLoadingMore = offset > 0 && isFetching;
+
+  const handleLoadMore = useCallback(() => {
+    if (!hasMore || isFetching) return;
+    setOffset((prev) => prev + TEAM_HIERARCHY_PAGE_LIMIT);
+  }, [hasMore, isFetching]);
 
   const sortOptions = useMemo(
     () =>
       SORT_OPTIONS.map((option) => ({
-        label:
-          option.value === 'default'
-            ? `${t('adminDashboard.filters.sortLabel')} ${t(
-                `adminDashboard.filters.sort.${option.value}`,
-              )}`
-            : t(`adminDashboard.filters.sort.${option.value}`),
+        label: t(`adminDashboard.filters.sort.${option.value}`),
         value: option.value,
       })),
     [t],
@@ -439,6 +547,14 @@ export const TeamHierarchySection = ({
         ? t('adminDashboard.hierarchy.searchPlaceholderPo')
         : t('adminDashboard.hierarchy.searchPlaceholderSk');
 
+  const handleRefresh = useCallback(() => {
+    if (offset !== 0) {
+      setOffset(0);
+      return;
+    }
+    void refetch();
+  }, [offset, refetch]);
+
   return (
     <>
       <DashboardWidgetShell
@@ -446,8 +562,8 @@ export const TeamHierarchySection = ({
         description={t(`adminDashboard.hierarchy.description.${roleTab}`)}
         flush
         size="lg"
-        onRefresh={() => void refetch()}
-        isRefreshing={isFetching}
+        onRefresh={handleRefresh}
+        isRefreshing={isFetching && offset === 0 && members.length > 0}
         actions={
           <>
             <Select
@@ -492,9 +608,9 @@ export const TeamHierarchySection = ({
           </div>
         </div>
 
-        {showLoading ? (
+        {showLoading && offset === 0 ? (
           <DashboardHierarchySkeleton rows={5} />
-        ) : showError ? (
+        ) : showError && offset === 0 ? (
           <div className="px-4 py-4">
             <DashboardWidgetErrorState onRetry={() => void refetch()} />
           </div>
@@ -506,7 +622,14 @@ export const TeamHierarchySection = ({
             />
           </div>
         ) : (
-          <div>
+          <InfiniteScrollContainer
+            hasMore={hasMore}
+            onLoadMore={handleLoadMore}
+            loadedCount={members.length}
+            isLoadingMore={isLoadingMore}
+            error={showError}
+            onRetry={() => void refetch()}
+          >
             {members.map((member) => (
               <HierarchyMemberRow
                 key={member.user_id}
@@ -514,13 +637,12 @@ export const TeamHierarchySection = ({
                 fromDate={fromDate}
                 toDate={toDate}
                 geography={geography}
-                status={status}
                 sortKey={sortKey}
                 depth={0}
                 onSelectSk={setSelectedSk}
               />
             ))}
-          </div>
+          </InfiniteScrollContainer>
         )}
       </DashboardWidgetShell>
       <SkDetailDrawer

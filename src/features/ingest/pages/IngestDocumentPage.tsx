@@ -20,6 +20,7 @@ import {
   INGEST_FORM_DEFAULTS,
   type IngestModuleCountInput,
   ingestModuleCountForPayload,
+  isIngestionInstructionsValid,
   isOptionalIngestModuleCountValid,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
@@ -200,6 +201,9 @@ export const IngestDocumentPage = () => {
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
     isOptionalIngestModuleCountValid(cardsPerModule);
+  const ingestionInstructionsValid = isIngestionInstructionsValid(
+    ingestionInstructions,
+  );
 
   const selectionDisabled =
     isUploading || isStartingIngest || ingestionInProgress;
@@ -210,7 +214,8 @@ export const IngestDocumentPage = () => {
     !isUploading &&
     !isStartingIngest &&
     !ingestionInProgress &&
-    moduleCountsValid;
+    moduleCountsValid &&
+    ingestionInstructionsValid;
 
   const primarySourceDocumentId =
     accepted?.sources?.[0]?.source_document_id ||

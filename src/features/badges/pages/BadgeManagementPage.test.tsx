@@ -131,7 +131,7 @@ describe('BadgeManagementPage', () => {
     await screen.findByText('Safe Motherhood Champion');
 
     expect(screen.getByLabelText('Rows per page')).toHaveValue('10');
-    expect(screen.getByLabelText('Page number')).toHaveValue(1);
+    expect(screen.getByLabelText('Page number')).toHaveValue('1');
     expect(screen.getByText('Rows')).toBeInTheDocument();
     expect(screen.getByText('Page')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();

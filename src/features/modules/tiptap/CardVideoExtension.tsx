@@ -6,6 +6,7 @@ import {
 } from '@tiptap/react';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import { cardMediaTiptapAttributeConfig } from '@/features/modules/tiptap/cardMediaAttrs';
+import { cardMediaClipboardDomAttrs } from '@/features/modules/tiptap/cardMediaClipboard';
 import { RichTextMediaNodeHeader } from '@/features/modules/tiptap/RichTextMediaNodeHeader';
 import {
   mediaFilenameFromNodeAttrs,
@@ -47,6 +48,7 @@ function CardVideoNodeView({
       as="div"
       className={cardClassName}
       data-card-video=""
+      {...cardMediaClipboardDomAttrs(objectName, legacySrc)}
       contentEditable={false}
       {...(editable ? { 'data-drag-handle': '' } : {})}
     >
@@ -93,10 +95,20 @@ export const CardVideoExtension = Node.create({
     };
   },
   parseHTML() {
-    return [{ tag: 'div[data-card-video]' }];
+    return [{ tag: 'div[data-card-video]' }, { tag: 'video[data-card-video]' }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(HTMLAttributes, { 'data-card-video': '' })];
+    const { src, ...rest } = HTMLAttributes;
+    const liveSrc = typeof src === 'string' ? src.trim() : '';
+    const wrapperAttrs = mergeAttributes(rest, { 'data-card-video': '' });
+    if (!liveSrc) {
+      return ['div', wrapperAttrs];
+    }
+    return [
+      'div',
+      wrapperAttrs,
+      ['video', { src: liveSrc, controls: 'true', 'data-card-video': '' }],
+    ];
   },
   addNodeView() {
     return ReactNodeViewRenderer(CardVideoNodeView);

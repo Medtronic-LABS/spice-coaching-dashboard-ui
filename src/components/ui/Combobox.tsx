@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
@@ -207,6 +208,7 @@ export const Combobox = ({
         )}
         value={open ? searchTerm : selectedLabel}
         placeholder={open ? placeholder : selectedLabel || placeholder}
+        maxLength={FIELD_LIMITS.searchQuery}
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
         onChange={(event) => {

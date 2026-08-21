@@ -38,6 +38,7 @@ describe('SettingsFilterRenderer', () => {
     );
 
     expect(screen.getByText('Assigned')).toBeVisible();
+    expect(screen.getByText('Assigned').closest('div.pl-4')).not.toBeNull();
     await user.click(screen.getByRole('tab', { name: 'Yes' }));
     expect(onChange).toHaveBeenCalledWith('yes');
   });
@@ -178,7 +179,7 @@ describe('SettingsFilterRenderer', () => {
     expect(screen.getByLabelText('Created to')).toHaveAttribute('max', today);
   });
 
-  it('applies fieldsClassName to date-range field wrappers', () => {
+  it('indents section fields under the header', () => {
     render(
       <SettingsFilterRenderer
         sections={[
@@ -212,16 +213,18 @@ describe('SettingsFilterRenderer', () => {
     );
 
     expect(
-      screen.getByLabelText('Created from').closest('div.pl-2'),
-    ).toBeNull();
+      screen.getByLabelText('Created from').closest('div.pl-4'),
+    ).not.toBeNull();
+  });
 
+  it('lets fieldsClassName override the default section indent', () => {
     render(
       <SettingsFilterRenderer
         sections={[
           {
             id: 'dates',
             label: 'Date ranges',
-            fieldsClassName: 'pl-2',
+            fieldsClassName: 'pl-8',
             fields: [
               {
                 type: 'date-range',
@@ -249,7 +252,7 @@ describe('SettingsFilterRenderer', () => {
     );
 
     expect(
-      screen.getByLabelText('Padded from').closest('div.pl-2'),
+      screen.getByLabelText('Padded from').closest('div.pl-8'),
     ).not.toBeNull();
   });
 });

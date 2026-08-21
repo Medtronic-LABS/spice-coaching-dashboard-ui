@@ -1,11 +1,17 @@
-import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui';
 import { useFetchModuleDemandSummaryQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetRefreshButton } from '@/features/admin-dashboard/components/DashboardWidgetRefreshButton';
-import type { DashboardGeographyFilters } from '@/features/admin-dashboard/types/dashboard.types';
+import type {
+  DashboardGeographyFilters,
+  ModuleDemandPatternItem,
+} from '@/features/admin-dashboard/types/dashboard.types';
 import { buildModuleDemandSummaryQueryArgs } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
+import {
+  hasModuleDemandSummaryContent,
+  normalizeModuleDemandSummaryResponse,
+} from '@/features/admin-dashboard/utils/normalizeModuleDemandSummaryResponse';
 import { TOP_MODULE_DEMAND_LIMIT } from '@/features/admin-dashboard/utils/moduleDemand';
 import { resolveDashboardQueryUiState } from '@/features/admin-dashboard/utils/queryUiState';
 import { cn } from '@/utils';
@@ -19,85 +25,94 @@ interface ModuleDemandSummaryWidgetProps {
 
 function SummarySkeleton() {
   return (
-    <div className="min-w-0 flex-1 space-y-2" aria-hidden>
-      <div className="h-4 w-full animate-pulse rounded bg-spice-palette-purple/10" />
-      <div className="h-4 w-[94%] animate-pulse rounded bg-spice-palette-purple/10" />
-      <div className="h-4 w-[72%] animate-pulse rounded bg-spice-palette-purple/10" />
+    <div className="min-w-0 flex-1 space-y-3" aria-hidden>
+      <div className="space-y-1.5">
+        <div className="h-5 w-56 animate-pulse rounded bg-spice-palette-purple/10" />
+        <div className="h-4 w-36 animate-pulse rounded bg-spice-palette-purple/10" />
+      </div>
+      <div className="h-16 w-full animate-pulse rounded bg-spice-palette-purple/10" />
+      <div className="space-y-2">
+        <div className="h-3 w-28 animate-pulse rounded bg-spice-palette-purple/10" />
+        <div className="h-4 w-full animate-pulse rounded bg-spice-palette-purple/10" />
+        <div className="h-4 w-[92%] animate-pulse rounded bg-spice-palette-purple/10" />
+      </div>
     </div>
   );
 }
 
-function CollapsibleSummaryText({ text }: { text: string }) {
-  const { t } = useTranslation();
-  const textRef = useRef<HTMLParagraphElement>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [canToggle, setCanToggle] = useState(false);
-
-  useLayoutEffect(() => {
-    setExpanded(false);
-  }, [text]);
-
-  useLayoutEffect(() => {
-    const el = textRef.current;
-    if (!el) return;
-
-    const measureOverflow = () => {
-      if (expanded) return;
-      setCanToggle(el.scrollHeight > el.clientHeight + 1);
-    };
-
-    measureOverflow();
-    if (typeof ResizeObserver === 'undefined') return;
-
-    const observer = new ResizeObserver(measureOverflow);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [text, expanded]);
-
-  const showToggle = canToggle || expanded;
-  const toggleLabel = expanded
-    ? t('adminDashboard.moduleDemand.seeLess')
-    : t('adminDashboard.moduleDemand.seeMore');
-
+function DemandPatternItem({ item }: { item: ModuleDemandPatternItem }) {
   return (
-    <div className="relative min-w-0 flex-1">
-      <p
-        ref={textRef}
-        className={cn(
-          'text-base font-semibold leading-snug text-pretty text-spice-text-primary',
-          !expanded && 'line-clamp-3',
-          showToggle && !expanded && 'pr-[4.75rem]',
-        )}
-      >
-        {text}
-        {showToggle && expanded ? (
+    <li className="flex items-start gap-2.5 text-sm leading-snug text-spice-text-primary">
+      <span
+        aria-hidden="true"
+        className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-spice-brand-primary"
+      />
+      <span>
+        <span className="font-semibold">{item.title}</span>
+        {item.description ? (
           <>
             {' '}
-            <button
-              type="button"
-              className="inline text-sm font-bold text-spice-brand-primary hover:underline"
-              onClick={() => setExpanded(false)}
-              aria-expanded
-            >
-              {toggleLabel}
-            </button>
+            <span className="text-spice-text-medium">— {item.description}</span>
           </>
         ) : null}
+      </span>
+    </li>
+  );
+}
+
+function ModuleDemandSummaryContent({
+  summary,
+  emptyFallback,
+}: {
+  summary: ReturnType<typeof normalizeModuleDemandSummaryResponse>;
+  emptyFallback: string;
+}) {
+  const { t } = useTranslation();
+
+  if (!hasModuleDemandSummaryContent(summary)) {
+    return (
+      <p className="text-sm leading-relaxed text-spice-text-primary">
+        {summary.empty_message ?? emptyFallback}
       </p>
-      {showToggle && !expanded ? (
-        <button
-          type="button"
-          className={cn(
-            'absolute bottom-0 right-0 bg-gradient-to-l from-spice-palette-purpleLt via-spice-palette-purpleLt to-transparent',
-            'pl-6 text-sm font-bold text-spice-brand-primary hover:underline',
-          )}
-          onClick={() => setExpanded(true)}
-          aria-expanded={false}
-        >
-          {toggleLabel}
-        </button>
+    );
+  }
+
+  return (
+    <article className="space-y-3">
+      <header className="space-y-0.5">
+        <h3 className="text-base font-bold leading-snug text-spice-text-primary">
+          {summary.title ||
+            t('adminDashboard.moduleDemand.summaryInsightsTitle')}
+        </h3>
+        {summary.date_label ? (
+          <p className="text-sm italic text-spice-text-muted">
+            {summary.date_label}
+          </p>
+        ) : null}
+      </header>
+
+      {summary.narrative ? (
+        <blockquote className="border-l-2 border-spice-border pl-3 text-sm leading-relaxed text-spice-text-primary">
+          {summary.narrative}
+        </blockquote>
       ) : null}
-    </div>
+
+      {summary.demand_pattern.length > 0 ? (
+        <section className="space-y-2">
+          <h4 className="text-sm font-semibold text-spice-text-primary">
+            {t('adminDashboard.moduleDemand.demandPatternHeading')}
+          </h4>
+          <ul className="space-y-2">
+            {summary.demand_pattern.map((item) => (
+              <DemandPatternItem
+                key={`${item.bucket}-${item.title}`}
+                item={item}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </article>
   );
 }
 
@@ -115,13 +130,11 @@ export const ModuleDemandSummaryWidget = ({
     { skip },
   );
   const ui = resolveDashboardQueryUiState(query);
-  const summary = query.data?.summary?.trim() ?? '';
-  const displayText =
-    summary ||
-    t('adminDashboard.moduleDemand.summaryEmptyFallback', {
-      fromDate,
-      toDate,
-    });
+  const summary = query.data ?? normalizeModuleDemandSummaryResponse(undefined);
+  const emptyFallback = t('adminDashboard.moduleDemand.summaryEmptyFallback', {
+    fromDate,
+    toDate,
+  });
   const handleRefresh = () => {
     void query.refetch();
   };
@@ -129,7 +142,7 @@ export const ModuleDemandSummaryWidget = ({
   return (
     <Card
       className={cn(
-        'border border-spice-brand-primary/15 bg-spice-palette-purpleLt/60 p-3 shadow-none md:p-3',
+        'border border-spice-brand-primary/15 bg-spice-palette-purpleLt/60 p-4 shadow-none md:p-4',
       )}
     >
       <div className="flex items-start gap-3">
@@ -140,13 +153,18 @@ export const ModuleDemandSummaryWidget = ({
             <DashboardWidgetErrorState compact onRetry={handleRefresh} />
           </div>
         ) : (
-          <CollapsibleSummaryText text={displayText} />
+          <div className="min-w-0 flex-1">
+            <ModuleDemandSummaryContent
+              summary={summary}
+              emptyFallback={emptyFallback}
+            />
+          </div>
         )}
         {!ui.showError ? (
           <DashboardWidgetRefreshButton
             onRefresh={handleRefresh}
             isRefreshing={query.isFetching}
-            className="h-8 w-8 border-0 bg-spice-bg-surface/80 shadow-none hover:bg-spice-bg-surface"
+            className="h-8 w-8 shrink-0 border-0 bg-spice-bg-surface/80 shadow-none hover:bg-spice-bg-surface"
           />
         ) : null}
       </div>

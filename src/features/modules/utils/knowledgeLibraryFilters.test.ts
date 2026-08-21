@@ -44,12 +44,6 @@ describe('knowledgeLibraryFilters', () => {
         ingested: 'false',
       }),
     ).toBe(true);
-    expect(
-      hasActiveKnowledgeDrawerFilters({
-        ...KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS,
-        divisionId: '1',
-      }),
-    ).toBe(true);
   });
 
   it('isKnowledgeDrawerDateRangeInvalid requires both ends and order', () => {

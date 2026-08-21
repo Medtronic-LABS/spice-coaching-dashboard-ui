@@ -64,6 +64,25 @@ export function formatDisplayDateTime(
   return `${month} ${day} ${year} • ${time}`;
 }
 
+/** Formats an ISO date (or timestamp) for dashboard labels, e.g. `Aug 1, 2026`. */
+export function formatDisplayDate(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+
+  const normalized = value.includes('T') ? value : `${value.trim()}T00:00:00`;
+  const date = parseDisplayDateTime(normalized);
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
 /** Reference string for sizing table columns: `Aug 14 2026 • 11:43:34 am`. */
 export const DISPLAY_DATETIME_SAMPLE = 'Aug 14 2026 • 11:43:34 am';
 

@@ -1,10 +1,4 @@
 import type { SourceDocumentStatus } from '@/features/modules/api/adminSourceDocumentsApi';
-import {
-  EMPTY_GEOGRAPHY_FILTERS,
-  hasActiveGeographyFilters,
-  normalizeGeographyFilters,
-  type GeographyFilterState,
-} from '@/features/modules/utils/geographyFilters';
 import { dateRangeValidationMessage } from '@/features/modules/utils/moduleListFilters';
 
 export interface VideoUploadStatusOption {
@@ -19,7 +13,7 @@ export const VIDEO_UPLOAD_STATUS_OPTIONS: VideoUploadStatusOption[] = [
   { value: 'failed', label: 'Failed' },
 ];
 
-export interface VideoUploadFiltersState extends GeographyFilterState {
+export interface VideoUploadFiltersState {
   statuses: SourceDocumentStatus[];
   /** `YYYY-MM-DD` date input; converted to ISO `uploaded_from` on apply. */
   uploadedAtFrom: string;
@@ -28,7 +22,6 @@ export interface VideoUploadFiltersState extends GeographyFilterState {
 }
 
 export const EMPTY_VIDEO_UPLOAD_FILTERS: VideoUploadFiltersState = {
-  ...EMPTY_GEOGRAPHY_FILTERS,
   statuses: [],
   uploadedAtFrom: '',
   uploadedAtTo: '',
@@ -61,7 +54,6 @@ export function normalizeVideoUploadFilters(
   filters: VideoUploadFiltersState,
 ): VideoUploadFiltersState {
   return {
-    ...normalizeGeographyFilters(filters),
     statuses: normalizeVideoUploadStatuses(filters.statuses),
     uploadedAtFrom: filters.uploadedAtFrom.trim(),
     uploadedAtTo: filters.uploadedAtTo.trim(),
@@ -74,8 +66,7 @@ export function hasActiveVideoUploadFilters(
   return Boolean(
     filters.statuses.length > 0 ||
     filters.uploadedAtFrom.trim() ||
-    filters.uploadedAtTo.trim() ||
-    hasActiveGeographyFilters(filters),
+    filters.uploadedAtTo.trim(),
   );
 }
 

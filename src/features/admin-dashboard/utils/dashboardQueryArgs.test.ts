@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
+import type { DashboardGeographyFilters } from '@/features/admin-dashboard/types/dashboard.types';
 import {
   PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
   buildDashboardGeoParams,
@@ -10,19 +11,27 @@ import {
   buildTeamMemberQuestionsQueryArgs,
 } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
 
+function geography(
+  ids: Partial<DashboardGeographyFilters>,
+): DashboardGeographyFilters {
+  return { ...EMPTY_DASHBOARD_GEOGRAPHY, ...ids };
+}
+
 describe('dashboardQueryArgs', () => {
   it('uses one fetch limit so KPI and training modules share cache', () => {
     expect(PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT).toBe(50);
   });
 
-  it('trims and omits blank geography params', () => {
+  it('omits blank geography params', () => {
     expect(
-      buildDashboardGeoParams({
-        division: '  Dhaka  ',
-        district: '',
-        upazila: '   ',
-      }),
-    ).toEqual({ division: 'Dhaka' });
+      buildDashboardGeoParams(
+        geography({
+          divisionId: '1',
+          districtId: '',
+          upazilaId: '   ',
+        }),
+      ),
+    ).toEqual({ division_id: 1 });
   });
 
   it('builds team activity args with geography filters', () => {
@@ -30,11 +39,11 @@ describe('dashboardQueryArgs', () => {
       buildTeamActivityQueryArgs(
         '2026-01-01',
         '2026-01-31',
-        {
-          division: 'Dhaka',
-          district: 'Gazipur',
-          upazila: 'Kaliakoir',
-        },
+        geography({
+          divisionId: '1',
+          districtId: '10',
+          upazilaId: '100',
+        }),
         {
           limit: 100,
           offset: 0,
@@ -44,9 +53,9 @@ describe('dashboardQueryArgs', () => {
     ).toEqual({
       from_date: '2026-01-01',
       to_date: '2026-01-31',
-      division: 'Dhaka',
-      district: 'Gazipur',
-      upazila_id: 'Kaliakoir',
+      division_id: 1,
+      district_id: 10,
+      upazila_id: 100,
       limit: 100,
       offset: 0,
       depth: 1,
@@ -55,17 +64,19 @@ describe('dashboardQueryArgs', () => {
 
   it('builds published module completion args with geography filters', () => {
     expect(
-      buildPublishedModuleCompletionsQueryArgs('2026-01-01', '2026-01-31', {
-        division: '',
-        district: 'Gazipur',
-        upazila: '',
-      }),
+      buildPublishedModuleCompletionsQueryArgs(
+        '2026-01-01',
+        '2026-01-31',
+        geography({
+          districtId: '10',
+        }),
+      ),
     ).toEqual({
       from_date: '2026-01-01',
       to_date: '2026-01-31',
       limit: PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
       offset: 0,
-      district: 'Gazipur',
+      district_id: 10,
     });
   });
 
@@ -105,16 +116,41 @@ describe('dashboardQueryArgs', () => {
     });
   });
 
+  it('includes team activity search and sort extras', () => {
+    expect(
+      buildTeamActivityQueryArgs(
+        '2026-01-01',
+        '2026-01-31',
+        EMPTY_DASHBOARD_GEOGRAPHY,
+        {
+          limit: 20,
+          offset: 0,
+          q: 'rina',
+          sort_by: 'module_completion',
+          sort_dir: 'asc',
+        },
+      ),
+    ).toEqual({
+      from_date: '2026-01-01',
+      to_date: '2026-01-31',
+      limit: 20,
+      offset: 0,
+      q: 'rina',
+      sort_by: 'module_completion',
+      sort_dir: 'asc',
+    });
+  });
+
   it('builds team member questions args with geography filters', () => {
     expect(
       buildTeamMemberQuestionsQueryArgs(
         '2026-01-01',
         '2026-01-31',
-        {
-          division: 'Dhaka',
-          district: 'Gazipur',
-          upazila: 'Kaliakoir',
-        },
+        geography({
+          divisionId: '1',
+          districtId: '10',
+          upazilaId: '100',
+        }),
         42,
       ),
     ).toEqual({
@@ -123,24 +159,27 @@ describe('dashboardQueryArgs', () => {
       to_date: '2026-01-31',
       limit: 20,
       offset: 0,
-      division: 'Dhaka',
-      district: 'Gazipur',
-      upazila_id: 'Kaliakoir',
+      division_id: 1,
+      district_id: 10,
+      upazila_id: 100,
     });
   });
 
   it('builds document usage date and geography args', () => {
     expect(
-      buildDocumentUsageDateGeoArgs('2026-01-01', '2026-01-31', {
-        division: 'Dhaka',
-        district: 'Gazipur',
-        upazila: '',
-      }),
+      buildDocumentUsageDateGeoArgs(
+        '2026-01-01',
+        '2026-01-31',
+        geography({
+          divisionId: '1',
+          districtId: '10',
+        }),
+      ),
     ).toEqual({
       from: '2026-01-01',
       to: '2026-01-31',
-      division: 'Dhaka',
-      district: 'Gazipur',
+      division_id: 1,
+      district_id: 10,
     });
   });
 
@@ -149,19 +188,18 @@ describe('dashboardQueryArgs', () => {
       buildModuleDemandSummaryQueryArgs(
         '2026-07-01',
         '2026-07-31',
-        {
-          division: 'Dhaka',
-          district: '',
-          upazila: 'Kaliakoir',
-        },
+        geography({
+          divisionId: '1',
+          upazilaId: '100',
+        }),
         { top_limit: 5 },
       ),
     ).toEqual({
       from_date: '2026-07-01',
       to_date: '2026-07-31',
       top_limit: 5,
-      division: 'Dhaka',
-      upazila_id: 'Kaliakoir',
+      division_id: 1,
+      upazila_id: 100,
     });
   });
 });

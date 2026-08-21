@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import type {
   DashboardFiltersState,
   DashboardGeographyFilters,
-  DashboardStatusFilter,
   DashboardDurationPreset,
   TeamHierarchySortKey,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -11,19 +10,16 @@ import {
   resolveDashboardDateRange,
   seedCustomRangeFromPreset,
 } from '@/features/admin-dashboard/utils/dateRange';
+import { EMPTY_GEOGRAPHY_FILTERS } from '@/features/modules/utils/geographyFilters';
 import { clampDateInputToToday } from '@/utils/dateInput';
 
-export const EMPTY_DASHBOARD_GEOGRAPHY: DashboardGeographyFilters = {
-  division: '',
-  district: '',
-  upazila: '',
-};
+export const EMPTY_DASHBOARD_GEOGRAPHY: DashboardGeographyFilters =
+  EMPTY_GEOGRAPHY_FILTERS;
 
 export const DEFAULT_DASHBOARD_FILTERS: DashboardFiltersState = {
   durationPreset: 'this_month',
   customFrom: '',
   customTo: '',
-  status: 'all',
   geography: EMPTY_DASHBOARD_GEOGRAPHY,
 };
 
@@ -32,23 +28,26 @@ export function useDashboardFilters() {
     useState<DashboardDurationPreset>(DEFAULT_DASHBOARD_FILTERS.durationPreset);
   const [customFrom, setCustomFromState] = useState('');
   const [customTo, setCustomToState] = useState('');
-  const [status, setStatus] = useState<DashboardStatusFilter>('all');
   const [geography, setGeography] = useState<DashboardGeographyFilters>(
     EMPTY_DASHBOARD_GEOGRAPHY,
   );
   const [hierarchySort, setHierarchySort] =
-    useState<TeamHierarchySortKey>('default');
+    useState<TeamHierarchySortKey>('name');
 
   const filters: DashboardFiltersState = {
     durationPreset,
     customFrom,
     customTo,
-    status,
     geography,
   };
 
   const dateRange = useMemo(
-    () => resolveDashboardDateRange(filters),
+    () =>
+      resolveDashboardDateRange({
+        durationPreset,
+        customFrom,
+        customTo,
+      }),
     [durationPreset, customFrom, customTo],
   );
 
@@ -94,7 +93,6 @@ export function useDashboardFilters() {
     setDurationPreset,
     setCustomFrom,
     setCustomTo,
-    setStatus,
     setGeography,
     hierarchySort,
     setHierarchySort,

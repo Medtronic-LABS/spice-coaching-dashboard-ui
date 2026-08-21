@@ -1,7 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
+import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimatedMinutesValidation';
 import { mockModuleLibrary } from '@/store/apis/mockData';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleLibraryPage } from './ModuleLibraryPage';
@@ -52,6 +54,29 @@ function renderModuleLibraryPage(route = paths.moduleLibrary) {
     </Routes>,
     { route },
   );
+}
+
+function getActionSlots(row: HTMLElement): string[] {
+  return Array.from(row.querySelectorAll('[data-action-slot]')).map(
+    (slot) => slot.getAttribute('data-action-slot') ?? '',
+  );
+}
+
+function getActionSlot(row: HTMLElement, slot: string): HTMLElement {
+  const element = row.querySelector(`[data-action-slot="${slot}"]`);
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`Missing action slot: ${slot}`);
+  }
+  return element;
+}
+
+async function getModuleRow(title: string): Promise<HTMLElement> {
+  const titleEl = await screen.findByRole('link', { name: title });
+  const row = titleEl.closest('tr');
+  if (!(row instanceof HTMLElement)) {
+    throw new Error(`Missing row for module: ${title}`);
+  }
+  return row;
 }
 
 async function getDomainSelect() {
@@ -138,16 +163,16 @@ describe('ModuleLibraryPage', () => {
   it('hides Assign for chatbot FAQ-only published modules', async () => {
     renderModuleLibraryPage();
 
-    const faqTitle = await screen.findByRole('link', {
-      name: 'Hypertension Chatbot FAQs',
-    });
-    const faqRow = faqTitle.closest('tr');
-    expect(faqRow).not.toBeNull();
+    const faqRow = await getModuleRow('Hypertension Chatbot FAQs');
     expect(
-      within(faqRow as HTMLElement).queryByRole('button', {
+      within(faqRow).queryByRole('button', {
         name: /^assign$/i,
       }),
     ).not.toBeInTheDocument();
+    expect(getActionSlots(faqRow)).toEqual(['assign']);
+    expect(
+      within(getActionSlot(faqRow, 'assign')).getByText('—'),
+    ).toBeInTheDocument();
   });
 
   it('opens a published module from its title for supervisors', async () => {
@@ -455,60 +480,6 @@ describe('ModuleLibraryPage', () => {
     });
   });
 
-  it('applies cascading geography filters from the drawer', async () => {
-    roleState.role = 'programManager';
-    const user = userEvent.setup();
-    renderModuleLibraryPage();
-
-    await openFiltersDrawer(user);
-    const divisionInput = await screen.findByLabelText(/^division$/i);
-    await user.click(divisionInput);
-    await user.click(await screen.findByRole('option', { name: 'Rangpur' }));
-
-    const districtInput = screen.getByLabelText(/^district$/i);
-    await user.click(districtInput);
-    expect(
-      await screen.findByRole('option', { name: 'Lalmonirhat' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: 'Naogaon' }),
-    ).not.toBeInTheDocument();
-    await user.click(screen.getByRole('option', { name: 'Lalmonirhat' }));
-
-    const upazilaInput = screen.getByLabelText(/^upazila$/i);
-    await user.click(upazilaInput);
-    await user.click(
-      await screen.findByRole('option', { name: 'Lalmonirhat Sadar' }),
-    );
-
-    await user.click(divisionInput);
-    await user.click(await screen.findByRole('option', { name: 'Rajshahi' }));
-    expect(screen.getByLabelText(/^district$/i)).toHaveDisplayValue(
-      'All districts',
-    );
-    expect(screen.getByLabelText(/^upazila$/i)).toHaveDisplayValue(
-      'All upazilas',
-    );
-    await user.click(screen.getByLabelText(/^district$/i));
-    expect(
-      await screen.findByRole('option', { name: 'Naogaon' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: 'Lalmonirhat' }),
-    ).not.toBeInTheDocument();
-    await user.keyboard('{Escape}');
-    await applyFilters(user);
-
-    await openFiltersDrawer(user);
-    expect(screen.getByLabelText(/^division$/i)).toHaveDisplayValue('Rajshahi');
-    expect(screen.getByLabelText(/^district$/i)).toHaveDisplayValue(
-      'All districts',
-    );
-    expect(screen.getByLabelText(/^upazila$/i)).toHaveDisplayValue(
-      'All upazilas',
-    );
-  });
-
   it('shows filtered empty state when no modules match', async () => {
     roleState.role = 'programManager';
     const user = userEvent.setup();
@@ -748,6 +719,41 @@ describe('ModuleLibraryPage', () => {
     expect(deactivateButtons.length).toBeGreaterThan(0);
   });
 
+  it('keeps published-tab action slots aligned when Assign is hidden', async () => {
+    roleState.role = 'programManager';
+    const user = userEvent.setup();
+    renderModuleLibraryPage();
+
+    await user.click(screen.getByRole('tab', { name: /published/i }));
+
+    const assignableRow = await getModuleRow('SPICE App — Visit Submission');
+    expect(getActionSlots(assignableRow)).toEqual(['assign', 'deactivate']);
+    expect(
+      within(getActionSlot(assignableRow, 'assign')).getByRole('button', {
+        name: /^assign$/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(getActionSlot(assignableRow, 'deactivate')).getByRole('button', {
+        name: /^deactivate$/i,
+      }),
+    ).toBeInTheDocument();
+
+    const faqRow = await getModuleRow('Hypertension Chatbot FAQs');
+    expect(getActionSlots(faqRow)).toEqual(['assign', 'deactivate']);
+    expect(
+      within(getActionSlot(faqRow, 'assign')).queryByRole('button'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(getActionSlot(faqRow, 'assign')).getByText('—'),
+    ).toBeInTheDocument();
+    expect(
+      within(getActionSlot(faqRow, 'deactivate')).getByRole('button', {
+        name: /^deactivate$/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('shows confirmation modal when deactivating a module and completes deactivation', async () => {
     roleState.role = 'programManager';
     const user = userEvent.setup();
@@ -828,6 +834,10 @@ describe('ModuleLibraryPage', () => {
     });
 
     expect(createDraft).toBeDisabled();
+    expect(within(dialog).getByPlaceholderText(/মডিউল বিবরণ/i)).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.description),
+    );
 
     await user.type(
       within(dialog).getByPlaceholderText(/বাংলা শিরোনাম/i),
@@ -839,7 +849,15 @@ describe('ModuleLibraryPage', () => {
       name: /^domain$/i,
     });
     await user.selectOptions(domainSelect, 'Enter new…');
-    await user.type(within(dialog).getByPlaceholderText(/rmnch/i), 'RMNCH');
+    const domainInput = within(dialog).getByPlaceholderText(/rmnch/i);
+    expect(domainInput).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(
+      within(dialog).getByText(`0/${FIELD_LIMITS.taxonomy}`),
+    ).toBeInTheDocument();
+    await user.type(domainInput, 'RMNCH');
 
     expect(createDraft).toBeEnabled();
   });
@@ -887,6 +905,32 @@ describe('ModuleLibraryPage', () => {
     await user.clear(estimatedMinutesInput);
     await user.type(estimatedMinutesInput, '61');
 
+    expect(
+      within(dialog).getByText(/estimated minutes cannot exceed 60\./i),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /create draft/i }),
+    ).toBeDisabled();
+  });
+
+  it('blocks a third digit in estimated minutes', async () => {
+    roleState.role = 'programManager';
+    const user = userEvent.setup();
+    renderModuleLibraryPage();
+
+    await user.click(screen.getByRole('button', { name: /create module/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /create module/i });
+    const estimatedMinutesInput =
+      within(dialog).getByLabelText(/^estimated minutes$/i);
+    expect(estimatedMinutesInput).toHaveAttribute(
+      'maxLength',
+      String(MAX_ESTIMATED_MINUTES_DIGITS),
+    );
+    await user.clear(estimatedMinutesInput);
+    await user.type(estimatedMinutesInput, '999');
+
+    expect(estimatedMinutesInput).toHaveValue('99');
     expect(
       within(dialog).getByText(/estimated minutes cannot exceed 60\./i),
     ).toBeInTheDocument();
@@ -946,6 +990,41 @@ describe('ModuleLibraryPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('module-review')).toBeInTheDocument();
     });
+  });
+
+  it('packs all-tab actions without reserved empty slots', async () => {
+    roleState.role = 'programManager';
+    renderModuleLibraryPage(`${paths.moduleLibrary}?tab=all`);
+
+    const publishedRow = await getModuleRow('SPICE App — Visit Submission');
+    expect(getActionSlots(publishedRow)).toEqual([]);
+    expect(
+      within(publishedRow).getByRole('button', { name: /^assign$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(publishedRow).getByRole('button', { name: /^deactivate$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(publishedRow).queryByRole('button', { name: /^review$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(publishedRow).queryByRole('button', { name: /^publish$/i }),
+    ).not.toBeInTheDocument();
+
+    const draftRow = await getModuleRow('BP Measurement Technique');
+    expect(getActionSlots(draftRow)).toEqual([]);
+    expect(
+      within(draftRow).getByRole('button', { name: /^review$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(draftRow).getByRole('button', { name: /^publish$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(draftRow).queryByRole('button', { name: /^assign$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(draftRow).queryByRole('button', { name: /^deactivate$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('switches to needs review tab with expanded accordion when Resolve is clicked for a review_pending module from all tab', async () => {

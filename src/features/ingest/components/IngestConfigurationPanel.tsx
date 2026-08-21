@@ -1,4 +1,4 @@
-import { Select, Tooltip } from '@/components/ui';
+import { LimitedTextarea, Select, Tooltip } from '@/components/ui';
 import type {
   IngestAssessmentMode,
   IngestContentDomain,
@@ -6,10 +6,17 @@ import type {
 import { CONTENT_DOMAIN_TYPE_TOOLTIP } from '@/features/ingest/constants/ingestConfigurationTooltips';
 import {
   INGEST_MODULE_COUNT_MAX,
+  INGEST_MODULE_COUNT_MAX_DIGITS,
   INGEST_MODULE_COUNT_MIN,
   INGEST_MODULE_COUNT_RANGE_LABEL,
+  INGESTION_INSTRUCTIONS_LIMIT_LABEL,
+  INGESTION_INSTRUCTIONS_MAX_LENGTH,
+  INGESTION_INSTRUCTIONS_MAX_LINES,
   type IngestModuleCountInput,
+  countIngestionInstructionLines,
   isIngestModuleCountInRange,
+  isIngestionInstructionsValid,
+  parseOptionalIngestModuleCountInput,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
   INGEST_ASSESSMENT_MODE_OPTIONS,
@@ -36,20 +43,6 @@ export interface IngestConfigurationPanelProps {
   className?: string;
 }
 
-function parseOptionalModuleCount(
-  raw: string,
-  onChange: (value: IngestModuleCountInput) => void,
-) {
-  if (raw === '') {
-    onChange('');
-    return;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isNaN(parsed)) {
-    onChange(parsed);
-  }
-}
-
 export const IngestConfigurationPanel = ({
   disabled = false,
   assessmentMode,
@@ -65,6 +58,11 @@ export const IngestConfigurationPanel = ({
   instructionsPlaceholder = DEFAULT_INSTRUCTIONS_PLACEHOLDER,
   className,
 }: IngestConfigurationPanelProps) => {
+  const instructionsLineCount = countIngestionInstructionLines(
+    ingestionInstructions,
+  );
+  const instructionsValid = isIngestionInstructionsValid(ingestionInstructions);
+
   return (
     <div
       className={cn(
@@ -126,13 +124,19 @@ export const IngestConfigurationPanel = ({
               </span>
             </span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+              autoComplete="off"
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={cardsPerModule}
               disabled={disabled}
+              aria-label="Learning material per module"
               onChange={(e) =>
-                parseOptionalModuleCount(e.target.value, onCardsPerModuleChange)
+                onCardsPerModuleChange(
+                  parseOptionalIngestModuleCountInput(e.target.value),
+                )
               }
               placeholder="e.g. 5"
             />
@@ -157,15 +161,18 @@ export const IngestConfigurationPanel = ({
               </span>
             </span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+              autoComplete="off"
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={quizzesPerModule}
               disabled={disabled}
+              aria-label="Quizzes per module"
               onChange={(e) =>
-                parseOptionalModuleCount(
-                  e.target.value,
-                  onQuizzesPerModuleChange,
+                onQuizzesPerModuleChange(
+                  parseOptionalIngestModuleCountInput(e.target.value),
                 )
               }
               placeholder="e.g. 5"
@@ -191,13 +198,30 @@ export const IngestConfigurationPanel = ({
               (Optional)
             </span>
           </span>
-          <textarea
-            className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary placeholder:text-spice-text-muted"
+          <LimitedTextarea
+            id="ingest-ingestion-instructions"
             value={ingestionInstructions}
             disabled={disabled}
-            onChange={(e) => onIngestionInstructionsChange(e.target.value)}
+            maxLength={INGESTION_INSTRUCTIONS_MAX_LENGTH}
+            onChange={onIngestionInstructionsChange}
             placeholder={instructionsPlaceholder}
+            aria-invalid={!instructionsValid}
+            aria-label="Ingestion instructions"
+            textareaClassName={cn(
+              'min-h-[84px] placeholder:text-spice-text-muted',
+              !instructionsValid && 'border-spice-semantic-error',
+            )}
           />
+          {!instructionsValid ? (
+            <span className="text-[11px] text-spice-semantic-error">
+              Enter at most {INGESTION_INSTRUCTIONS_MAX_LINES} lines (
+              {instructionsLineCount} used).
+            </span>
+          ) : (
+            <span className="text-[11px] text-spice-text-muted">
+              {INGESTION_INSTRUCTIONS_LIMIT_LABEL}
+            </span>
+          )}
         </label>
       </div>
     </div>

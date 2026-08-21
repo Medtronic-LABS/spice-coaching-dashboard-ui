@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner, Button, Card, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  LimitedTextarea,
+  LimitedTextInput,
+  Loader,
+} from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
 import { useModuleEditor } from '@/features/modules/hooks/useModuleEditor';
@@ -71,11 +79,11 @@ export const ModuleQuizPage = () => {
               <div className="mb-2 text-xs font-semibold tracking-wider text-spice-text-muted">
                 QUESTION {index + 1} • {question.questionType}
               </div>
-              <input
-                className="w-full rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
+              <LimitedTextInput
                 value={blocksToPlainText(question.question)}
+                maxLength={FIELD_LIMITS.quizQuestion}
                 disabled={isReadOnly}
-                onChange={(event) => {
+                onChange={(value) => {
                   if (!quiz) return;
                   updateQuiz({
                     ...quiz,
@@ -86,9 +94,7 @@ export const ModuleQuizPage = () => {
                             question: [
                               {
                                 type: 'paragraph',
-                                content: [
-                                  { type: 'text', text: event.target.value },
-                                ],
+                                content: [{ type: 'text', text: value }],
                               },
                             ],
                           }
@@ -101,11 +107,12 @@ export const ModuleQuizPage = () => {
                 {question.options.map((option, optionIndex) => (
                   <label
                     key={`${question.id}-${optionIndex}`}
-                    className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${optionIndex === question.answerIndex ? 'border-green-500 bg-green-50' : 'border-spice-border bg-spice-bg-surface'}`}
+                    className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${optionIndex === question.answerIndex ? 'border-green-500 bg-green-50' : 'border-spice-border bg-spice-bg-surface'}`}
                   >
                     <input
                       type="radio"
                       name={String(question.id)}
+                      className="mt-2.5"
                       checked={optionIndex === question.answerIndex}
                       disabled={isReadOnly}
                       onChange={() => {
@@ -126,11 +133,13 @@ export const ModuleQuizPage = () => {
                         });
                       }}
                     />
-                    <input
-                      className="w-full bg-transparent outline-none"
+                    <LimitedTextInput
+                      className="min-w-0 flex-1"
+                      inputClassName="h-8 border-0 bg-transparent px-0"
                       value={blocksToPlainText(option.text)}
+                      maxLength={FIELD_LIMITS.quizOption}
                       disabled={isReadOnly}
-                      onChange={(event) => {
+                      onChange={(value) => {
                         if (!quiz) return;
                         updateQuiz({
                           ...quiz,
@@ -149,7 +158,7 @@ export const ModuleQuizPage = () => {
                                                 content: [
                                                   {
                                                     type: 'text',
-                                                    text: event.target.value,
+                                                    text: value,
                                                   },
                                                 ],
                                               },
@@ -170,11 +179,12 @@ export const ModuleQuizPage = () => {
                 <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
                   EXPLANATION
                 </div>
-                <textarea
-                  className="min-h-[100px] w-full resize-y rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
+                <LimitedTextarea
+                  textareaClassName="min-h-[100px]"
                   value={blocksToPlainText(question.explanation)}
+                  maxLength={FIELD_LIMITS.description}
                   disabled={isReadOnly}
-                  onChange={(event) => {
+                  onChange={(value) => {
                     if (!quiz) return;
                     updateQuiz({
                       ...quiz,
@@ -185,9 +195,7 @@ export const ModuleQuizPage = () => {
                               explanation: [
                                 {
                                   type: 'paragraph',
-                                  content: [
-                                    { type: 'text', text: event.target.value },
-                                  ],
+                                  content: [{ type: 'text', text: value }],
                                 },
                               ],
                             }
