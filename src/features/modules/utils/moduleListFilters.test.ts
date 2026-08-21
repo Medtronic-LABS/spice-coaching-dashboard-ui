@@ -120,6 +120,12 @@ describe('moduleListFilters', () => {
         domain: 'rmnch',
       }),
     ).toBe(true);
+    expect(
+      hasActiveModuleFilters({
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        divisionId: '1',
+      }),
+    ).toBe(true);
   });
 
   it('keeps a selected domain only when it exists in the current options', () => {
@@ -168,6 +174,38 @@ describe('moduleListFilters', () => {
     expect(parseFiltersFromSearchParams(params).sourceDocumentId).toBe(
       'doc-123',
     );
+  });
+
+  it('round-trips geography filters through URL params', () => {
+    const params = buildModuleListSearchParams(
+      'drafts',
+      {
+        ...EMPTY_MODULE_LIBRARY_FILTERS,
+        divisionId: '1',
+        districtId: '10',
+        upazilaId: '2',
+      },
+      true,
+    );
+    expect(params.get('division_id')).toBe('1');
+    expect(params.get('district_id')).toBe('10');
+    expect(params.get('upazila_id')).toBe('2');
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      divisionId: '1',
+      districtId: '10',
+      upazilaId: '2',
+    });
+  });
+
+  it('ignores invalid geography ids in the URL', () => {
+    const params = new URLSearchParams(
+      'division_id=abc&district_id=0&upazila_id=12',
+    );
+    expect(parseFiltersFromSearchParams(params)).toEqual({
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      upazilaId: '12',
+    });
   });
 
   it('persists the all tab in URL params so it does not fall back to drafts', () => {
