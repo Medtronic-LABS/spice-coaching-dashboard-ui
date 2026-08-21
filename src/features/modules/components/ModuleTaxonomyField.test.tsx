@@ -1,6 +1,24 @@
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { ModuleTaxonomyField } from './ModuleTaxonomyField';
+
+function LiveValueInOptionsField() {
+  const catalog = ['rmnch', 'clinical'];
+  const [value, setValue] = useState('');
+  const options =
+    value.trim() && !catalog.includes(value) ? [value, ...catalog] : catalog;
+
+  return (
+    <ModuleTaxonomyField
+      label="Domain"
+      value={value}
+      options={options}
+      onChange={setValue}
+    />
+  );
+}
 
 describe('ModuleTaxonomyField', () => {
   it('shows a text input when there are no existing options', () => {
@@ -16,6 +34,11 @@ describe('ModuleTaxonomyField', () => {
 
     expect(screen.getByLabelText(/^domain$/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('rmnch')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('rmnch')).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(screen.getByText(`0/${FIELD_LIMITS.taxonomy}`)).toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
@@ -50,10 +73,28 @@ describe('ModuleTaxonomyField', () => {
     expect(onChange).toHaveBeenLastCalledWith('');
 
     const customInput = screen.getByLabelText(/^new domain$/i);
+    expect(customInput).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(screen.getByText(`0/${FIELD_LIMITS.taxonomy}`)).toBeInTheDocument();
     await user.type(customInput, 'Hypertension');
     expect(onChange.mock.calls.map(([value]) => value).join('')).toBe(
       'Hypertension',
     );
+  });
+
+  it('keeps the custom input while typing even if options later include the value', async () => {
+    const user = userEvent.setup();
+
+    render(<LiveValueInOptionsField />);
+
+    await user.selectOptions(screen.getByLabelText(/^domain$/i), '__other__');
+    const customInput = screen.getByLabelText(/^new domain$/i);
+    await user.type(customInput, 'Hypertension');
+
+    expect(customInput).toHaveValue('Hypertension');
+    expect(screen.getByLabelText(/^domain$/i)).toHaveValue('__other__');
   });
 
   it('marks the field as required when requested', () => {
@@ -69,6 +110,28 @@ describe('ModuleTaxonomyField', () => {
 
     expect(screen.getByLabelText(/domain/i)).toBeRequired();
     expect(screen.getByText('*')).toBeInTheDocument();
+  });
+
+  it('hides the character counter when showCounter is false', async () => {
+    const user = userEvent.setup();
+    render(
+      <ModuleTaxonomyField
+        label="Domain"
+        value=""
+        options={['rmnch']}
+        showCounter={false}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText(/^domain$/i), '__other__');
+    expect(screen.getByLabelText(/^new domain$/i)).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.taxonomy),
+    );
+    expect(
+      screen.queryByText(`0/${FIELD_LIMITS.taxonomy}`),
+    ).not.toBeInTheDocument();
   });
 
   it('hides the visible label when asked and keeps an accessible name', () => {

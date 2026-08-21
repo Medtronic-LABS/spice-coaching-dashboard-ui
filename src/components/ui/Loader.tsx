@@ -7,10 +7,16 @@ export interface LoaderProps {
   label?: string;
 }
 
-function CircularSpinner() {
+export interface CircularSpinnerProps {
+  className?: string;
+}
+
+export function CircularSpinner({
+  className = 'h-14 w-14',
+}: CircularSpinnerProps) {
   return (
     <svg
-      className="h-14 w-14 animate-spin"
+      className={`animate-spin ${className}`}
       viewBox="0 0 56 56"
       fill="none"
       aria-hidden="true"
@@ -20,7 +26,7 @@ function CircularSpinner() {
         cy="28"
         r="22"
         strokeWidth="5"
-        className="stroke-white/20"
+        className="stroke-current opacity-20"
       />
       <circle
         cx="28"

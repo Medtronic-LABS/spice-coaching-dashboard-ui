@@ -1,3 +1,7 @@
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
 import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
 import type {
   AdminModuleDetailResponse,
@@ -47,6 +51,9 @@ export async function persistAdminModuleDraft(options: {
   const domain = normalizeModuleTaxonomyLabel(working.domain);
   if (!domain) {
     throw new Error('Domain is required.');
+  }
+  if (working.domain.trim().length > FIELD_LIMITS.taxonomy) {
+    throw new Error(fieldLimitExceededMessage('Domain', FIELD_LIMITS.taxonomy));
   }
   const estimatedMinutesError = getEstimatedMinutesValidationError(
     working.estimated_minutes,

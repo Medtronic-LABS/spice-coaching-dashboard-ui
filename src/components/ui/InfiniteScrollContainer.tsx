@@ -66,6 +66,10 @@ export const InfiniteScrollContainer = ({
     if (!root || !sentinel) return;
 
     let cancelled = false;
+    const isRootScrollable =
+      root.scrollHeight > root.clientHeight && root.clientHeight > 0;
+    const observerRoot = isRootScrollable ? root : null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (cancelled) return;
@@ -73,7 +77,7 @@ export const InfiniteScrollContainer = ({
         observer.disconnect();
         onLoadMoreRef.current();
       },
-      { root, rootMargin },
+      { root: observerRoot, rootMargin },
     );
 
     observer.observe(sentinel);

@@ -1,6 +1,7 @@
 import { type InputHTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchIcon } from '@/assets/icon';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
@@ -28,6 +29,7 @@ export const SearchInput = ({
   onChange,
   placeholder,
   className,
+  maxLength = FIELD_LIMITS.searchQuery,
   ...props
 }: SearchInputProps) => {
   const { t } = useTranslation();
@@ -47,6 +49,7 @@ export const SearchInput = ({
         onChange={(event) => onChange(event.target.value)}
         placeholder={resolvedPlaceholder}
         {...props}
+        maxLength={maxLength}
         aria-label={
           ariaLabel ?? (ariaLabelledBy ? undefined : t('ui.search.ariaLabel'))
         }

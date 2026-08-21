@@ -178,6 +178,44 @@ describe('adminModulesApi fetchModules request', () => {
   });
 });
 
+describe('adminModulesApi splitMergeModule request', () => {
+  afterEach(() => {
+    mockBaseQuerySpy.mockReset();
+  });
+
+  it('POSTs /admin/ingest/modules/:moduleId/split-merge with no body', async () => {
+    mockBaseQuerySpy.mockResolvedValue({
+      data: {
+        primary_module_id: 'candidate-1',
+        secondary_module_id: 'merge-secondary-1',
+        source_module_id: 'existing-1',
+        primary_lifecycle_status: 'draft',
+        secondary_lifecycle_status: 'retired',
+      },
+    });
+    const { baseApi } = await import('@/store/apis/base');
+    const { adminModulesApi } = await import('./adminModulesApi');
+    const store = configureStore({
+      reducer: { [baseApi.reducerPath]: baseApi.reducer },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(baseApi.middleware),
+    });
+
+    await store
+      .dispatch(
+        adminModulesApi.endpoints.splitMergeModule.initiate({
+          moduleId: 'candidate-1',
+        }),
+      )
+      .unwrap();
+
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(request.url).toBe('/admin/ingest/modules/candidate-1/split-merge');
+    expect(request.method).toBe('POST');
+    expect(request.body).toBeUndefined();
+  });
+});
+
 describe('adminModulesApi fetchModules response', () => {
   afterEach(() => {
     mockBaseQuerySpy.mockReset();

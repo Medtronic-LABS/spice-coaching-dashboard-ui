@@ -1,4 +1,10 @@
-import { Banner, Card, KeyValue, Loader, Modal } from '@/components/ui';
+import {
+  Banner,
+  Card,
+  CircularSpinner,
+  KeyValue,
+  Modal,
+} from '@/components/ui';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -27,7 +33,6 @@ export const IngestMatchedModulePreviewModal = ({
 }: IngestMatchedModulePreviewModalProps) => {
   const {
     data: module,
-    isLoading,
     isFetching,
     error,
   } = useGetModuleDetailQuery(moduleId ?? '', {
@@ -86,11 +91,18 @@ export const IngestMatchedModulePreviewModal = ({
             </Banner>
           ) : null}
 
-          {error ? (
+          {error && !isFetching ? (
             <Banner tone="critical">{formatRtkQueryError(error)}</Banner>
           ) : null}
 
-          {module ? (
+          {isFetching ? (
+            <div className="flex h-full min-h-[300px] items-center justify-center gap-3 text-sm text-spice-text-muted">
+              <CircularSpinner className="h-5 w-5 text-spice-brand-primary" />
+              Loading module…
+            </div>
+          ) : null}
+
+          {module && !isFetching ? (
             <div className="space-y-5">
               <section className="space-y-3">
                 <div className="grid gap-2.5 rounded-lg border border-spice-border bg-spice-bg-tint/40 p-3.5 sm:grid-cols-2">
@@ -262,11 +274,6 @@ export const IngestMatchedModulePreviewModal = ({
               </section>
             </div>
           ) : null}
-
-          <Loader
-            open={Boolean(moduleId) && (isLoading || isFetching) && !module}
-            label="Loading module…"
-          />
         </div>
       </Card>
     </Modal>

@@ -114,6 +114,8 @@ export interface AdminModuleDetailResponse {
   estimated_minutes: number;
   published_at: string | null;
   created_at: string;
+  created_by?: ModuleActorRef | null;
+  published_by?: ModuleActorRef | null;
   quality_flags: { flags: string[] } | null;
   module_json: AdminModuleModuleJson;
   cards: AdminModuleCard[];
@@ -411,6 +413,8 @@ function normalizeModuleDetail(
       typeof response.published_at === 'string' ? response.published_at : null,
     created_at:
       typeof response.created_at === 'string' ? response.created_at : '',
+    created_by: normalizeHierarchyActorRef(response.created_by),
+    published_by: normalizeHierarchyActorRef(response.published_by),
     quality_flags:
       response.quality_flags && typeof response.quality_flags === 'object'
         ? (response.quality_flags as { flags: string[] })
@@ -484,6 +488,14 @@ export interface ReactivateModuleResponse {
   module_id: string;
   lifecycle_status: 'published';
   last_reactivated_at: string;
+}
+
+export interface SplitMergeModuleResponse {
+  primary_module_id: string;
+  secondary_module_id: string;
+  source_module_id: string;
+  primary_lifecycle_status: AdminModuleLifecycleStatus;
+  secondary_lifecycle_status: AdminModuleLifecycleStatus;
 }
 
 export interface FetchModulesQueryArgs {
@@ -736,6 +748,15 @@ export const adminModulesApi = baseApi.injectEndpoints({
         method: 'POST',
       }),
     }),
+    splitMergeModule: builder.mutation<
+      SplitMergeModuleResponse,
+      { moduleId: string }
+    >({
+      query: ({ moduleId }) => ({
+        url: `/admin/ingest/modules/${encodeURIComponent(moduleId)}/split-merge`,
+        method: 'POST',
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -751,4 +772,5 @@ export const {
   useDeactivateModuleMutation,
   useReactivateModuleMutation,
   useOverrideMergeModuleMutation,
+  useSplitMergeModuleMutation,
 } = adminModulesApi;

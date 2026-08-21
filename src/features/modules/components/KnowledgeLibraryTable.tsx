@@ -6,10 +6,9 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
-import { cn } from '@/utils';
 import { type ColumnDef, Table } from '@/components/common/Table';
+import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -19,7 +18,6 @@ import {
   Card,
   Loader,
   SearchInput,
-  Select,
   Tabs,
   TruncatedText,
 } from '@/components/ui';
@@ -28,7 +26,6 @@ import { KnowledgeEditModal } from '@/features/modules/components/KnowledgeEditM
 import { KnowledgeRetireModal } from '@/features/modules/components/KnowledgeRetireModal';
 import { KnowledgeThumbnailCell } from '@/features/modules/components/KnowledgeThumbnailCell';
 import { AssignmentDialog } from '@/features/modules/components/AssignmentDialog';
-import { usePostDocumentViewedTelemetryMutation } from '@/features/admin-dashboard/api/telemetryApi';
 import {
   useFetchKnowledgeUploadersQuery,
   useRetireKnowledgeDocumentMutation,
@@ -59,14 +56,20 @@ import {
   uploadedDateInputToToIso,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
-import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
-import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 
 type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
 };
+
+type KnowledgeStatusTone =
+  | 'processing'
+  | 'completed'
+  | 'partial'
+  | 'failed'
+  | 'neutral';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
@@ -86,6 +89,58 @@ const RefreshIcon = ({ className }: { className?: string }) => (
     <path d="M21 3v6h-6" />
   </svg>
 );
+
+function formatKnowledgeStatusDisplay(status: string | undefined): string {
+  const trimmed = (status ?? '').trim();
+  if (!trimmed) return 'Unknown';
+  return trimmed
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function knowledgeStatusTone(status: string | undefined): KnowledgeStatusTone {
+  const normalized = (status ?? '').trim().toLowerCase();
+  if (!normalized) return 'neutral';
+  if (
+    normalized === 'uploaded' ||
+    normalized === 'uploading' ||
+    normalized === 'ingesting' ||
+    normalized === 'processing' ||
+    normalized === 'running'
+  ) {
+    return 'processing';
+  }
+  if (normalized === 'partially_succeeded') return 'partial';
+  if (normalized === 'ingested' || normalized === 'completed') {
+    return 'completed';
+  }
+  if (normalized.includes('fail') || normalized.includes('error')) {
+    return 'failed';
+  }
+  return 'neutral';
+}
+
+function knowledgeStatusBadgeClassName(tone: KnowledgeStatusTone): string {
+  switch (tone) {
+    case 'processing':
+      return 'bg-spice-palette-violetLt text-spice-palette-violet';
+    case 'completed':
+      return 'bg-spice-palette-purpleLt text-spice-palette-purple';
+    case 'partial':
+      return 'bg-spice-palette-pinkLt text-spice-palette-pink';
+    case 'failed':
+      return 'bg-spice-semantic-errorBg text-spice-semantic-error';
+    case 'neutral':
+      return 'bg-spice-bg-tint text-spice-text-muted';
+    default: {
+      const exhaustiveCheck: never = tone;
+      return exhaustiveCheck;
+    }
+  }
+}
 
 export const KnowledgeLibraryTable = () => {
   const navigate = useNavigate();
@@ -113,11 +168,18 @@ export const KnowledgeLibraryTable = () => {
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.sortOrder,
   );
 
-  const [page, setPage] = useState(KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.page);
   const [pageSize, setPageSize] = useState(
     KNOWLEDGE_LIBRARY_FILTER_DEFAULTS.pageSize,
   );
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(0);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<KnowledgeLibraryItem | null>(null);
@@ -146,8 +208,6 @@ export const KnowledgeLibraryTable = () => {
     useUpdateSourceDocumentThumbnailMutation();
   const [retireKnowledgeDocument, { isLoading: isRetiring }] =
     useRetireKnowledgeDocumentMutation();
-  const [postDocumentViewedTelemetry] =
-    usePostDocumentViewedTelemetryMutation();
 
   const drawerDateRangeInvalid =
     isKnowledgeDrawerDateRangeInvalid(appliedDrawerFilters);
@@ -184,7 +244,6 @@ export const KnowledgeLibraryTable = () => {
       ...(appliedDrawerFilters.assigned
         ? { assigned: appliedDrawerFilters.assigned === 'true' }
         : {}),
-      ...toGeographyQueryParams(appliedDrawerFilters),
       sort_by: sortBy,
       sort_dir: sortOrder,
       limit: pageSize,
@@ -255,46 +314,15 @@ export const KnowledgeLibraryTable = () => {
   const hasNextPage = totalPages > 0 && page + 1 < totalPages;
 
   useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   useEffect(() => {
-    if (totalPages > 0 && page >= totalPages) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [statusTab, searchQ, appliedDrawerFilters, sortBy, sortOrder]);
+    resetPage();
+  }, [statusTab, searchQ, appliedDrawerFilters, sortBy, sortOrder, resetPage]);
 
   const rangeStart = assets.length ? page * pageSize + 1 : 0;
   const rangeEnd = assets.length ? page * pageSize + assets.length : 0;
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) &&
-      parsed >= 1 &&
-      (totalPages <= 0 || parsed <= totalPages);
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    const parsed = Number.parseInt(raw, 10);
-    if (parsed < 1) return;
-    if (totalPages > 0 && parsed > totalPages) return;
-    setPageInput(raw);
-  };
 
   const handleOpenFiltersDrawer = () => {
     setDraftDrawerFilters(appliedDrawerFilters);
@@ -318,15 +346,6 @@ export const KnowledgeLibraryTable = () => {
     setAppliedDrawerFilters(cleared);
     setPage(0);
   };
-
-  const geographySection = useGeographyFilterOptions({
-    enabled: filtersDrawerOpen,
-    idPrefix: 'knowledge',
-    selection: draftDrawerFilters,
-    onSelectionChange: (next) => {
-      setDraftDrawerFilters((current) => ({ ...current, ...next }));
-    },
-  });
 
   const handleSort = (nextSortBy: string, nextSortDir: 'asc' | 'desc') => {
     setSortBy(nextSortBy as typeof sortBy);
@@ -436,6 +455,23 @@ export const KnowledgeLibraryTable = () => {
         render: (row) => row.fileType.toUpperCase(),
       },
       {
+        key: 'status',
+        header: 'Status',
+        sortable: true,
+        sortKey: 'status',
+        headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
+        render: (row) => (
+          <span
+            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${knowledgeStatusBadgeClassName(
+              knowledgeStatusTone(row.status),
+            )}`}
+          >
+            {formatKnowledgeStatusDisplay(row.status)}
+          </span>
+        ),
+      },
+      {
         key: 'uploadedAt',
         header: 'Uploaded Date',
         sortable: true,
@@ -507,14 +543,6 @@ export const KnowledgeLibraryTable = () => {
                         object_name: row.storedPath,
                         disposition: 'attachment',
                       }).unwrap();
-                      try {
-                        await postDocumentViewedTelemetry({
-                          source_document_id: row.id,
-                          document_title: row.title,
-                        }).unwrap();
-                      } catch {
-                        // Telemetry should not block downloads.
-                      }
                       await downloadFileAs(res.presigned_url, downloadName);
                     } catch (err) {
                       setDownloadError(formatRtkQueryError(err));
@@ -655,7 +683,6 @@ export const KnowledgeLibraryTable = () => {
             uploaderSearch={uploaderSearch}
             onUploaderSearchChange={setUploaderSearch}
             uploadersLoading={uploadersLoading}
-            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
 
@@ -669,108 +696,26 @@ export const KnowledgeLibraryTable = () => {
           onSort={handleSort}
         />
 
-        <div className="flex flex-col gap-3 border-t border-spice-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-spice-text-muted">
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Rows
-              </span>
-              <Select
-                aria-label="Rows per page"
-                className="h-8 w-[4.5rem] px-2 text-xs"
-                value={String(pageSize)}
-                options={PAGE_SIZE_OPTIONS.map((size) => ({
-                  label: String(size),
-                  value: String(size),
-                }))}
-                onChange={(value) => {
-                  const next = Number.parseInt(value, 10);
-                  if (!Number.isFinite(next) || next <= 0) return;
-                  setPageSize(next);
-                  setPage(0);
-                }}
-              />
-            </label>
-
-            <label className="inline-flex items-center gap-2">
-              <span className="whitespace-nowrap font-medium text-spice-text-medium">
-                Page
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages > 0 ? totalPages : 1}
-                step={1}
-                inputMode="numeric"
-                aria-label="Page number"
-                className={cn(
-                  'h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary caret-spice-palette-purple',
-                  SPICE_INPUT_FOCUS_CLASSNAME,
-                )}
-                value={pageInput}
-                onChange={(e) => handlePageInputChange(e.target.value)}
-                onBlur={commitPageInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.currentTarget.blur();
-                  }
-                  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
-              />
-              <span className="whitespace-nowrap">
-                of{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {totalPages}
-                </span>
-              </span>
-            </label>
-
-            {assets.length ? (
-              <span className="whitespace-nowrap">
-                Showing{' '}
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeStart}
-                </span>
-                –
-                <span className="font-semibold text-spice-text-medium">
-                  {rangeEnd}
-                </span>
-                {total > 0 ? (
-                  <>
-                    {' '}
-                    of{' '}
-                    <span className="font-semibold text-spice-text-medium">
-                      {total}
-                    </span>
-                  </>
-                ) : null}
-              </span>
-            ) : (
-              <span>No results on this page</span>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasPrevPage}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-8 px-3 text-xs"
-              disabled={!hasNextPage}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          totalItems={total}
+          totalPages={totalPages}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          pageInput={pageInput}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPageSizeChange={(next) => {
+            setPageSize(next);
+            setPage(0);
+          }}
+          onPageInputChange={handlePageInputChange}
+          onCommitPageInput={commitPageInput}
+          onPrevPage={() => setPage((p) => Math.max(0, p - 1))}
+          onNextPage={() => setPage((p) => p + 1)}
+        />
       </Card>
 
       {assignTarget ? (

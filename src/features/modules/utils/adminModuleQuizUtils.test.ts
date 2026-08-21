@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import {
   addQuizItem,
+  createEmptyAdminModuleQuizItem,
   duplicateQuizItem,
   moveQuizDown,
   moveQuizUp,
@@ -72,6 +73,15 @@ describe('adminModuleQuizUtils reorder helpers', () => {
 });
 
 describe('adminModuleQuizUtils create helpers', () => {
+  it('createEmptyAdminModuleQuizItem returns a blank question with four options', () => {
+    const item = createEmptyAdminModuleQuizItem(1, 'quiz-empty');
+    expect(item.id).toBe('quiz-empty');
+    expect(item.question_order).toBe(1);
+    expect(item.question[DEPLOYMENT_PRIMARY_LOCALE]).toBe('');
+    expect(item.options[DEPLOYMENT_PRIMARY_LOCALE]).toEqual(['', '', '', '']);
+    expect(item.correct_indices).toEqual([0]);
+  });
+
   it('addQuizItem appends a question with four empty options', () => {
     const result = addQuizItem([]);
     expect(result).toHaveLength(1);

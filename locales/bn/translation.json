@@ -147,6 +147,7 @@
         "assignMoreDocument": "আরও ব্যবহারকারীকে ডকুমেন্ট অ্যাসাইন করুন",
         "assignMoreVideo": "আরও ব্যবহারকারীকে ভিডিও অ্যাসাইন করুন",
         "assignMoreHint": "এই মডিউলে আরও ব্যবহারকারী যোগ করুন",
+        "done": "সম্পন্ন",
         "goDashboard": "ড্যাশবোর্ডে যান",
         "goDashboardHint": "মডিউল কমপ্লিশন উইজেটে অগ্রগতি ট্র্যাক করুন"
       },
@@ -172,13 +173,13 @@
     },
     "kpis": {
       "active": "প্রতিক্রিয়াশীল SK",
-      "activeTooltip": "নির্বাচিত সময়ে অন্তত একবার প্রতিক্রিয়াশীল থাকা SK",
+      "activeTooltip": "নির্বাচিত তারিখ সীমার মধ্যে একটি লার্নিং বা রিফ্রেশার মডিউল খোলা SK, সম্পন্ন হোক বা না হোক।",
       "inactive": "অপ্রতিক্রিয়াশীল SK",
-      "inactiveTooltip": "নির্বাচিত সময়ে অপ্রতিক্রিয়াশীল থাকা SK",
-      "finishedModules": "অন্তত একটি মডিউল সম্পন্ন SK",
-      "finishedModulesTooltip": "নির্বাচিত সময়ে অন্তত একটি মডিউল সম্পন্ন করা SK",
+      "inactiveTooltip": "নির্বাচিত তারিখ সীমার মধ্যে কোনো লার্নিং বা রিফ্রেশার মডিউল না খোলা SK।",
+      "finishedModules": "সব মডিউল সম্পন্ন SK",
+      "finishedModulesTooltip": "নির্বাচিত সময়ে সব নির্ধারিত মডিউল সম্পন্ন করা SK।",
       "chatbotEngaged": "চ্যাটবট এনগেজড",
-      "chatbotEngagedTooltip": "নির্বাচিত সময়ে চ্যাটবট ব্যবহার করা SK",
+      "chatbotEngagedTooltip": "নির্বাচিত সময়ে AI চ্যাটবটে অন্তত একটি বার্তা পাঠানো SK।",
       "totalModules": "প্রকাশিত প্রশিক্ষণ মডিউল",
       "totalModulesTooltip": "ক্যাটালগে প্রকাশিত প্রশিক্ষণ মডিউলের মোট সংখ্যা"
     },
@@ -188,7 +189,6 @@
       "clearAll": "সব ফিল্টার মুছুন",
       "activeCount": "{{count}}টি ফিল্টার প্রয়োগ করা হয়েছে",
       "panelLabel": "ড্যাশবোর্ড ফিল্টার",
-      "statusLabel": "টিম ভিউ",
       "durationLabel": "সময়কাল:",
       "clearCustomRange": "কাস্টম তারিখ রেঞ্জ মুছুন",
       "invalidRangeTitle": "অবৈধ তারিখ রেঞ্জ",
@@ -201,17 +201,13 @@
       },
       "from": "শুরু",
       "to": "শেষ",
-      "sortLabel": "সাজান:",
       "sort": {
-        "default": "ডিফল্ট",
-        "at_risk_first": "ঝুঁকিতে প্রথম",
+        "at_risk_first": "সবচেয়ে বেশি মনোযোগ প্রয়োজন",
         "lowest_completion": "সর্বনিম্ন মডিউল সম্পন্ন",
         "lowest_chatbot": "সর্বনিম্ন চ্যাটবট এনগেজমেন্ট",
-        "most_inactive": "সর্বাধিক অপ্রতিক্রিয়াশীল SK",
         "name": "নাম (A–Z)"
       },
       "status": {
-        "all": "সব স্ট্যাটাস",
         "on_track": "ঠিক পথে",
         "at_risk": "ঝুঁকিতে"
       },
@@ -355,8 +351,11 @@
     "moduleDemand": {
       "sectionTitle": "মডিউল সার্চ চাহিদা",
       "summaryTitle": "মডিউল চাহিদার সারাংশ",
+      "summaryInsightsTitle": "মডিউল ব্যবহার থেকে অন্তর্দৃষ্টি",
+      "demandPatternHeading": "চাহিদার ধরন",
       "summaryDescription": "নির্বাচিত ফিল্টার অনুযায়ী ডিজিটাল-হেল্প ব্যবহার ও মডিউল তৈরির চাহিদার বর্ণনামূলক সারাংশ।",
       "summaryEmptyFallback": "{{fromDate}} থেকে {{toDate}} এর মধ্যে আপনার টিমের জন্য কোনো মডিউল ব্যবহার বা তৈরির চাহিদা রেকর্ড হয়নি।",
+      "actorViewLabel": "SK বা PO অনুযায়ী ফিল্টার করুন",
       "columns": {
         "title": "মডিউল শিরোনাম",
         "searchCount": "সার্চ কাউন্ট",

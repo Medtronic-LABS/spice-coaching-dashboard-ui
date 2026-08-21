@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import type { KnowledgeUploadPayload } from '@/features/modules/api/adminKnowledgeApi';
 import { renderWithProviders } from '@/test-utils/render';
 import { KnowledgeLibraryPage } from './KnowledgeLibraryPage';
@@ -159,7 +160,7 @@ describe('KnowledgeLibraryPage', () => {
 
     expect(
       screen.getByPlaceholderText(/htn referral guidelines/i),
-    ).toBeInTheDocument();
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.documentTitle));
     expect(screen.getByText(/^Title$/)).toHaveTextContent('Title *');
     expect(screen.queryByText(/page splits/i)).not.toBeInTheDocument();
     expect(screen.getByText(/This PDF has/)).toBeInTheDocument();

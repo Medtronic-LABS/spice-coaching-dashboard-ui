@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   LimitedTextInput,
+  LimitedTextarea,
   Loader,
   Modal,
 } from '@/components/ui';
@@ -118,13 +119,22 @@ export const VideoMetadataEditDialog = ({
       );
       return;
     }
+    const descriptionValue = description.trim() ? description.trim() : null;
+    if (
+      descriptionValue &&
+      descriptionValue.length > FIELD_LIMITS.description
+    ) {
+      setFieldError(
+        fieldLimitExceededMessage('Description', FIELD_LIMITS.description),
+      );
+      return;
+    }
 
     setFieldError('');
     setActionError('');
 
     try {
       let latest = document;
-      const descriptionValue = description.trim() ? description.trim() : null;
       const metadataChanged =
         trimmedTitle !== document.title ||
         descriptionValue !== (document.description ?? null);
@@ -195,15 +205,14 @@ export const VideoMetadataEditDialog = ({
           <span className="text-xs font-semibold text-spice-text-primary">
             Description
           </span>
-          <textarea
+          <LimitedTextarea
+            id="video-metadata-description"
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            maxLength={FIELD_LIMITS.description}
             disabled={isSaving}
             rows={3}
-            className={cn(
-              'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
-              SPICE_INPUT_FOCUS_CLASSNAME,
-            )}
+            textareaClassName="min-h-0 rounded-md border-spice-border-mid"
+            onChange={setDescription}
           />
         </label>
 

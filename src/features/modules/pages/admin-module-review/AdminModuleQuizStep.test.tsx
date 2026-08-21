@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { setCurrentRole, type AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
@@ -140,20 +141,33 @@ describe('AdminModuleQuizStep editor UI', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows empty state when there are no quiz questions', () => {
-    mockModule = createMockModule([]);
+  it('caps question, option, and explanation inputs', () => {
     renderQuizStep();
 
-    expect(screen.getByText('No quiz questions yet')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /add question/i }),
-    ).toBeInTheDocument();
+      screen.getAllByPlaceholderText('Type your question…')[0],
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.quizQuestion));
+    expect(screen.getAllByPlaceholderText('Option 1')[0]).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.quizOption),
+    );
     expect(
-      screen.queryByRole('button', { name: /remove all/i }),
-    ).not.toBeInTheDocument();
+      screen.getAllByPlaceholderText('Write an explanation…')[0],
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
   });
 
-  it('adds a new question with four options from empty state', async () => {
+  it('seeds a blank question with four empty options when the quiz is empty', () => {
+    mockModule = createMockModule([]);
+    const { store } = renderQuizStep();
+
+    expect(screen.queryByText('No quiz questions yet')).not.toBeInTheDocument();
+    expect(screen.getByText('QUESTION 1')).toBeInTheDocument();
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz).toHaveLength(1);
+    expect(quiz[0]?.options.bn).toEqual(['', '', '', '']);
+  });
+
+  it('adds a second question with four options from the default blank question', async () => {
     const user = userEvent.setup();
     mockModule = createMockModule([]);
     const { store } = renderQuizStep();
@@ -161,9 +175,9 @@ describe('AdminModuleQuizStep editor UI', () => {
     await user.click(screen.getByRole('button', { name: /add question/i }));
 
     const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
-    expect(quiz).toHaveLength(1);
-    expect(quiz[0]?.options.bn).toEqual(['', '', '', '']);
-    expect(screen.getByText('QUESTION 1')).toBeInTheDocument();
+    expect(quiz).toHaveLength(2);
+    expect(quiz[1]?.options.bn).toEqual(['', '', '', '']);
+    expect(screen.getByText('QUESTION 2')).toBeInTheDocument();
   });
 
   it('duplicates a question immediately after the source', async () => {

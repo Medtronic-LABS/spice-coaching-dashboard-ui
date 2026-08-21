@@ -9,6 +9,7 @@ import { ModuleDemandEvidenceList } from '@/features/admin-dashboard/components/
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import type {
+  DashboardActorView,
   DashboardGeographyFilters,
   ModuleDemandQueryRow,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -29,6 +30,7 @@ interface ExistingModuleInlineEvidenceProps {
   fromDate: string;
   toDate: string;
   geography: DashboardGeographyFilters;
+  actorView?: DashboardActorView;
 }
 
 export const ExistingModuleInlineEvidence = ({
@@ -36,6 +38,7 @@ export const ExistingModuleInlineEvidence = ({
   fromDate,
   toDate,
   geography,
+  actorView,
 }: ExistingModuleInlineEvidenceProps) => {
   const { t } = useTranslation();
   const showTimestamp = canViewDemandMetadataTimestamps();
@@ -48,6 +51,7 @@ export const ExistingModuleInlineEvidence = ({
     limit: INLINE_EVIDENCE_LIMIT,
     offset: 0,
     geography,
+    view: actorView,
   });
   const requestsQuery = useFetchDigitalHelpModuleRequestsQuery({
     moduleId,
@@ -56,6 +60,7 @@ export const ExistingModuleInlineEvidence = ({
     limit: INLINE_EVIDENCE_LIMIT,
     offset: 0,
     geography,
+    view: actorView,
   });
 
   const questionRows = useMemo(() => {
@@ -108,17 +113,20 @@ export const ExistingModuleInlineEvidence = ({
 interface SuggestedModuleInlineEvidenceProps {
   suggestionId: string;
   geography: DashboardGeographyFilters;
+  actorView?: DashboardActorView;
 }
 
 export const SuggestedModuleInlineEvidence = ({
   suggestionId,
   geography,
+  actorView,
 }: SuggestedModuleInlineEvidenceProps) => {
   const { t } = useTranslation();
   const showTimestamp = canViewDemandMetadataTimestamps();
   const detailQuery = useFetchModuleCreationSuggestionDetailQuery({
     suggestionId,
     geography,
+    view: actorView,
   });
 
   const suggestion = detailQuery.data?.suggestion;

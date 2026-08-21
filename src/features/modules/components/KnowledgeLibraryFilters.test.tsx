@@ -3,19 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
 import { KNOWLEDGE_LIBRARY_DRAWER_FILTER_DEFAULTS } from '@/features/modules/utils/knowledgeLibraryFilters';
-import type { SettingsFilterSection } from '@/components/common/settingsFilter.types';
-
-const stubGeographySection: SettingsFilterSection = {
-  id: 'knowledge-geography',
-  label: 'Geography',
-  fields: [],
-};
 
 const defaultFilterProps = {
   uploaderOptions: [{ value: 'alice', label: 'alice' }],
   uploaderSearch: '',
   onUploaderSearchChange: vi.fn(),
-  geographySection: stubGeographySection,
 };
 
 describe('KnowledgeLibraryFilters', () => {
@@ -78,7 +70,6 @@ describe('KnowledgeLibraryFilters', () => {
     expect(screen.getByLabelText('Uploaded by')).toBeInTheDocument();
     expect(screen.getByLabelText('Assigned')).toBeInTheDocument();
     expect(screen.getByLabelText('Ingested')).toBeInTheDocument();
-    expect(screen.getByText('Geography')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Clear All' }));
     expect(onClearAll).toHaveBeenCalledTimes(1);

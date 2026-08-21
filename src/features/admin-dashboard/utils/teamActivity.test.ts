@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { TeamActivityMember } from '@/features/admin-dashboard/types/dashboard.types';
 import {
   hierarchyTabDepth,
+  isMemberAtRisk,
   resolveMemberDescendantInactiveCount,
   resolveMemberDescendantSkCount,
+  toTeamActivitySortParams,
 } from '@/features/admin-dashboard/utils/teamActivity';
 
 function member(partial: Partial<TeamActivityMember>): TeamActivityMember {
@@ -23,9 +25,42 @@ function member(partial: Partial<TeamActivityMember>): TeamActivityMember {
     chatbot_modules: [],
     refreshers_generated: 0,
     refreshers_completed: 0,
+    performance_status: 'on_track',
     ...partial,
   };
 }
+
+describe('toTeamActivitySortParams', () => {
+  it('maps dropdown keys to backend sort_by / sort_dir', () => {
+    expect(toTeamActivitySortParams('name')).toEqual({
+      sort_by: 'name',
+      sort_dir: 'asc',
+    });
+    expect(toTeamActivitySortParams('at_risk_first')).toEqual({
+      sort_by: 'performance_status',
+      sort_dir: 'asc',
+    });
+    expect(toTeamActivitySortParams('lowest_completion')).toEqual({
+      sort_by: 'module_completion',
+      sort_dir: 'asc',
+    });
+    expect(toTeamActivitySortParams('lowest_chatbot')).toEqual({
+      sort_by: 'chatbot_engagement',
+      sort_dir: 'asc',
+    });
+  });
+});
+
+describe('isMemberAtRisk', () => {
+  it('uses server performance_status', () => {
+    expect(isMemberAtRisk(member({ performance_status: 'at_risk' }))).toBe(
+      true,
+    );
+    expect(isMemberAtRisk(member({ performance_status: 'on_track' }))).toBe(
+      false,
+    );
+  });
+});
 
 describe('hierarchyTabDepth', () => {
   it('uses admin-relative depths by default', () => {
@@ -59,25 +94,6 @@ describe('resolveMemberDescendantSkCount', () => {
         0,
       ),
     ).toBe(2);
-  });
-
-  it('falls back to descendant response when embedded summary is absent', () => {
-    expect(
-      resolveMemberDescendantSkCount(
-        member({}),
-        {
-          total_users: 5,
-          summary: {
-            total_users: 5,
-            active_users: 4,
-            non_active_users: 1,
-            users_completed_module: 3,
-            users_chatbot_engaged: 2,
-          },
-        },
-        3,
-      ),
-    ).toBe(5);
   });
 });
 

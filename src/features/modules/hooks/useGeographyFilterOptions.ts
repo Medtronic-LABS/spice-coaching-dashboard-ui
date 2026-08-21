@@ -231,10 +231,17 @@ export function useGeographyFilterOptions(args: {
     hint: geographyTruncationHint(upazilas.length, upazilasPage?.total ?? 0),
   };
 
-  return buildGeographyFilterSection({
-    idPrefix,
-    division,
-    district,
-    upazila,
-  });
+  return {
+    section: buildGeographyFilterSection({
+      idPrefix,
+      division,
+      district,
+      upazila,
+    }),
+    names: {
+      division: selection.divisionId ? divisionLabel : '',
+      district: selection.districtId ? districtLabel : '',
+      upazila: selection.upazilaId ? upazilaLabel : '',
+    },
+  };
 }

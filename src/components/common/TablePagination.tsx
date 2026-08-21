@@ -1,6 +1,10 @@
 import { Button, Select } from '@/components/ui';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
+import {
+  maxDigitsForLimit,
+  nextBoundedPageInput,
+} from '@/utils/digitLimitedInteger';
 
 export interface TablePaginationProps {
   page: number;
@@ -81,18 +85,22 @@ export const TablePagination = ({
             {pageLabel}
           </span>
           <input
-            type="number"
-            min={1}
-            max={totalPages > 0 ? totalPages : 1}
-            step={1}
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={maxDigitsForLimit(Math.max(totalPages, 1))}
+            autoComplete="off"
             aria-label={pageNumberAriaLabel}
             className={cn(
               'h-8 w-14 rounded-md border border-spice-border-mid bg-spice-bg-surface px-2 text-center text-xs font-semibold text-spice-text-primary caret-spice-palette-purple',
               SPICE_INPUT_FOCUS_CLASSNAME,
             )}
             value={pageInput}
-            onChange={(e) => onPageInputChange(e.target.value)}
+            onChange={(e) => {
+              const next = nextBoundedPageInput(e.target.value, totalPages);
+              if (next === null) return;
+              onPageInputChange(next);
+            }}
             onBlur={onCommitPageInput}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {

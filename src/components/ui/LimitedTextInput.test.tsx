@@ -21,4 +21,19 @@ describe('LimitedTextInput', () => {
     expect(onChange).toHaveBeenCalledWith('Hello world');
     expect(input).toHaveAttribute('maxLength', '10');
   });
+
+  it('places the character counter on the same row when counterPlacement is inline', () => {
+    render(
+      <LimitedTextInput
+        id="option"
+        value="Hello"
+        maxLength={150}
+        counterPlacement="inline"
+        onChange={vi.fn()}
+      />,
+    );
+
+    const counter = screen.getByText('5/150');
+    expect(counter.parentElement).toHaveClass('flex', 'items-center');
+  });
 });

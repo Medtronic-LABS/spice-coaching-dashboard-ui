@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { nextBoundedPageInput } from '@/utils/digitLimitedInteger';
 
 /**
  * Shared page + page-input state for TablePagination consumers.
@@ -39,15 +40,9 @@ export function useTablePageInput(totalPages: number) {
 
   const handlePageInputChange = useCallback(
     (raw: string) => {
-      if (raw === '') {
-        setPageInput('');
-        return;
-      }
-      if (!/^\d+$/.test(raw)) return;
-      const parsed = Number.parseInt(raw, 10);
-      if (parsed < 1) return;
-      if (totalPages > 0 && parsed > totalPages) return;
-      setPageInput(raw);
+      const next = nextBoundedPageInput(raw, totalPages);
+      if (next === null) return;
+      setPageInput(next);
     },
     [totalPages],
   );

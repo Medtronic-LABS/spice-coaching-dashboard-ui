@@ -46,7 +46,6 @@ describe('parseEstimatedMinutesInput', () => {
   it('strips leading zeros when a digit is typed after 0', () => {
     expect(parseEstimatedMinutesInput('01')).toBe(1);
     expect(parseEstimatedMinutesInput('02')).toBe(2);
-    expect(parseEstimatedMinutesInput('010')).toBe(10);
   });
 
   it('treats empty input as 0', () => {
@@ -58,6 +57,14 @@ describe('parseEstimatedMinutesInput', () => {
     expect(parseEstimatedMinutesInput('5')).toBe(5);
     expect(parseEstimatedMinutesInput('60')).toBe(60);
     expect(parseEstimatedMinutesInput('6a0')).toBe(60);
+  });
+
+  it('keeps at most two digits', () => {
+    expect(parseEstimatedMinutesInput('123')).toBe(12);
+    expect(parseEstimatedMinutesInput('999')).toBe(99);
+    expect(parseEstimatedMinutesInput('610')).toBe(61);
+    expect(parseEstimatedMinutesInput('6a01')).toBe(60);
+    expect(parseEstimatedMinutesInput('010')).toBe(1);
   });
 });
 

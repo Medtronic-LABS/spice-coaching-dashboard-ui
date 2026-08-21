@@ -271,7 +271,7 @@ export const SkDetailDrawer = ({
                   {topQueries.map((query, index) => (
                     <li
                       key={`${query.question}-${query.last_asked_at}`}
-                      className="flex items-center gap-3 py-3"
+                      className="flex items-center gap-4 py-3"
                     >
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-spice-palette-pinkLt text-xs font-semibold text-spice-palette-pink">
                         {index + 1}

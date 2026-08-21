@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   LimitedTextInput,
+  LimitedTextarea,
   Loader,
   SearchInput,
   StatusBadge,
@@ -24,13 +25,10 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import {
-  SPICE_CHECKBOX_CLASSNAME,
-  SPICE_INPUT_FOCUS_CLASSNAME,
-} from '@/constants/formControls';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
-import { cn } from '@/utils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
   type AdminV3IngestAcceptedResponse,
   type AdminV3IngestAcceptedSource,
@@ -54,6 +52,7 @@ import {
   INGEST_FORM_DEFAULTS,
   type IngestModuleCountInput,
   ingestModuleCountForPayload,
+  isIngestionInstructionsValid,
   isOptionalIngestModuleCountValid,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
@@ -86,8 +85,6 @@ import {
   toggleVideoUploadStatus,
   type VideoUploadFiltersState,
 } from '@/features/ingest/utils/videoUploadStatusConfig';
-import { useGeographyFilterOptions } from '@/features/modules/hooks/useGeographyFilterOptions';
-import { toGeographyQueryParams } from '@/features/modules/utils/geographyFilters';
 import {
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
@@ -102,6 +99,7 @@ import {
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 
 type PendingVideoItem = {
   key: string;
@@ -227,6 +225,7 @@ export const VideoUploadPage = () => {
   const pendingItemsRef = useRef<PendingVideoItem[]>([]);
   const pendingUploadMetaRef = useRef<PendingUploadMeta[]>([]);
   const thumbnailInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   const [restoredAcceptedSources, setRestoredAcceptedSources] = useState<
     AdminV3IngestAcceptedSource[]
@@ -252,9 +251,16 @@ export const VideoUploadPage = () => {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_VIDEO_PAGE_SIZE);
-  const [pageInput, setPageInput] = useState('1');
+  const [paginationTotalPages, setPaginationTotalPages] = useState(1);
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<VideoUploadFiltersState>(
     EMPTY_VIDEO_UPLOAD_FILTERS,
@@ -319,8 +325,8 @@ export const VideoUploadPage = () => {
   }, [appliedFilters]);
 
   useEffect(() => {
-    setPage(0);
-  }, [searchQ]);
+    resetPage();
+  }, [searchQ, resetPage]);
 
   const handleOpenFiltersDrawer = useCallback(() => {
     setDraftFilters(appliedFilters);
@@ -335,24 +341,15 @@ export const VideoUploadPage = () => {
   const handleClearDraftFilters = useCallback(() => {
     setDraftFilters(EMPTY_VIDEO_UPLOAD_FILTERS);
     setAppliedFilters(EMPTY_VIDEO_UPLOAD_FILTERS);
-    setPage(0);
-  }, []);
+    resetPage();
+  }, [resetPage]);
 
   const handleApplyFilters = useCallback(() => {
     if (isVideoUploadDateRangeInvalid(draftFilters)) return;
     setAppliedFilters(normalizeVideoUploadFilters(draftFilters));
-    setPage(0);
+    resetPage();
     setFiltersDrawerOpen(false);
-  }, [draftFilters]);
-
-  const geographySection = useGeographyFilterOptions({
-    enabled: filtersDrawerOpen,
-    idPrefix: 'video',
-    selection: draftFilters,
-    onSelectionChange: (next) => {
-      setDraftFilters((current) => ({ ...current, ...next }));
-    },
-  });
+  }, [draftFilters, resetPage]);
 
   const stageVideoFiles = useCallback((files: ArrayLike<File> | null) => {
     const picked = Array.from(files ?? []);
@@ -484,9 +481,9 @@ export const VideoUploadPage = () => {
     (newSortBy: string, newSortDir: 'asc' | 'desc') => {
       setSortBy(newSortBy);
       setSortDir(newSortDir);
-      setPage(0);
+      resetPage();
     },
-    [],
+    [resetPage],
   );
 
   const {
@@ -511,7 +508,6 @@ export const VideoUploadPage = () => {
           uploaded_to: uploadedDateInputToToIso(appliedFilters.uploadedAtTo),
         }
       : {}),
-    ...toGeographyQueryParams(appliedFilters),
     limit: pageSize,
     offset: page * pageSize,
     sort_by: sortBy,
@@ -583,32 +579,8 @@ export const VideoUploadPage = () => {
   const rangeEnd = serverRows.length ? page * pageSize + serverRows.length : 0;
 
   useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
-
-  useEffect(() => {
-    if (page >= totalPages) setPage(totalPages - 1);
-  }, [page, totalPages]);
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    const isValid =
-      Number.isFinite(parsed) && parsed >= 1 && parsed <= totalPages;
-    if (!isValid) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    setPage(parsed - 1);
-  };
-
-  const handlePageInputChange = (raw: string) => {
-    if (raw === '') {
-      setPageInput('');
-      return;
-    }
-    if (!/^\d+$/.test(raw)) return;
-    setPageInput(raw);
-  };
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   const uploadPendingThumbnails = useCallback(
     async (
@@ -729,6 +701,9 @@ export const VideoUploadPage = () => {
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
     isOptionalIngestModuleCountValid(cardsPerModule);
+  const ingestionInstructionsValid = isIngestionInstructionsValid(
+    ingestionInstructions,
+  );
 
   const selectedRows = useMemo(
     () => rows.filter((row) => selectedIds.has(row.id)),
@@ -743,6 +718,7 @@ export const VideoUploadPage = () => {
   const canIngest =
     selectedRowsReadyToIngest.length > 0 &&
     moduleCountsValid &&
+    ingestionInstructionsValid &&
     !isUploading &&
     !isStartingIngest &&
     !anyIngestionInProgress;
@@ -1036,7 +1012,7 @@ export const VideoUploadPage = () => {
               ) : isViewModulesStatus(row.status) ? (
                 <Button
                   variant="secondary"
-                  className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+                  className="h-8 w-[9.25rem] shrink-0 gap-1.5 px-3 text-xs"
                   onClick={() => {
                     goToDraftsForSource(
                       row.sourceDocumentId as string,
@@ -1048,7 +1024,11 @@ export const VideoUploadPage = () => {
                   View modules
                 </Button>
               ) : (
-                <StatusBadge status="neutral" label="Not ingested" />
+                <StatusBadge
+                  status="neutral"
+                  label="Not ingested"
+                  className="min-w-0 w-[9.25rem]"
+                />
               )}
             </div>
           );
@@ -1175,8 +1155,12 @@ export const VideoUploadPage = () => {
                       }}
                       type="file"
                       accept={VIDEO_THUMBNAIL_ACCEPT}
+                      tabIndex={-1}
                       className="sr-only"
                       disabled={uploadBusy}
+                      onFocus={(event) => {
+                        event.currentTarget.blur();
+                      }}
                       onChange={(event) => {
                         handlePendingThumbnailReplace(
                           item.key,
@@ -1241,19 +1225,16 @@ export const VideoUploadPage = () => {
                       <span className="text-xs font-semibold text-spice-text-primary">
                         Description
                       </span>
-                      <textarea
+                      <LimitedTextarea
+                        id={`pending-video-description-${item.key}`}
                         value={item.description}
+                        maxLength={FIELD_LIMITS.description}
                         disabled={uploadBusy}
                         rows={2}
-                        onChange={(event) =>
-                          updatePendingItem(item.key, {
-                            description: event.target.value,
-                          })
+                        textareaClassName="min-h-0 rounded-md border-spice-border-mid"
+                        onChange={(description) =>
+                          updatePendingItem(item.key, { description })
                         }
-                        className={cn(
-                          'w-full resize-y rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
-                          SPICE_INPUT_FOCUS_CLASSNAME,
-                        )}
                       />
                     </label>
                   </div>
@@ -1262,59 +1243,77 @@ export const VideoUploadPage = () => {
             );
           })}
 
-          <label
-            aria-label={
-              pendingItems.length ? 'Add more videos' : 'Upload video'
-            }
-            className={`flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors ${dropzoneStateClasses}`}
-            onDragOver={(event) => {
-              event.preventDefault();
-              if (uploadBusy) return;
-              setIsDragActive(true);
-            }}
-            onDragLeave={() => setIsDragActive(false)}
-            onDrop={(event) => {
-              event.preventDefault();
-              setIsDragActive(false);
-              if (uploadBusy) return;
-              stageVideoFiles(event.dataTransfer.files);
-            }}
-          >
+          <div className="relative">
             <input
+              ref={videoFileInputRef}
               type="file"
               multiple
               accept={VIDEO_FILE_INPUT_ACCEPT}
+              tabIndex={-1}
               className="sr-only"
               disabled={uploadBusy}
+              aria-label={
+                pendingItems.length ? 'Add more videos' : 'Upload video'
+              }
+              onFocus={(event) => {
+                // Windows Chrome scrolls the page to reveal focused sr-only
+                // file inputs, which leaves a blank gap under the table.
+                event.currentTarget.blur();
+              }}
               onChange={(event) => {
                 const files = event.target.files;
                 stageVideoFiles(files);
                 event.target.value = '';
               }}
             />
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </span>
-            <span className="text-xs font-semibold text-spice-text-primary">
-              {pendingItems.length ? 'Add more videos' : 'Upload videos'}
-            </span>
-            <span className="text-[11px] text-spice-text-muted">
-              Click to select or drag and drop videos
-            </span>
-          </label>
+            <button
+              type="button"
+              aria-label={
+                pendingItems.length ? 'Add more videos' : 'Upload video'
+              }
+              disabled={uploadBusy}
+              className={cn(
+                'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
+                dropzoneStateClasses,
+              )}
+              onClick={() => videoFileInputRef.current?.click()}
+              onDragOver={(event) => {
+                event.preventDefault();
+                if (uploadBusy) return;
+                setIsDragActive(true);
+              }}
+              onDragLeave={() => setIsDragActive(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setIsDragActive(false);
+                if (uploadBusy) return;
+                stageVideoFiles(event.dataTransfer.files);
+              }}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </span>
+              <span className="text-xs font-semibold text-spice-text-primary">
+                {pendingItems.length ? 'Add more videos' : 'Upload videos'}
+              </span>
+              <span className="text-[11px] text-spice-text-muted">
+                Click to select or drag and drop videos
+              </span>
+            </button>
+          </div>
 
           {fileError ? <Banner tone="critical">{fileError}</Banner> : null}
         </div>
@@ -1393,7 +1392,6 @@ export const VideoUploadPage = () => {
             }}
             onClearAll={handleClearDraftFilters}
             onApply={handleApplyFilters}
-            geographySection={geographySection}
           />
         </SettingsFilterDrawer>
         <Loader open={isLoadingVideos} label="Loading uploaded videos…" />

@@ -15,7 +15,7 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
       to_date: '2026-01-31',
       limit: 1,
       offset: 0,
-      district: 'Gazipur',
+      district_id: 10,
     });
 
     return {
@@ -40,7 +40,7 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
       to_date: '2026-01-31',
       limit: PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
       offset: 0,
-      district: 'Gazipur',
+      district_id: 10,
     });
 
     return {
@@ -62,13 +62,16 @@ describe('DashboardKpiRow', () => {
       <DashboardKpiRow
         fromDate="2026-01-01"
         toDate="2026-01-31"
-        geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, district: 'Gazipur' }}
+        geography={{
+          ...EMPTY_DASHBOARD_GEOGRAPHY,
+          districtId: '10',
+        }}
       />,
     );
 
     expect(screen.getByText('Responsive SKs')).toBeInTheDocument();
     expect(screen.getByText('Non-Responsive SKs')).toBeInTheDocument();
-    expect(screen.getByText('SKs completed a module')).toBeInTheDocument();
+    expect(screen.getByText('SKs Finished All Modules')).toBeInTheDocument();
     expect(screen.getByText('Published training modules')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();

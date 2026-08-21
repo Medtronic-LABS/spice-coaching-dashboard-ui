@@ -110,6 +110,17 @@ export function validateAdminModuleDraftContent(options: {
         field: 'question',
         message: `${label} needs a question.`,
       });
+    } else if (question.length > FIELD_LIMITS.quizQuestion) {
+      issues.push({
+        kind: 'quiz',
+        index,
+        itemId: item.id,
+        field: 'question',
+        message: `${label}: ${fieldLimitExceededMessage(
+          'Question',
+          FIELD_LIMITS.quizQuestion,
+        )}`,
+      });
     }
 
     if (optionsForLocale.length === 0) {
@@ -133,6 +144,25 @@ export function validateAdminModuleDraftContent(options: {
           message: `${label} has blank option${blankIndexes.length === 1 ? '' : 's'} (${blankIndexes.join(', ')}).`,
         });
       }
+      const longIndexes = optionsForLocale
+        .map((opt, optIndex) =>
+          opt.trim().length > FIELD_LIMITS.quizOption ? optIndex + 1 : null,
+        )
+        .filter((value): value is number => value !== null);
+      if (longIndexes.length > 0) {
+        issues.push({
+          kind: 'quiz',
+          index,
+          itemId: item.id,
+          field: 'options',
+          message: `${label}: ${fieldLimitExceededMessage(
+            longIndexes.length === 1
+              ? `Option ${longIndexes[0]}`
+              : `Options ${longIndexes.join(', ')}`,
+            FIELD_LIMITS.quizOption,
+          )}`,
+        });
+      }
     }
 
     if (!explanation) {
@@ -142,6 +172,17 @@ export function validateAdminModuleDraftContent(options: {
         itemId: item.id,
         field: 'explanation',
         message: `${label} needs an explanation.`,
+      });
+    } else if (explanation.length > FIELD_LIMITS.description) {
+      issues.push({
+        kind: 'quiz',
+        index,
+        itemId: item.id,
+        field: 'explanation',
+        message: `${label}: ${fieldLimitExceededMessage(
+          'Explanation',
+          FIELD_LIMITS.description,
+        )}`,
       });
     }
   });

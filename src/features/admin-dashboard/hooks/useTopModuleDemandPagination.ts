@@ -5,8 +5,9 @@ export function buildModuleDemandFilterKey(
   fromDate: string,
   toDate: string,
   geography: DashboardGeographyFilters,
+  view?: string,
 ): string {
-  return `${fromDate}|${toDate}|${geography.division}|${geography.district}|${geography.upazila}`;
+  return `${fromDate}|${toDate}|${geography.divisionId}|${geography.districtId}|${geography.upazilaId}|${view ?? ''}`;
 }
 
 interface ModuleDemandPageSlice<TItem> {

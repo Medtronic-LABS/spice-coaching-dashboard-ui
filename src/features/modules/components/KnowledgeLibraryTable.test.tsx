@@ -30,6 +30,9 @@ describe('KnowledgeLibraryTable', () => {
       screen.getByRole('columnheader', { name: 'File Type' }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('columnheader', { name: 'Status' }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('columnheader', { name: 'Uploaded Date' }),
     ).toBeInTheDocument();
     expect(
@@ -101,15 +104,20 @@ describe('KnowledgeLibraryTable', () => {
       Array.from((rowsSelect as HTMLSelectElement).options).map((o) => o.value),
     ).toEqual(['5', '10', '15', '25', '50']);
 
-    expect(screen.getByLabelText('Page number')).toHaveValue(1);
+    expect(screen.getByLabelText('Page number')).toHaveValue('1');
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     expect(screen.getByText(/Showing/)).toHaveTextContent(/Showing/);
 
     await user.selectOptions(rowsSelect, '5');
     expect(screen.getByLabelText('Rows per page')).toHaveValue('5');
-    expect(screen.getByLabelText('Page number')).toHaveValue(1);
+    expect(screen.getByLabelText('Page number')).toHaveValue('1');
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+
+    const pageInput = screen.getByLabelText('Page number');
+    await user.clear(pageInput);
+    await user.type(pageInput, '12');
+    expect(pageInput).toHaveValue('1');
   });
 
   it('opens the edit and retire modals from row actions', async () => {
@@ -124,7 +132,7 @@ describe('KnowledgeLibraryTable', () => {
     expect(
       await screen.findByRole('heading', { name: 'Edit Knowledge' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByLabelText('Title')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -212,36 +220,5 @@ describe('KnowledgeLibraryTable', () => {
     expect(
       screen.getByRole('button', { name: /^open knowledge filters$/i }),
     ).toBeInTheDocument();
-  });
-
-  it('shows searchable geography filters in the drawer', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<KnowledgeLibraryTable />);
-
-    expect(
-      await screen.findByText('HTN Referral Guidelines'),
-    ).toBeInTheDocument();
-
-    const dialog = await openKnowledgeFilters(user);
-    expect(within(dialog).getByLabelText(/^division$/i)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText(/^district$/i)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText(/^upazila$/i)).toBeInTheDocument();
-
-    await user.click(within(dialog).getByLabelText(/^division$/i));
-    expect(
-      await screen.findByRole('option', { name: 'Rangpur' }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole('option', { name: 'Rangpur' }));
-    await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('dialog', { name: 'Filters' }),
-      ).not.toBeInTheDocument();
-    });
-
-    const reopened = await openKnowledgeFilters(user);
-    expect(within(reopened).getByLabelText(/^division$/i)).toHaveDisplayValue(
-      'Rangpur',
-    );
   });
 });

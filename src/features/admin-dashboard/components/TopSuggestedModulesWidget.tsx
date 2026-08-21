@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetchModuleCreationSuggestionsQuery } from '@/features/admin-dashboard/api/dashboardApi';
+import { DashboardActorViewToggle } from '@/features/admin-dashboard/components/DashboardActorViewToggle';
 import {
   TopModuleDemandWidget,
   type TopModuleDemandRow,
 } from '@/features/admin-dashboard/components/TopModuleDemandWidget';
 import type {
+  DashboardActorView,
   DashboardGeographyFilters,
   ModuleCreationSuggestionListItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
@@ -78,8 +80,14 @@ export const TopSuggestedModulesWidget = ({
   onCreate,
 }: TopSuggestedModulesWidgetProps) => {
   const { t } = useTranslation();
+  const [actorView, setActorView] = useState<DashboardActorView>('sk');
   const [offset, setOffset] = useState(0);
-  const filterKey = buildModuleDemandFilterKey(fromDate, toDate, geography);
+  const filterKey = buildModuleDemandFilterKey(
+    fromDate,
+    toDate,
+    geography,
+    actorView,
+  );
 
   const query = useFetchModuleCreationSuggestionsQuery(
     {
@@ -88,6 +96,7 @@ export const TopSuggestedModulesWidget = ({
       limit: TOP_MODULE_DEMAND_LIMIT,
       offset,
       geography,
+      view: actorView,
     },
     { skip },
   );
@@ -173,10 +182,18 @@ export const TopSuggestedModulesWidget = ({
       hasMore={hasMore}
       onSeeMore={handleSeeMore}
       isLoadingMore={isLoadingMore}
+      headerActions={
+        <DashboardActorViewToggle
+          value={actorView}
+          onChange={setActorView}
+          label={t('adminDashboard.moduleDemand.actorViewLabel')}
+        />
+      }
       renderExpandedContent={(rowId) => (
         <SuggestedModuleInlineEvidence
           suggestionId={rowId}
           geography={geography}
+          actorView={actorView}
         />
       )}
     />

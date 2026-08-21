@@ -44,6 +44,7 @@ const sk: TeamActivityMember = {
   chatbot_modules: [],
   refreshers_generated: 0,
   refreshers_completed: 0,
+  performance_status: 'at_risk',
 };
 
 function questionsQuery(
@@ -74,7 +75,10 @@ function renderDrawer(member: TeamActivityMember | null, onClose = vi.fn()) {
       member={member}
       fromDate="2026-01-01"
       toDate="2026-08-15"
-      geography={{ ...EMPTY_DASHBOARD_GEOGRAPHY, division: 'Dhaka' }}
+      geography={{
+        ...EMPTY_DASHBOARD_GEOGRAPHY,
+        divisionId: '1',
+      }}
       onClose={onClose}
     />,
   );
@@ -114,7 +118,7 @@ describe('SkDetailDrawer', () => {
         userId: 42,
         from_date: '2026-01-01',
         to_date: '2026-08-15',
-        division: 'Dhaka',
+        division_id: 1,
       }),
     );
 

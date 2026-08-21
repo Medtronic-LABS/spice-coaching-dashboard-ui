@@ -35,6 +35,7 @@ import {
 import {
   adjustSelectedIndexAfterReorder,
   cardSortableId,
+  createEmptyAdminModuleCard,
   reorderCards,
 } from '@/features/modules/utils/adminModuleCardUtils';
 import {
@@ -69,20 +70,6 @@ function cardTitle(card: AdminModuleCard): string {
 
 function cardsEqual(a: AdminModuleCard, b: AdminModuleCard): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function createEmptyCard(): AdminModuleCard {
-  const id =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `card-${Date.now()}`;
-  return {
-    id,
-    title: {},
-    body: { [DEPLOYMENT_PRIMARY_LOCALE]: normalizeCardBody('') },
-    previous_practice: {},
-    current_practice: {},
-  };
 }
 
 export const AdminModuleLessonsStep = () => {
@@ -402,7 +389,7 @@ export const AdminModuleLessonsStep = () => {
                     disabled={busy}
                     onClick={() => {
                       clearSaveFeedback();
-                      const next = createEmptyCard();
+                      const next = createEmptyAdminModuleCard();
                       const insertAt = cards.length ? selectedIndex + 1 : 0;
                       dispatch(
                         insertCardAtIndex({ index: insertAt, card: next }),

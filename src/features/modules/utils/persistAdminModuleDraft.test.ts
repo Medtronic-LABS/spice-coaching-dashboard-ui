@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
+import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
 import { persistAdminModuleDraft } from '@/features/modules/utils/persistAdminModuleDraft';
 import { AdminModuleDraftValidationError } from '@/features/modules/utils/validateAdminModuleDraftContent';
 
@@ -242,6 +243,24 @@ describe('persistAdminModuleDraft', () => {
         onSaved: vi.fn(),
       }),
     ).rejects.toThrow('Domain is required.');
+    expect(editModule).not.toHaveBeenCalled();
+  });
+
+  it('rejects a domain over the taxonomy limit before calling the edit API', async () => {
+    const editModule = vi.fn();
+    await expect(
+      persistAdminModuleDraft({
+        working: {
+          ...working,
+          domain: 'd'.repeat(FIELD_LIMITS.taxonomy + 1),
+        },
+        editModule,
+        navigate: vi.fn(),
+        pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+        refetchModule: vi.fn(),
+        onSaved: vi.fn(),
+      }),
+    ).rejects.toThrow('Domain must be 80 characters or fewer.');
     expect(editModule).not.toHaveBeenCalled();
   });
 

@@ -32,6 +32,8 @@ interface TopModuleDemandWidgetProps {
   hasMore?: boolean;
   onSeeMore?: () => void;
   isLoadingMore?: boolean;
+  /** Optional header controls (e.g. PO/SK view toggle). */
+  headerActions?: ReactNode;
   renderExpandedContent: (rowId: string) => ReactNode;
 }
 
@@ -51,6 +53,7 @@ export const TopModuleDemandWidget = ({
   hasMore = false,
   onSeeMore,
   isLoadingMore = false,
+  headerActions,
   renderExpandedContent,
 }: TopModuleDemandWidgetProps) => {
   const { t } = useTranslation();
@@ -69,6 +72,7 @@ export const TopModuleDemandWidget = ({
       title={title}
       description={description}
       size="lg"
+      actions={headerActions}
       onRefresh={onRefresh}
       isRefreshing={isRefreshing}
     >
