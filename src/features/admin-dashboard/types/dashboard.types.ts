@@ -29,6 +29,9 @@ export type TeamActivityPerformanceStatus = 'on_track' | 'at_risk';
 
 export type DashboardGeographyFilters = GeographyFilterState;
 
+/** Optional actor lens for digital-help and module-creation-suggestion APIs (`view`). */
+export type DashboardActorView = 'po' | 'sk';
+
 /** Normalized geography params sent to dashboard API endpoints. */
 export type DashboardGeoQueryParams = GeographyQueryParams;
 

@@ -10,6 +10,7 @@ import { normalizeModuleDemandSummaryResponse } from '@/features/admin-dashboard
 import { baseApi } from '@/store/apis/base';
 import type {
   DashboardGeographyFilters,
+  DashboardActorView,
   DashboardGeoQueryParams,
   DigitalHelpModuleQuestionsResponse,
   DigitalHelpModuleRequestsResponse,
@@ -53,6 +54,8 @@ export interface DigitalHelpModulesQuery extends DashboardDateParams {
   limit?: number;
   offset?: number;
   geography: DashboardGeographyFilters;
+  /** Optional PO/SK actor lens (`view=po|sk`). */
+  view?: DashboardActorView;
 }
 
 export interface PublishedModuleCompletionsQuery
@@ -66,17 +69,23 @@ export interface DigitalHelpModuleQuestionsQuery extends DashboardDateParams {
   limit?: number;
   offset?: number;
   geography: DashboardGeographyFilters;
+  /** Optional PO/SK actor lens (`view=po|sk`). */
+  view?: DashboardActorView;
 }
 
 export interface ModuleCreationSuggestionsQuery extends DashboardDateParams {
   limit?: number;
   offset?: number;
   geography: DashboardGeographyFilters;
+  /** Optional PO/SK actor lens (`view=po|sk`). */
+  view?: DashboardActorView;
 }
 
 export interface ModuleCreationSuggestionDetailQuery {
   suggestionId: string;
   geography: DashboardGeographyFilters;
+  /** Optional PO/SK actor lens (`view=po|sk`). */
+  view?: DashboardActorView;
 }
 
 export interface ModuleDemandSummaryQuery
@@ -150,13 +159,14 @@ export const dashboardApi = baseApi.injectEndpoints({
       DigitalHelpModulesQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ from_date, to_date, limit, offset, geography }) => ({
+      query: ({ from_date, to_date, limit, offset, geography, view }) => ({
         url: '/dashboard/digital-help-modules',
         params: {
           from_date,
           to_date,
           limit,
           offset,
+          ...(view ? { view } : {}),
           ...buildDashboardGeoParams(geography),
         },
       }),
@@ -168,13 +178,22 @@ export const dashboardApi = baseApi.injectEndpoints({
       DigitalHelpModuleQuestionsQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ moduleId, from_date, to_date, limit, offset, geography }) => ({
+      query: ({
+        moduleId,
+        from_date,
+        to_date,
+        limit,
+        offset,
+        geography,
+        view,
+      }) => ({
         url: `/dashboard/digital-help-modules/${encodeURIComponent(moduleId)}/questions`,
         params: {
           from_date,
           to_date,
           limit,
           offset,
+          ...(view ? { view } : {}),
           ...buildDashboardGeoParams(geography),
         },
       }),
@@ -186,13 +205,22 @@ export const dashboardApi = baseApi.injectEndpoints({
       DigitalHelpModuleQuestionsQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ moduleId, from_date, to_date, limit, offset, geography }) => ({
+      query: ({
+        moduleId,
+        from_date,
+        to_date,
+        limit,
+        offset,
+        geography,
+        view,
+      }) => ({
         url: `/dashboard/digital-help-modules/${encodeURIComponent(moduleId)}/requests`,
         params: {
           from_date,
           to_date,
           limit,
           offset,
+          ...(view ? { view } : {}),
           ...buildDashboardGeoParams(geography),
         },
       }),
@@ -220,13 +248,14 @@ export const dashboardApi = baseApi.injectEndpoints({
       ModuleCreationSuggestionsQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ from_date, to_date, limit, offset, geography }) => ({
+      query: ({ from_date, to_date, limit, offset, geography, view }) => ({
         url: '/dashboard/module-creation-suggestions',
         params: {
           from_date,
           to_date,
           limit,
           offset,
+          ...(view ? { view } : {}),
           ...buildDashboardGeoParams(geography),
         },
       }),
@@ -238,11 +267,14 @@ export const dashboardApi = baseApi.injectEndpoints({
       ModuleCreationSuggestionDetailQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ suggestionId, geography }) => ({
+      query: ({ suggestionId, geography, view }) => ({
         url: `/dashboard/module-creation-suggestions/${encodeURIComponent(
           suggestionId,
         )}`,
-        params: buildDashboardGeoParams(geography),
+        params: {
+          ...(view ? { view } : {}),
+          ...buildDashboardGeoParams(geography),
+        },
       }),
       transformResponse: (response: unknown) => {
         const normalized = normalizeSuggestionDetailResponse(response);

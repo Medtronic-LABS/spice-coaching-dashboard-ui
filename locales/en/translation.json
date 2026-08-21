@@ -354,6 +354,7 @@
       "demandPatternHeading": "Demand pattern",
       "summaryDescription": "Narrative overview of digital-help usage and module creation demand for the selected filters.",
       "summaryEmptyFallback": "No module usage or creation demand was recorded for your team between {{fromDate}} to {{toDate}}.",
+      "actorViewLabel": "Filter by SKs or POs",
       "columns": {
         "title": "Module Title",
         "searchCount": "Search Count",
