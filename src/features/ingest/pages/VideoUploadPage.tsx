@@ -52,6 +52,7 @@ import {
   INGEST_FORM_DEFAULTS,
   type IngestModuleCountInput,
   ingestModuleCountForPayload,
+  isIngestionInstructionsValid,
   isOptionalIngestModuleCountValid,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
@@ -700,6 +701,9 @@ export const VideoUploadPage = () => {
   const moduleCountsValid =
     isOptionalIngestModuleCountValid(quizzesPerModule) &&
     isOptionalIngestModuleCountValid(cardsPerModule);
+  const ingestionInstructionsValid = isIngestionInstructionsValid(
+    ingestionInstructions,
+  );
 
   const selectedRows = useMemo(
     () => rows.filter((row) => selectedIds.has(row.id)),
@@ -714,6 +718,7 @@ export const VideoUploadPage = () => {
   const canIngest =
     selectedRowsReadyToIngest.length > 0 &&
     moduleCountsValid &&
+    ingestionInstructionsValid &&
     !isUploading &&
     !isStartingIngest &&
     !anyIngestionInProgress;

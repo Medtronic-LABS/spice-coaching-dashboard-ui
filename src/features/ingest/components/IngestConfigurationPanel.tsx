@@ -1,4 +1,4 @@
-import { Select, Tooltip } from '@/components/ui';
+import { LimitedTextarea, Select, Tooltip } from '@/components/ui';
 import type {
   IngestAssessmentMode,
   IngestContentDomain,
@@ -9,8 +9,13 @@ import {
   INGEST_MODULE_COUNT_MAX_DIGITS,
   INGEST_MODULE_COUNT_MIN,
   INGEST_MODULE_COUNT_RANGE_LABEL,
+  INGESTION_INSTRUCTIONS_LIMIT_LABEL,
+  INGESTION_INSTRUCTIONS_MAX_LENGTH,
+  INGESTION_INSTRUCTIONS_MAX_LINES,
   type IngestModuleCountInput,
+  countIngestionInstructionLines,
   isIngestModuleCountInRange,
+  isIngestionInstructionsValid,
   parseOptionalIngestModuleCountInput,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
@@ -53,6 +58,11 @@ export const IngestConfigurationPanel = ({
   instructionsPlaceholder = DEFAULT_INSTRUCTIONS_PLACEHOLDER,
   className,
 }: IngestConfigurationPanelProps) => {
+  const instructionsLineCount = countIngestionInstructionLines(
+    ingestionInstructions,
+  );
+  const instructionsValid = isIngestionInstructionsValid(ingestionInstructions);
+
   return (
     <div
       className={cn(
@@ -188,13 +198,30 @@ export const IngestConfigurationPanel = ({
               (Optional)
             </span>
           </span>
-          <textarea
-            className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary placeholder:text-spice-text-muted"
+          <LimitedTextarea
+            id="ingest-ingestion-instructions"
             value={ingestionInstructions}
             disabled={disabled}
-            onChange={(e) => onIngestionInstructionsChange(e.target.value)}
+            maxLength={INGESTION_INSTRUCTIONS_MAX_LENGTH}
+            onChange={onIngestionInstructionsChange}
             placeholder={instructionsPlaceholder}
+            aria-invalid={!instructionsValid}
+            aria-label="Ingestion instructions"
+            textareaClassName={cn(
+              'min-h-[84px] placeholder:text-spice-text-muted',
+              !instructionsValid && 'border-spice-semantic-error',
+            )}
           />
+          {!instructionsValid ? (
+            <span className="text-[11px] text-spice-semantic-error">
+              Enter at most {INGESTION_INSTRUCTIONS_MAX_LINES} lines (
+              {instructionsLineCount} used).
+            </span>
+          ) : (
+            <span className="text-[11px] text-spice-text-muted">
+              {INGESTION_INSTRUCTIONS_LIMIT_LABEL}
+            </span>
+          )}
         </label>
       </div>
     </div>
