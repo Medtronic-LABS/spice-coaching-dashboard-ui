@@ -73,11 +73,11 @@ export const TrainingModulesSection = ({
     if (!modulesData) return;
     setAccumulatedModules((prev) => {
       if (offset === 0) {
+        // Prefer module object identity over module_id so date/filter refetches
+        // with the same roster still replace stale completion counts.
         if (
           prev.length === modulesData.length &&
-          prev.every(
-            (item, idx) => item.module_id === modulesData[idx]?.module_id,
-          )
+          prev.every((item, idx) => item === modulesData[idx])
         ) {
           return prev;
         }

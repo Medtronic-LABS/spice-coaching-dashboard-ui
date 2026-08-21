@@ -1,5 +1,6 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamHierarchySection } from '@/features/admin-dashboard/components/TeamHierarchySection';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
@@ -58,6 +59,16 @@ function member(
     performance_status: 'on_track',
     ...partial,
   };
+}
+
+function metricText(
+  expected: string,
+): (_: string, el: Element | null) => boolean {
+  return (_content, el) =>
+    Boolean(
+      el?.classList.contains('tabular-nums') &&
+      el.textContent?.replace(/\s+/g, ' ').trim() === expected,
+    );
 }
 
 const areaManager = member({
@@ -387,5 +398,148 @@ describe('TeamHierarchySection', () => {
     expect(useFetchTeamActivityQuery).not.toHaveBeenCalledWith(
       expect.objectContaining({ q: expect.anything() }),
     );
+  });
+
+  it('refreshes SK metrics when the same user_ids return updated activity after a date change', async () => {
+    const user = userEvent.setup();
+    const engagedSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      is_chatbot_engaged: true,
+      chatbot_query_count: 3,
+      assigned_modules: [
+        {
+          module_id: 'm1',
+          title: { en: 'Module A' },
+          completed_in_range: false,
+          completed_at: null,
+        },
+      ],
+    });
+    const idleSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      is_chatbot_engaged: false,
+      chatbot_query_count: 0,
+      assigned_modules: [],
+    });
+
+    useFetchTeamActivityQuery.mockImplementation(
+      (args: { from_date?: string; depth?: number; user_id?: number }) => {
+        const skForRange = args.from_date === '2026-08-01' ? idleSk : engagedSk;
+        if (args.user_id != null) return idleQuery([skForRange]);
+        if (args.depth === 2) return idleQuery([skForRange]);
+        return idleQuery([areaManager]);
+      },
+    );
+
+    function DateRangeHarness() {
+      const [fromDate, setFromDate] = useState('2026-08-21');
+      const [toDate, setToDate] = useState('2026-08-21');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setFromDate('2026-08-01');
+              setToDate('2026-08-01');
+            }}
+          >
+            Apply Aug 1
+          </button>
+          <TeamHierarchySection
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={EMPTY_DASHBOARD_GEOGRAPHY}
+            sortKey="name"
+            onSortChange={vi.fn()}
+          />
+        </>
+      );
+    }
+
+    renderWithProviders(<DateRangeHarness />);
+
+    await user.click(screen.getByRole('tab', { name: 'SKs' }));
+    expect(screen.getByText('Zulfikur Rehman')).toBeInTheDocument();
+    expect(screen.getByText(metricText('3 Queries'))).toBeInTheDocument();
+    expect(screen.getByText(/0\/1/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Apply Aug 1' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(metricText('0 Queries'))).toBeInTheDocument();
+    });
+    expect(screen.getByText(/0\/0/)).toBeInTheDocument();
+    expect(screen.queryByText(metricText('3 Queries'))).not.toBeInTheDocument();
+  });
+
+  it('refreshes nested descendant SK metrics after a date change', async () => {
+    const user = userEvent.setup();
+    const engagedSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      chatbot_query_count: 3,
+    });
+    const idleSk = member({
+      user_id: 427,
+      name: 'Zulfikur Rehman',
+      role: 'SK',
+      can_drill_down: false,
+      chatbot_query_count: 0,
+    });
+
+    useFetchTeamActivityQuery.mockImplementation(
+      (args: { from_date?: string; depth?: number; user_id?: number }) => {
+        const skForRange = args.from_date === '2026-08-01' ? idleSk : engagedSk;
+        if (args.user_id != null) return idleQuery([skForRange]);
+        if (args.depth === 2) return idleQuery([skForRange]);
+        return idleQuery([areaManager]);
+      },
+    );
+
+    function DateRangeHarness() {
+      const [fromDate, setFromDate] = useState('2026-08-21');
+      const [toDate, setToDate] = useState('2026-08-21');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setFromDate('2026-08-01');
+              setToDate('2026-08-01');
+            }}
+          >
+            Apply Aug 1
+          </button>
+          <TeamHierarchySection
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={EMPTY_DASHBOARD_GEOGRAPHY}
+            sortKey="name"
+            onSortChange={vi.fn()}
+          />
+        </>
+      );
+    }
+
+    renderWithProviders(<DateRangeHarness />);
+
+    await user.click(screen.getByRole('button', { name: 'View POs' }));
+    expect(screen.getByText('Zulfikur Rehman')).toBeInTheDocument();
+    expect(screen.getByText(metricText('3 Queries'))).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Apply Aug 1' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(metricText('0 Queries'))).toBeInTheDocument();
+    });
+    expect(screen.queryByText(metricText('3 Queries'))).not.toBeInTheDocument();
   });
 });

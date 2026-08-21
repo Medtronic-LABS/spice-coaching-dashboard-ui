@@ -212,11 +212,11 @@ const HierarchyMemberRow = ({
     if (!descendantMembersData || !expanded) return;
     setAccumulatedDescendants((prev) => {
       if (descendantOffset === 0) {
+        // Prefer member object identity over user_id so date/filter refetches
+        // with the same roster still replace stale activity fields.
         if (
           prev.length === descendantMembersData.length &&
-          prev.every(
-            (item, idx) => item.user_id === descendantMembersData[idx]?.user_id,
-          )
+          prev.every((item, idx) => item === descendantMembersData[idx])
         ) {
           return prev;
         }
@@ -499,9 +499,11 @@ export const TeamHierarchySection = ({
     if (!membersData) return;
     setAccumulatedMembers((prev) => {
       if (offset === 0) {
+        // Prefer member object identity over user_id so date/filter refetches
+        // with the same roster still replace stale activity fields.
         if (
           prev.length === membersData.length &&
-          prev.every((item, idx) => item.user_id === membersData[idx]?.user_id)
+          prev.every((item, idx) => item === membersData[idx])
         ) {
           return prev;
         }
