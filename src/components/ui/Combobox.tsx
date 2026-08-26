@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
+import { ChevronIcon } from '@/assets/icon';
 import { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
@@ -187,38 +188,45 @@ export const Combobox = ({
 
   return (
     <div className={cn('relative', className)} onBlur={handleBlur}>
-      <input
-        ref={inputRef}
-        id={inputId}
-        type="text"
-        role="combobox"
-        autoComplete="off"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        aria-controls={listboxId}
-        aria-autocomplete="list"
-        aria-activedescendant={
-          open && highlightedOption
-            ? `${inputId}-option-${highlightedIndex}`
-            : undefined
-        }
-        className={cn(
-          'h-10 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
-          SPICE_INPUT_FOCUS_CLASSNAME,
-        )}
-        value={open ? searchTerm : selectedLabel}
-        placeholder={open ? placeholder : selectedLabel || placeholder}
-        maxLength={FIELD_LIMITS.searchQuery}
-        onFocus={() => setOpen(true)}
-        onClick={() => setOpen(true)}
-        onChange={(event) => {
-          if (!open) setOpen(true);
-          onSearchTermChange(event.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-      />
+      <div className="relative">
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="text"
+          role="combobox"
+          autoComplete="off"
+          aria-label={ariaLabel}
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            open && highlightedOption
+              ? `${inputId}-option-${highlightedIndex}`
+              : undefined
+          }
+          className={cn(
+            'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface py-2 pl-3 pr-10 text-sm text-spice-text-primary caret-spice-palette-purple',
+            SPICE_INPUT_FOCUS_CLASSNAME,
+          )}
+          value={open ? searchTerm : selectedLabel}
+          placeholder={open ? placeholder : selectedLabel || placeholder}
+          maxLength={FIELD_LIMITS.searchQuery}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          onChange={(event) => {
+            if (!open) setOpen(true);
+            onSearchTermChange(event.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+        />
+        <ChevronIcon
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-spice-text-muted"
+          expanded={open}
+          aria-hidden
+        />
+      </div>
       {open ? (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface shadow-lg">
           {onLoadMore ? (
             <InfiniteScrollContainer
               className="max-h-64 py-1"

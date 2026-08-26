@@ -5,6 +5,11 @@ import {
   normalizeModuleDemandSummaryResponse,
   resolveModuleDemandSummaryBucket,
 } from '@/features/admin-dashboard/utils/normalizeModuleDemandSummaryResponse';
+import { formatDisplayDate } from '@/utils/formatDisplayDateTime';
+
+function expectedDateLabel(fromDate: string, toDate: string): string {
+  return `${formatDisplayDate(fromDate)}–${formatDisplayDate(toDate)}`;
+}
 
 const SAMPLE_RESPONSE = {
   from_date: '2026-08-01',
@@ -53,7 +58,9 @@ describe('normalizeModuleDemandSummaryResponse', () => {
       demand_pattern: [],
     });
 
-    expect(normalized.date_label).toMatch(/Aug 1, 2026–Aug 18, 2026/);
+    expect(normalized.date_label).toBe(
+      expectedDateLabel('2026-08-01', '2026-08-18'),
+    );
   });
 
   it('returns empty summary for invalid payloads', () => {
@@ -121,8 +128,8 @@ describe('hasModuleDemandSummaryContent', () => {
 
 describe('formatModuleDemandSummaryDateLabel', () => {
   it('formats ISO dates for display', () => {
-    expect(
-      formatModuleDemandSummaryDateLabel('2026-08-01', '2026-08-18'),
-    ).toMatch(/Aug 1, 2026–Aug 18, 2026/);
+    expect(formatModuleDemandSummaryDateLabel('2026-08-01', '2026-08-18')).toBe(
+      expectedDateLabel('2026-08-01', '2026-08-18'),
+    );
   });
 });

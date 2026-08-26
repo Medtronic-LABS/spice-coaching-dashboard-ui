@@ -22,12 +22,31 @@ describe('ModuleStatusBadge', () => {
     },
   );
 
-  it('maps lifecycle statuses to labels', () => {
-    expect(getModuleStatusBadgeProps('draft').label).toBe('Draft');
-    expect(getModuleStatusBadgeProps('published').label).toBe('Published');
-    expect(getModuleStatusBadgeProps('review_pending').label).toBe('Review');
-    expect(getModuleStatusBadgeProps('discarded').label).toBe('Discarded');
-    expect(getModuleStatusBadgeProps('deactivated').label).toBe('Deactivated');
+  it('maps lifecycle statuses to labels and tones', () => {
+    expect(getModuleStatusBadgeProps('draft')).toEqual({
+      semanticStatus: 'neutral',
+      label: 'Draft',
+    });
+    expect(getModuleStatusBadgeProps('published')).toEqual({
+      semanticStatus: 'success',
+      label: 'Published',
+    });
+    expect(getModuleStatusBadgeProps('review_pending')).toEqual({
+      semanticStatus: 'warning',
+      label: 'Review',
+    });
+    expect(getModuleStatusBadgeProps('discarded')).toEqual({
+      semanticStatus: 'info',
+      label: 'Discarded',
+    });
+    expect(getModuleStatusBadgeProps('retired')).toEqual({
+      semanticStatus: 'info',
+      label: 'Discarded',
+    });
+    expect(getModuleStatusBadgeProps('deactivated')).toEqual({
+      semanticStatus: 'critical',
+      label: 'Deactivated',
+    });
   });
 
   it('uses overrideLabel and merges extra className', () => {

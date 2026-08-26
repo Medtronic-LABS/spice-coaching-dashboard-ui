@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
@@ -183,6 +189,15 @@ describe('NeedsReviewTab', () => {
     });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discard New' })[0]);
+    const discardDialog = screen.getByRole('dialog');
+    expect(
+      within(discardDialog).getByRole('heading', {
+        name: 'Discard new module?',
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(discardDialog).getByRole('button', { name: 'Discard New' }),
+    );
     await waitFor(() => {
       expect(handleDiscardNew).toHaveBeenCalledWith('candidate-1');
     });
@@ -237,6 +252,6 @@ describe('NeedsReviewTab', () => {
       expect(screen.getByText('Merged Module Title')).toBeInTheDocument();
     });
     expect(screen.getByText('Merge Preview')).toBeInTheDocument();
-    expect(screen.getByText('Candidate Module 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Candidate Module 1').length).toBeGreaterThan(0);
   });
 });

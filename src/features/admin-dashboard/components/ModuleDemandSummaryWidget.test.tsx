@@ -43,6 +43,7 @@ describe('ModuleDemandSummaryWidget', () => {
   it('renders structured summary with narrative and demand pattern', () => {
     mocks.useFetchModuleDemandSummaryQuery.mockReturnValue({
       data: STRUCTURED_SUMMARY,
+      currentData: STRUCTURED_SUMMARY,
       isLoading: false,
       isFetching: false,
       isError: false,
@@ -78,22 +79,21 @@ describe('ModuleDemandSummaryWidget', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Ready to publish')).toBeInTheDocument();
     expect(screen.getByText('Content gaps')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /refresh/i }),
-    ).toBeInTheDocument();
   });
 
   it('shows empty_message when the summary has no structured content', () => {
+    const emptySummary = {
+      from_date: '2026-08-01',
+      to_date: '2026-08-18',
+      title: '',
+      date_label: '',
+      narrative: '',
+      empty_message: 'No module demand in this range.',
+      demand_pattern: [],
+    };
     mocks.useFetchModuleDemandSummaryQuery.mockReturnValue({
-      data: {
-        from_date: '2026-08-01',
-        to_date: '2026-08-18',
-        title: '',
-        date_label: '',
-        narrative: '',
-        empty_message: 'No module demand in this range.',
-        demand_pattern: [],
-      },
+      data: emptySummary,
+      currentData: emptySummary,
       isLoading: false,
       isFetching: false,
       isError: false,
@@ -116,6 +116,7 @@ describe('ModuleDemandSummaryWidget', () => {
   it('shows error retry when the query fails without data', () => {
     mocks.useFetchModuleDemandSummaryQuery.mockReturnValue({
       data: undefined,
+      currentData: undefined,
       isLoading: false,
       isFetching: false,
       isError: true,
@@ -133,5 +134,32 @@ describe('ModuleDemandSummaryWidget', () => {
     expect(
       screen.getByRole('button', { name: /try again/i }),
     ).toBeInTheDocument();
+  });
+
+  it('shows loading instead of stale data when args change', () => {
+    mocks.useFetchModuleDemandSummaryQuery.mockReturnValue({
+      data: STRUCTURED_SUMMARY,
+      currentData: undefined,
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      refetch: vi.fn(),
+    });
+
+    const { container } = renderWithProviders(
+      <ModuleDemandSummaryWidget
+        fromDate="2026-08-01"
+        toDate="2026-08-18"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('heading', {
+        name: /insights from module usage/i,
+        level: 3,
+      }),
+    ).not.toBeInTheDocument();
+    expect(container.querySelector('[aria-hidden]')).toBeInTheDocument();
   });
 });

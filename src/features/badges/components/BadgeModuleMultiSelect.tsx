@@ -52,6 +52,9 @@ export const BadgeModuleMultiSelect = ({
 }: BadgeModuleMultiSelectProps) => {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
+  const allLoadedSelected =
+    options.length > 0 && options.every((option) => selectedSet.has(option.id));
+
   const toggle = (moduleId: string) => {
     if (disabled) return;
     if (selectedSet.has(moduleId)) {
@@ -59,6 +62,21 @@ export const BadgeModuleMultiSelect = ({
       return;
     }
     onChange([...selectedIds, moduleId]);
+  };
+
+  const selectAllLoaded = () => {
+    if (disabled || options.length === 0) return;
+    const next = new Set(selectedIds);
+    for (const option of options) {
+      next.add(option.id);
+    }
+    onChange([...next]);
+  };
+
+  const deselectAllLoaded = () => {
+    if (disabled || options.length === 0) return;
+    const loadedIds = new Set(options.map((option) => option.id));
+    onChange(selectedIds.filter((id) => !loadedIds.has(id)));
   };
 
   const listBody = isLoading ? (
@@ -104,6 +122,9 @@ export const BadgeModuleMultiSelect = ({
     </ul>
   );
 
+  const showSelectAllControl =
+    !disabled && !isLoading && showSearch && options.length > 0;
+
   return (
     <div className="space-y-2">
       {showSearch ? (
@@ -117,10 +138,21 @@ export const BadgeModuleMultiSelect = ({
           />
         </div>
       ) : null}
+      {showSelectAllControl ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="text-xs font-semibold text-spice-brand-primary hover:underline"
+            onClick={allLoadedSelected ? deselectAllLoaded : selectAllLoaded}
+          >
+            {allLoadedSelected ? 'Deselect all' : 'Select all loaded'}
+          </button>
+        </div>
+      ) : null}
       {onLoadMore ? (
         <InfiniteScrollContainer
           className={cn(
-            'max-h-64 rounded-xl border border-spice-border bg-spice-bg-surface',
+            'max-h-64 rounded-lg border border-spice-border bg-spice-bg-surface',
             disabled && 'opacity-60',
           )}
           hasMore={!isLoading && !disabled && hasMore}
@@ -140,7 +172,7 @@ export const BadgeModuleMultiSelect = ({
       ) : (
         <div
           className={cn(
-            'max-h-64 overflow-y-auto rounded-xl border border-spice-border bg-spice-bg-surface',
+            'max-h-64 overflow-y-auto rounded-lg border border-spice-border bg-spice-bg-surface',
             disabled && 'opacity-60',
           )}
           role="group"

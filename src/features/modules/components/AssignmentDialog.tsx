@@ -17,6 +17,7 @@ import {
   InfiniteScrollContainer,
   Loader,
   Modal,
+  ModalActionBar,
   SearchInput,
   Select,
   Tabs,
@@ -690,7 +691,7 @@ export const AssignmentDialog = ({
     ],
   );
 
-  const resetFilterUpazilaState = () => {
+  const resetFilterUpazilaState = useCallback(() => {
     setFilterUpazilasCatalogPending(true);
     setSelectedUpazilaId(null);
     setSelectedUpazilaName('');
@@ -698,9 +699,9 @@ export const AssignmentDialog = ({
     setFilterLoadedUpazilas([]);
     setFilterUpazilasTotal(0);
     setFilterUpazilasOffset(0);
-  };
+  }, []);
 
-  const resetDistrictAndBelow = () => {
+  const resetDistrictAndBelow = useCallback(() => {
     setDistrictsCatalogPending(true);
     setFilterUpazilasCatalogPending(true);
     setSelectedDistrictId(null);
@@ -710,9 +711,9 @@ export const AssignmentDialog = ({
     setDistrictsTotal(0);
     setDistrictsOffset(0);
     resetFilterUpazilaState();
-  };
+  }, [resetFilterUpazilaState]);
 
-  const resetGeographyFilters = () => {
+  const resetGeographyFilters = useCallback(() => {
     setDivisionsCatalogPending(true);
     setDistrictsCatalogPending(true);
     setFilterUpazilasCatalogPending(true);
@@ -723,7 +724,7 @@ export const AssignmentDialog = ({
     setDivisionsTotal(0);
     setDivisionsOffset(0);
     resetDistrictAndBelow();
-  };
+  }, [resetDistrictAndBelow]);
 
   const handleAssignmentTabChange = (value: string) => {
     const nextTab = value as AssignmentTab;
@@ -772,7 +773,13 @@ export const AssignmentDialog = ({
         }
       });
     }
-  }, [open, target, triggerDocumentAssignedUsers, triggerModuleAssignedUsers]);
+  }, [
+    open,
+    resetGeographyFilters,
+    target,
+    triggerDocumentAssignedUsers,
+    triggerModuleAssignedUsers,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -1219,35 +1226,30 @@ export const AssignmentDialog = ({
   );
 
   return (
-    <Modal open={open} labelledBy="assignment-dialog-title" onClose={onClose}>
+    <Modal
+      open={open}
+      labelledBy="assignment-dialog-title"
+      onClose={onClose}
+      contentClassName="max-w-2xl"
+    >
       <Loader open={isSubmitting} label={`Assigning ${noun}…`} />
       <Card
         variant="elevated"
-        className="w-full max-w-lg space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:p-6 sm:pr-14"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h2
-              id="assignment-dialog-title"
-              className="text-lg font-semibold text-spice-text-primary sm:text-xl"
-            >
-              Assign {noun}
-            </h2>
-            <p className="mt-1 min-w-0">
-              <TruncatedText
-                text={target.title}
-                className="text-xs text-spice-text-muted"
-              />
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            className="h-9 px-3 text-xs"
-            disabled={isSubmitting}
-            onClick={onClose}
+        <div className="min-w-0 pr-10">
+          <h2
+            id="assignment-dialog-title"
+            className="text-lg font-semibold text-spice-text-primary sm:text-xl"
           >
-            Close
-          </Button>
+            Assign {noun}
+          </h2>
+          <p className="mt-1 min-w-0">
+            <TruncatedText
+              text={target.title}
+              className="text-xs text-spice-text-muted"
+            />
+          </p>
         </div>
 
         {errorMsg ? <Banner tone="critical">{errorMsg}</Banner> : null}
@@ -1272,7 +1274,9 @@ export const AssignmentDialog = ({
                     setUserLevelMode(value as AssignmentUserLevelMode);
                     setErrorMsg('');
                   }}
-                  className="min-w-0 flex-1 whitespace-nowrap"
+                  className="min-w-0 flex-1"
+                  triggerClassName="rounded-lg"
+                  aria-label="Role"
                   disabled={catalogsLoading}
                 />
               </label>
@@ -1406,23 +1410,14 @@ export const AssignmentDialog = ({
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            onClick={() => void handleAssign()}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Assigning…' : `Assign ${noun}`}
-          </Button>
-        </div>
+        <ModalActionBar
+          className="px-0 pb-0 pt-2"
+          confirmLabel={`Assign ${noun}`}
+          confirmingLabel="Assigning…"
+          isConfirming={isSubmitting}
+          onCancel={onClose}
+          onConfirm={() => void handleAssign()}
+        />
       </Card>
     </Modal>
   );

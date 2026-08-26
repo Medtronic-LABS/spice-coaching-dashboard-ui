@@ -265,12 +265,12 @@ describe('DocumentSelectionPanel', () => {
     const user = userEvent.setup();
     renderWithProviders(<ControlledPanel />);
 
-    await user.selectOptions(
-      screen.getByRole('combobox', {
+    await user.click(
+      screen.getByRole('button', {
         name: /document selection rows per page/i,
       }),
-      '10',
     );
+    await user.click(screen.getByRole('option', { name: '10' }));
 
     await waitFor(() => {
       expect(mocks.useFetchSourceDocumentsQuery).toHaveBeenCalledWith(

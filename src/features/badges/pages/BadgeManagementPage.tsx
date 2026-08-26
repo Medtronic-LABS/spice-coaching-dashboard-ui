@@ -4,9 +4,9 @@ import {
   Button,
   Card,
   type ComboboxOption,
+  ConfirmDialog,
   ErrorState,
   Loader,
-  Modal,
   QuotedDisplayLabel,
   SearchInput,
   Tooltip,
@@ -1083,53 +1083,33 @@ export const BadgeManagementPage = () => {
         onFormError={setFormError}
       />
 
-      <Modal
+      <ConfirmDialog
         open={Boolean(deleteTarget)}
         labelledBy="delete-badge-title"
         describedBy="delete-badge-description"
-        onClose={() => setDeleteTarget(null)}
-      >
-        <div className="mx-auto w-full max-w-md rounded-xl bg-spice-bg-surface p-6 shadow-spiceOverlay">
-          <h2
-            id="delete-badge-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            Delete Milestone?
-          </h2>
-          <p
-            id="delete-badge-description"
-            className="mt-2 text-sm text-spice-text-medium"
-          >
+        title="Delete milestone"
+        description={
+          <>
             Are you sure you want to delete{' '}
             {deleteTarget ? (
               <QuotedDisplayLabel text={deleteTarget.name} />
             ) : null}
             ?
-          </p>
-          <p className="mt-3 text-sm text-spice-text-medium">
-            Deleting this milestone will remove it from the learner roadmap and
-            prevent it from being awarded to learners in the future. Previously
-            awarded milestones will remain in learners’ history.
-          </p>
-          <div className="mt-6 flex justify-end gap-3">
-            <Button
-              variant="ghost"
-              className="h-9 text-xs"
-              onClick={() => setDeleteTarget(null)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => void handleConfirmDelete()}
-              disabled={isDeleting}
-              className="h-9 bg-spice-semantic-error text-xs hover:bg-spice-semantic-error/90"
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-      </Modal>
+          </>
+        }
+        confirmLabel="Delete"
+        confirmingLabel="Deleting…"
+        isConfirming={isDeleting}
+        disabled={isDeleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void handleConfirmDelete()}
+      >
+        <p className="text-sm text-spice-text-medium">
+          Deleting this milestone will remove it from the learner roadmap and
+          prevent it from being awarded to learners in the future. Previously
+          awarded milestones will remain in learners’ history.
+        </p>
+      </ConfirmDialog>
     </section>
   );
 };

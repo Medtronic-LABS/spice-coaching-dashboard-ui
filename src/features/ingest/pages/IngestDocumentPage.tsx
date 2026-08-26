@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRightIcon } from '@/assets/icon';
 import { Banner, Button, Card } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type {
@@ -371,10 +372,11 @@ export const IngestDocumentPage = () => {
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            className="h-9 text-xs"
+            className="inline-flex h-9 items-center gap-1.5 text-xs"
             onClick={() => navigate(paths.moduleLibrary)}
           >
             Module Library
+            <ArrowRightIcon className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>

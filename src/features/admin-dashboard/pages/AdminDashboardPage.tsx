@@ -124,9 +124,6 @@ export const AdminDashboardPage = () => {
       />
 
       <div className="space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-          {t('adminDashboard.moduleDemand.sectionTitle')}
-        </h2>
         <ModuleDemandSummaryWidget
           fromDate={fromDate}
           toDate={toDate}
@@ -156,16 +153,11 @@ export const AdminDashboardPage = () => {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-          {t('adminDashboard.insightsTitle')}
-        </h2>
-        <DocumentUsageSection
-          fromDate={fromDate}
-          toDate={toDate}
-          geography={geography}
-        />
-      </div>
+      <DocumentUsageSection
+        fromDate={fromDate}
+        toDate={toDate}
+        geography={geography}
+      />
 
       {assignmentTarget ? (
         <ModuleAssignmentDialog

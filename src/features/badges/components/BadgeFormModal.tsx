@@ -5,6 +5,7 @@ import {
   Card,
   LimitedTextInput,
   Modal,
+  ModalActionBar,
   Tooltip,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -106,6 +107,7 @@ export function BadgeFormModal({
     <Modal
       open={open}
       labelledBy="badge-form-modal-title"
+      contentClassName="max-w-4xl"
       onClose={() => {
         if (isSaving) return;
         onClose();
@@ -113,7 +115,7 @@ export function BadgeFormModal({
     >
       <Card
         variant="elevated"
-        className="mx-auto w-full max-w-4xl space-y-5 border-spice-border p-6 shadow-lg sm:p-7"
+        className="w-full space-y-5 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
       >
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-spice-border pb-4">
           <div>
@@ -235,36 +237,22 @@ export function BadgeFormModal({
 
         {formError ? <Banner tone="critical">{formError}</Banner> : null}
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-spice-border pt-4">
-          {isViewMode ? (
-            <>
-              <Button variant="ghost" className="h-9 text-xs" onClick={onClose}>
-                Close
-              </Button>
-              <Button className="h-9 text-xs" onClick={onEditFromView}>
-                Edit
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                className="h-9 text-xs"
-                onClick={onClose}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="h-9 text-xs"
-                onClick={onSubmit}
-                disabled={isSaving || form.imagePendingUpload}
-              >
-                {isEditMode ? 'Update' : 'Add'}
-              </Button>
-            </>
-          )}
-        </div>
+        {isViewMode ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-spice-border pt-4">
+            <Button className="h-9 text-xs" onClick={onEditFromView}>
+              Edit
+            </Button>
+          </div>
+        ) : (
+          <ModalActionBar
+            className="border-t border-spice-border px-0 pb-0 pt-4"
+            confirmLabel={isEditMode ? 'Update' : 'Add'}
+            cancelDisabled={isSaving}
+            confirmDisabled={isSaving || form.imagePendingUpload}
+            onCancel={onClose}
+            onConfirm={onSubmit}
+          />
+        )}
       </Card>
     </Modal>
   );

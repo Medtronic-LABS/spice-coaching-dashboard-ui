@@ -42,6 +42,63 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('renders a close button when onClose is provided', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open labelledBy="test-modal-title" onClose={onClose}>
+        <div className="w-full max-w-md">
+          <h2 id="test-modal-title">Closable modal</h2>
+        </div>
+      </Modal>,
+    );
+
+    const closeButton = screen.getByRole('button', { name: 'Close' });
+    expect(closeButton).toBeInTheDocument();
+    fireEvent.click(closeButton);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('centers constrained content and keeps close on the shell', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal
+        open
+        labelledBy="test-modal-title"
+        onClose={onClose}
+        contentClassName="max-w-4xl"
+      >
+        <div className="w-full" data-testid="modal-card">
+          <h2 id="test-modal-title">Centered</h2>
+        </div>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('items-center');
+    const contentWrapper = dialog.firstElementChild;
+    expect(contentWrapper).toHaveClass('relative', 'w-full', 'max-w-4xl');
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+  });
+
+  it('hides the close button when showCloseButton is false', () => {
+    render(
+      <Modal
+        open
+        labelledBy="test-modal-title"
+        onClose={vi.fn()}
+        showCloseButton={false}
+      >
+        <div>
+          <h2 id="test-modal-title">No X</h2>
+        </div>
+      </Modal>,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Close' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('locks body scroll while open', () => {
     const { unmount } = render(
       <Modal open labelledBy="test-modal-title">

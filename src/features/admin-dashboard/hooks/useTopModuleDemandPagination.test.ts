@@ -60,7 +60,7 @@ describe('useAccumulatedModuleDemandPages', () => {
     });
   });
 
-  it('clears accumulated items when the filter key changes', async () => {
+  it('clears accumulated items when the filter key changes', () => {
     const { result, rerender } = renderHook(
       (props: {
         filterKey: string;
@@ -89,15 +89,14 @@ describe('useAccumulatedModuleDemandPages', () => {
       },
     );
 
-    await waitFor(() => {
-      expect(result.current).toHaveLength(1);
-    });
+    expect(result.current).toEqual([{ id: 'a', label: 'Alpha' }]);
 
     rerender({
-      filterKey: '2026-02-01|2026-02-28||',
+      filterKey: '2026-02-01|2026-02-28||sk',
       pageData: undefined,
     });
 
+    // Sync clear on filterKey change — no waitFor needed.
     expect(result.current).toEqual([]);
   });
 

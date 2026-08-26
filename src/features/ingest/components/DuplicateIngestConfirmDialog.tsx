@@ -351,12 +351,14 @@ export const DuplicateIngestConfirmDialog = ({
     <Modal
       open={open}
       labelledBy="duplicate-ingest-title"
+      contentClassName="max-w-4xl"
+      showCloseButton={false}
       onClose={isConfirming ? undefined : onCancel}
       zIndexClassName="z-[110]"
     >
       <Card
         variant="elevated"
-        className="w-full max-w-4xl space-y-4 border-spice-border p-6 shadow-lg"
+        className="w-full space-y-4 border-spice-border p-6 shadow-lg"
       >
         <div className="space-y-2">
           <div className="flex items-center gap-2">

@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { Card } from '@/components/ui';
-import { DashboardWidgetRefreshButton } from '@/features/admin-dashboard/components/DashboardWidgetRefreshButton';
 import { cn } from '@/utils';
 
 export type DashboardWidgetShellSize = 'md' | 'lg' | 'xl' | 'xxl';
@@ -10,13 +9,6 @@ interface DashboardWidgetShellProps {
   description?: string;
   /** Right-side header controls (sort, search, actions). */
   actions?: ReactNode;
-  /**
-   * When set, appends the shared refresh control after `actions`.
-   * Prefer this over a one-off refresh button in each widget.
-   */
-  onRefresh?: () => void;
-  /** Disables refresh and spins the icon while the widget query is fetching. */
-  isRefreshing?: boolean;
   children: ReactNode;
   footer?: ReactNode;
   /**
@@ -51,8 +43,6 @@ export const DashboardWidgetShell = ({
   title,
   description,
   actions,
-  onRefresh,
-  isRefreshing = false,
   children,
   footer,
   flush = false,
@@ -60,8 +50,6 @@ export const DashboardWidgetShell = ({
   compact = false,
   className,
 }: DashboardWidgetShellProps) => {
-  const hasHeaderControls = Boolean(actions) || Boolean(onRefresh);
-
   return (
     <Card
       className={cn(
@@ -80,24 +68,18 @@ export const DashboardWidgetShell = ({
         )}
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-[13px] font-semibold text-spice-text-primary">
+          <h3 className="text-base font-semibold text-spice-text-primary">
             {title}
           </h3>
           {description ? (
-            <p className="mt-1 text-[11px] font-normal text-spice-text-muted">
+            <p className="mt-1 text-sm font-normal text-spice-text-muted">
               {description}
             </p>
           ) : null}
         </div>
-        {hasHeaderControls ? (
+        {actions ? (
           <div className="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
             {actions}
-            {onRefresh ? (
-              <DashboardWidgetRefreshButton
-                onRefresh={onRefresh}
-                isRefreshing={isRefreshing}
-              />
-            ) : null}
           </div>
         ) : null}
       </div>

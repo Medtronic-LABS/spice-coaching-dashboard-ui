@@ -86,7 +86,7 @@ export const IngestConfigurationPanel = ({
               Module content
             </span>
             <Select
-              className="w-full rounded-lg"
+              className="w-full"
               options={INGEST_ASSESSMENT_MODE_OPTIONS}
               value={assessmentMode}
               disabled={disabled}
@@ -106,7 +106,7 @@ export const IngestConfigurationPanel = ({
               />
             </span>
             <Select
-              className="w-full rounded-lg"
+              className="w-full"
               options={INGEST_CONTENT_DOMAIN_OPTIONS}
               value={contentDomain}
               disabled={disabled}

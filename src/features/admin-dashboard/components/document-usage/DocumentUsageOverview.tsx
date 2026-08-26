@@ -1,17 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { BookIcon, EyeIcon, UsersIcon } from '@/assets/icon';
-import { ProgressBar } from '@/components/common/ProgressBar';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { EmptyState, StatCard, TruncatedText } from '@/components/ui';
+import { StatCard } from '@/components/ui';
 import {
   TextLink,
   WidgetSubheading,
 } from '@/features/admin-dashboard/components/document-usage/DocumentUsageChrome';
 import type { DocumentUsageDocumentRow } from '@/features/admin-dashboard/types/dashboard.types';
-import {
-  OVERVIEW_DOCUMENTS_LIMIT,
-  type DocumentUsageTopCard,
-} from '@/features/admin-dashboard/utils/documentUsage';
+import { OVERVIEW_DOCUMENTS_LIMIT } from '@/features/admin-dashboard/utils/documentUsage';
 import { DOCUMENT_USAGE_TABLE_PROPS } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
 
 type DocumentTableRow = DocumentUsageDocumentRow & { actions: '' };
@@ -21,10 +17,8 @@ interface DocumentUsageOverviewProps {
   uniqueDocuments: number;
   uniqueUsers: number;
   totalDocumentRows: number;
-  topDocuments: DocumentUsageTopCard[];
   documentRows: DocumentTableRow[];
   documentColumns: Array<ColumnDef<DocumentTableRow>>;
-  onViewAllTop: () => void;
   onViewAllDocuments: () => void;
 }
 
@@ -33,10 +27,8 @@ export const DocumentUsageOverview = ({
   uniqueDocuments,
   uniqueUsers,
   totalDocumentRows,
-  topDocuments,
   documentRows,
   documentColumns,
-  onViewAllTop,
   onViewAllDocuments,
 }: DocumentUsageOverviewProps) => {
   const { t } = useTranslation();
@@ -67,57 +59,6 @@ export const DocumentUsageOverview = ({
           value={uniqueUsers}
           tooltip={t('adminDashboard.documentUsage.kpis.usersTooltip')}
         />
-      </div>
-
-      <div>
-        <WidgetSubheading
-          title={t('adminDashboard.documentUsage.chartLabel')}
-          action={
-            topDocuments.length > 0 ? (
-              <TextLink
-                label={t('adminDashboard.documentUsage.viewAll')}
-                onClick={onViewAllTop}
-              />
-            ) : null
-          }
-        />
-        {topDocuments.length === 0 ? (
-          <EmptyState
-            title={t('adminDashboard.documentUsage.emptyTitle')}
-            description={t('adminDashboard.documentUsage.emptyDescription')}
-          />
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {topDocuments.map((doc) => (
-              <li
-                key={doc.id}
-                className="rounded-lg border border-spice-border/70 bg-spice-bg-surface px-3 py-2.5"
-              >
-                <div className="mb-1.5 flex items-center gap-2 text-xs">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-spice-bg-tint text-[10px] font-semibold tabular-nums text-spice-text-muted">
-                    {doc.rank}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <TruncatedText
-                      text={doc.title}
-                      className="font-medium text-spice-text-primary"
-                    />
-                  </div>
-                  <span className="shrink-0 tabular-nums text-spice-text-muted">
-                    {t('adminDashboard.documentUsage.viewsCount', {
-                      count: doc.views,
-                    })}
-                  </span>
-                </div>
-                <ProgressBar
-                  value={doc.percent}
-                  className="h-2"
-                  barClassName="bg-spice-palette-purple"
-                />
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
       <div>

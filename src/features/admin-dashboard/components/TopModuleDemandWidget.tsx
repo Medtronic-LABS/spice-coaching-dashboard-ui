@@ -24,8 +24,6 @@ interface TopModuleDemandWidgetProps {
   showLoading: boolean;
   showError: boolean;
   onRetry: () => void;
-  onRefresh: () => void;
-  isRefreshing?: boolean;
   showActions: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -45,8 +43,6 @@ export const TopModuleDemandWidget = ({
   showLoading,
   showError,
   onRetry,
-  onRefresh,
-  isRefreshing = false,
   showActions,
   emptyTitle,
   emptyDescription,
@@ -73,8 +69,6 @@ export const TopModuleDemandWidget = ({
       description={description}
       size="lg"
       actions={headerActions}
-      onRefresh={onRefresh}
-      isRefreshing={isRefreshing}
     >
       {showLoading ? (
         <DashboardListSkeleton rows={5} />

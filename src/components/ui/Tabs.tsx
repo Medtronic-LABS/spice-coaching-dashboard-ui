@@ -150,7 +150,7 @@ export const Tabs = ({
                       : 'text-spice-text-muted hover:text-spice-palette-violetDeep',
                   )
                 : cn(
-                    'inline-flex h-8 items-center rounded-full border px-3 py-0 text-sm leading-none',
+                    'inline-flex h-8 items-center rounded-lg border px-3 py-0 text-sm leading-none',
                     isActive
                       ? 'border-spice-palette-violet bg-spice-palette-violetLt font-semibold text-spice-palette-violetDeep'
                       : 'border-spice-border font-normal text-spice-text-onSurfaceVariant hover:text-spice-palette-violetDeep',

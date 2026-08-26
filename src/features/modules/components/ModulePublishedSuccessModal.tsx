@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
 import { TruncatedText } from '@/components/ui/TruncatedText';
+import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 
 export interface ModulePublishedSuccessSummary {
   title: string;
@@ -63,11 +63,20 @@ export const ModulePublishedSuccessModal = ({
   const quizLabel =
     summary.quizCount === 1 ? '1 question' : `${summary.quizCount} questions`;
 
+  const handleRedirect = () => {
+    onRedirectRef.current();
+  };
+
   return (
-    <Modal open={open} labelledBy="module-published-title">
+    <Modal
+      open={open}
+      labelledBy="module-published-title"
+      contentClassName="max-w-xl"
+      onClose={handleRedirect}
+    >
       <Card
         variant="elevated"
-        className="w-full max-w-xl space-y-4 border-spice-border p-4 shadow-lg sm:space-y-5 sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:space-y-5 sm:p-6 sm:pr-14"
       >
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-spice-palette-purpleLt text-spice-palette-purple ring-1 ring-spice-palette-purple/15">
           <svg
@@ -84,9 +93,9 @@ export const ModulePublishedSuccessModal = ({
           </svg>
         </div>
         <div className="space-y-2 text-center">
-          <Badge className="bg-spice-palette-purpleLt text-spice-palette-purple ring-1 ring-spice-palette-purple/15">
-            PUBLISHED
-          </Badge>
+          <div className="flex justify-center">
+            <ModuleStatusBadge status="published" />
+          </div>
           <h2
             id="module-published-title"
             className="text-xl font-semibold text-spice-text-primary sm:text-2xl"
@@ -165,7 +174,7 @@ export const ModulePublishedSuccessModal = ({
           </div>
           <button
             type="button"
-            onClick={() => onRedirectRef.current()}
+            onClick={handleRedirect}
             className="flex w-full items-center justify-between rounded-lg bg-spice-bg-tint px-4 py-3 text-left ring-1 ring-spice-border transition hover:bg-spice-bg-surface"
           >
             <div>
@@ -201,7 +210,7 @@ export const ModulePublishedSuccessModal = ({
           ) : null}
         </div>
 
-        <Button className="w-full" onClick={() => onRedirectRef.current()}>
+        <Button className="w-full" onClick={handleRedirect}>
           {primaryLabel}
         </Button>
       </Card>

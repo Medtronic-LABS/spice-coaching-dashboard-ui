@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui';
 import { useFetchModuleDemandSummaryQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
-import { DashboardWidgetRefreshButton } from '@/features/admin-dashboard/components/DashboardWidgetRefreshButton';
 import type {
   DashboardGeographyFilters,
   ModuleDemandPatternItem,
@@ -130,14 +129,12 @@ export const ModuleDemandSummaryWidget = ({
     { skip },
   );
   const ui = resolveDashboardQueryUiState(query);
-  const summary = query.data ?? normalizeModuleDemandSummaryResponse(undefined);
+  const summary =
+    query.currentData ?? normalizeModuleDemandSummaryResponse(undefined);
   const emptyFallback = t('adminDashboard.moduleDemand.summaryEmptyFallback', {
     fromDate,
     toDate,
   });
-  const handleRefresh = () => {
-    void query.refetch();
-  };
 
   return (
     <Card
@@ -150,7 +147,10 @@ export const ModuleDemandSummaryWidget = ({
           <SummarySkeleton />
         ) : ui.showError ? (
           <div className="min-w-0 flex-1">
-            <DashboardWidgetErrorState compact onRetry={handleRefresh} />
+            <DashboardWidgetErrorState
+              compact
+              onRetry={() => void query.refetch()}
+            />
           </div>
         ) : (
           <div className="min-w-0 flex-1">
@@ -160,13 +160,6 @@ export const ModuleDemandSummaryWidget = ({
             />
           </div>
         )}
-        {!ui.showError ? (
-          <DashboardWidgetRefreshButton
-            onRefresh={handleRefresh}
-            isRefreshing={query.isFetching}
-            className="h-8 w-8 shrink-0 border-0 bg-spice-bg-surface/80 shadow-none hover:bg-spice-bg-surface"
-          />
-        ) : null}
       </div>
     </Card>
   );

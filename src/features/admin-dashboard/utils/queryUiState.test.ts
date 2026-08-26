@@ -55,4 +55,28 @@ describe('resolveDashboardQueryUiState', () => {
       }),
     ).toEqual({ showLoading: false, showError: false });
   });
+
+  it('shows loading on arg change when currentData is empty but data is stale', () => {
+    expect(
+      resolveDashboardQueryUiState({
+        isLoading: false,
+        isFetching: true,
+        isError: false,
+        data: { items: ['stale'] },
+        currentData: undefined,
+      }),
+    ).toEqual({ showLoading: true, showError: false });
+  });
+
+  it('keeps content when currentData exists during a same-args refetch', () => {
+    expect(
+      resolveDashboardQueryUiState({
+        isLoading: false,
+        isFetching: true,
+        isError: false,
+        data: { items: ['ok'] },
+        currentData: { items: ['ok'] },
+      }),
+    ).toEqual({ showLoading: false, showError: false });
+  });
 });
