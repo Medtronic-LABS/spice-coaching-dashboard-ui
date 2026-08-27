@@ -8,7 +8,7 @@ import { cn } from '@/utils';
  *
  * Accent styling mirrors Needs Review module cards (`border-l-4`),
  * but uses a top accent (`border-t-4`) for dashboard metrics.
- * Label and value sit on one bottom row (label left, value right).
+ * Label and value sit on one bottom row (label left, value bottom-right).
  *
  * Usage:
  * <StatCard label="Completion Rate" value="68%" change={5} />
@@ -164,12 +164,7 @@ export const StatCard = ({
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          'mt-auto flex justify-between gap-3',
-          allowValueWrap ? 'items-end' : 'items-baseline',
-        )}
-      >
+      <div className="mt-auto flex items-end justify-between gap-3">
         <p
           className={cn(
             'min-w-0 text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted',
