@@ -271,7 +271,6 @@
       }
     },
     "skDrawer": {
-      "title": "My SK",
       "description": "Activity and assigned modules for {{name}}",
       "close": "Close SK detail",
       "modulesLabel": "Modules",
@@ -300,8 +299,21 @@
       "columns": {
         "name": "Module Name",
         "launched": "Launched",
+        "launchedSortAria": "Sort by launched date, currently {{direction}}",
         "progress": "Progress",
         "completed": "SKs Completed"
+      },
+      "filter": {
+        "ariaLabel": "Filter training modules",
+        "allModules": "All modules",
+        "selectedCount_one": "{{count}} module",
+        "selectedCount_other": "{{count}} modules",
+        "searchPlaceholder": "Search modules…",
+        "searchAriaLabel": "Search modules to filter",
+        "clear": "Clear",
+        "apply": "Apply",
+        "loading": "Loading…",
+        "empty": "No published modules match your search."
       }
     },
     "existingModules": {
@@ -399,12 +411,8 @@
       "description": "PDF and knowledge-base document opens for the selected filters. Click a row to see who opened each document.",
       "emptyTitle": "No document views",
       "emptyDescription": "Document view telemetry has not been recorded yet.",
-      "chartLabel": "Top viewed documents",
       "tableTitle": "All documents",
-      "topAllTitle": "All top viewed documents",
-      "topAllDescription": "Ranked by total views for the selected filters.",
       "documentsAllDescription": "All documents with engagement details for the selected filters.",
-      "topAllFooter": "Shows documents ranked by total views within the selected period.",
       "documentsAllFooter": "Shows the full document list with engagement metrics. Search filters the current page.",
       "detailDescription": "Individual document opens for the selected document and filters.",
       "detailTitle": "Document opens",

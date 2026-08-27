@@ -202,8 +202,8 @@ export const DashboardFilterBar = ({
   };
 
   const maxSelectableDate = todayDateInputValue();
-  const selectClassName =
-    'h-10 w-full rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm';
+  const filterSelectTriggerClassName =
+    'rounded-lg border-spice-border bg-spice-bg-tint text-sm';
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-3">
@@ -211,7 +211,7 @@ export const DashboardFilterBar = ({
         <button
           type="button"
           className={cn(
-            'inline-flex h-10 items-center gap-2 rounded-full border bg-spice-bg-surface px-4 text-sm font-medium text-spice-text-primary transition',
+            'inline-flex h-10 items-center gap-2 rounded-lg border bg-spice-bg-surface px-4 text-sm font-medium text-spice-text-primary transition',
             hasActiveFilters
               ? 'border-spice-brand-primary ring-1 ring-spice-brand-primary/20'
               : 'border-spice-border hover:border-spice-border-mid',
@@ -237,7 +237,7 @@ export const DashboardFilterBar = ({
 
         {filtersOpen ? (
           <div
-            className="absolute right-0 z-30 mt-2 w-72 space-y-4 rounded-xl border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi"
+            className="absolute right-0 z-30 mt-2 w-72 space-y-4 rounded-lg border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi"
             role="dialog"
             aria-label={t('adminDashboard.filters.panelLabel')}
           >
@@ -246,7 +246,8 @@ export const DashboardFilterBar = ({
                 options={divisionOptions}
                 value={draftGeography.divisionId}
                 onChange={(value) => patchDraftGeography({ divisionId: value })}
-                className={selectClassName}
+                className="w-full"
+                triggerClassName={filterSelectTriggerClassName}
               />
             </FilterField>
             <FilterField label={t('adminDashboard.filters.district')}>
@@ -254,7 +255,8 @@ export const DashboardFilterBar = ({
                 options={districtOptions}
                 value={draftGeography.districtId}
                 onChange={(value) => patchDraftGeography({ districtId: value })}
-                className={selectClassName}
+                className="w-full"
+                triggerClassName={filterSelectTriggerClassName}
               />
             </FilterField>
             <FilterField label={t('adminDashboard.filters.upazila')}>
@@ -262,14 +264,15 @@ export const DashboardFilterBar = ({
                 options={upazilaSelectOptions}
                 value={draftGeography.upazilaId}
                 onChange={(value) => patchDraftGeography({ upazilaId: value })}
-                className={selectClassName}
+                className="w-full"
+                triggerClassName={filterSelectTriggerClassName}
               />
             </FilterField>
             <div className="space-y-3 border-t border-spice-border pt-3">
               <Button
                 type="button"
                 variant="primary"
-                className="h-10 w-full rounded-full"
+                className="h-10 w-full rounded-lg"
                 onClick={handleApplyFilters}
               >
                 {t('adminDashboard.filters.apply')}
@@ -296,7 +299,8 @@ export const DashboardFilterBar = ({
           onChange={(value) =>
             onDurationChange(value as DashboardDurationPreset)
           }
-          className="h-10 min-w-[9rem] rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm"
+          className="min-w-[9rem]"
+          triggerClassName={filterSelectTriggerClassName}
         />
         {filters.durationPreset === 'custom' ? (
           <>
@@ -305,7 +309,7 @@ export const DashboardFilterBar = ({
               value={filters.customFrom}
               max={maxSelectableDate}
               onChange={(event) => onCustomFromChange(event.target.value)}
-              className="h-10 rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm text-spice-text-primary"
+              className="h-10 rounded-lg border border-spice-border bg-spice-bg-tint px-3 text-sm text-spice-text-primary"
               aria-label={t('adminDashboard.filters.from')}
             />
             <span className="text-spice-text-muted">–</span>
@@ -314,12 +318,12 @@ export const DashboardFilterBar = ({
               value={filters.customTo}
               max={maxSelectableDate}
               onChange={(event) => onCustomToChange(event.target.value)}
-              className="h-10 rounded-full border border-spice-border bg-spice-bg-tint px-3 text-sm text-spice-text-primary"
+              className="h-10 rounded-lg border border-spice-border bg-spice-bg-tint px-3 text-sm text-spice-text-primary"
               aria-label={t('adminDashboard.filters.to')}
             />
             <button
               type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-spice-text-muted hover:bg-spice-bg-tint hover:text-spice-text-primary"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-spice-text-muted hover:bg-spice-bg-tint hover:text-spice-text-primary"
               aria-label={t('adminDashboard.filters.clearCustomRange')}
               onClick={clearCustomRange}
             >

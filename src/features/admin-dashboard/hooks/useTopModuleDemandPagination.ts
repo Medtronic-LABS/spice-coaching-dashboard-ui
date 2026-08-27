@@ -27,6 +27,11 @@ interface UseAccumulatedModuleDemandPagesOptions<TItem> {
   fulfilledTimeStamp?: number;
 }
 
+/**
+ * Accumulates paginated module-demand pages.
+ * Clears immediately (render-time) when `filterKey` changes so PO/SK (and
+ * date/geo) switches do not flash the previous view’s rows.
+ */
 export function useAccumulatedModuleDemandPages<TItem>({
   filterKey,
   fromDate,
@@ -37,11 +42,19 @@ export function useAccumulatedModuleDemandPages<TItem>({
   fulfilledTimeStamp,
 }: UseAccumulatedModuleDemandPagesOptions<TItem>): TItem[] {
   const [accumulatedItems, setAccumulatedItems] = useState<TItem[]>([]);
+  const [activeFilterKey, setActiveFilterKey] = useState(filterKey);
   const previousQueryOffset = useRef(queryOffset);
 
-  useEffect(() => {
-    setAccumulatedItems([]);
-  }, [filterKey]);
+  if (activeFilterKey !== filterKey) {
+    setActiveFilterKey(filterKey);
+    previousQueryOffset.current = 0;
+    const pageMatchesRange =
+      pageData != null &&
+      pageData.offset === 0 &&
+      pageData.from_date === fromDate &&
+      pageData.to_date === toDate;
+    setAccumulatedItems(pageMatchesRange ? pageData.items : []);
+  }
 
   useEffect(() => {
     if (previousQueryOffset.current !== 0 && queryOffset === 0) {

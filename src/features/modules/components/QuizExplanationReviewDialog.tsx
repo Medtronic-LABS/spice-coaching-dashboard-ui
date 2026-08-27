@@ -17,11 +17,12 @@ export const QuizExplanationReviewDialog = ({
       open={open}
       labelledBy="quiz-explanation-review-title"
       describedBy="quiz-explanation-review-description"
+      contentClassName="max-w-md"
       zIndexClassName="z-[310]"
     >
       <Card
         variant="elevated"
-        className="w-full max-w-md space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
           <h2

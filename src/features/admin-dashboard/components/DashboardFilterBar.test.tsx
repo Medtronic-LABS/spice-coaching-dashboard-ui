@@ -61,6 +61,24 @@ async function openFiltersPanel(user: ReturnType<typeof userEvent.setup>) {
   return screen.getByRole('dialog', { name: 'Dashboard filters' });
 }
 
+async function chooseSelectOption(
+  user: ReturnType<typeof userEvent.setup>,
+  panel: HTMLElement,
+  fieldLabel: string,
+  optionName: string,
+) {
+  await user.click(within(panel).getByLabelText(fieldLabel));
+  await user.click(within(panel).getByRole('option', { name: optionName }));
+}
+
+async function openSelectOptions(
+  user: ReturnType<typeof userEvent.setup>,
+  panel: HTMLElement,
+  fieldLabel: string,
+) {
+  await user.click(within(panel).getByLabelText(fieldLabel));
+}
+
 describe('DashboardFilterBar', () => {
   it('caps custom From and To date pickers at today', () => {
     renderFilterBar({
@@ -83,16 +101,16 @@ describe('DashboardFilterBar', () => {
     renderFilterBar();
 
     const panel = await openFiltersPanel(user);
-    const upazilaSelect = within(panel).getByLabelText('Upazila');
+    await openSelectOptions(user, panel, 'Upazila');
 
     expect(
-      within(upazilaSelect).getByRole('option', { name: 'Kaliakoir' }),
+      within(panel).getByRole('option', { name: 'Kaliakoir' }),
     ).toBeInTheDocument();
     expect(
-      within(upazilaSelect).getByRole('option', { name: 'Bhairab' }),
+      within(panel).getByRole('option', { name: 'Bhairab' }),
     ).toBeInTheDocument();
     expect(
-      within(upazilaSelect).getByRole('option', { name: 'Hatibandha' }),
+      within(panel).getByRole('option', { name: 'Hatibandha' }),
     ).toBeInTheDocument();
     expect(within(panel).queryByText('Team view')).not.toBeInTheDocument();
     expect(within(panel).queryByText('All statuses')).not.toBeInTheDocument();
@@ -104,9 +122,9 @@ describe('DashboardFilterBar', () => {
     renderFilterBar({ onGeographyChange });
 
     const panel = await openFiltersPanel(user);
-    await user.selectOptions(within(panel).getByLabelText('Division'), '1');
-    await user.selectOptions(within(panel).getByLabelText('District'), '10');
-    await user.selectOptions(within(panel).getByLabelText('Upazila'), '100');
+    await chooseSelectOption(user, panel, 'Division', 'Dhaka');
+    await chooseSelectOption(user, panel, 'District', 'Gazipur');
+    await chooseSelectOption(user, panel, 'Upazila', 'Kaliakoir');
     await user.click(within(panel).getByRole('button', { name: 'Apply' }));
 
     expect(onGeographyChange).toHaveBeenCalledWith({
@@ -121,39 +139,42 @@ describe('DashboardFilterBar', () => {
     renderFilterBar();
 
     const panel = await openFiltersPanel(user);
-    await user.selectOptions(within(panel).getByLabelText('Division'), '1');
+    await chooseSelectOption(user, panel, 'Division', 'Dhaka');
 
-    const districtSelect = within(panel).getByLabelText('District');
+    await openSelectOptions(user, panel, 'District');
     expect(
-      within(districtSelect).getByRole('option', { name: 'Gazipur' }),
+      within(panel).getByRole('option', { name: 'Gazipur' }),
     ).toBeInTheDocument();
     expect(
-      within(districtSelect).getByRole('option', { name: 'Kishoreganj' }),
+      within(panel).getByRole('option', { name: 'Kishoreganj' }),
     ).toBeInTheDocument();
     expect(
-      within(districtSelect).queryByRole('option', { name: 'Lalmonirhat' }),
+      within(panel).queryByRole('option', { name: 'Lalmonirhat' }),
     ).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
 
-    const upazilaSelect = within(panel).getByLabelText('Upazila');
+    await openSelectOptions(user, panel, 'Upazila');
     expect(
-      within(upazilaSelect).getByRole('option', { name: 'Kaliakoir' }),
+      within(panel).getByRole('option', { name: 'Kaliakoir' }),
     ).toBeInTheDocument();
     expect(
-      within(upazilaSelect).getByRole('option', { name: 'Bhairab' }),
+      within(panel).getByRole('option', { name: 'Bhairab' }),
     ).toBeInTheDocument();
     expect(
-      within(upazilaSelect).queryByRole('option', { name: 'Hatibandha' }),
+      within(panel).queryByRole('option', { name: 'Hatibandha' }),
     ).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
 
-    await user.selectOptions(districtSelect, '10');
+    await chooseSelectOption(user, panel, 'District', 'Gazipur');
+    await openSelectOptions(user, panel, 'Upazila');
     expect(
-      within(upazilaSelect).getByRole('option', { name: 'Kaliakoir' }),
+      within(panel).getByRole('option', { name: 'Kaliakoir' }),
     ).toBeInTheDocument();
     expect(
-      within(upazilaSelect).queryByRole('option', { name: 'Bhairab' }),
+      within(panel).queryByRole('option', { name: 'Bhairab' }),
     ).not.toBeInTheDocument();
     expect(
-      within(upazilaSelect).queryByRole('option', { name: 'Hatibandha' }),
+      within(panel).queryByRole('option', { name: 'Hatibandha' }),
     ).not.toBeInTheDocument();
   });
 
@@ -162,14 +183,18 @@ describe('DashboardFilterBar', () => {
     renderFilterBar();
 
     const panel = await openFiltersPanel(user);
-    await user.selectOptions(within(panel).getByLabelText('Division'), '2');
-    await user.selectOptions(within(panel).getByLabelText('District'), '20');
-    await user.selectOptions(within(panel).getByLabelText('Upazila'), '200');
+    await chooseSelectOption(user, panel, 'Division', 'Rangpur');
+    await chooseSelectOption(user, panel, 'District', 'Lalmonirhat');
+    await chooseSelectOption(user, panel, 'Upazila', 'Hatibandha');
 
-    await user.selectOptions(within(panel).getByLabelText('Division'), '1');
+    await chooseSelectOption(user, panel, 'Division', 'Dhaka');
 
-    expect(within(panel).getByLabelText('District')).toHaveValue('');
-    expect(within(panel).getByLabelText('Upazila')).toHaveValue('');
+    expect(within(panel).getByLabelText('District')).toHaveTextContent(
+      'All districts',
+    );
+    expect(within(panel).getByLabelText('Upazila')).toHaveTextContent(
+      'All upazilas',
+    );
   });
 
   it('clears upazila when the district changes', async () => {
@@ -177,12 +202,14 @@ describe('DashboardFilterBar', () => {
     renderFilterBar();
 
     const panel = await openFiltersPanel(user);
-    await user.selectOptions(within(panel).getByLabelText('District'), '20');
-    await user.selectOptions(within(panel).getByLabelText('Upazila'), '200');
+    await chooseSelectOption(user, panel, 'District', 'Lalmonirhat');
+    await chooseSelectOption(user, panel, 'Upazila', 'Hatibandha');
 
-    await user.selectOptions(within(panel).getByLabelText('District'), '10');
+    await chooseSelectOption(user, panel, 'District', 'Gazipur');
 
-    expect(within(panel).getByLabelText('Upazila')).toHaveValue('');
+    expect(within(panel).getByLabelText('Upazila')).toHaveTextContent(
+      'All upazilas',
+    );
   });
 
   it('clears draft geography when Clear all filters is clicked', async () => {
@@ -191,15 +218,21 @@ describe('DashboardFilterBar', () => {
     renderFilterBar({ onGeographyChange });
 
     const panel = await openFiltersPanel(user);
-    await user.selectOptions(within(panel).getByLabelText('Division'), '1');
-    await user.selectOptions(within(panel).getByLabelText('District'), '10');
+    await chooseSelectOption(user, panel, 'Division', 'Dhaka');
+    await chooseSelectOption(user, panel, 'District', 'Gazipur');
     await user.click(
       within(panel).getByRole('button', { name: 'Clear all filters' }),
     );
 
-    expect(within(panel).getByLabelText('Division')).toHaveValue('');
-    expect(within(panel).getByLabelText('District')).toHaveValue('');
-    expect(within(panel).getByLabelText('Upazila')).toHaveValue('');
+    expect(within(panel).getByLabelText('Division')).toHaveTextContent(
+      'All divisions',
+    );
+    expect(within(panel).getByLabelText('District')).toHaveTextContent(
+      'All districts',
+    );
+    expect(within(panel).getByLabelText('Upazila')).toHaveTextContent(
+      'All upazilas',
+    );
 
     await user.click(within(panel).getByRole('button', { name: 'Apply' }));
     expect(onGeographyChange).toHaveBeenCalledWith(EMPTY_DASHBOARD_GEOGRAPHY);

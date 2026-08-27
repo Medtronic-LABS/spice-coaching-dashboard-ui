@@ -13,6 +13,7 @@ import { renderWithProviders } from '@/test-utils/render';
 
 const refetch = vi.hoisted(() => vi.fn());
 const useFetchPublishedModuleCompletionsQuery = vi.hoisted(() => vi.fn());
+const useFetchModulesQuery = vi.hoisted(() => vi.fn());
 
 vi.mock(
   '@/features/admin-dashboard/api/dashboardApi',
@@ -30,15 +31,29 @@ vi.mock(
   },
 );
 
+vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/modules/api/adminModulesApi')
+    >();
+  return {
+    ...actual,
+    useFetchModulesQuery: (...args: Parameters<typeof useFetchModulesQuery>) =>
+      useFetchModulesQuery(...args),
+  };
+});
+
 function idlePublishedModulesQuery(
   modules: ReturnType<typeof buildPublishedModuleCompletionItem>[],
 ) {
+  const data = {
+    ...buildPublishedModuleCompletionsResponse(0),
+    total_modules: modules.length,
+    modules,
+  };
   return {
-    data: {
-      ...buildPublishedModuleCompletionsResponse(0),
-      total_modules: modules.length,
-      modules,
-    },
+    data,
+    currentData: data,
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -50,12 +65,44 @@ function idlePublishedModulesQuery(
 function mockPublishedModulesQuery(
   result: ReturnType<typeof useFetchPublishedModuleCompletionsQuery>,
 ) {
-  useFetchPublishedModuleCompletionsQuery.mockReturnValue(result);
+  const withCurrent =
+    result && typeof result === 'object' && 'data' in result
+      ? {
+          ...result,
+          currentData:
+            'currentData' in result && result.currentData !== undefined
+              ? result.currentData
+              : result.data,
+        }
+      : result;
+  useFetchPublishedModuleCompletionsQuery.mockReturnValue(withCurrent);
 }
 
 beforeEach(() => {
   useFetchPublishedModuleCompletionsQuery.mockReset();
+  useFetchModulesQuery.mockReset();
   refetch.mockReset();
+  useFetchModulesQuery.mockReturnValue({
+    data: {
+      modules: [
+        {
+          id: 'mod-a',
+          title: { en: 'Alpha Module' },
+          domain: 'clinical',
+        },
+        {
+          id: 'mod-b',
+          title: { en: 'Beta Module' },
+          domain: 'clinical',
+        },
+      ],
+      total_modules: 2,
+      total_pages: 1,
+      limit: 50,
+      offset: 0,
+    },
+    isFetching: false,
+  });
 });
 
 describe('TrainingModulesSection', () => {
@@ -88,7 +135,7 @@ describe('TrainingModulesSection', () => {
       within(table).getByRole('columnheader', { name: 'Module Name' }),
     ).toBeInTheDocument();
     expect(
-      within(table).getByRole('columnheader', { name: 'Launched' }),
+      within(table).getByRole('columnheader', { name: /Launched/i }),
     ).toBeInTheDocument();
     expect(
       within(table).getByRole('columnheader', { name: 'Progress' }),
@@ -158,7 +205,7 @@ describe('TrainingModulesSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('forwards geography filters to the published modules query', () => {
+  it('forwards geography filters and default launched-date sort to the query', () => {
     mockPublishedModulesQuery({
       data: buildPublishedModuleCompletionsResponse(0),
       isLoading: false,
@@ -183,6 +230,60 @@ describe('TrainingModulesSection', () => {
         from_date: '2026-01-01',
         to_date: '2026-01-31',
         district_id: 10,
+        sort_by: 'published_at',
+        sort_dir: 'desc',
+      }),
+    );
+  });
+
+  it('toggles launched-date sort and filters by selected modules', async () => {
+    const user = userEvent.setup();
+    mockPublishedModulesQuery({
+      data: buildPublishedModuleCompletionsResponse(1),
+      isLoading: false,
+      isFetching: false,
+      error: undefined,
+      refetch,
+    });
+
+    renderWithProviders(
+      <TrainingModulesSection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /Sort by launched date/i,
+      }),
+    );
+
+    expect(useFetchPublishedModuleCompletionsQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort_by: 'published_at',
+        sort_dir: 'asc',
+      }),
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Filter training modules' }),
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'Alpha Module' }));
+
+    // Draft selection should not refetch until Apply.
+    expect(useFetchPublishedModuleCompletionsQuery).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        module_id: ['mod-a'],
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+
+    expect(useFetchPublishedModuleCompletionsQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module_id: ['mod-a'],
       }),
     );
   });
@@ -254,5 +355,63 @@ describe('TrainingModulesSection', () => {
     expect(
       within(screen.getByRole('table')).queryByText('8'),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows a skeleton instead of previous rows while a date-range refetch has no currentData', async () => {
+    const user = userEvent.setup();
+    const highCompletion = buildPublishedModuleCompletionItem(0, {
+      completed_sk_count: 8,
+      assigned_sk_count: 10,
+    });
+
+    useFetchPublishedModuleCompletionsQuery.mockImplementation(
+      (args: { from_date?: string }) => {
+        if (args.from_date === '2026-08-01') {
+          return {
+            data: idlePublishedModulesQuery([highCompletion]).data,
+            currentData: undefined,
+            isLoading: false,
+            isFetching: true,
+            isError: false,
+            error: undefined,
+            refetch,
+          };
+        }
+        return idlePublishedModulesQuery([highCompletion]);
+      },
+    );
+
+    function DateRangeHarness() {
+      const [fromDate, setFromDate] = useState('2026-08-21');
+      const [toDate, setToDate] = useState('2026-08-21');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setFromDate('2026-08-01');
+              setToDate('2026-08-01');
+            }}
+          >
+            Apply Aug 1
+          </button>
+          <TrainingModulesSection
+            fromDate={fromDate}
+            toDate={toDate}
+            geography={EMPTY_DASHBOARD_GEOGRAPHY}
+          />
+        </>
+      );
+    }
+
+    renderWithProviders(<DateRangeHarness />);
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Apply Aug 1' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText('8')).not.toBeInTheDocument();
   });
 });

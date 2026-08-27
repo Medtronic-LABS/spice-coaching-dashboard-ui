@@ -407,6 +407,7 @@ export const AssignmentSuccessModal = ({
     <Modal
       open={open}
       labelledBy="assignment-success-title"
+      contentClassName="max-w-xl"
       onClose={onClose}
       zIndexClassName="z-[320]"
     >

@@ -117,7 +117,9 @@ describe('AdminModuleDetailsStep', () => {
     expect(screen.getByText('Domain')).toBeInTheDocument();
     expect(screen.getByText('Domain Type')).toBeInTheDocument();
     expect(screen.getByLabelText(/^domain$/i)).toHaveValue('rmnch');
-    expect(screen.getByLabelText(/^domain type$/i)).toHaveValue('clinical');
+    expect(screen.getByLabelText(/^domain type$/i)).toHaveTextContent(
+      'Clinical',
+    );
     expect(screen.getByText('needs_review')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Module BN')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Module EN')).not.toBeInTheDocument();
@@ -208,10 +210,8 @@ describe('AdminModuleDetailsStep', () => {
     const { store } = renderDetailsStep();
 
     await user.selectOptions(screen.getByLabelText(/^domain$/i), 'clinical');
-    await user.selectOptions(
-      screen.getByLabelText(/^domain type$/i),
-      'digital',
-    );
+    await user.click(screen.getByLabelText(/^domain type$/i));
+    await user.click(screen.getByRole('option', { name: /digital/i }));
     await user.clear(screen.getByLabelText(/^estimated minutes$/i));
     await user.type(screen.getByLabelText(/^estimated minutes$/i), '20');
 

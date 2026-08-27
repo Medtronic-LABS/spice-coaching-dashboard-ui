@@ -12,6 +12,7 @@ import {
   Banner,
   Button,
   Card,
+  ConfirmDialog,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
@@ -52,6 +53,7 @@ import {
 import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
+import { ModuleAssignedUsersCell } from '@/features/modules/components/ModuleAssignedUsersCell';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
@@ -760,6 +762,24 @@ export const ModuleLibraryPage = () => {
       },
       ...dateColumns.map(listingDateColumnDef),
       ...actorColumns.map(listingActorColumnDef),
+      ...(tab === 'published' || tab === 'all'
+        ? [
+            {
+              key: 'assigned',
+              header: 'Assigned',
+              className: 'whitespace-nowrap',
+              render: (row: ModuleLibraryItem) => (
+                <ModuleAssignedUsersCell
+                  moduleId={row.id}
+                  enabled={
+                    row.status === 'published' &&
+                    isAssignablePublishedModule(row)
+                  }
+                />
+              ),
+            } satisfies ColumnDef<ModuleLibraryItem>,
+          ]
+        : []),
       {
         key: 'id',
         header: 'Actions',
@@ -941,6 +961,7 @@ export const ModuleLibraryPage = () => {
       publishModule,
       publishingModuleId,
       reactivateModule,
+      reactivatingModuleId,
       refreshModuleList,
       setTab,
       tab,
@@ -977,6 +998,7 @@ export const ModuleLibraryPage = () => {
         <Modal
           open={createOpen}
           labelledBy="create-module-title"
+          contentClassName="max-w-2xl"
           onClose={() => {
             if (isCreating) return;
             setCreateError('');
@@ -985,32 +1007,19 @@ export const ModuleLibraryPage = () => {
         >
           <Card
             variant="elevated"
-            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden border-spice-border p-0 shadow-lg"
+            className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden border-spice-border p-0 shadow-lg"
           >
-            <div className="shrink-0 space-y-4 p-6 pb-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2
-                    id="create-module-title"
-                    className="text-xl font-semibold text-spice-text-primary"
-                  >
-                    Create module
-                  </h2>
-                  <p className="mt-1 text-xs text-spice-text-muted">
-                    Creates a draft module in the admin module library.
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="h-9 px-3 text-xs"
-                  disabled={isCreating}
-                  onClick={() => {
-                    setCreateError('');
-                    setCreateOpen(false);
-                  }}
+            <div className="shrink-0 space-y-4 p-6 pb-4 pr-12">
+              <div>
+                <h2
+                  id="create-module-title"
+                  className="text-xl font-semibold text-spice-text-primary"
                 >
-                  Close
-                </Button>
+                  Create module
+                </h2>
+                <p className="mt-1 text-xs text-spice-text-muted">
+                  Creates a draft module in the admin module library.
+                </p>
               </div>
 
               {createError ? (
@@ -1092,7 +1101,7 @@ export const ModuleLibraryPage = () => {
                     />
                   </span>
                   <Select
-                    className="w-full rounded-lg"
+                    className="w-full"
                     options={INGEST_CONTENT_DOMAIN_OPTIONS}
                     value={createForm.content_domain}
                     disabled={isCreating}
@@ -1304,79 +1313,50 @@ export const ModuleLibraryPage = () => {
       ) : null}
 
       {deactivateConfirmOpen && deactivateModuleData ? (
-        <Modal
+        <ConfirmDialog
           open={deactivateConfirmOpen}
           labelledBy="deactivate-module-title"
+          describedBy="deactivate-module-description"
+          title="Deactivate module"
+          description={
+            <>
+              You are deactivating{' '}
+              <QuotedDisplayLabel text={deactivateModuleData.title} />. Once
+              deactivated, this module will no longer be visible to users for
+              new assignments or training workflows. Do you want to proceed?
+            </>
+          }
+          confirmLabel="Deactivate"
+          confirmingLabel="Deactivating…"
+          isConfirming={isDeactivating}
+          disabled={isDeactivating}
           onClose={() => {
-            if (isDeactivating) return;
             setDeactivateError('');
             setDeactivateConfirmOpen(false);
             setDeactivateModuleData(null);
           }}
+          onConfirm={() => {
+            void (async () => {
+              setDeactivateError('');
+              try {
+                await deactivateModule({
+                  moduleId: deactivateModuleData.id,
+                }).unwrap();
+                setDeactivateConfirmOpen(false);
+                setDeactivateModuleData(null);
+                refreshModuleList();
+              } catch {
+                setDeactivateError(
+                  'Failed to deactivate module. Please try again.',
+                );
+              }
+            })();
+          }}
         >
-          <Card
-            variant="elevated"
-            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden border-spice-border p-0 shadow-lg"
-          >
-            <div className="shrink-0 space-y-4 p-6 pb-4">
-              <div>
-                <h2
-                  id="deactivate-module-title"
-                  className="text-xl font-semibold text-spice-text-primary"
-                >
-                  Deactivate Module
-                </h2>
-                <p className="mt-2 text-sm text-spice-text-medium">
-                  You are deactivating{' '}
-                  <QuotedDisplayLabel text={deactivateModuleData.title} />. Once
-                  deactivated, this module will no longer be visible to users
-                  for new assignments or training workflows. Do you want to
-                  proceed?
-                </p>
-              </div>
-
-              {deactivateError ? (
-                <Banner tone="critical">{deactivateError}</Banner>
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 justify-end gap-2 p-6 pt-2">
-              <Button
-                variant="secondary"
-                className="h-9 text-xs"
-                disabled={isDeactivating}
-                onClick={() => {
-                  setDeactivateError('');
-                  setDeactivateConfirmOpen(false);
-                  setDeactivateModuleData(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="h-9 text-xs bg-spice-semantic-error hover:bg-spice-semantic-error/90"
-                disabled={isDeactivating}
-                onClick={async () => {
-                  setDeactivateError('');
-                  try {
-                    await deactivateModule({
-                      moduleId: deactivateModuleData.id,
-                    }).unwrap();
-                    setDeactivateConfirmOpen(false);
-                    setDeactivateModuleData(null);
-                    refreshModuleList();
-                  } catch {
-                    setDeactivateError(
-                      'Failed to deactivate module. Please try again.',
-                    );
-                  }
-                }}
-              >
-                {isDeactivating ? 'Deactivating…' : 'Deactivate'}
-              </Button>
-            </div>
-          </Card>
-        </Modal>
+          {deactivateError ? (
+            <Banner tone="critical">{deactivateError}</Banner>
+          ) : null}
+        </ConfirmDialog>
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

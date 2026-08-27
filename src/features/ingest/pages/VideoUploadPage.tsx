@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { DeleteIcon, EyeIcon } from '@/assets/icon';
+import { ArrowRightIcon, DeleteIcon, EyeIcon } from '@/assets/icon';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -1074,10 +1074,11 @@ export const VideoUploadPage = () => {
         </div>
         <Button
           variant="secondary"
-          className="h-9 text-xs"
+          className="inline-flex h-9 items-center gap-1.5 text-xs"
           onClick={() => navigate(paths.moduleLibrary)}
         >
           Module Library
+          <ArrowRightIcon className="h-3.5 w-3.5" />
         </Button>
       </div>
 

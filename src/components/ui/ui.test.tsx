@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import {
   Badge,
@@ -55,6 +56,13 @@ describe('ui components', () => {
           outOf={155}
           tooltip="Active SKs"
         />
+        <StatCard
+          label="Last viewed"
+          labelClassName="whitespace-nowrap"
+          value={'Jul 21 2026\n• 5:34:34 PM'}
+          valueClassName="text-sm whitespace-pre-line"
+          allowValueWrap
+        />
         <Loader label="Loading..." />
         <EmptyState
           title="Empty"
@@ -96,6 +104,8 @@ describe('ui components', () => {
     expect(screen.getByText('127')).toBeInTheDocument();
     expect(screen.getByText('/155')).toBeInTheDocument();
     expect(screen.getByLabelText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Last viewed')).toBeInTheDocument();
+    expect(screen.getByText(/Jul 21 2026/)).toBeInTheDocument();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.getByText('Empty')).toBeInTheDocument();
     expect(screen.getByText('Nothing here')).toBeInTheDocument();
@@ -109,7 +119,8 @@ describe('ui components', () => {
     expect(screen.getAllByText('-').length).toBeGreaterThan(0);
   });
 
-  it('supports controlled inputs (Select, SearchInput)', () => {
+  it('supports controlled inputs (Select, SearchInput)', async () => {
+    const user = userEvent.setup();
     const onSelect = vi.fn<(v: string) => void>();
     const onSearch = vi.fn<(v: string) => void>();
 
@@ -133,10 +144,8 @@ describe('ui components', () => {
       </FilterBar>,
     );
 
-    fireEvent.change(screen.getByLabelText('Region'), {
-      target: { value: 'b' },
-    });
-    expect(screen.getByLabelText('Region')).toHaveClass('select-arrow');
+    await user.click(screen.getByRole('button', { name: 'Region' }));
+    await user.click(screen.getByRole('option', { name: 'B' }));
     expect(onSelect).toHaveBeenCalledWith('b');
 
     fireEvent.change(screen.getByLabelText('Search'), {

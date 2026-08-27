@@ -204,9 +204,9 @@ let mockAssignmentsState: MockAssignment[] = [
     },
     assignment_type: 'individual',
     tenant_id: null,
-    user_id: 101,
+    user_id: 1313053891,
     user: {
-      id: 101,
+      id: 1313053891,
       name: 'Mst. Hosneyara Begum',
       role: 'SK',
       district: 'Lalmonirhat',

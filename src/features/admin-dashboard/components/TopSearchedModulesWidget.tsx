@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetchDigitalHelpModulesQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardActorViewToggle } from '@/features/admin-dashboard/components/DashboardActorViewToggle';
@@ -73,6 +73,11 @@ export const TopSearchedModulesWidget = ({
     geography,
     actorView,
   );
+  const [activeFilterKey, setActiveFilterKey] = useState(filterKey);
+  if (activeFilterKey !== filterKey) {
+    setActiveFilterKey(filterKey);
+    setOffset(0);
+  }
 
   const query = useFetchDigitalHelpModulesQuery(
     {
@@ -87,11 +92,7 @@ export const TopSearchedModulesWidget = ({
   );
   const ui = resolveDashboardQueryUiState(query);
   const pageData = query.currentData;
-  const totalItems = pageData?.total_modules ?? query.data?.total_modules ?? 0;
-
-  useEffect(() => {
-    setOffset(0);
-  }, [filterKey]);
+  const totalItems = pageData?.total_modules ?? 0;
 
   const accumulatedModules = useAccumulatedModuleDemandPages({
     filterKey,
@@ -119,24 +120,20 @@ export const TopSearchedModulesWidget = ({
   const hasMore =
     (pageData?.offset ?? offset) + TOP_MODULE_DEMAND_LIMIT < totalItems;
   const isLoadingMore = offset > 0 && query.isFetching;
+  // Skeleton on actor/date/geo change: no current page yet (or still fetching
+  // page 0 with an empty accumulator after a sync filter reset).
   const showLoading =
-    offset === 0 && rows.length === 0 && (ui.showLoading || query.isFetching);
+    offset === 0 &&
+    (ui.showLoading || (query.isFetching && accumulatedModules.length === 0));
 
   const handleSeeMore = useCallback(() => {
     if (!hasMore || query.isFetching) return;
     setOffset((value) => value + TOP_MODULE_DEMAND_LIMIT);
   }, [hasMore, query.isFetching]);
 
-  const handleRefresh = useCallback(() => {
-    if (offset !== 0) {
-      setOffset(0);
-      return;
-    }
-    void query.refetch();
-  }, [offset, query]);
-
   return (
     <TopModuleDemandWidget
+      key={filterKey}
       title={t('adminDashboard.existingModules.title')}
       description={t('adminDashboard.existingModules.description')}
       titleColumnLabel={t('adminDashboard.moduleDemand.columns.title')}
@@ -144,8 +141,6 @@ export const TopSearchedModulesWidget = ({
       showLoading={showLoading}
       showError={ui.showError}
       onRetry={() => void query.refetch()}
-      onRefresh={handleRefresh}
-      isRefreshing={query.isFetching && offset === 0 && rows.length > 0}
       showActions={showActions}
       emptyTitle={t('adminDashboard.existingModules.emptyTitle')}
       emptyDescription={t('adminDashboard.existingModules.emptyDescription')}

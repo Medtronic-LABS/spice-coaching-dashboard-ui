@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetchModuleCreationSuggestionsQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardActorViewToggle } from '@/features/admin-dashboard/components/DashboardActorViewToggle';
@@ -88,6 +88,11 @@ export const TopSuggestedModulesWidget = ({
     geography,
     actorView,
   );
+  const [activeFilterKey, setActiveFilterKey] = useState(filterKey);
+  if (activeFilterKey !== filterKey) {
+    setActiveFilterKey(filterKey);
+    setOffset(0);
+  }
 
   const query = useFetchModuleCreationSuggestionsQuery(
     {
@@ -102,12 +107,7 @@ export const TopSuggestedModulesWidget = ({
   );
   const ui = resolveDashboardQueryUiState(query);
   const pageData = query.currentData;
-  const totalItems =
-    pageData?.total_suggestions ?? query.data?.total_suggestions ?? 0;
-
-  useEffect(() => {
-    setOffset(0);
-  }, [filterKey]);
+  const totalItems = pageData?.total_suggestions ?? 0;
 
   const accumulatedSuggestions = useAccumulatedModuleDemandPages({
     filterKey,
@@ -150,23 +150,18 @@ export const TopSuggestedModulesWidget = ({
     (pageData?.offset ?? offset) + TOP_MODULE_DEMAND_LIMIT < totalItems;
   const isLoadingMore = offset > 0 && query.isFetching;
   const showLoading =
-    offset === 0 && rows.length === 0 && (ui.showLoading || query.isFetching);
+    offset === 0 &&
+    (ui.showLoading ||
+      (query.isFetching && accumulatedSuggestions.length === 0));
 
   const handleSeeMore = useCallback(() => {
     if (!hasMore || query.isFetching) return;
     setOffset((value) => value + TOP_MODULE_DEMAND_LIMIT);
   }, [hasMore, query.isFetching]);
 
-  const handleRefresh = useCallback(() => {
-    if (offset !== 0) {
-      setOffset(0);
-      return;
-    }
-    void query.refetch();
-  }, [offset, query]);
-
   return (
     <TopModuleDemandWidget
+      key={filterKey}
       title={t('adminDashboard.suggestedModules.title')}
       description={t('adminDashboard.suggestedModules.description')}
       titleColumnLabel={t('adminDashboard.suggestedModules.columns.topic')}
@@ -174,8 +169,6 @@ export const TopSuggestedModulesWidget = ({
       showLoading={showLoading}
       showError={ui.showError}
       onRetry={() => void query.refetch()}
-      onRefresh={handleRefresh}
-      isRefreshing={query.isFetching && offset === 0 && rows.length > 0}
       showActions={showActions}
       emptyTitle={t('adminDashboard.suggestedModules.emptyTitle')}
       emptyDescription={t('adminDashboard.suggestedModules.emptyDescription')}

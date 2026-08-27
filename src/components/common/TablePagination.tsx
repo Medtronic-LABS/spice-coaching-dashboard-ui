@@ -1,3 +1,4 @@
+import { ChevronIcon } from '@/assets/icon';
 import { Button, Select } from '@/components/ui';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
@@ -66,7 +67,8 @@ export const TablePagination = ({
           </span>
           <Select
             aria-label={rowsPerPageAriaLabel}
-            className="h-8 w-[4.5rem] px-2 text-xs"
+            className="w-[4.5rem]"
+            triggerClassName="h-8 px-2 text-xs"
             value={String(pageSize)}
             options={pageSizeOptions.map((size) => ({
               label: String(size),
@@ -144,19 +146,21 @@ export const TablePagination = ({
       <div className="flex items-center justify-end gap-2">
         <Button
           variant="secondary"
-          className="h-8 px-3 text-xs"
+          className="h-8 w-8 p-0"
           disabled={!hasPrevPage}
           onClick={onPrevPage}
+          aria-label="Previous page"
         >
-          Previous
+          <ChevronIcon className="h-4 w-4 rotate-90" />
         </Button>
         <Button
           variant="secondary"
-          className="h-8 px-3 text-xs"
+          className="h-8 w-8 p-0"
           disabled={!hasNextPage}
           onClick={onNextPage}
+          aria-label="Next page"
         >
-          Next
+          <ChevronIcon className="h-4 w-4 -rotate-90" />
         </Button>
       </div>
     </div>

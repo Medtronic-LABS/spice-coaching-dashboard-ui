@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Button,
   Card,
   QuotedDisplayLabel,
@@ -8,6 +7,7 @@ import {
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetModuleDraftQuery } from '@/features/modules/api/moduleDraftApi';
+import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
 
 export const ModulePublishedPage = () => {
   const navigate = useNavigate();
@@ -34,12 +34,14 @@ export const ModulePublishedPage = () => {
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
       <Card variant="elevated" className="w-full max-w-xl space-y-4">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-lg text-green-700">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-spice-semantic-successBg text-lg text-spice-semantic-success">
           ✓
         </div>
-        <div className="text-center">
-          <Badge className="bg-green-100 text-green-700">Published</Badge>
-          <h1 className="mt-2 text-3xl font-semibold text-spice-text-primary">
+        <div className="space-y-2 text-center">
+          <div className="flex justify-center">
+            <ModuleStatusBadge status="published" />
+          </div>
+          <h1 className="text-3xl font-semibold text-spice-text-primary">
             Module is Live
           </h1>
           <p className="text-sm text-spice-text-muted">

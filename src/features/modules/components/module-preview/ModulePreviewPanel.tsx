@@ -5,11 +5,7 @@ import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { selectAdminModuleWorking } from '@/features/modules/store/adminModuleReviewSlice';
 import { useAppSelector } from '@/store/hooks';
 
-export interface ModulePreviewPanelProps {
-  onClose?: () => void;
-}
-
-export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
+export const ModulePreviewPanel = () => {
   const {
     snapshot,
     position,
@@ -18,15 +14,9 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
     isStale,
     syncPreview,
     setPosition,
-    closePreview,
   } = useModulePreview();
   const working = useAppSelector(selectAdminModuleWorking);
   const isReadonly = useAdminModuleReviewReadonly();
-
-  const handleClose = () => {
-    closePreview();
-    onClose?.();
-  };
 
   const isEmpty =
     snapshot !== null &&
@@ -35,7 +25,7 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-spice-border px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-spice-border px-4 py-3 pr-12">
         <div className="min-w-0">
           <h2
             id="module-preview-modal-title"
@@ -55,11 +45,6 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
               disabled={isSyncing || !working}
             >
               {isSyncing ? 'Syncing…' : 'Sync preview'}
-            </Button>
-          ) : null}
-          {onClose ? (
-            <Button variant="ghost" onClick={handleClose}>
-              Close
             </Button>
           ) : null}
         </div>

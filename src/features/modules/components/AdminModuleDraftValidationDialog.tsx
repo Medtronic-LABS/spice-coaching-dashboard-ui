@@ -30,11 +30,12 @@ export function AdminModuleDraftValidationDialog({
       onClose={onClose}
       labelledBy="admin-module-draft-validation-title"
       describedBy="admin-module-draft-validation-description"
+      contentClassName="max-w-lg"
       zIndexClassName="z-[310]"
     >
       <Card
         variant="elevated"
-        className="w-full max-w-lg space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:p-6 sm:pr-14"
       >
         <div className="space-y-2">
           <h2
@@ -89,9 +90,6 @@ export function AdminModuleDraftValidationDialog({
         </div>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="ghost" className="h-9 text-xs" onClick={onClose}>
-            Close
-          </Button>
           {firstIssue ? (
             <Button
               className="h-9 text-xs"

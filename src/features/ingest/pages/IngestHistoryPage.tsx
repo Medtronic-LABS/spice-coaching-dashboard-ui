@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ArrowRightIcon } from '@/assets/icon';
 import { Button } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { IngestRunHistoryTable } from '@/features/ingest/components/IngestRunHistoryTable';
@@ -21,16 +22,11 @@ export const IngestHistoryPage = () => {
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            className="h-9 text-xs"
+            className="inline-flex h-9 items-center gap-1.5 text-xs"
             onClick={() => navigate(paths.moduleLibrary)}
           >
             Module Library
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            onClick={() => navigate(paths.ingestDocument)}
-          >
-            Ingest Document
+            <ArrowRightIcon className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>

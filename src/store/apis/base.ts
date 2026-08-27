@@ -10,12 +10,14 @@ import {
 import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
 import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
 import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
+import { serializeRepeatedQueryParams } from '@/store/apis/serializeQueryParams';
 
 export { apiBaseUrl } from '@/config/apiClientConfig';
 
 const realFetchBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,
   credentials: 'include',
+  paramsSerializer: serializeRepeatedQueryParams,
   prepareHeaders: (headers) => {
     const session = getAuthSession();
     // /auth/session returns the auth cookie on Authorization; replay it as auth-cookie.

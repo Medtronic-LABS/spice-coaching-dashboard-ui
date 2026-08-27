@@ -8,6 +8,7 @@ import { cn } from '@/utils';
  *
  * Accent styling mirrors Needs Review module cards (`border-l-4`),
  * but uses a top accent (`border-t-4`) for dashboard metrics.
+ * Label and value sit on one bottom row (label left, value right).
  *
  * Usage:
  * <StatCard label="Completion Rate" value="68%" change={5} />
@@ -24,9 +25,9 @@ export type StatCardTone =
 export interface StatCardProps {
   /** Optional icon shown above the label. */
   icon?: ReactNode;
-  /** Metric label shown above the value. */
+  /** Metric label shown on the bottom row (left of the value). */
   label: string;
-  /** Primary metric value. Falls back to `-` when missing. */
+  /** Primary metric value shown on the bottom row (right of the label). */
   value: string | number;
   /** Optional denominator for fraction display (`value/outOf`). */
   outOf?: string | number;
@@ -36,8 +37,16 @@ export interface StatCardProps {
   supportingText?: string;
   /** Optional badge text (e.g. ALERT). */
   badgeLabel?: string;
+  /** Optional classes for the metric label (e.g. `whitespace-nowrap`). */
+  labelClassName?: string;
   /** Optional override for the main value color/tone. */
   valueClassName?: string;
+  /**
+   * When true, the value may shrink/wrap (e.g. multi-line datetimes)
+   * instead of forcing `shrink-0`. Pair with `whitespace-pre-line` on
+   * `valueClassName` when the value contains intentional line breaks.
+   */
+  allowValueWrap?: boolean;
   /** Accent tone for top border, icon tile, and primary value. */
   tone?: StatCardTone;
   /** Optional info tooltip shown on the top-right control. */
@@ -96,7 +105,9 @@ export const StatCard = ({
   change,
   supportingText,
   badgeLabel,
+  labelClassName,
   valueClassName,
+  allowValueWrap = false,
   tone,
   tooltip,
   tooltipLabel,
@@ -109,7 +120,7 @@ export const StatCard = ({
   return (
     <section
       className={cn(
-        'relative min-w-[160px] flex-1 overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi transition-all hover:shadow-md',
+        'relative flex h-full min-w-[160px] flex-1 flex-col overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi transition-all hover:shadow-md',
         toneStyles ? cn('border-t-4', toneStyles.border) : null,
       )}
     >
@@ -153,29 +164,42 @@ export const StatCard = ({
         </div>
       ) : null}
 
-      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-        {label}
-      </p>
-
-      <p
+      <div
         className={cn(
-          'text-[30px] font-extrabold leading-none tracking-tight text-spice-text-primary',
-          !hasOutOf && (valueClassName ?? toneStyles?.value),
+          'mt-auto flex justify-between gap-3',
+          allowValueWrap ? 'items-end' : 'items-baseline',
         )}
       >
-        {hasOutOf ? (
-          <>
-            <span className={cn(valueClassName ?? toneStyles?.value)}>
-              {displayValue}
-            </span>
-            <span className="text-[15px] font-semibold tracking-normal text-spice-text-muted">
-              /{outOf}
-            </span>
-          </>
-        ) : (
-          displayValue
-        )}
-      </p>
+        <p
+          className={cn(
+            'min-w-0 text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted',
+            labelClassName,
+          )}
+        >
+          {label}
+        </p>
+
+        <p
+          className={cn(
+            'text-[30px] font-extrabold leading-none tracking-tight text-spice-text-primary',
+            allowValueWrap ? 'min-w-0 text-right' : 'shrink-0',
+            !hasOutOf && (valueClassName ?? toneStyles?.value),
+          )}
+        >
+          {hasOutOf ? (
+            <>
+              <span className={cn(valueClassName ?? toneStyles?.value)}>
+                {displayValue}
+              </span>
+              <span className="text-[15px] font-semibold tracking-normal text-spice-text-muted">
+                /{outOf}
+              </span>
+            </>
+          ) : (
+            displayValue
+          )}
+        </p>
+      </div>
 
       {supportingText ? (
         <p className="mt-1.5 text-[11px] font-medium text-spice-text-muted">

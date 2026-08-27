@@ -182,12 +182,12 @@ describe('ConfigsPage configuration history', () => {
     renderWithProviders(<ConfigsPage />);
     const table = await waitForHistoryReady('80');
 
-    await user.selectOptions(
+    await user.click(
       screen.getByLabelText(/configuration history rows per page/i),
-      '5',
     );
+    await user.click(screen.getByRole('option', { name: '5' }));
 
-    const nextButton = screen.getByRole('button', { name: /^next$/i });
+    const nextButton = screen.getByRole('button', { name: /^next page$/i });
     await waitFor(
       () => {
         expect(nextButton).toBeEnabled();
