@@ -113,4 +113,65 @@ describe('DocumentUsageSection', () => {
       );
     });
   });
+
+  it('keeps search mounted and only skeletons the table while searching', async () => {
+    const user = userEvent.setup({ delay: null });
+    const listData: DocumentUsageResponse = {
+      ...emptyDocumentUsageData,
+      total_document_rows: 1,
+      documents: [
+        {
+          document_id: 'doc-1',
+          document_title: 'Protocol A',
+          total_views: 3,
+          unique_users: 1,
+          last_viewed_at: null,
+          last_viewed_by_user_id: null,
+          last_viewed_by_user_name: null,
+        },
+      ],
+    };
+    useFetchDocumentUsageQuery.mockReturnValue({
+      data: listData,
+      currentData: listData,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
+
+    renderWithProviders(
+      <DocumentUsageSection
+        fromDate="2026-01-01"
+        toDate="2026-01-31"
+        geography={EMPTY_DASHBOARD_GEOGRAPHY}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /view all documents/i }),
+    );
+    const search = await screen.findByPlaceholderText(/search documents/i);
+    expect(screen.getByText('Protocol A')).toBeInTheDocument();
+
+    useFetchDocumentUsageQuery.mockReturnValue({
+      data: undefined,
+      currentData: undefined,
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      error: undefined,
+      refetch: vi.fn(),
+    });
+
+    await user.type(search, 'protocol');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Protocol A')).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByPlaceholderText(/search documents/i),
+    ).toBeInTheDocument();
+  });
 });

@@ -358,40 +358,13 @@ export const DocumentUsageSection = ({
         actions={headerActions}
       >
         <div className="space-y-4 px-4 pb-4">
-          {showLoading ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 3 }, (_, index) => (
-                  <div
-                    key={index}
-                    className="h-16 animate-pulse rounded-md bg-spice-bg-tint"
-                    aria-hidden
-                  />
-                ))}
-              </div>
-              <DashboardListSkeleton rows={8} />
-            </div>
-          ) : showError ? (
-            <DashboardWidgetErrorState onRetry={() => void refetch()} />
-          ) : !data ? (
-            <EmptyState
-              title={t('adminDashboard.documentUsage.emptyTitle')}
-              description={t('adminDashboard.documentUsage.emptyDescription')}
-            />
-          ) : view === 'overview' ? (
-            <DocumentUsageOverview
-              totalViews={data.total_views}
-              uniqueDocuments={data.unique_documents}
-              uniqueUsers={data.unique_users}
-              totalDocumentRows={totalDocumentRows}
-              documentRows={documentRows}
-              documentColumns={documentColumns}
-              onViewAllDocuments={() => setView('documentsAll')}
-            />
-          ) : (
+          {view === 'documentsAll' ? (
             <DocumentUsageDocumentsAllView
               documentSearch={documentSearch}
               onDocumentSearchChange={setDocumentSearch}
+              isTableLoading={showLoading}
+              isTableError={showError}
+              onRetry={() => void refetch()}
               documentRows={documentRows}
               documentColumns={documentColumns}
               page={documentsPage}
@@ -411,6 +384,36 @@ export const DocumentUsageSection = ({
                 setDocumentsPage((current) => Math.max(0, current - 1))
               }
               onNextPage={() => setDocumentsPage((current) => current + 1)}
+            />
+          ) : showLoading ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <div
+                    key={index}
+                    className="h-16 animate-pulse rounded-md bg-spice-bg-tint"
+                    aria-hidden
+                  />
+                ))}
+              </div>
+              <DashboardListSkeleton rows={8} />
+            </div>
+          ) : showError ? (
+            <DashboardWidgetErrorState onRetry={() => void refetch()} />
+          ) : !data ? (
+            <EmptyState
+              title={t('adminDashboard.documentUsage.emptyTitle')}
+              description={t('adminDashboard.documentUsage.emptyDescription')}
+            />
+          ) : (
+            <DocumentUsageOverview
+              totalViews={data.total_views}
+              uniqueDocuments={data.unique_documents}
+              uniqueUsers={data.unique_users}
+              totalDocumentRows={totalDocumentRows}
+              documentRows={documentRows}
+              documentColumns={documentColumns}
+              onViewAllDocuments={() => setView('documentsAll')}
             />
           )}
         </div>
