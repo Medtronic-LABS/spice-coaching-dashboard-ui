@@ -117,29 +117,18 @@ export function BadgeFormModal({
         variant="elevated"
         className="w-full space-y-5 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
       >
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-spice-border pb-4">
-          <div>
-            <h2
-              id="badge-form-modal-title"
-              className="inline-flex items-center gap-2 text-lg font-semibold text-spice-text-primary"
-            >
-              {title}
-              <Tooltip
-                label="About milestone form"
-                content={MILESTONE_FORM_INFO}
-                placement="bottom"
-              />
-            </h2>
-          </div>
-          {isViewMode ? (
-            <span className="rounded-full bg-spice-bg-tint px-3 py-1 text-xs font-medium text-spice-text-primary">
-              Viewing
-            </span>
-          ) : isEditMode ? (
-            <span className="rounded-full bg-spice-brand-primary/10 px-3 py-1 text-xs font-medium text-spice-brand-primary">
-              Editing
-            </span>
-          ) : null}
+        <div className="border-b border-spice-border pb-4">
+          <h2
+            id="badge-form-modal-title"
+            className="inline-flex items-center gap-2 text-lg font-semibold text-spice-text-primary"
+          >
+            {title}
+            <Tooltip
+              label="About milestone form"
+              content={MILESTONE_FORM_INFO}
+              placement="bottom"
+            />
+          </h2>
         </div>
 
         <label className="block space-y-1.5">

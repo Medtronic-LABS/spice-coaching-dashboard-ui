@@ -14,6 +14,7 @@ import {
   Button,
   Card,
   Combobox,
+  CircularSpinner,
   InfiniteScrollContainer,
   Loader,
   Modal,
@@ -251,8 +252,14 @@ function UserSelectionList({
         disabled={isLoading || isError}
       >
         {isLoading ? (
-          <div className="p-4 text-center text-sm text-spice-text-muted">
-            Loading users…
+          <div
+            className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-sm text-spice-text-muted"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading users"
+          >
+            <CircularSpinner className="h-8 w-8 text-spice-brand-primary" />
+            <span>Loading users…</span>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 px-4 py-6 text-center">
@@ -1372,7 +1379,9 @@ export const AssignmentDialog = ({
                 users={listUsers}
                 desiredUserIds={desiredUserIds}
                 userAssignmentStatus={userAssignmentStatus}
-                isLoading={loadingUsers && loadedUsers.length === 0}
+                isLoading={
+                  (loadingUsers || fetchingUsers) && loadedUsers.length === 0
+                }
                 isError={usersError}
                 isFetching={fetchingUsers}
                 hasMore={usersHasMore}
