@@ -1007,27 +1007,25 @@ export const ModuleLibraryPage = () => {
         >
           <Card
             variant="elevated"
-            className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden border-spice-border p-0 shadow-lg"
+            className="w-full space-y-4 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
           >
-            <div className="shrink-0 space-y-4 p-6 pb-4 pr-12">
-              <div>
-                <h2
-                  id="create-module-title"
-                  className="text-xl font-semibold text-spice-text-primary"
-                >
-                  Create module
-                </h2>
-                <p className="mt-1 text-xs text-spice-text-muted">
-                  Creates a draft module in the admin module library.
-                </p>
-              </div>
-
-              {createError ? (
-                <Banner tone="critical">{createError}</Banner>
-              ) : null}
+            <div>
+              <h2
+                id="create-module-title"
+                className="text-xl font-semibold text-spice-text-primary"
+              >
+                Create module
+              </h2>
+              <p className="mt-1 text-xs text-spice-text-muted">
+                Creates a draft module in the admin module library.
+              </p>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6">
+            {createError ? (
+              <Banner tone="critical">{createError}</Banner>
+            ) : null}
+
+            <div className="space-y-4">
               <div className="grid gap-3">
                 <label className="block w-full space-y-1">
                   <span className="text-xs font-semibold text-spice-text-primary">
@@ -1195,7 +1193,7 @@ export const ModuleLibraryPage = () => {
               />
             </div>
 
-            <div className="flex shrink-0 justify-end gap-2 px-6 pb-6 pt-6">
+            <div className="flex justify-end gap-2 border-t border-spice-border pt-4">
               <Button
                 variant="secondary"
                 className="h-9 text-xs"
