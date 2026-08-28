@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRightIcon, DeleteIcon, EyeIcon } from '@/assets/icon';
+import { ArrowRightIcon, CloseIcon, DeleteIcon, EyeIcon } from '@/assets/icon';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -28,6 +28,7 @@ import {
 import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
   type AdminV3IngestAcceptedResponse,
@@ -35,6 +36,7 @@ import {
   type AdminV3IngestBatchStatusResponse,
   type AdminV3IngestUploadResponse,
   type AdminV3IngestUploadedSource,
+  type IngestDuplicateConflict,
 } from '@/features/ingest/api/adminIngestApi';
 import {
   useFetchSourceDocumentsQuery,
@@ -98,6 +100,7 @@ import {
 } from '@/features/ingest/utils/videoThumbnail';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { countNewlyUploadedSources } from '@/features/ingest/utils/parseIngestDuplicateError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 
@@ -215,6 +218,11 @@ function isNeedsReviewStatus(status: string): boolean {
   );
 }
 
+type VideoUploadFeedback = {
+  message: string;
+  tone: 'success' | 'critical';
+};
+
 export const VideoUploadPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -246,8 +254,15 @@ export const VideoUploadPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDragActive, setIsDragActive] = useState(false);
   const [fileError, setFileError] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [actionSuccess, setActionSuccess] = useState('');
+  const [feedback, setFeedback] = useState<VideoUploadFeedback | null>(null);
+  const clearFeedback = useCallback(() => setFeedback(null), []);
+  const showFeedback = useCallback(
+    (message: string, tone: VideoUploadFeedback['tone']) => {
+      setFeedback({ message, tone });
+    },
+    [],
+  );
+  useAutoDismissFeedback(feedback, clearFeedback);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
@@ -608,12 +623,13 @@ export const VideoUploadPage = () => {
       }
 
       if (failures.length) {
-        setActionError(
+        showFeedback(
           failures[0] ?? 'Some video thumbnails could not be uploaded.',
+          'critical',
         );
       }
     },
-    [updateSourceDocumentThumbnail],
+    [showFeedback, updateSourceDocumentThumbnail],
   );
 
   const clearPendingAfterUpload = useCallback(() => {
@@ -627,22 +643,39 @@ export const VideoUploadPage = () => {
   }, []);
 
   const handleUploaded = useCallback(
-    (response: AdminV3IngestUploadResponse) => {
+    (
+      response: AdminV3IngestUploadResponse,
+      context: {
+        isReupload: boolean;
+        overriddenFilenames: string[];
+        duplicateConflicts: IngestDuplicateConflict[];
+      },
+    ) => {
       const metas = pendingUploadMetaRef.current;
       pendingUploadMetaRef.current = [];
       clearPendingAfterUpload();
       void uploadPendingThumbnails(response.sources, metas).then(() => {
         void refetchSourceDocumentList();
       });
-      setActionSuccess(
-        response.sources.length === 1
-          ? 'Video uploaded successfully.'
-          : 'Videos uploaded successfully.',
-      );
+      const newlyUploadedCount = countNewlyUploadedSources(response, context);
+      const isSkipUploadReuse =
+        context.isReupload && context.overriddenFilenames.length === 0;
+      if (newlyUploadedCount > 0 && !isSkipUploadReuse) {
+        showFeedback(
+          newlyUploadedCount === 1
+            ? 'Video uploaded successfully.'
+            : 'Videos uploaded successfully.',
+          'success',
+        );
+      } else {
+        clearFeedback();
+      }
     },
     [
+      clearFeedback,
       clearPendingAfterUpload,
       refetchSourceDocumentList,
+      showFeedback,
       uploadPendingThumbnails,
     ],
   );
@@ -687,7 +720,7 @@ export const VideoUploadPage = () => {
   } = useIngestWithDuplicateHandling({
     onUploaded: handleUploaded,
     onAccepted: (response) => handleIngestAccepted(response),
-    onError: setActionError,
+    onError: (message) => showFeedback(message, 'critical'),
   });
 
   const pendingMergeDecisions = hasPendingMergeDecisions(
@@ -726,8 +759,7 @@ export const VideoUploadPage = () => {
   const runIngest = useCallback(async () => {
     const rowsToIngest = selectedRowsReadyToIngest;
     if (!rowsToIngest.length) return;
-    setActionError('');
-    setActionSuccess('');
+    clearFeedback();
     setAcceptedSources([]);
     setBatchStatus(null);
     await startIngest({
@@ -831,8 +863,7 @@ export const VideoUploadPage = () => {
     }
 
     setPendingTitleErrorKeys(new Set());
-    setActionError('');
-    setActionSuccess('');
+    clearFeedback();
     setFileError('');
 
     pendingUploadMetaRef.current = items.map((item) => ({
@@ -971,8 +1002,7 @@ export const VideoUploadPage = () => {
               <Button
                 className="h-8 shrink-0 px-3 text-xs"
                 onClick={() => {
-                  setActionError('');
-                  setActionSuccess('');
+                  clearFeedback();
                   setAssignTarget({
                     id: row.sourceDocumentId as string,
                     title: row.title,
@@ -989,8 +1019,7 @@ export const VideoUploadPage = () => {
                     row.sourceDocumentId as string,
                   );
                   if (!document) return;
-                  setActionError('');
-                  setActionSuccess('');
+                  clearFeedback();
                   setEditDocument(document);
                 }}
               >
@@ -1082,8 +1111,23 @@ export const VideoUploadPage = () => {
         </Button>
       </div>
 
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
-      {actionSuccess ? <Banner tone="success">{actionSuccess}</Banner> : null}
+      {feedback ? (
+        <Banner tone={feedback.tone}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{feedback.message}</span>
+            {feedback.tone === 'success' ? (
+              <Button
+                variant="ghost"
+                aria-label="Dismiss success message"
+                onClick={clearFeedback}
+                className="h-8 w-8 p-0"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </Button>
+            ) : null}
+          </div>
+        </Banner>
+      ) : null}
 
       <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
         <div className="text-sm font-semibold text-spice-text-primary">
@@ -1510,7 +1554,7 @@ export const VideoUploadPage = () => {
             ...previous,
             [document.id]: document,
           }));
-          setActionSuccess('Video details updated.');
+          showFeedback('Video details updated.', 'success');
           void refetchSourceDocumentList();
         }}
       />
