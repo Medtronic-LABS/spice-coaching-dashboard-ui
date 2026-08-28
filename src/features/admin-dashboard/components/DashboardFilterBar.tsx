@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon, CloseIcon, FiltersSlidersIcon } from '@/assets/icon';
 import { Button, Select, type SelectOption } from '@/components/ui';
+import { SELECT_LISTBOX_PORTAL_SELECTOR } from '@/components/ui/Select';
 import { EMPTY_DASHBOARD_GEOGRAPHY } from '@/features/admin-dashboard/hooks/useDashboardFilters';
 import type {
   DashboardDurationPreset,
@@ -157,12 +158,16 @@ export const DashboardFilterBar = ({
     if (!filtersOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (filtersRef.current?.contains(target)) return;
       if (
-        filtersRef.current &&
-        !filtersRef.current.contains(event.target as Node)
+        target instanceof Element &&
+        target.closest(SELECT_LISTBOX_PORTAL_SELECTOR)
       ) {
-        setFiltersOpen(false);
+        return;
       }
+      setFiltersOpen(false);
     };
 
     document.addEventListener('mousedown', handlePointerDown);
@@ -237,7 +242,7 @@ export const DashboardFilterBar = ({
 
         {filtersOpen ? (
           <div
-            className="absolute right-0 z-30 mt-2 w-72 space-y-4 rounded-lg border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi"
+            className="absolute right-0 z-50 mt-2 w-72 space-y-4 rounded-lg border border-spice-border bg-spice-bg-surface p-4 shadow-spiceKpi"
             role="dialog"
             aria-label={t('adminDashboard.filters.panelLabel')}
           >
@@ -248,6 +253,7 @@ export const DashboardFilterBar = ({
                 onChange={(value) => patchDraftGeography({ divisionId: value })}
                 className="w-full"
                 triggerClassName={filterSelectTriggerClassName}
+                portaledListbox
               />
             </FilterField>
             <FilterField label={t('adminDashboard.filters.district')}>
@@ -257,6 +263,7 @@ export const DashboardFilterBar = ({
                 onChange={(value) => patchDraftGeography({ districtId: value })}
                 className="w-full"
                 triggerClassName={filterSelectTriggerClassName}
+                portaledListbox
               />
             </FilterField>
             <FilterField label={t('adminDashboard.filters.upazila')}>
@@ -266,6 +273,7 @@ export const DashboardFilterBar = ({
                 onChange={(value) => patchDraftGeography({ upazilaId: value })}
                 className="w-full"
                 triggerClassName={filterSelectTriggerClassName}
+                portaledListbox
               />
             </FilterField>
             <div className="space-y-3 border-t border-spice-border pt-3">

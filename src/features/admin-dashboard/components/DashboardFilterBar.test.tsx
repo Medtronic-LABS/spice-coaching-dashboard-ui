@@ -68,7 +68,7 @@ async function chooseSelectOption(
   optionName: string,
 ) {
   await user.click(within(panel).getByLabelText(fieldLabel));
-  await user.click(within(panel).getByRole('option', { name: optionName }));
+  await user.click(screen.getByRole('option', { name: optionName }));
 }
 
 async function openSelectOptions(
@@ -104,13 +104,11 @@ describe('DashboardFilterBar', () => {
     await openSelectOptions(user, panel, 'Upazila');
 
     expect(
-      within(panel).getByRole('option', { name: 'Kaliakoir' }),
+      screen.getByRole('option', { name: 'Kaliakoir' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Bhairab' })).toBeInTheDocument();
     expect(
-      within(panel).getByRole('option', { name: 'Bhairab' }),
-    ).toBeInTheDocument();
-    expect(
-      within(panel).getByRole('option', { name: 'Hatibandha' }),
+      screen.getByRole('option', { name: 'Hatibandha' }),
     ).toBeInTheDocument();
     expect(within(panel).queryByText('Team view')).not.toBeInTheDocument();
     expect(within(panel).queryByText('All statuses')).not.toBeInTheDocument();
@@ -142,39 +140,35 @@ describe('DashboardFilterBar', () => {
     await chooseSelectOption(user, panel, 'Division', 'Dhaka');
 
     await openSelectOptions(user, panel, 'District');
+    expect(screen.getByRole('option', { name: 'Gazipur' })).toBeInTheDocument();
     expect(
-      within(panel).getByRole('option', { name: 'Gazipur' }),
+      screen.getByRole('option', { name: 'Kishoreganj' }),
     ).toBeInTheDocument();
     expect(
-      within(panel).getByRole('option', { name: 'Kishoreganj' }),
-    ).toBeInTheDocument();
-    expect(
-      within(panel).queryByRole('option', { name: 'Lalmonirhat' }),
+      screen.queryByRole('option', { name: 'Lalmonirhat' }),
     ).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
 
     await openSelectOptions(user, panel, 'Upazila');
     expect(
-      within(panel).getByRole('option', { name: 'Kaliakoir' }),
+      screen.getByRole('option', { name: 'Kaliakoir' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Bhairab' })).toBeInTheDocument();
     expect(
-      within(panel).getByRole('option', { name: 'Bhairab' }),
-    ).toBeInTheDocument();
-    expect(
-      within(panel).queryByRole('option', { name: 'Hatibandha' }),
+      screen.queryByRole('option', { name: 'Hatibandha' }),
     ).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
 
     await chooseSelectOption(user, panel, 'District', 'Gazipur');
     await openSelectOptions(user, panel, 'Upazila');
     expect(
-      within(panel).getByRole('option', { name: 'Kaliakoir' }),
+      screen.getByRole('option', { name: 'Kaliakoir' }),
     ).toBeInTheDocument();
     expect(
-      within(panel).queryByRole('option', { name: 'Bhairab' }),
+      screen.queryByRole('option', { name: 'Bhairab' }),
     ).not.toBeInTheDocument();
     expect(
-      within(panel).queryByRole('option', { name: 'Hatibandha' }),
+      screen.queryByRole('option', { name: 'Hatibandha' }),
     ).not.toBeInTheDocument();
   });
 
