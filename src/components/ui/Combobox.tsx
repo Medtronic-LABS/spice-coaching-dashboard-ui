@@ -13,6 +13,9 @@ import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
+/** Portaled / floating listbox nodes use this attribute for outside-click guards. */
+export const COMBOBOX_LISTBOX_SELECTOR = '[data-combobox-listbox]';
+
 /**
  * Combobox
  * Searchable dropdown for large option sets where options are filtered
@@ -226,7 +229,10 @@ export const Combobox = ({
         />
       </div>
       {open ? (
-        <div className="absolute z-20 mt-1 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface shadow-lg">
+        <div
+          data-combobox-listbox
+          className="absolute z-[70] mt-1 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface shadow-lg"
+        >
           {onLoadMore ? (
             <InfiniteScrollContainer
               className="max-h-64 py-1"

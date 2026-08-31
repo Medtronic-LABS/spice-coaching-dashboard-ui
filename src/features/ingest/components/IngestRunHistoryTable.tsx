@@ -27,11 +27,17 @@ import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus'
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
-const RUN_HISTORY_PAGE_SIZE_OPTIONS = [5, 10, 15, 25] as const;
-const DEFAULT_RUN_HISTORY_PAGE_SIZE = 10;
 const RUN_HISTORY_POLL_INTERVAL_MS = 30000;
 const RUN_HISTORY_SEARCH_DEBOUNCE_MS = 300;
 
@@ -53,7 +59,7 @@ type IngestRunHistoryRow = {
 
 export const IngestRunHistoryTable = () => {
   const navigate = useNavigate();
-  const [pageSize, setPageSize] = useState(DEFAULT_RUN_HISTORY_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(0);
   const {
     page,
@@ -89,7 +95,7 @@ export const IngestRunHistoryTable = () => {
   const queryArgs = useMemo(
     () => ({
       limit: pageSize,
-      offset: page * pageSize,
+      offset: tablePageOffset(page, pageSize),
       sort_by: sortBy,
       sort_dir: sortDir,
       ...(searchQ ? { q: searchQ } : {}),
@@ -149,11 +155,13 @@ export const IngestRunHistoryTable = () => {
 
   const totalRuns = runList?.total_runs ?? 0;
   const totalPages = runList?.total_pages ?? 0;
-  const hasPrevPage = page > 0;
-  const hasNextPage = runList?.has_next_page ?? false;
-  const pageOffset = runList?.offset ?? page * pageSize;
-  const rangeStart = rows.length ? pageOffset + 1 : 0;
-  const rangeEnd = rows.length ? pageOffset + rows.length : 0;
+  const hasPrevPage = tableHasPrevPage(page);
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    rows.length,
+  );
 
   useEffect(() => {
     setPaginationTotalPages(totalPages);
@@ -361,7 +369,7 @@ export const IngestRunHistoryTable = () => {
       <TablePagination
         page={page}
         pageSize={pageSize}
-        pageSizeOptions={RUN_HISTORY_PAGE_SIZE_OPTIONS}
+        pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
         totalItems={totalRuns}
         totalPages={totalPages}
         rangeStart={rangeStart}

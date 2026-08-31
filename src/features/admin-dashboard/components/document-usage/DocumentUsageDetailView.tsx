@@ -13,6 +13,7 @@ import {
   DOC_TABLE_CELL,
   DOCUMENT_USAGE_TABLE_PROPS,
 } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
+import { tableHasNextPage, tableHasPrevPage } from '@/utils/tablePagination';
 import {
   formatDisplayDate,
   formatDisplayDateTime,
@@ -141,8 +142,8 @@ export const DocumentUsageDetailView = ({
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
         pageInput={pageInput}
-        hasPrevPage={page > 0}
-        hasNextPage={page + 1 < totalPages}
+        hasPrevPage={tableHasPrevPage(page)}
+        hasNextPage={tableHasNextPage(page, totalPages)}
         onPageSizeChange={onPageSizeChange}
         onPageInputChange={onPageInputChange}
         onCommitPageInput={onCommitPageInput}

@@ -5,6 +5,8 @@ import { nextBoundedPageInput } from '@/utils/digitLimitedInteger';
  * Shared page + page-input state for TablePagination consumers.
  * `page` is 0-based; `pageInput` is 1-based display text.
  * Pass live `totalPages` each render so commit/clamp stay correct after data loads.
+ *
+ * Offset/range/next/prev helpers: `@/utils/tablePagination`.
  */
 export function useTablePageInput(totalPages: number) {
   const [page, setPage] = useState(0);

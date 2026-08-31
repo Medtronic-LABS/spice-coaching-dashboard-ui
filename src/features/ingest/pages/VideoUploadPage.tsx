@@ -31,6 +31,14 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
+import {
   type AdminV3IngestAcceptedResponse,
   type AdminV3IngestAcceptedSource,
   type AdminV3IngestBatchStatusResponse,
@@ -133,9 +141,6 @@ type VideoRow = {
   actions: string;
   sourceDocumentId?: string;
 };
-
-const VIDEO_PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const;
-const DEFAULT_VIDEO_PAGE_SIZE = 10;
 
 const VIDEO_SEARCH_DEBOUNCE_MS = 300;
 
@@ -266,7 +271,7 @@ export const VideoUploadPage = () => {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
-  const [pageSize, setPageSize] = useState(DEFAULT_VIDEO_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(1);
   const {
     page,
@@ -524,7 +529,7 @@ export const VideoUploadPage = () => {
         }
       : {}),
     limit: pageSize,
-    offset: page * pageSize,
+    offset: tablePageOffset(page, pageSize),
     sort_by: sortBy,
     sort_dir: sortDir,
   });
@@ -588,10 +593,13 @@ export const VideoUploadPage = () => {
 
   const totalServerVideos = sourceDocumentList?.total_source_documents ?? 0;
   const totalPages = Math.max(1, sourceDocumentList?.total_pages ?? 1);
-  const hasPrevPage = page > 0;
-  const hasNextPage = page + 1 < totalPages;
-  const rangeStart = serverRows.length ? page * pageSize + 1 : 0;
-  const rangeEnd = serverRows.length ? page * pageSize + serverRows.length : 0;
+  const hasPrevPage = tableHasPrevPage(page);
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    serverRows.length,
+  );
 
   useEffect(() => {
     setPaginationTotalPages(totalPages);
@@ -1454,7 +1462,7 @@ export const VideoUploadPage = () => {
         <TablePagination
           page={page}
           pageSize={pageSize}
-          pageSizeOptions={VIDEO_PAGE_SIZE_OPTIONS}
+          pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
           totalItems={totalServerVideos}
           totalPages={totalPages}
           rangeStart={rangeStart}

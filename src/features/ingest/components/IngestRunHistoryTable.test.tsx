@@ -1,9 +1,17 @@
 import { screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IngestRunHistoryTable } from '@/features/ingest/components/IngestRunHistoryTable';
 import { renderWithProviders } from '@/test-utils/render';
 
 const refetch = vi.hoisted(() => vi.fn());
+
+const runListResponse = vi.hoisted(() => ({
+  total_runs: 2,
+  total_pages: 1,
+  limit: 10,
+  offset: 0,
+  has_next_page: false,
+}));
 
 vi.mock(
   '@/features/ingest/api/adminIngestionRunsApi',
@@ -45,11 +53,11 @@ vi.mock(
               ingested_by: null,
             },
           ],
-          total_runs: 2,
-          total_pages: 1,
-          limit: 10,
-          offset: 0,
-          has_next_page: false,
+          total_runs: runListResponse.total_runs,
+          total_pages: runListResponse.total_pages,
+          limit: runListResponse.limit,
+          offset: runListResponse.offset,
+          has_next_page: runListResponse.has_next_page,
         },
         isLoading: false,
         isFetching: false,
@@ -62,6 +70,14 @@ vi.mock(
 );
 
 describe('IngestRunHistoryTable', () => {
+  beforeEach(() => {
+    runListResponse.total_runs = 2;
+    runListResponse.total_pages = 1;
+    runListResponse.limit = 10;
+    runListResponse.offset = 0;
+    runListResponse.has_next_page = false;
+  });
+
   it('renders the complete filename in a focusable truncated-text trigger', () => {
     const fileName =
       'A very long ingestion document filename that must remain available.pdf';
@@ -146,5 +162,23 @@ describe('IngestRunHistoryTable', () => {
       'title',
       'No modules were generated for this ingestion.',
     );
+  });
+
+  it('derives next-page availability from total_pages', () => {
+    runListResponse.total_pages = 2;
+    runListResponse.has_next_page = false;
+
+    renderWithProviders(<IngestRunHistoryTable />);
+
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeEnabled();
+  });
+
+  it('disables next page when total_pages is 1 even if has_next_page is true', () => {
+    runListResponse.total_pages = 1;
+    runListResponse.has_next_page = true;
+
+    renderWithProviders(<IngestRunHistoryTable />);
+
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 });

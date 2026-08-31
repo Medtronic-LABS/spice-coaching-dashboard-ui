@@ -7,6 +7,7 @@ import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components
 import type { DocumentUsageDocumentRow } from '@/features/admin-dashboard/types/dashboard.types';
 import { PAGE_SIZE_OPTIONS } from '@/features/admin-dashboard/utils/documentUsage';
 import { DOCUMENT_USAGE_TABLE_PROPS } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
+import { tableHasNextPage, tableHasPrevPage } from '@/utils/tablePagination';
 
 type DocumentTableRow = DocumentUsageDocumentRow & { actions: '' };
 
@@ -91,8 +92,8 @@ export const DocumentUsageDocumentsAllView = ({
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
             pageInput={pageInput}
-            hasPrevPage={page > 0}
-            hasNextPage={page + 1 < totalPages}
+            hasPrevPage={tableHasPrevPage(page)}
+            hasNextPage={tableHasNextPage(page, totalPages)}
             onPageSizeChange={onPageSizeChange}
             onPageInputChange={onPageInputChange}
             onCommitPageInput={onCommitPageInput}

@@ -68,6 +68,7 @@ export const TablePagination = ({
           <Select
             aria-label={rowsPerPageAriaLabel}
             className="w-[4.5rem]"
+            portaledListbox
             triggerClassName="h-8 px-2 text-xs"
             value={String(pageSize)}
             options={pageSizeOptions.map((size) => ({

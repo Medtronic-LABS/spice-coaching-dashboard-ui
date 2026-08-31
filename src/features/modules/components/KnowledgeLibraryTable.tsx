@@ -59,6 +59,13 @@ import {
 import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
+import {
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
 
 type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
@@ -71,7 +78,6 @@ type KnowledgeStatusTone =
   | 'failed'
   | 'neutral';
 
-const PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
 
 const RefreshIcon = ({ className }: { className?: string }) => (
@@ -214,7 +220,7 @@ export const KnowledgeLibraryTable = () => {
   const filtersActive = hasActiveKnowledgeDrawerFilters(appliedDrawerFilters);
 
   const queryArgs = useMemo(() => {
-    const offset = page * pageSize;
+    const offset = tablePageOffset(page, pageSize);
     const statusParam = resolveKnowledgeCatalogStatusFilter({
       statusTab,
       ingested: appliedDrawerFilters.ingested,
@@ -310,8 +316,8 @@ export const KnowledgeLibraryTable = () => {
 
   const total = catalog?.total_source_documents ?? 0;
   const totalPages = catalog?.total_pages ?? 0;
-  const hasPrevPage = page > 0;
-  const hasNextPage = totalPages > 0 && page + 1 < totalPages;
+  const hasPrevPage = tableHasPrevPage(page);
+  const hasNextPage = tableHasNextPage(page, totalPages);
 
   useEffect(() => {
     setPaginationTotalPages(totalPages);
@@ -321,8 +327,11 @@ export const KnowledgeLibraryTable = () => {
     resetPage();
   }, [statusTab, searchQ, appliedDrawerFilters, sortBy, sortOrder, resetPage]);
 
-  const rangeStart = assets.length ? page * pageSize + 1 : 0;
-  const rangeEnd = assets.length ? page * pageSize + assets.length : 0;
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    assets.length,
+  );
 
   const handleOpenFiltersDrawer = () => {
     setDraftDrawerFilters(appliedDrawerFilters);
@@ -699,7 +708,7 @@ export const KnowledgeLibraryTable = () => {
         <TablePagination
           page={page}
           pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
           totalItems={total}
           totalPages={totalPages}
           rangeStart={rangeStart}

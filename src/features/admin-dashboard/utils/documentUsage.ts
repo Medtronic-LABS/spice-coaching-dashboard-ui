@@ -4,6 +4,20 @@ import type {
   DocumentUsageTopItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
 import { hierarchyRoleKind } from '@/features/admin-dashboard/utils/teamActivity';
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
+
+export {
+  DEFAULT_TABLE_PAGE_SIZE as DEFAULT_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS as PAGE_SIZE_OPTIONS,
+  tablePaginationRange as paginationRange,
+};
+
+export type DocumentUsageListView = 'overview' | 'documentsAll';
+export type DocumentUsageView = DocumentUsageListView | 'documentDetail';
 
 const DOCUMENT_USAGE_ROLE_ABBREVIATION = {
   am: 'AM',
@@ -13,11 +27,6 @@ const DOCUMENT_USAGE_ROLE_ABBREVIATION = {
 
 export const OVERVIEW_TOP_LIMIT = 5;
 export const OVERVIEW_DOCUMENTS_LIMIT = 5;
-export const PAGE_SIZE_OPTIONS = [5, 10, 15, 25] as const;
-export const DEFAULT_PAGE_SIZE = 10;
-
-export type DocumentUsageListView = 'overview' | 'documentsAll';
-export type DocumentUsageView = DocumentUsageListView | 'documentDetail';
 
 export interface DocumentUsageQueryArgs {
   top_limit: number;
@@ -139,15 +148,4 @@ export function mapEventRows(
     ...event,
     geography: formatEventGeography(event.district, event.upazila_id),
   }));
-}
-
-export function paginationRange(
-  page: number,
-  pageSize: number,
-  rowCount: number,
-): { start: number; end: number } {
-  if (rowCount <= 0) return { start: 0, end: 0 };
-  const start = page * pageSize + 1;
-  const end = page * pageSize + rowCount;
-  return { start, end };
 }

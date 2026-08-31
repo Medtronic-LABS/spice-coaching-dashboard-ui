@@ -110,6 +110,14 @@ import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
+import {
   CREATE_MODULE_FORM_DEFAULTS,
   CREATE_MODULE_FORM_PLACEHOLDERS,
 } from '@/features/modules/constants/createModuleFormDefaults';
@@ -135,8 +143,6 @@ const MODULE_SEARCH_MIN_CHARS = 1;
 const MODULE_SEARCH_DEBOUNCE_MS = 300;
 /** Page size for the server-side source document typeahead. */
 const SOURCE_DOCUMENT_SEARCH_LIMIT = 50;
-const MODULE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
-const DEFAULT_MODULE_PAGE_SIZE = 10;
 
 const CREATE_MODULE_INPUT_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
@@ -251,7 +257,7 @@ export const ModuleLibraryPage = () => {
     setFilters,
     resolveExternalViewSearch,
   } = useModuleListFilters(isProgramManager);
-  const [pageSize, setPageSize] = useState(DEFAULT_MODULE_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(0);
   const {
     page,
@@ -375,7 +381,7 @@ export const ModuleLibraryPage = () => {
   } = useFetchModulesQuery(
     {
       limit: pageSize,
-      offset: page * pageSize,
+      offset: tablePageOffset(page, pageSize),
       status: lifecycleStatus,
       domain: activeFilters.domain || undefined,
       ...dateParams,
@@ -663,16 +669,17 @@ export const ModuleLibraryPage = () => {
     isProgramManager,
   );
 
-  const hasNextPage = totalPages > 0 && page + 1 < totalPages;
-  const hasPrevPage = page > 0;
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const hasPrevPage = tableHasPrevPage(page);
   const currentTabItemCount =
     tab === 'needs_review' || tab === 'discarded'
       ? modulesForList.length
       : filtered.length;
-  const rangeStart = currentTabItemCount ? page * pageSize + 1 : 0;
-  const rangeEnd = currentTabItemCount
-    ? page * pageSize + currentTabItemCount
-    : 0;
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    currentTabItemCount,
+  );
 
   const columns: Array<ColumnDef<ModuleLibraryItem>> = useMemo(
     () => [
@@ -1502,7 +1509,7 @@ export const ModuleLibraryPage = () => {
         <TablePagination
           page={page}
           pageSize={pageSize}
-          pageSizeOptions={MODULE_PAGE_SIZE_OPTIONS}
+          pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
           totalItems={totalModules}
           totalPages={totalPages}
           rangeStart={rangeStart}

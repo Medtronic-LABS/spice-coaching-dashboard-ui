@@ -2,7 +2,7 @@ export { Badge } from '@/components/ui/Badge';
 export { Banner } from '@/components/ui/Banner';
 export { Button } from '@/components/ui/Button';
 export { Card } from '@/components/ui/Card';
-export { Combobox } from '@/components/ui/Combobox';
+export { Combobox, COMBOBOX_LISTBOX_SELECTOR } from '@/components/ui/Combobox';
 export type { ComboboxOption, ComboboxProps } from '@/components/ui/Combobox';
 export { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 export type { ConfirmDialogProps } from '@/components/ui/ConfirmDialog';

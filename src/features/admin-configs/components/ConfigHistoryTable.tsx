@@ -7,10 +7,16 @@ import {
   type ConfigThresholdChangeItem,
 } from '@/features/admin-configs/api/adminConfigsApi';
 import { formatConfigDurationValue } from '@/features/admin-configs/utils/configDuration';
+import { useTablePageInput } from '@/hooks/useTablePageInput';
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
-
-const HISTORY_PAGE_SIZE_OPTIONS = [5, 10, 15, 25] as const;
-const DEFAULT_HISTORY_PAGE_SIZE = 10;
 
 type ConfigHistoryRow = {
   id: string;
@@ -29,37 +35,38 @@ export const ConfigHistoryTable = ({
   configKey,
   refreshNonce = 0,
 }: ConfigHistoryTableProps) => {
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_HISTORY_PAGE_SIZE);
-  const [pageInput, setPageInput] = useState('1');
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
+  const [paginationTotalPages, setPaginationTotalPages] = useState(1);
+
+  const {
+    page,
+    setPage,
+    pageInput,
+    resetPage,
+    commitPageInput,
+    handlePageInputChange,
+  } = useTablePageInput(paginationTotalPages);
 
   useEffect(() => {
-    setPage(0);
-    setPageInput('1');
-  }, [refreshNonce, configKey]);
+    resetPage();
+  }, [refreshNonce, configKey, resetPage]);
 
   const { data, isLoading, isError, refetch } = useFetchConfigChangesQuery({
     key: configKey,
     limit: pageSize,
-    offset: page * pageSize,
+    offset: tablePageOffset(page, pageSize),
   });
 
   const totalChanges = data?.total_changes ?? 0;
   const totalPages = data?.total_pages ?? 0;
 
   useEffect(() => {
-    if (totalPages > 0 && page >= totalPages) {
-      setPage(totalPages - 1);
-    }
-  }, [page, totalPages]);
-
-  useEffect(() => {
-    setPageInput(String(page + 1));
-  }, [page]);
+    setPaginationTotalPages(totalPages);
+  }, [totalPages]);
 
   const rows = useMemo<ConfigHistoryRow[]>(() => {
     return (data?.changes ?? []).map((change, index) =>
-      toHistoryRow(change, page * pageSize + index),
+      toHistoryRow(change, tablePageOffset(page, pageSize) + index),
     );
   }, [data?.changes, page, pageSize]);
 
@@ -88,21 +95,11 @@ export const ConfigHistoryTable = ({
     [],
   );
 
-  const rangeStart = rows.length ? page * pageSize + 1 : 0;
-  const rangeEnd = rows.length ? page * pageSize + rows.length : 0;
-  const hasPrevPage = page > 0;
-  const hasNextPage = totalPages > 0 && page < totalPages - 1;
-
-  const commitPageInput = () => {
-    const parsed = Number.parseInt(pageInput, 10);
-    if (!Number.isFinite(parsed) || parsed < 1) {
-      setPageInput(String(page + 1));
-      return;
-    }
-    const nextPage = Math.min(Math.max(parsed, 1), Math.max(totalPages, 1));
-    setPage(nextPage - 1);
-    setPageInput(String(nextPage));
-  };
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    rows.length,
+  );
 
   return (
     <Card variant="elevated" className="space-y-4 p-4">
@@ -143,19 +140,19 @@ export const ConfigHistoryTable = ({
       <TablePagination
         page={page}
         pageSize={pageSize}
-        pageSizeOptions={HISTORY_PAGE_SIZE_OPTIONS}
+        pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
         totalItems={totalChanges}
         totalPages={totalPages}
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
         pageInput={pageInput}
-        hasPrevPage={hasPrevPage}
-        hasNextPage={hasNextPage}
+        hasPrevPage={tableHasPrevPage(page)}
+        hasNextPage={tableHasNextPage(page, totalPages)}
         onPageSizeChange={(next) => {
           setPageSize(next);
-          setPage(0);
+          resetPage();
         }}
-        onPageInputChange={setPageInput}
+        onPageInputChange={handlePageInputChange}
         onCommitPageInput={commitPageInput}
         onPrevPage={() => setPage((current) => Math.max(0, current - 1))}
         onNextPage={() => setPage((current) => current + 1)}

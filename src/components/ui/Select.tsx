@@ -19,15 +19,35 @@ import { cn } from '@/utils';
 export const SELECT_LISTBOX_PORTAL_SELECTOR = '[data-select-listbox]';
 
 const LISTBOX_GAP_PX = 4;
-const LISTBOX_MIN_HEIGHT_PX = 120;
+const OPTION_ROW_HEIGHT_PX = 36;
+const LISTBOX_VERTICAL_PADDING_PX = 8;
+/** Above modal/drawer overlays (`z-[300]`), below tooltips (`z-[500]`). */
+const PORTALED_LISTBOX_Z_INDEX = 310;
 
-function computePortaledListboxStyle(trigger: HTMLElement): CSSProperties {
+function estimateListboxContentHeight(optionCount: number): number {
+  return optionCount * OPTION_ROW_HEIGHT_PX + LISTBOX_VERTICAL_PADDING_PX;
+}
+
+function computePortaledListboxStyle(
+  trigger: HTMLElement,
+  optionCount: number,
+): CSSProperties {
   const rect = trigger.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
-  const spaceBelow = viewportHeight - rect.bottom - LISTBOX_GAP_PX - 8;
-  const spaceAbove = rect.top - LISTBOX_GAP_PX - 8;
-  const placeBelow =
-    spaceBelow >= LISTBOX_MIN_HEIGHT_PX || spaceBelow >= spaceAbove;
+  const viewportEdgePaddingPx = 8;
+  const spaceBelow =
+    viewportHeight - rect.bottom - LISTBOX_GAP_PX - viewportEdgePaddingPx;
+  const spaceAbove = rect.top - LISTBOX_GAP_PX - viewportEdgePaddingPx;
+  const contentHeight = estimateListboxContentHeight(optionCount);
+
+  let placeBelow: boolean;
+  if (spaceBelow >= contentHeight) {
+    placeBelow = true;
+  } else if (spaceAbove >= contentHeight) {
+    placeBelow = false;
+  } else {
+    placeBelow = spaceBelow >= spaceAbove;
+  }
 
   return {
     position: 'fixed',
@@ -35,11 +55,8 @@ function computePortaledListboxStyle(trigger: HTMLElement): CSSProperties {
     width: rect.width,
     top: placeBelow ? rect.bottom + LISTBOX_GAP_PX : undefined,
     bottom: placeBelow ? undefined : viewportHeight - rect.top + LISTBOX_GAP_PX,
-    maxHeight: Math.max(
-      LISTBOX_MIN_HEIGHT_PX,
-      placeBelow ? spaceBelow : spaceAbove,
-    ),
-    zIndex: 60,
+    maxHeight: contentHeight,
+    zIndex: PORTALED_LISTBOX_Z_INDEX,
   };
 }
 
@@ -117,8 +134,8 @@ export const Select = ({
   const updatePortaledListPosition = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger) return;
-    setPortaledListStyle(computePortaledListboxStyle(trigger));
-  }, []);
+    setPortaledListStyle(computePortaledListboxStyle(trigger, options.length));
+  }, [options.length]);
 
   useLayoutEffect(() => {
     if (!open || !portaledListbox) return undefined;
@@ -140,7 +157,9 @@ export const Select = ({
 
   const openList = () => {
     if (portaledListbox && triggerRef.current) {
-      setPortaledListStyle(computePortaledListboxStyle(triggerRef.current));
+      setPortaledListStyle(
+        computePortaledListboxStyle(triggerRef.current, options.length),
+      );
     }
     setOpen(true);
   };
@@ -219,7 +238,7 @@ export const Select = ({
         id={listboxId}
         role="listbox"
         aria-labelledby={triggerId}
-        className="max-h-64 overflow-y-auto py-1"
+        className={cn('py-1', !portaledListbox && 'max-h-64 overflow-y-auto')}
       >
         {options.map((option, index) => (
           <li

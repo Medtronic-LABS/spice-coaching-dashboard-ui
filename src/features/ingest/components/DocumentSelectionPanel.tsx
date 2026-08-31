@@ -49,6 +49,12 @@ import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActo
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
+import {
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
@@ -256,7 +262,7 @@ export const DocumentSelectionPanel = ({
     source_type: INGESTABLE_KNOWLEDGE_SOURCE_TYPES,
     ...(searchQ ? { q: searchQ } : {}),
     limit: pageSize,
-    offset: page * pageSize,
+    offset: tablePageOffset(page, pageSize),
     sort_by: sortBy,
     sort_dir: sortDir,
   });
@@ -324,12 +330,13 @@ export const DocumentSelectionPanel = ({
 
   const total = catalog?.total_source_documents ?? 0;
   const totalPages = catalog?.total_pages ?? 0;
-  const hasPrevPage = page > 0;
-  const hasNextPage = totalPages > 0 && page + 1 < totalPages;
-  const rangeStart = catalogRows.length ? page * pageSize + 1 : 0;
-  const rangeEnd = catalogRows.length
-    ? page * pageSize + catalogRows.length
-    : 0;
+  const hasPrevPage = tableHasPrevPage(page);
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    catalogRows.length,
+  );
 
   useEffect(() => {
     setPaginationTotalPages(totalPages);
