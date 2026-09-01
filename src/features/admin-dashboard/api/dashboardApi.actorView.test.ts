@@ -171,6 +171,7 @@ describe('dashboardApi actor view query param', () => {
           suggestion_date: '2026-01-01',
           suggestion_kind: 'proposed_topic',
           display_title: 'Topic',
+          computed_at: '2026-01-01T00:00:00Z',
           evidence_count: 0,
         },
         questions: [],

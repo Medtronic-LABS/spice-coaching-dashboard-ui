@@ -278,6 +278,7 @@ export const IngestDocumentPage = () => {
       writeActiveIngestSession({ batch_id: batchId });
     }
     setKeptExistingSources([]);
+    setSelectedDocuments([]);
   }, [batchId, statusData]);
 
   // Keep checkboxes aligned with the active batch only while ingestion is running.
