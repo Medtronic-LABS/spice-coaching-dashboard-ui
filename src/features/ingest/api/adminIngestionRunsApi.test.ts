@@ -1,12 +1,10 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-const mockBaseQuerySpy = vi.fn();
+import { fetchBaseQuerySpy } from '@/test-utils/installTestFetchMock';
 
-vi.mock('@/store/apis/mockBaseQuery', () => ({
-  mockBaseQuery: (...args: unknown[]) => mockBaseQuerySpy(...args),
-}));
+const mockBaseQuerySpy = fetchBaseQuerySpy;
 
 async function dispatchFetchIngestionRuns(arg: {
   status?: string;

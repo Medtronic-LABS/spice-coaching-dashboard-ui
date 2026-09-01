@@ -2,8 +2,6 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
-  readonly VITE_USE_MOCK_API?: string;
-  readonly VITE_USE_MOCK_MODULE_PIPELINE?: string;
   readonly VITE_ENABLE_LOGIN?: string;
   readonly VITE_HMAC_SECRET_KEY?: string;
   readonly VITE_PASSWORD_HASH_KEY?: string;

@@ -1,6 +1,6 @@
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { apiBaseUrl, useMockApi } from '@/config/apiClientConfig';
+import { apiBaseUrl } from '@/config/apiClientConfig';
 import { isLoginEnabled } from '@/config/authConfig';
 import { paths } from '@/constants/routes';
 import {
@@ -8,8 +8,6 @@ import {
   getAuthSession,
 } from '@/features/auth/services/authSession';
 import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
-import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
-import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
 import { serializeRepeatedQueryParams } from '@/store/apis/serializeQueryParams';
 
 export { apiBaseUrl } from '@/config/apiClientConfig';
@@ -29,15 +27,12 @@ const realFetchBaseQuery = fetchBaseQuery({
   },
 });
 
-const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
-  let result;
-  if (import.meta.env.MODE === 'test') {
-    result = await mockBaseQuery(args, api, extraOptions);
-  } else if (!useMockApi || shouldUseRealFetchForRequest(args)) {
-    result = await realFetchBaseQuery(args, api, extraOptions);
-  } else {
-    result = await mockBaseQuery(args, api, extraOptions);
-  }
+const apiRequestBaseQueryImpl: BaseQueryFn = async (
+  args,
+  api,
+  extraOptions,
+) => {
+  const result = await realFetchBaseQuery(args, api, extraOptions);
 
   // Intercept HTTP 401 (Unauthorized): clear auth and send the user to re-auth.
   if (result.error && result.error.status === 401) {
@@ -56,14 +51,14 @@ const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
   return result;
 };
 
-/** Used by unit tests to verify mock vs real fetch routing outside vitest `MODE=test`. */
-export const apiRequestBaseQuery = hybridBaseQuery;
+/** Exported for unit tests that stub network behavior. */
+export const apiRequestBaseQuery = apiRequestBaseQueryImpl;
 
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
-  baseQuery: hybridBaseQuery,
+  baseQuery: apiRequestBaseQueryImpl,
   tagTypes: [
     'Config',
     'ConfigHistory',

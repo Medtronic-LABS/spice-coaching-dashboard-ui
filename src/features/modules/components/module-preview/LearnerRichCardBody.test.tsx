@@ -32,6 +32,26 @@ describe('LearnerRichCardBody', () => {
     expect(strong.tagName).toBe('STRONG');
   });
 
+  it('drops unsafe link hrefs in preview text', () => {
+    const blocks: RichBlock[] = [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: 'Unsafe link',
+            marks: [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }],
+          },
+        ],
+      },
+    ];
+
+    render(<LearnerRichCardBody blocks={blocks} />);
+
+    expect(screen.getByText('Unsafe link')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Unsafe link' })).toBeNull();
+  });
+
   it('renders heading level 2', () => {
     const blocks: RichBlock[] = [
       {

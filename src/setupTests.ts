@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+import '@/test-utils/installTestFetchMock';
 import '@/i18n/i18n';
-import { beforeEach, vi } from 'vitest';
+import { beforeEach, afterEach, vi } from 'vitest';
 import { TEST_AUTH_USER } from '@/features/auth/constants/testAuthUser';
 import { setAuthSession } from '@/features/auth/services/authSession';
+import { fetchBaseQuerySpy } from '@/test-utils/installTestFetchMock';
+import { testFetchRouter } from '@/test-utils/testFetchRouter';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -22,4 +25,8 @@ Object.defineProperty(window, 'matchMedia', {
 beforeEach(() => {
   window.sessionStorage.clear();
   setAuthSession(TEST_AUTH_USER);
+});
+
+afterEach(() => {
+  fetchBaseQuerySpy.mockImplementation((args) => testFetchRouter(args));
 });

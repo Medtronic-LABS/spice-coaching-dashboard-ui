@@ -33,6 +33,12 @@
     "noData": "No data.",
     "somethingWentWrong": "Something went wrong",
     "somethingWentWrongDescription": "Something went wrong.",
+    "notFound": {
+      "code": "404",
+      "title": "Page not found",
+      "description": "The page you requested does not exist or may have moved.",
+      "backToDashboard": "Back to dashboard"
+    },
     "pleaseTryAgain": "Please try again.",
     "retry": "Retry",
     "reset": "Reset",

@@ -13,6 +13,11 @@ const UnAuthorizedPage = lazy(() =>
     default: module.UnAuthorizedPage,
   })),
 );
+const NotFoundPage = lazy(() =>
+  import('@/routes/NotFoundPage').then((module) => ({
+    default: module.NotFoundPage,
+  })),
+);
 const ModuleLibraryPage = lazy(() =>
   import('@/features/modules/pages/ModuleLibraryPage').then((module) => ({
     default: module.ModuleLibraryPage,
@@ -165,11 +170,9 @@ export const AppRoutes = () => {
           <Route path="published" element={<ModulePublishedPage />} />
         </Route>
         <Route path={paths.configs} element={<ConfigsPage />} />
-        <Route
-          path="*"
-          element={<Navigate to={paths.adminDashboard} replace />}
-        />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

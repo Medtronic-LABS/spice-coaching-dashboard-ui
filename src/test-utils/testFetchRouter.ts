@@ -1,20 +1,16 @@
-import type {
-  BaseQueryFn,
-  FetchArgs,
-  FetchBaseQueryError,
-} from '@reduxjs/toolkit/query';
+import type { FetchArgs } from '@reduxjs/toolkit/query';
 import {
-  mockBadges,
-  mockCourseDraft,
-  mockModuleLibrary,
-  mockSourceDocuments,
-} from '@/store/apis/mockData';
+  testBadges,
+  testCourseDraft,
+  testModuleLibrary,
+  testSourceDocuments,
+} from '@/test-utils/fixtures/moduleFixtures';
 import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types';
 import type { AdminBadge } from '@/features/badges/types/badge.types';
 
 const mockModuleDeactivatedAt = new Map<string, string>();
-let mockBadgesState: AdminBadge[] = JSON.parse(
-  JSON.stringify(mockBadges),
+let testBadgesState: AdminBadge[] = JSON.parse(
+  JSON.stringify(testBadges),
 ) as AdminBadge[];
 
 function sleep(ms: number): Promise<void> {
@@ -47,7 +43,7 @@ function parseBadgeSequence(value: unknown): number | null {
 
 function resolveMockBadgeModules(moduleIds: string[]): AdminBadge['modules'] {
   return moduleIds.map((id) => {
-    const module = mockModuleLibrary.modules.find((item) => item.id === id);
+    const module = testModuleLibrary.modules.find((item) => item.id === id);
     const text = module?.title?.trim() ?? '';
     const title: AdminBadge['modules'][number]['title'] = text
       ? { bn: text, en: text }
@@ -81,7 +77,7 @@ function withoutLeadingSlash(value: string): string {
 }
 
 let courseDraftState: ModuleDraftData = JSON.parse(
-  JSON.stringify(mockCourseDraft),
+  JSON.stringify(testCourseDraft),
 ) as ModuleDraftData;
 
 interface MockAssignment {
@@ -297,7 +293,7 @@ let mockDocumentAssignmentsState: MockDocumentAssignment[] = [
   },
 ];
 
-const mockBaseQueryImpl = async (args: string | FetchArgs) => {
+const testFetchRouterImpl = async (args: string | FetchArgs) => {
   // Simulate real network latency.
   await sleep(500);
 
@@ -314,10 +310,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
 
   // Module library endpoints
   if (url === 'module-library') {
-    return { data: mockModuleLibrary };
+    return { data: testModuleLibrary };
   }
 
-  // Admin endpoints (mocked when VITE_USE_MOCK_API or in tests)
+  // Admin endpoints (test fetch router)
   if (url === 'admin/files/presigned-url' && method === 'GET') {
     const object_name = asString(
       typeof params === 'object' && params && 'object_name' in params
@@ -402,7 +398,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       };
     }
     if (
-      mockBadgesState.some(
+      testBadgesState.some(
         (badge) => badge.status === 'active' && badge.name === name,
       )
     ) {
@@ -418,7 +414,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     }
     if (
       sequence !== null &&
-      mockBadgesState.some(
+      testBadgesState.some(
         (badge) => badge.status === 'active' && badge.sequence === sequence,
       )
     ) {
@@ -447,7 +443,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       created_by: 'mock_admin',
       updated_by: null,
     };
-    mockBadgesState = [created, ...mockBadgesState];
+    testBadgesState = [created, ...testBadgesState];
     return { data: created };
   }
 
@@ -476,10 +472,10 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const offset = Number(paramBag.offset ?? 0);
 
     const moduleTitleById = new Map(
-      mockModuleLibrary.modules.map((m) => [m.id, m.title.toLowerCase()]),
+      testModuleLibrary.modules.map((m) => [m.id, m.title.toLowerCase()]),
     );
 
-    let filtered = mockBadgesState.filter((badge) => badge.status === 'active');
+    let filtered = testBadgesState.filter((badge) => badge.status === 'active');
     if (domain) {
       filtered = filtered.filter((badge) => badge.domain === domain);
     }
@@ -537,7 +533,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   const badgeMatch = url.match(/^admin\/badges\/([^/]+)$/);
   if (badgeMatch) {
     const badgeId = decodeURIComponent(badgeMatch[1]);
-    const existing = mockBadgesState.find(
+    const existing = testBadgesState.find(
       (badge) => badge.id === badgeId && badge.status === 'active',
     );
 
@@ -599,7 +595,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         };
       }
       if (
-        mockBadgesState.some(
+        testBadgesState.some(
           (badge) =>
             badge.id !== badgeId &&
             badge.status === 'active' &&
@@ -618,7 +614,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       }
       if (
         sequence !== null &&
-        mockBadgesState.some(
+        testBadgesState.some(
           (badge) =>
             badge.id !== badgeId &&
             badge.status === 'active' &&
@@ -646,7 +642,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         updated_at: new Date().toISOString(),
         updated_by: 'mock_admin',
       };
-      mockBadgesState = mockBadgesState.map((badge) =>
+      testBadgesState = testBadgesState.map((badge) =>
         badge.id === badgeId ? updated : badge,
       );
       return { data: updated };
@@ -658,7 +654,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           error: { status: 404, data: { message: 'Milestone not found' } },
         };
       }
-      mockBadgesState = mockBadgesState.map((badge) =>
+      testBadgesState = testBadgesState.map((badge) =>
         badge.id === badgeId
           ? {
               ...badge,
@@ -689,7 +685,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       .toLowerCase();
     const domains = [
       ...new Set(
-        mockModuleLibrary.modules
+        testModuleLibrary.modules
           .filter((m) => (status ? m.status === status : true))
           .map((m) => m.category)
           .filter(Boolean),
@@ -717,7 +713,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const limit =
       typeof params === 'object' && params && 'limit' in params
         ? Number((params as { limit?: unknown }).limit)
-        : mockModuleLibrary.modules.length;
+        : testModuleLibrary.modules.length;
     const offset =
       typeof params === 'object' && params && 'offset' in params
         ? Number((params as { offset?: unknown }).offset)
@@ -759,7 +755,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       return true;
     };
 
-    const items = mockModuleLibrary.modules
+    const items = testModuleLibrary.modules
       .filter((m) => (status ? m.status === status : m.status !== 'retired'))
       .filter((m) =>
         chatbotFaqsOnlyFilter === null
@@ -976,7 +972,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const docSortBy = asString(query.sort_by);
     const docSortDir = asString(query.sort_dir) === 'desc' ? -1 : 1;
 
-    const items = mockSourceDocuments
+    const items = testSourceDocuments
       .filter((doc) =>
         statuses.length
           ? statuses.includes(doc.status.toLowerCase())
@@ -1089,7 +1085,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const sourceDocumentId = decodeURIComponent(
       url.slice('admin/source-documents/'.length),
     );
-    const doc = mockSourceDocuments.find(
+    const doc = testSourceDocuments.find(
       (item) => item.id === sourceDocumentId,
     );
     if (!doc) {
@@ -1123,7 +1119,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const sourceDocumentId = decodeURIComponent(
       url.slice('admin/source-documents/'.length, -'/thumbnail'.length),
     );
-    const doc = mockSourceDocuments.find(
+    const doc = testSourceDocuments.find(
       (item) => item.id === sourceDocumentId,
     );
     if (!doc) {
@@ -1234,7 +1230,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       division_ids?: number[];
       expand_po_assignees?: boolean;
     };
-    const sourceDoc = mockSourceDocuments.find(
+    const sourceDoc = testSourceDocuments.find(
       (doc) => doc.id === payload.source_document_id,
     );
     if (!sourceDoc) {
@@ -1305,7 +1301,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const sourceDocumentId = decodeURIComponent(
       url.slice('admin/document-assignments/'.length, -'/users'.length),
     );
-    const sourceDoc = mockSourceDocuments.find(
+    const sourceDoc = testSourceDocuments.find(
       (doc) => doc.id === sourceDocumentId,
     );
     if (!sourceDoc) {
@@ -1411,7 +1407,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const moduleId = decodeURIComponent(
       url.slice('admin/modules/'.length, -'/publish'.length),
     );
-    const module = mockModuleLibrary.modules.find((m) => m.id === moduleId);
+    const module = testModuleLibrary.modules.find((m) => m.id === moduleId);
     if (module && module.status === 'draft') {
       module.status = 'published';
     }
@@ -1433,7 +1429,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const moduleId = decodeURIComponent(
       url.slice('admin/modules/'.length, -'/deactivate'.length),
     );
-    const module = mockModuleLibrary.modules.find((m) => m.id === moduleId);
+    const module = testModuleLibrary.modules.find((m) => m.id === moduleId);
     if (module) {
       module.status = 'deactivated';
       mockModuleDeactivatedAt.set(moduleId, new Date().toISOString());
@@ -1455,7 +1451,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
     const moduleId = decodeURIComponent(
       url.slice('admin/modules/'.length, -'/reactivate'.length),
     );
-    const module = mockModuleLibrary.modules.find((m) => m.id === moduleId);
+    const module = testModuleLibrary.modules.find((m) => m.id === moduleId);
     if (module) {
       module.status = 'published';
       mockModuleDeactivatedAt.delete(moduleId);
@@ -1474,7 +1470,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   }
   if (url === 'program-manager/courses/draft/reset' && method === 'POST') {
     persistDraft(
-      JSON.parse(JSON.stringify(mockCourseDraft)) as ModuleDraftData,
+      JSON.parse(JSON.stringify(testCourseDraft)) as ModuleDraftData,
     );
     return { data: cloneDraft() };
   }
@@ -2197,7 +2193,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       expand_po_assignees?: boolean;
     };
     const now = new Date().toISOString();
-    const moduleItem = mockModuleLibrary.modules.find(
+    const moduleItem = testModuleLibrary.modules.find(
       (m) => m.id === payload.module_id,
     );
     const titleText = moduleItem?.title?.trim() || 'Unknown';
@@ -2298,7 +2294,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
           .map((assignment) => assignment.user_id as number),
       );
       const now = new Date().toISOString();
-      const moduleItem = mockModuleLibrary.modules.find(
+      const moduleItem = testModuleLibrary.modules.find(
         (m) => m.id === moduleId,
       );
       const titleText = moduleItem?.title?.trim() || 'Unknown';
@@ -2491,7 +2487,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
         ? `${filename.replace(/\.pdf$/i, '')}_p${def.start_page}-${def.end_page}.pdf`
         : filename;
       const storedPath = `medtronics-storage/source-documents/knowledge/${id}.pdf`;
-      mockSourceDocuments.unshift({
+      testSourceDocuments.unshift({
         id,
         title: def.title,
         source_type: 'pdf',
@@ -2529,7 +2525,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
       params && typeof params === 'object' ? (params as { q?: unknown }) : {};
     const term = (asString(query.q) ?? '').trim().toLowerCase();
     const byId = new Map<number, string>();
-    for (const doc of mockSourceDocuments) {
+    for (const doc of testSourceDocuments) {
       if (!doc.sync_published_visible || !doc.uploaded_by) continue;
       byId.set(doc.uploaded_by.id, doc.uploaded_by.name);
     }
@@ -2612,7 +2608,7 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
 
   if (url.startsWith('admin/knowledge/') && method === 'DELETE') {
     const id = decodeURIComponent(url.slice('admin/knowledge/'.length));
-    const doc = mockSourceDocuments.find((row) => row.id === id);
+    const doc = testSourceDocuments.find((row) => row.id === id);
     if (!doc) {
       return {
         error: { status: 404, data: { code: 'source_not_found' } },
@@ -2633,8 +2629,6 @@ const mockBaseQueryImpl = async (args: string | FetchArgs) => {
   };
 };
 
-export const mockBaseQuery: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = mockBaseQueryImpl;
+export async function testFetchRouter(args: string | FetchArgs) {
+  return testFetchRouterImpl(args);
+}

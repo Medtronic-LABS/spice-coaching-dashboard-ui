@@ -5,7 +5,7 @@ import { ConfigsPage } from '@/features/admin-configs/pages/ConfigsPage';
 import {
   resetMockConfigsState,
   seedMockConfigChanges,
-} from '@/store/apis/mockBaseQuery';
+} from '@/test-utils/testFetchRouter';
 import { renderWithProviders } from '@/test-utils/render';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 

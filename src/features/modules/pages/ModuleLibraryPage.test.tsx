@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
 import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimatedMinutesValidation';
-import { mockModuleLibrary } from '@/store/apis/mockData';
+import { testModuleLibrary } from '@/test-utils/fixtures/moduleFixtures';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleLibraryPage } from './ModuleLibraryPage';
 import type { AppRole } from '@/constants/role';
@@ -12,7 +12,7 @@ import type { AppRole } from '@/constants/role';
 const roleState = vi.hoisted(() => ({ role: 'supervisor' as AppRole }));
 
 function snapshotModuleStatuses() {
-  return mockModuleLibrary.modules.map((module) => ({
+  return testModuleLibrary.modules.map((module) => ({
     id: module.id,
     status: module.status,
   }));
@@ -30,7 +30,7 @@ const initialModuleStatuses = snapshotModuleStatuses();
 
 function resetMockModuleStatuses() {
   for (const entry of initialModuleStatuses) {
-    const module = mockModuleLibrary.modules.find(
+    const module = testModuleLibrary.modules.find(
       (item) => item.id === entry.id,
     );
     if (module) {
@@ -359,7 +359,7 @@ describe('ModuleLibraryPage', () => {
 
   it('opens a deactivated module from its title for program manager', async () => {
     roleState.role = 'programManager';
-    mockModuleLibrary.modules[0].status = 'deactivated';
+    testModuleLibrary.modules[0].status = 'deactivated';
     const user = userEvent.setup();
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=deactivated`);
 
@@ -1056,7 +1056,7 @@ describe('ModuleLibraryPage', () => {
 
   it('switches to needs review tab with expanded accordion when Resolve is clicked for a review_pending module from all tab', async () => {
     roleState.role = 'programManager';
-    mockModuleLibrary.modules[6].status = 'review_pending';
+    testModuleLibrary.modules[6].status = 'review_pending';
     const user = userEvent.setup();
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=all`);
 

@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { describe, expect, it } from 'vitest';
 import { baseApi } from '@/store/apis/base';
-import { mockSourceDocuments } from '@/store/apis/mockData';
+import { testSourceDocuments } from '@/test-utils/fixtures/moduleFixtures';
 import {
   adminSourceDocumentsApi,
   mapSourceDocumentToKnowledgeItem,
@@ -29,7 +29,7 @@ describe('adminSourceDocumentsApi', () => {
       )
       .unwrap();
 
-    const ingestedDocs = mockSourceDocuments.filter(
+    const ingestedDocs = testSourceDocuments.filter(
       (doc) => doc.status === 'ingested',
     );
     expect(result.source_documents).toHaveLength(ingestedDocs.length);
@@ -77,7 +77,7 @@ describe('adminSourceDocumentsApi', () => {
       result.source_documents.every((doc) => doc.source_type === 'video'),
     ).toBe(true);
     expect(result.total_source_documents).toBe(
-      mockSourceDocuments.filter((doc) => doc.source_type === 'video').length,
+      testSourceDocuments.filter((doc) => doc.source_type === 'video').length,
     );
   });
 
