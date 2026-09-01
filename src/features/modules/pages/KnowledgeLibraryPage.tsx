@@ -87,7 +87,7 @@ export const KnowledgeLibraryPage = () => {
     pdf: pdfDocument,
     pageCount,
     isLoading: isReadingPdf,
-    error: pdfReadError,
+    warning: pdfReadWarning,
   } = useKnowledgePdfDocument(file);
 
   const hasCustomOriginalThumbnail = Boolean(originalThumbnailFile);
@@ -505,8 +505,13 @@ export const KnowledgeLibraryPage = () => {
             </p>
           ) : null}
 
-          {file && pdfReadError ? (
-            <p className="text-xs text-spice-semantic-error">{pdfReadError}</p>
+          {file && pdfReadWarning ? (
+            <p
+              className="rounded-lg bg-spice-semantic-warningBg px-3 py-2 text-xs text-spice-semantic-warning ring-1 ring-spice-semantic-warning/25"
+              role="status"
+            >
+              {pdfReadWarning}
+            </p>
           ) : null}
 
           {file ? (
