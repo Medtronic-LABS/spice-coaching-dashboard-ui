@@ -62,6 +62,15 @@ export const IngestConfigurationPanel = ({
     ingestionInstructions,
   );
   const instructionsValid = isIngestionInstructionsValid(ingestionInstructions);
+  const showQuizzesPerModule = assessmentMode !== 'read_only';
+
+  const handleAssessmentModeChange = (value: string) => {
+    const mode = value as IngestAssessmentMode;
+    onAssessmentModeChange(mode);
+    if (mode === 'read_only') {
+      onQuizzesPerModuleChange('');
+    }
+  };
 
   return (
     <div
@@ -90,9 +99,7 @@ export const IngestConfigurationPanel = ({
               options={INGEST_ASSESSMENT_MODE_OPTIONS}
               value={assessmentMode}
               disabled={disabled}
-              onChange={(value) =>
-                onAssessmentModeChange(value as IngestAssessmentMode)
-              }
+              onChange={handleAssessmentModeChange}
             />
           </label>
 
@@ -153,42 +160,44 @@ export const IngestConfigurationPanel = ({
             )}
           </label>
 
-          <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
-              Quizzes per Module{' '}
-              <span className="font-normal text-spice-text-muted/65">
-                (Optional)
+          {showQuizzesPerModule ? (
+            <label className="block min-w-0 space-y-1">
+              <span className="text-xs font-semibold text-spice-text-primary">
+                Quizzes per Module{' '}
+                <span className="font-normal text-spice-text-muted/65">
+                  (Optional)
+                </span>
               </span>
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
-              autoComplete="off"
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={quizzesPerModule}
-              disabled={disabled}
-              aria-label="Quizzes per module"
-              onChange={(e) =>
-                onQuizzesPerModuleChange(
-                  parseOptionalIngestModuleCountInput(e.target.value),
-                )
-              }
-              placeholder="e.g. 5"
-            />
-            {quizzesPerModule !== '' &&
-            !isIngestModuleCountInRange(quizzesPerModule) ? (
-              <span className="text-[11px] text-spice-semantic-error">
-                Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
-                {INGEST_MODULE_COUNT_MAX}.
-              </span>
-            ) : (
-              <span className="text-[11px] text-spice-text-muted">
-                {INGEST_MODULE_COUNT_RANGE_LABEL}
-              </span>
-            )}
-          </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+                autoComplete="off"
+                className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                value={quizzesPerModule}
+                disabled={disabled}
+                aria-label="Quizzes per module"
+                onChange={(e) =>
+                  onQuizzesPerModuleChange(
+                    parseOptionalIngestModuleCountInput(e.target.value),
+                  )
+                }
+                placeholder="e.g. 5"
+              />
+              {quizzesPerModule !== '' &&
+              !isIngestModuleCountInRange(quizzesPerModule) ? (
+                <span className="text-[11px] text-spice-semantic-error">
+                  Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
+                  {INGEST_MODULE_COUNT_MAX}.
+                </span>
+              ) : (
+                <span className="text-[11px] text-spice-text-muted">
+                  {INGEST_MODULE_COUNT_RANGE_LABEL}
+                </span>
+              )}
+            </label>
+          ) : null}
         </div>
 
         <label className="block space-y-1">
