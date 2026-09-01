@@ -3,7 +3,8 @@ import * as React from 'react';
 type KeyOf<T> = Extract<keyof T, string>;
 
 export type ColumnDef<T extends object> = {
-  key: KeyOf<T>;
+  /** Row field key, or any string when using a custom `render`. */
+  key: KeyOf<T> | (string & {});
   header: React.ReactNode;
   headerClassName?: string;
   className?: string;
