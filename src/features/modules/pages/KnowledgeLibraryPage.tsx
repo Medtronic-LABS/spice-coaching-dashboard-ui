@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRightIcon } from '@/assets/icon';
 import {
   Button,
+  Banner,
   Card,
   FileDropzone,
   ImagePicker,
@@ -506,12 +507,7 @@ export const KnowledgeLibraryPage = () => {
           ) : null}
 
           {file && pdfReadWarning ? (
-            <p
-              className="rounded-lg bg-spice-semantic-warningBg px-3 py-2 text-xs text-spice-semantic-warning ring-1 ring-spice-semantic-warning/25"
-              role="status"
-            >
-              {pdfReadWarning}
-            </p>
+            <Banner tone="warning">{pdfReadWarning}</Banner>
           ) : null}
 
           {file ? (

@@ -783,6 +783,7 @@ export const VideoUploadPage = () => {
   }, [
     assessmentMode,
     cardsPerModule,
+    clearFeedback,
     ingestionInstructions,
     quizzesPerModule,
     selectedRowsReadyToIngest,
@@ -893,7 +894,7 @@ export const VideoUploadPage = () => {
     // Pending items are cleared in handleUploaded after a successful upload
     // (including duplicate-confirm flows). Keep them if the dialog opens.
     if (!response) return;
-  }, [contentDomain, pendingItems, uploadFiles]);
+  }, [clearFeedback, contentDomain, pendingItems, uploadFiles]);
 
   const columns = useMemo<Array<ColumnDef<VideoRow>>>(
     () => [
@@ -1073,6 +1074,7 @@ export const VideoUploadPage = () => {
       },
     ],
     [
+      clearFeedback,
       goToDraftsForSource,
       goToNeedsReviewForSource,
       isUploading,
