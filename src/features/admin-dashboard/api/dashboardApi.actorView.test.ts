@@ -1,12 +1,10 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-const mockBaseQuerySpy = vi.fn();
+import { fetchBaseQuerySpy } from '@/test-utils/installTestFetchMock';
 
-vi.mock('@/store/apis/mockBaseQuery', () => ({
-  mockBaseQuery: (...args: unknown[]) => mockBaseQuerySpy(...args),
-}));
+const mockBaseQuerySpy = fetchBaseQuerySpy;
 
 describe('dashboardApi actor view query param', () => {
   afterEach(() => {
@@ -171,6 +169,7 @@ describe('dashboardApi actor view query param', () => {
           suggestion_date: '2026-01-01',
           suggestion_kind: 'proposed_topic',
           display_title: 'Topic',
+          computed_at: '2026-01-01T00:00:00Z',
           evidence_count: 0,
         },
         questions: [],

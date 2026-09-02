@@ -5,6 +5,7 @@ import {
   buildOverrideFlags,
   conflictFilenamesFromList,
   conflictsKeptExisting,
+  countNewlyUploadedSources,
   findKeptExistingTargetForSource,
   isOverriddenUploadedSource,
   keptExistingSourcesFromConflicts,
@@ -160,6 +161,51 @@ describe('uploadResponseFromDuplicateConflicts', () => {
     expect(response.status).toBe('uploaded');
     expect(response.sources).toHaveLength(1);
     expect(response.skipped_duplicates).toEqual(conflicts);
+  });
+});
+
+describe('countNewlyUploadedSources', () => {
+  it('returns zero when skip upload reuses all duplicates', () => {
+    const response = uploadResponseFromDuplicateConflicts(
+      { files: [new File(['b'], 'Procedure description.pdf')] },
+      conflicts,
+    );
+    expect(
+      countNewlyUploadedSources(response, {
+        overriddenFilenames: [],
+        duplicateConflicts: conflicts,
+      }),
+    ).toBe(0);
+  });
+
+  it('counts only newly uploaded sources in a mixed batch', () => {
+    const payload = {
+      files: [
+        new File(['a'], 'new.docx'),
+        new File(['b'], 'Procedure description.pdf'),
+      ],
+    };
+    const response = normalizeUploadResponse(payload, {
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: '07b62cf7-5c5f-4762-a918-ba7fffdff774',
+          title: 'AI Microcoaching Scenarios -V1',
+          source_type: 'docx',
+          stored_path: 'medtronics-storage/ingest/new.docx',
+          content_domain: 'clinical',
+          status: 'uploaded',
+        },
+      ],
+      skipped_duplicates: conflicts,
+    });
+
+    expect(
+      countNewlyUploadedSources(response, {
+        overriddenFilenames: [],
+        duplicateConflicts: conflicts,
+      }),
+    ).toBe(1);
   });
 });
 

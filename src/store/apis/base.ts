@@ -1,15 +1,15 @@
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { apiBaseUrl, useMockApi } from '@/config/apiClientConfig';
+import { apiBaseUrl } from '@/config/apiClientConfig';
 import { getAuthSession } from '@/features/auth/services/authSession';
-import { mockBaseQuery } from '@/store/apis/mockBaseQuery';
-import { shouldUseRealFetchForRequest } from '@/store/apis/requestRouting';
+import { serializeRepeatedQueryParams } from '@/store/apis/serializeQueryParams';
 
 export { apiBaseUrl } from '@/config/apiClientConfig';
 
 const realFetchBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,
   credentials: 'include',
+  paramsSerializer: serializeRepeatedQueryParams,
   prepareHeaders: (headers) => {
     const session = getAuthSession();
     // /auth/session returns the auth cookie on Authorization; replay it as auth-cookie.
@@ -21,27 +21,22 @@ const realFetchBaseQuery = fetchBaseQuery({
   },
 });
 
-const hybridBaseQuery: BaseQueryFn = async (args, api, extraOptions) => {
-  let result;
-  if (import.meta.env.MODE === 'test') {
-    result = await mockBaseQuery(args, api, extraOptions);
-  } else if (!useMockApi || shouldUseRealFetchForRequest(args)) {
-    result = await realFetchBaseQuery(args, api, extraOptions);
-  } else {
-    result = await mockBaseQuery(args, api, extraOptions);
-  }
-
-  return result;
+const apiRequestBaseQueryImpl: BaseQueryFn = async (
+  args,
+  api,
+  extraOptions,
+) => {
+  return realFetchBaseQuery(args, api, extraOptions);
 };
 
-/** Used by unit tests to verify mock vs real fetch routing outside vitest `MODE=test`. */
-export const apiRequestBaseQuery = hybridBaseQuery;
+/** Exported for unit tests that stub network behavior. */
+export const apiRequestBaseQuery = apiRequestBaseQueryImpl;
 
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
-  baseQuery: hybridBaseQuery,
+  baseQuery: apiRequestBaseQueryImpl,
   tagTypes: [
     'Config',
     'ConfigHistory',

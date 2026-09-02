@@ -29,8 +29,14 @@ vi.mock('@/features/auth/services/authSession', () => ({
 }));
 
 function idleQuery(members: TeamActivityMember[]) {
+  const data = {
+    members,
+    total_members: members.length,
+    offset: 0,
+  };
   return {
-    data: { members },
+    data,
+    currentData: data,
     isLoading: false,
     isFetching: false,
     isError: false,
@@ -107,7 +113,8 @@ describe('TeamHierarchySection', () => {
     );
   });
 
-  it('refetches team activity with date and geography params', () => {
+  it('refetches team activity with date and geography params', async () => {
+    const user = userEvent.setup();
     renderWithProviders(
       <TeamHierarchySection
         fromDate="2026-01-01"
@@ -138,6 +145,7 @@ describe('TeamHierarchySection', () => {
       }),
     );
     expect(screen.getByText('Non-Responsive')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Name (A–Z)' }));
     expect(
       screen.getByRole('option', { name: 'Needs Most Attention' }),
     ).toBeInTheDocument();
@@ -314,19 +322,18 @@ describe('TeamHierarchySection', () => {
 
   it('shows at-risk badge from performance_status even when the member is active', async () => {
     const user = userEvent.setup();
+    const atRiskSk = member({
+      user_id: 42,
+      name: 'Rokeya Akter',
+      role: 'SK',
+      can_drill_down: false,
+      is_active: true,
+      performance_status: 'at_risk',
+    });
     useFetchTeamActivityQuery.mockImplementation(
       (args: { depth?: number; user_id?: number }) => {
         if (args.depth === 2) {
-          return idleQuery([
-            member({
-              user_id: 42,
-              name: 'Rokeya Akter',
-              role: 'SK',
-              can_drill_down: false,
-              is_active: true,
-              performance_status: 'at_risk',
-            }),
-          ]);
+          return idleQuery([atRiskSk]);
         }
         return idleQuery([areaManager]);
       },
@@ -347,17 +354,16 @@ describe('TeamHierarchySection', () => {
   });
 
   it('shows on-track badge from performance_status even when the member is inactive', () => {
+    const inactiveOnTrackAm = member({
+      user_id: 1,
+      name: 'Rina Area Manager',
+      role: 'AREA_MANAGER',
+      can_drill_down: true,
+      is_active: false,
+      performance_status: 'on_track',
+    });
     useFetchTeamActivityQuery.mockImplementation(() =>
-      idleQuery([
-        member({
-          user_id: 1,
-          name: 'Rina Area Manager',
-          role: 'AREA_MANAGER',
-          can_drill_down: true,
-          is_active: false,
-          performance_status: 'on_track',
-        }),
-      ]),
+      idleQuery([inactiveOnTrackAm]),
     );
 
     renderWithProviders(

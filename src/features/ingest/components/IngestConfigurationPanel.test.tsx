@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { IngestAssessmentMode } from '@/features/ingest/api/adminIngestApi';
 import {
   INGEST_FORM_DEFAULTS,
   INGEST_MODULE_COUNT_MAX_DIGITS,
@@ -12,10 +13,15 @@ import {
 import { IngestConfigurationPanel } from './IngestConfigurationPanel';
 
 function PanelHarness({
+  initialAssessmentMode = INGEST_FORM_DEFAULTS.assessment_mode,
   initialInstructions = '',
 }: {
+  initialAssessmentMode?: IngestAssessmentMode;
   initialInstructions?: string;
 }) {
+  const [assessmentMode, setAssessmentMode] = useState<IngestAssessmentMode>(
+    initialAssessmentMode,
+  );
   const [cardsPerModule, setCardsPerModule] =
     useState<IngestModuleCountInput>('');
   const [quizzesPerModule, setQuizzesPerModule] =
@@ -25,8 +31,8 @@ function PanelHarness({
 
   return (
     <IngestConfigurationPanel
-      assessmentMode={INGEST_FORM_DEFAULTS.assessment_mode}
-      onAssessmentModeChange={vi.fn()}
+      assessmentMode={assessmentMode}
+      onAssessmentModeChange={setAssessmentMode}
       contentDomain={INGEST_FORM_DEFAULTS.content_domain}
       onContentDomainChange={vi.fn()}
       cardsPerModule={cardsPerModule}
@@ -61,6 +67,33 @@ describe('IngestConfigurationPanel', () => {
 
     await user.type(quizzes, '99');
     expect(quizzes).toHaveValue('9');
+  });
+
+  it('hides quizzes per module when module content is Cards Only', () => {
+    render(<PanelHarness initialAssessmentMode="read_only" />);
+
+    expect(
+      screen.queryByLabelText(/^quizzes per module$/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/^learning material per module$/i),
+    ).toBeInTheDocument();
+  });
+
+  it('clears quizzes per module when switching to Cards Only', async () => {
+    const user = userEvent.setup();
+    render(<PanelHarness />);
+
+    const quizzes = screen.getByLabelText(/^quizzes per module$/i);
+    await user.type(quizzes, '5');
+    expect(quizzes).toHaveValue('5');
+
+    await user.click(screen.getByRole('button', { name: /^module content$/i }));
+    await user.click(screen.getByRole('option', { name: /cards only/i }));
+
+    expect(
+      screen.queryByLabelText(/^quizzes per module$/i),
+    ).not.toBeInTheDocument();
   });
 
   it('caps ingestion instructions at the platform character limit', () => {

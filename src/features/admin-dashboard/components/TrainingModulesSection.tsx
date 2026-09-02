@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import {
@@ -11,6 +11,12 @@ import type { PublishedModuleCompletionItem } from '@/features/admin-dashboard/t
 import { DashboardTableSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
+import { TrainingModulesModuleFilter } from '@/features/admin-dashboard/components/TrainingModulesModuleFilter';
+import {
+  buildDashboardListFilterKey,
+  useAccumulatedFilterPages,
+  useFilterKeyedOffset,
+} from '@/features/admin-dashboard/hooks/useDashboardListPagination';
 import { resolveModuleCompletionTone } from '@/features/admin-dashboard/utils/moduleCompletionTones';
 import type { DashboardGeographyFilters } from '@/features/admin-dashboard/types/dashboard.types';
 import { buildPublishedModuleCompletionsQueryArgs } from '@/features/admin-dashboard/utils/dashboardQueryArgs';
@@ -25,6 +31,10 @@ interface TrainingModulesSectionProps {
 }
 
 const TRAINING_MODULES_PAGE_LIMIT = 20;
+
+function trainingModuleItemId(item: PublishedModuleCompletionItem): string {
+  return item.module_id;
+}
 
 function formatLaunchedDate(value: string): string {
   const date = new Date(value);
@@ -42,55 +52,38 @@ export const TrainingModulesSection = ({
   geography,
 }: TrainingModulesSectionProps) => {
   const { t } = useTranslation();
-  const [offset, setOffset] = useState(0);
-  const [accumulatedModules, setAccumulatedModules] = useState<
-    PublishedModuleCompletionItem[]
-  >([]);
+  const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>([]);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  useEffect(() => {
-    setOffset(0);
-  }, [
+  const filterKey = buildDashboardListFilterKey(
     fromDate,
     toDate,
-    geography.divisionId,
-    geography.districtId,
-    geography.upazilaId,
-  ]);
+    geography,
+    sortDir,
+    selectedModuleIds.slice().sort().join(','),
+  );
+  const [offset, setOffset] = useFilterKeyedOffset(filterKey);
 
   const query = useFetchPublishedModuleCompletionsQuery(
     buildPublishedModuleCompletionsQueryArgs(fromDate, toDate, geography, {
       limit: TRAINING_MODULES_PAGE_LIMIT,
       offset,
+      module_id: selectedModuleIds,
+      sort_by: 'published_at',
+      sort_dir: sortDir,
     }),
   );
   const { error, refetch, isFetching } = query;
-  const modulesData = query.currentData?.modules ?? query.data?.modules;
+  const modulesData = query.currentData?.modules;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
-  const totalModules =
-    query.currentData?.total_modules ?? query.data?.total_modules ?? 0;
+  const totalModules = query.currentData?.total_modules ?? 0;
 
-  useEffect(() => {
-    if (!modulesData) return;
-    setAccumulatedModules((prev) => {
-      if (offset === 0) {
-        // Prefer module object identity over module_id so date/filter refetches
-        // with the same roster still replace stale completion counts.
-        if (
-          prev.length === modulesData.length &&
-          prev.every((item, idx) => item === modulesData[idx])
-        ) {
-          return prev;
-        }
-        return modulesData;
-      }
-      const existingIds = new Set(prev.map((item) => item.module_id));
-      const newItems = modulesData.filter(
-        (item) => !existingIds.has(item.module_id),
-      );
-      if (newItems.length === 0) return prev;
-      return [...prev, ...newItems];
-    });
-  }, [modulesData, offset]);
+  const modules = useAccumulatedFilterPages({
+    filterKey,
+    queryOffset: offset,
+    pageItems: modulesData,
+    getItemId: trainingModuleItemId,
+  });
 
   const isForbidden =
     showError &&
@@ -99,27 +92,25 @@ export const TrainingModulesSection = ({
     'status' in error &&
     error.status === 403;
 
-  const modules = accumulatedModules;
   const hasMore =
-    ((query.currentData ?? query.data)?.offset ?? offset) +
-      TRAINING_MODULES_PAGE_LIMIT <
+    (query.currentData?.offset ?? offset) + TRAINING_MODULES_PAGE_LIMIT <
     totalModules;
   const isLoadingMore = offset > 0 && isFetching;
+  const showListLoading =
+    offset === 0 && (showLoading || (isFetching && modules.length === 0));
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || isFetching) return;
     setOffset((prev) => prev + TRAINING_MODULES_PAGE_LIMIT);
-  }, [hasMore, isFetching]);
+  }, [hasMore, isFetching, setOffset]);
 
-  const handleRefresh = useCallback(() => {
-    if (offset !== 0) {
-      setOffset(0);
-      return;
-    }
-    void refetch();
-  }, [offset, refetch]);
+  const toggleLaunchedSort = useCallback(() => {
+    setSortDir((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+  }, []);
 
   if (isForbidden) return null;
+
+  const sortIndicator = sortDir === 'asc' ? '↑' : '↓';
 
   return (
     <DashboardWidgetShell
@@ -127,10 +118,14 @@ export const TrainingModulesSection = ({
       description={t('adminDashboard.trainingModules.description')}
       flush
       size="lg"
-      onRefresh={handleRefresh}
-      isRefreshing={isFetching && offset === 0 && modules.length > 0}
+      actions={
+        <TrainingModulesModuleFilter
+          selectedIds={selectedModuleIds}
+          onChange={setSelectedModuleIds}
+        />
+      }
     >
-      {showLoading && offset === 0 ? (
+      {showListLoading ? (
         <DashboardTableSkeleton rows={5} columns={4} />
       ) : showError && offset === 0 ? (
         <div className="px-4 pb-4">
@@ -160,7 +155,20 @@ export const TrainingModulesSection = ({
                     {t('adminDashboard.trainingModules.columns.name')}
                   </th>
                   <th className="w-28 whitespace-nowrap px-4 py-2.5">
-                    {t('adminDashboard.trainingModules.columns.launched')}
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 uppercase"
+                      onClick={toggleLaunchedSort}
+                      aria-label={t(
+                        'adminDashboard.trainingModules.columns.launchedSortAria',
+                        { direction: sortDir },
+                      )}
+                    >
+                      {t('adminDashboard.trainingModules.columns.launched')}
+                      <span aria-hidden className="text-[10px] font-bold">
+                        {sortIndicator}
+                      </span>
+                    </button>
                   </th>
                   <th className="min-w-[8rem] px-4 py-2.5">
                     {t('adminDashboard.trainingModules.columns.progress')}

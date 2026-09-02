@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
 import {
@@ -16,6 +16,11 @@ import {
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 import { SkDetailDrawer } from '@/features/admin-dashboard/components/SkDetailDrawer';
+import {
+  buildDashboardListFilterKey,
+  useAccumulatedFilterPages,
+  useFilterKeyedOffset,
+} from '@/features/admin-dashboard/hooks/useDashboardListPagination';
 import type {
   DashboardGeographyFilters,
   TeamActivityMember,
@@ -39,6 +44,10 @@ import {
 import { getAuthSession } from '@/features/auth/services/authSession';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/utils';
+
+function teamMemberItemId(member: TeamActivityMember): string {
+  return String(member.user_id);
+}
 
 interface TeamHierarchySectionProps {
   fromDate: string;
@@ -168,10 +177,6 @@ const HierarchyMemberRow = ({
   const { t } = useTranslation();
   const { roleLabel, childrenActionLabel } = useHierarchyLabels();
   const [expanded, setExpanded] = useState(false);
-  const [descendantOffset, setDescendantOffset] = useState(0);
-  const [accumulatedDescendants, setAccumulatedDescendants] = useState<
-    TeamActivityMember[]
-  >([]);
 
   const modules = memberModuleStats(member);
   const atRisk = isMemberAtRisk(member);
@@ -179,17 +184,16 @@ const HierarchyMemberRow = ({
   const isSkRow =
     !member.can_drill_down || hierarchyRoleKind(member.role) === 'sk';
 
-  useEffect(() => {
-    setDescendantOffset(0);
-  }, [
-    expanded,
+  const descendantFilterKey = buildDashboardListFilterKey(
     fromDate,
     toDate,
-    geography.divisionId,
-    geography.districtId,
-    geography.upazilaId,
+    geography,
     sortKey,
-  ]);
+    member.user_id,
+    expanded,
+  );
+  const [descendantOffset, setDescendantOffset] =
+    useFilterKeyedOffset(descendantFilterKey);
 
   const descendantsQuery = useFetchTeamActivityQuery(
     buildTeamActivityQueryArgs(fromDate, toDate, geography, {
@@ -201,49 +205,27 @@ const HierarchyMemberRow = ({
     { skip: !canExpand || !expanded },
   );
   const descendantsUi = resolveDashboardQueryUiState(descendantsQuery);
-  const descendantMembersData =
-    descendantsQuery.currentData?.members ?? descendantsQuery.data?.members;
-  const totalDescendants =
-    descendantsQuery.currentData?.total_members ??
-    descendantsQuery.data?.total_members ??
-    0;
+  const descendantMembersData = descendantsQuery.currentData?.members;
+  const totalDescendants = descendantsQuery.currentData?.total_members ?? 0;
 
-  useEffect(() => {
-    if (!descendantMembersData || !expanded) return;
-    setAccumulatedDescendants((prev) => {
-      if (descendantOffset === 0) {
-        // Prefer member object identity over user_id so date/filter refetches
-        // with the same roster still replace stale activity fields.
-        if (
-          prev.length === descendantMembersData.length &&
-          prev.every((item, idx) => item === descendantMembersData[idx])
-        ) {
-          return prev;
-        }
-        return descendantMembersData;
-      }
-      const existingIds = new Set(prev.map((item) => item.user_id));
-      const newItems = descendantMembersData.filter(
-        (item) => !existingIds.has(item.user_id),
-      );
-      if (newItems.length === 0) return prev;
-      return [...prev, ...newItems];
-    });
-  }, [descendantMembersData, descendantOffset, expanded]);
-
-  const children = accumulatedDescendants;
+  const children = useAccumulatedFilterPages({
+    filterKey: descendantFilterKey,
+    queryOffset: descendantOffset,
+    pageItems: expanded ? descendantMembersData : undefined,
+    getItemId: teamMemberItemId,
+  });
 
   const loadedInactiveChildCount = children.filter(
     (child) => !child.is_active,
   ).length;
   const descendantSkCount = resolveMemberDescendantSkCount(
     member,
-    descendantsQuery.data,
+    descendantsQuery.currentData,
     children.length,
   );
   const descendantInactiveCount = resolveMemberDescendantInactiveCount(
     member,
-    descendantsQuery.data,
+    descendantsQuery.currentData,
     loadedInactiveChildCount,
   );
   const peopleValue = !canExpand
@@ -264,17 +246,20 @@ const HierarchyMemberRow = ({
   const peopleLabel = t('adminDashboard.hierarchy.metrics.sksLabel');
 
   const hasMoreDescendants =
-    ((descendantsQuery.currentData ?? descendantsQuery.data)?.offset ??
-      descendantOffset) +
+    (descendantsQuery.currentData?.offset ?? descendantOffset) +
       TEAM_HIERARCHY_PAGE_LIMIT <
     totalDescendants;
   const isLoadingMoreDescendants =
     descendantOffset > 0 && descendantsQuery.isFetching;
+  const showDescendantsLoading =
+    descendantOffset === 0 &&
+    (descendantsUi.showLoading ||
+      (descendantsQuery.isFetching && children.length === 0));
 
   const handleLoadMoreDescendants = useCallback(() => {
     if (!hasMoreDescendants || descendantsQuery.isFetching) return;
     setDescendantOffset((prev) => prev + TEAM_HIERARCHY_PAGE_LIMIT);
-  }, [hasMoreDescendants, descendantsQuery.isFetching]);
+  }, [hasMoreDescendants, descendantsQuery.isFetching, setDescendantOffset]);
 
   const personBlock = (
     <>
@@ -397,7 +382,7 @@ const HierarchyMemberRow = ({
 
       {expanded ? (
         <div>
-          {descendantsUi.showLoading && descendantOffset === 0 ? (
+          {showDescendantsLoading ? (
             <div className="px-4 py-3">
               <DashboardTableSkeleton rows={3} columns={4} />
             </div>
@@ -461,23 +446,16 @@ export const TeamHierarchySection = ({
   );
   const nameQuery = debouncedSearch.trim() || undefined;
   const [selectedSk, setSelectedSk] = useState<TeamActivityMember | null>(null);
-  const [offset, setOffset] = useState(0);
-  const [accumulatedMembers, setAccumulatedMembers] = useState<
-    TeamActivityMember[]
-  >([]);
 
-  useEffect(() => {
-    setOffset(0);
-  }, [
-    roleTab,
+  const filterKey = buildDashboardListFilterKey(
     fromDate,
     toDate,
-    geography.divisionId,
-    geography.districtId,
-    geography.upazilaId,
+    geography,
+    roleTab,
     nameQuery,
     sortKey,
-  ]);
+  );
+  const [offset, setOffset] = useFilterKeyedOffset(filterKey);
 
   const depth = hierarchyTabDepth(roleTab, { viewerIsAreaManager });
   const query = useFetchTeamActivityQuery(
@@ -490,47 +468,28 @@ export const TeamHierarchySection = ({
     }),
   );
   const { refetch, isFetching } = query;
-  const membersData = query.currentData?.members ?? query.data?.members;
+  const membersData = query.currentData?.members;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
-  const totalMembers =
-    query.currentData?.total_members ?? query.data?.total_members ?? 0;
+  const totalMembers = query.currentData?.total_members ?? 0;
 
-  useEffect(() => {
-    if (!membersData) return;
-    setAccumulatedMembers((prev) => {
-      if (offset === 0) {
-        // Prefer member object identity over user_id so date/filter refetches
-        // with the same roster still replace stale activity fields.
-        if (
-          prev.length === membersData.length &&
-          prev.every((item, idx) => item === membersData[idx])
-        ) {
-          return prev;
-        }
-        return membersData;
-      }
-      const existingIds = new Set(prev.map((item) => item.user_id));
-      const newItems = membersData.filter(
-        (item) => !existingIds.has(item.user_id),
-      );
-      if (newItems.length === 0) return prev;
-      return [...prev, ...newItems];
-    });
-  }, [membersData, offset]);
-
-  const members = accumulatedMembers;
+  const members = useAccumulatedFilterPages({
+    filterKey,
+    queryOffset: offset,
+    pageItems: membersData,
+    getItemId: teamMemberItemId,
+  });
 
   const hasMore =
-    ((query.currentData ?? query.data)?.offset ?? offset) +
-      TEAM_HIERARCHY_PAGE_LIMIT <
+    (query.currentData?.offset ?? offset) + TEAM_HIERARCHY_PAGE_LIMIT <
     totalMembers;
   const isLoadingMore = offset > 0 && isFetching;
+  const showListLoading =
+    offset === 0 && (showLoading || (isFetching && members.length === 0));
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || isFetching) return;
     setOffset((prev) => prev + TEAM_HIERARCHY_PAGE_LIMIT);
-  }, [hasMore, isFetching]);
-
+  }, [hasMore, isFetching, setOffset]);
   const sortOptions = useMemo(
     () =>
       SORT_OPTIONS.map((option) => ({
@@ -547,14 +506,6 @@ export const TeamHierarchySection = ({
         ? t('adminDashboard.hierarchy.searchPlaceholderPo')
         : t('adminDashboard.hierarchy.searchPlaceholderSk');
 
-  const handleRefresh = useCallback(() => {
-    if (offset !== 0) {
-      setOffset(0);
-      return;
-    }
-    void refetch();
-  }, [offset, refetch]);
-
   return (
     <>
       <DashboardWidgetShell
@@ -562,15 +513,14 @@ export const TeamHierarchySection = ({
         description={t(`adminDashboard.hierarchy.description.${roleTab}`)}
         flush
         size="lg"
-        onRefresh={handleRefresh}
-        isRefreshing={isFetching && offset === 0 && members.length > 0}
         actions={
           <>
             <Select
               options={sortOptions}
               value={sortKey}
               onChange={(value) => onSortChange(value as TeamHierarchySortKey)}
-              className="h-10 w-auto min-w-[10rem] rounded-lg border-spice-border bg-spice-bg-surface text-sm"
+              className="w-auto min-w-[16rem]"
+              triggerClassName="rounded-lg border-spice-border bg-spice-bg-tint text-sm"
             />
             <div className="w-52 shrink-0 [&>div]:min-w-0 [&>div]:sm:min-w-0">
               <SearchInput
@@ -608,7 +558,7 @@ export const TeamHierarchySection = ({
           </div>
         </div>
 
-        {showLoading && offset === 0 ? (
+        {showListLoading ? (
           <DashboardHierarchySkeleton rows={5} />
         ) : showError && offset === 0 ? (
           <div className="px-4 py-4">

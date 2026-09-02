@@ -46,14 +46,15 @@ export const IngestMatchedModulePreviewModal = ({
     <Modal
       open={open}
       labelledBy="ingest-matched-module-preview-title"
+      contentClassName="max-w-4xl"
       onClose={onClose}
       zIndexClassName="z-[320]"
     >
       <Card
         variant="elevated"
-        className="flex h-[min(90vh,900px)] w-full max-w-4xl flex-col overflow-hidden border-spice-border p-0 shadow-lg"
+        className="flex h-[min(90vh,900px)] w-full flex-col overflow-hidden border-spice-border p-0 shadow-lg"
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-spice-border px-4 py-3 sm:px-5">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-spice-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
           <div className="min-w-0">
             <h2
               id="ingest-matched-module-preview-title"
@@ -62,26 +63,6 @@ export const IngestMatchedModulePreviewModal = ({
               Module Details
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-spice-text-muted hover:bg-spice-bg-tint hover:text-spice-text-primary focus:outline-none transition-colors"
-            aria-label="Close modal"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">

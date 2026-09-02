@@ -24,7 +24,7 @@ const DashboardPageHeader = ({
   title: string;
   children: ReactNode;
 }) => (
-  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+  <div className="relative z-40 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
     <div className="min-w-0 shrink-0">
       <PageTitle title={title} className="text-2xl xl:text-[30px]" />
     </div>
@@ -124,9 +124,6 @@ export const AdminDashboardPage = () => {
       />
 
       <div className="space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-          {t('adminDashboard.moduleDemand.sectionTitle')}
-        </h2>
         <ModuleDemandSummaryWidget
           fromDate={fromDate}
           toDate={toDate}
@@ -156,16 +153,11 @@ export const AdminDashboardPage = () => {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted">
-          {t('adminDashboard.insightsTitle')}
-        </h2>
-        <DocumentUsageSection
-          fromDate={fromDate}
-          toDate={toDate}
-          geography={geography}
-        />
-      </div>
+      <DocumentUsageSection
+        fromDate={fromDate}
+        toDate={toDate}
+        geography={geography}
+      />
 
       {assignmentTarget ? (
         <ModuleAssignmentDialog

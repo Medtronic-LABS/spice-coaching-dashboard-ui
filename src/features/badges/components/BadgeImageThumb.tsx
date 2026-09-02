@@ -58,9 +58,11 @@ export const BadgeImageThumb = ({
     'loading' | 'loaded' | 'error'
   >('loading');
 
+  // Reset only when the object changes — not when a refreshed presigned URL
+  // string arrives (that was flashing table thumbs when the modal mounted).
   useEffect(() => {
     setImageStatus('loading');
-  }, [url]);
+  }, [resolvedObjectName]);
 
   if (!resolvedObjectName) {
     return <NoBadgeFallback className={className} />;

@@ -64,21 +64,21 @@ export const ExistingModuleInlineEvidence = ({
   });
 
   const questionRows = useMemo(() => {
-    if (!questionsQuery.data) return [] as ModuleDemandQueryRow[];
+    if (!questionsQuery.currentData) return [] as ModuleDemandQueryRow[];
     return sortDemandRowsByTimestamp(
-      mapDigitalHelpQuestionsToRows(questionsQuery.data.questions),
+      mapDigitalHelpQuestionsToRows(questionsQuery.currentData.questions),
     );
-  }, [questionsQuery.data]);
+  }, [questionsQuery.currentData]);
 
   const requestRows = useMemo(() => {
-    if (!requestsQuery.data) return [] as ModuleDemandQueryRow[];
+    if (!requestsQuery.currentData) return [] as ModuleDemandQueryRow[];
     return sortDemandRowsByTimestamp(
       mapDigitalHelpRequestsToRows(
-        requestsQuery.data.requests,
+        requestsQuery.currentData.requests,
         requestFallback,
       ),
     );
-  }, [requestFallback, requestsQuery.data]);
+  }, [requestFallback, requestsQuery.currentData]);
 
   const questionsUi = resolveDashboardQueryUiState(questionsQuery);
   const requestsUi = resolveDashboardQueryUiState(requestsQuery);
@@ -129,24 +129,34 @@ export const SuggestedModuleInlineEvidence = ({
     view: actorView,
   });
 
-  const suggestion = detailQuery.data?.suggestion;
+  const suggestion = detailQuery.currentData?.suggestion;
   const reasonLabel = suggestion
     ? resolveSuggestionReasonLabel(suggestion, t)
     : null;
 
   const questionRows = useMemo(() => {
-    if (!detailQuery.data || !reasonLabel) return [] as ModuleDemandQueryRow[];
+    if (!detailQuery.currentData || !reasonLabel)
+      return [] as ModuleDemandQueryRow[];
     return sortDemandRowsByTimestamp(
-      mapSuggestionEvidenceToRows(detailQuery.data.questions, 'q', reasonLabel),
+      mapSuggestionEvidenceToRows(
+        detailQuery.currentData.questions,
+        'q',
+        reasonLabel,
+      ),
     );
-  }, [detailQuery.data, reasonLabel]);
+  }, [detailQuery.currentData, reasonLabel]);
 
   const requestRows = useMemo(() => {
-    if (!detailQuery.data || !reasonLabel) return [] as ModuleDemandQueryRow[];
+    if (!detailQuery.currentData || !reasonLabel)
+      return [] as ModuleDemandQueryRow[];
     return sortDemandRowsByTimestamp(
-      mapSuggestionEvidenceToRows(detailQuery.data.requests, 'r', reasonLabel),
+      mapSuggestionEvidenceToRows(
+        detailQuery.currentData.requests,
+        'r',
+        reasonLabel,
+      ),
     );
-  }, [detailQuery.data, reasonLabel]);
+  }, [detailQuery.currentData, reasonLabel]);
 
   const ui = resolveDashboardQueryUiState(detailQuery);
   if (ui.showLoading) return <DashboardListSkeleton rows={3} />;

@@ -61,4 +61,15 @@ describe('TablePagination', () => {
     fireEvent.change(input, { target: { value: '21' } });
     expect(input).toHaveValue('12');
   });
+
+  it('renders icon pagination controls with accessible labels', () => {
+    render(<PaginationHarness totalPages={3} />);
+
+    expect(
+      screen.getByRole('button', { name: 'Previous page' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeEnabled();
+    expect(screen.queryByText('Previous')).not.toBeInTheDocument();
+    expect(screen.queryByText('Next')).not.toBeInTheDocument();
+  });
 });

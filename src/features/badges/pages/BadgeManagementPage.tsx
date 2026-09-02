@@ -4,9 +4,9 @@ import {
   Button,
   Card,
   type ComboboxOption,
+  ConfirmDialog,
   ErrorState,
   Loader,
-  Modal,
   QuotedDisplayLabel,
   SearchInput,
   Tooltip,
@@ -71,10 +71,16 @@ import {
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
-const BADGE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
-const DEFAULT_BADGE_PAGE_SIZE = 10;
 const MODULE_PICKER_PAGE_SIZE = 50;
 /** Used for filter options and full-list sequence editing. */
 const BADGE_CATALOG_QUERY: AdminBadgeListQuery = {
@@ -158,7 +164,7 @@ export const BadgeManagementPage = () => {
   const [appliedFilters, setAppliedFilters] =
     useState<BadgeManagementFilters>(EMPTY_BADGE_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [pageSize, setPageSize] = useState(DEFAULT_BADGE_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(0);
   const {
     page,
@@ -206,7 +212,7 @@ export const BadgeManagementPage = () => {
       sort_by: 'sequence' as const,
       sort_dir: 'asc' as const,
       limit: pageSize,
-      offset: page * pageSize,
+      offset: tablePageOffset(page, pageSize),
     }),
     [appliedFilters, dateParams, debouncedQuery, page, pageSize],
   );
@@ -366,10 +372,13 @@ export const BadgeManagementPage = () => {
   );
   const totalBadges = badgeList?.total ?? badges.length;
   const totalPages = badgeList?.total_pages ?? 0;
-  const hasPrevPage = page > 0;
-  const hasNextPage = totalPages > 0 && page + 1 < totalPages;
-  const rangeStart = badges.length ? page * pageSize + 1 : 0;
-  const rangeEnd = badges.length ? page * pageSize + badges.length : 0;
+  const hasPrevPage = tableHasPrevPage(page);
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    badges.length,
+  );
   const canEditSequence =
     (catalogList?.total ?? catalogList?.badges.length ?? totalBadges) >= 2;
 
@@ -1009,7 +1018,7 @@ export const BadgeManagementPage = () => {
             <TablePagination
               page={page}
               pageSize={pageSize}
-              pageSizeOptions={BADGE_PAGE_SIZE_OPTIONS}
+              pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
               totalItems={totalBadges}
               totalPages={totalPages}
               rangeStart={rangeStart}
@@ -1083,53 +1092,33 @@ export const BadgeManagementPage = () => {
         onFormError={setFormError}
       />
 
-      <Modal
+      <ConfirmDialog
         open={Boolean(deleteTarget)}
         labelledBy="delete-badge-title"
         describedBy="delete-badge-description"
-        onClose={() => setDeleteTarget(null)}
-      >
-        <div className="mx-auto w-full max-w-md rounded-xl bg-spice-bg-surface p-6 shadow-spiceOverlay">
-          <h2
-            id="delete-badge-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            Delete Milestone?
-          </h2>
-          <p
-            id="delete-badge-description"
-            className="mt-2 text-sm text-spice-text-medium"
-          >
+        title="Delete milestone"
+        description={
+          <>
             Are you sure you want to delete{' '}
             {deleteTarget ? (
               <QuotedDisplayLabel text={deleteTarget.name} />
             ) : null}
             ?
-          </p>
-          <p className="mt-3 text-sm text-spice-text-medium">
-            Deleting this milestone will remove it from the learner roadmap and
-            prevent it from being awarded to learners in the future. Previously
-            awarded milestones will remain in learners’ history.
-          </p>
-          <div className="mt-6 flex justify-end gap-3">
-            <Button
-              variant="ghost"
-              className="h-9 text-xs"
-              onClick={() => setDeleteTarget(null)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => void handleConfirmDelete()}
-              disabled={isDeleting}
-              className="h-9 bg-spice-semantic-error text-xs hover:bg-spice-semantic-error/90"
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-      </Modal>
+          </>
+        }
+        confirmLabel="Delete"
+        confirmingLabel="Deleting…"
+        isConfirming={isDeleting}
+        disabled={isDeleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void handleConfirmDelete()}
+      >
+        <p className="text-sm text-spice-text-medium">
+          Deleting this milestone will remove it from the learner roadmap and
+          prevent it from being awarded to learners in the future. Previously
+          awarded milestones will remain in learners’ history.
+        </p>
+      </ConfirmDialog>
     </section>
   );
 };

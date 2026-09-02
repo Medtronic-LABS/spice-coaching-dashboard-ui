@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Modal } from '@/components/ui';
+import { Banner, ConfirmDialog } from '@/components/ui';
 
 export const REINGEST_VIDEO_WARNING =
   'Re-ingesting these videos will reset learner module progress and quiz attempts and scores associated with these modules.';
@@ -18,56 +18,31 @@ export const ReingestConfirmDialog = ({
   onConfirm,
   isConfirming = false,
 }: ReingestConfirmDialogProps) => {
-  if (!open) return null;
-
   return (
-    <Modal
+    <ConfirmDialog
       open={open}
       labelledBy="reingest-video-title"
       describedBy="reingest-video-description"
-      onClose={isConfirming ? undefined : onCancel}
-      zIndexClassName="z-[110]"
+      contentClassName="max-w-lg"
+      showCloseButton={false}
+      title="Confirm video re-ingestion"
+      description="The following selected videos have already been ingested:"
+      confirmLabel="Continue"
+      confirmingLabel="Re-ingesting…"
+      isConfirming={isConfirming}
+      destructive={false}
+      onClose={onCancel}
+      onConfirm={onConfirm}
     >
-      <Card
-        variant="elevated"
-        className="w-full max-w-lg space-y-4 border-spice-border p-6 shadow-lg"
-      >
-        <div className="space-y-3">
-          <h2
-            id="reingest-video-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            Confirm video re-ingestion
-          </h2>
-          <p
-            id="reingest-video-description"
-            className="text-sm text-spice-text-muted"
-          >
-            The following selected videos have already been ingested:
-          </p>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-spice-text-primary">
-            {videoNames.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-          <Banner tone="critical">{REINGEST_VIDEO_WARNING}</Banner>
-          <p className="text-sm font-medium text-spice-text-primary">
-            Do you want to continue?
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            variant="secondary"
-            onClick={onCancel}
-            disabled={isConfirming}
-          >
-            Cancel
-          </Button>
-          <Button onClick={onConfirm} disabled={isConfirming}>
-            {isConfirming ? 'Re-ingesting…' : 'Continue'}
-          </Button>
-        </div>
-      </Card>
-    </Modal>
+      <ul className="list-disc space-y-1 pl-5 text-sm text-spice-text-primary">
+        {videoNames.map((name) => (
+          <li key={name}>{name}</li>
+        ))}
+      </ul>
+      <Banner tone="critical">{REINGEST_VIDEO_WARNING}</Banner>
+      <p className="text-sm font-medium text-spice-text-primary">
+        Do you want to continue?
+      </p>
+    </ConfirmDialog>
   );
 };

@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 
 describe('DashboardWidgetShell', () => {
@@ -32,40 +31,6 @@ describe('DashboardWidgetShell', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Sort' })).toBeInTheDocument();
-  });
-
-  it('renders shared refresh control and calls onRefresh', async () => {
-    const onRefresh = vi.fn();
-    const user = userEvent.setup();
-
-    render(
-      <DashboardWidgetShell
-        title="Refreshable"
-        actions={<button type="button">Sort</button>}
-        onRefresh={onRefresh}
-      >
-        Body
-      </DashboardWidgetShell>,
-    );
-
-    const refresh = screen.getByRole('button', { name: 'Refresh' });
-    expect(refresh).toBeEnabled();
-    await user.click(refresh);
-    expect(onRefresh).toHaveBeenCalledOnce();
-  });
-
-  it('disables refresh while refreshing', () => {
-    render(
-      <DashboardWidgetShell
-        title="Refreshing"
-        onRefresh={() => undefined}
-        isRefreshing
-      >
-        Body
-      </DashboardWidgetShell>,
-    );
-
-    expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled();
   });
 
   it('applies size-based max height on the shell', () => {

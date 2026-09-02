@@ -1,9 +1,9 @@
 import {
-  Button,
   Card,
   ImagePicker,
   LimitedTextInput,
   Modal,
+  ModalActionBar,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
@@ -50,6 +50,7 @@ export function KnowledgeEditModal({
     <Modal
       open={open}
       labelledBy="knowledge-edit-title"
+      contentClassName="max-w-lg"
       onClose={() => {
         if (disabled) return;
         onClose();
@@ -57,9 +58,9 @@ export function KnowledgeEditModal({
     >
       <Card
         variant="elevated"
-        className="w-full max-w-lg border-spice-border p-0 shadow-lg"
+        className="w-full border-spice-border p-0 shadow-lg"
       >
-        <div className="space-y-4 p-5 pb-4">
+        <div className="space-y-4 p-5 pb-4 pr-12">
           <h2
             id="knowledge-edit-title"
             className="text-lg font-semibold text-spice-text-primary"
@@ -112,23 +113,16 @@ export function KnowledgeEditModal({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-spice-border px-5 py-3">
-          <Button
-            variant="ghost"
-            className="h-9 text-xs"
-            disabled={disabled}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            disabled={disabled || !title.trim() || !asset}
-            onClick={onSave}
-          >
-            {isSaving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
+        <ModalActionBar
+          className="px-5 py-3"
+          confirmLabel="Save"
+          confirmingLabel="Saving…"
+          isConfirming={isSaving}
+          cancelDisabled={disabled}
+          confirmDisabled={disabled || !title.trim() || !asset}
+          onCancel={onClose}
+          onConfirm={onSave}
+        />
       </Card>
     </Modal>
   );

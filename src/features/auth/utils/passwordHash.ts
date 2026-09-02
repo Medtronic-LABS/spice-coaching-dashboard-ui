@@ -1,5 +1,4 @@
 import * as CryptoJS from 'crypto-js';
-import { getHmacSecretKey } from '@/config/authConfig';
 
 /** Same crypto-js interop as spice-2.0-admin-web login hashing. */
 const cryptoJsLib =
@@ -8,14 +7,13 @@ const cryptoJsLib =
 
 /**
  * HMAC-SHA512 hex digest for password transmission.
- * Matches spice-2.0-admin-web `generatePassword` / login saga hashing.
+ * Login flow is not used by this app; callers must pass an explicit key when hashing.
  */
 export function hashPasswordWithHmac(
   password: string,
-  secretKey?: string,
+  secretKey: string,
 ): string {
-  const key = secretKey ?? getHmacSecretKey();
-  const hmac = cryptoJsLib.HmacSHA512(password, key);
+  const hmac = cryptoJsLib.HmacSHA512(password, secretKey);
   return hmac.toString(cryptoJsLib.enc.Hex);
 }
 

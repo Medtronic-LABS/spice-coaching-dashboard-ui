@@ -97,7 +97,8 @@ docs/                 # Specs (e.g. UI component system)
 3. **Map API → UI** — use typed mappers/utils when backend shape differs from components (e.g. `analyticsMappers`).
 4. **Named exports only** — default exports discouraged (ESLint warns on app code).
 5. **Co-located tests** — `*.test.tsx` next to the module they cover.
-6. **Suite access gate** — entry requires coaching suite access from the Spice profile; there is no app-level role branching.
+6. **Suite access gate** — entry requires coaching suite access from the Spice profile or login flow.
+7. **Capability roles** — Spice/login roles map to `supervisor` vs `programManager` via `getCurrentRole()` (`src/constants/role.ts`). This affects read-only vs edit UX in module library and admin module review (e.g. supervisors cannot reorder quiz cards). It is **not** route-level RBAC; all authenticated users can reach the same routes.
 
 ## Code standards
 
@@ -134,7 +135,9 @@ These rules are not a substitute for lint/typecheck/tests; they describe **how**
 
 ## Access
 
-App entry is gated by **coaching suite access** on the Spice user profile (`hasCoachingSuiteAccess`). Users without it are redirected to Spice Web. The UI does not branch on program-manager vs other app roles.
+App entry is gated by **coaching suite access** on the Spice user profile (`hasCoachingSuiteAccess`) or the dashboard login flow. Users without it are redirected to Spice Web or `/unauthorized`.
+
+**Capability roles:** Spice/login role strings are mapped to `supervisor` or `programManager` for UI behavior (see `src/constants/role.ts`). Supervisors get read-only module-review controls; program managers get full edit/reorder actions. Sidebar shows the raw Spice role label; routes are not role-gated on the client — backend authorization still applies on API calls.
 
 ## Documentation
 

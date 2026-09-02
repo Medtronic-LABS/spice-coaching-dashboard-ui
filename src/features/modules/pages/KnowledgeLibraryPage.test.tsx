@@ -70,7 +70,7 @@ vi.mock('@/features/modules/hooks/useKnowledgePdfDocument', () => ({
     pdf: null,
     pageCount: 5,
     isLoading: false,
-    error: null,
+    warning: null,
   }),
 }));
 

@@ -181,12 +181,13 @@ export const IngestMergeReviewModal = ({
       open={open}
       labelledBy="ingest-merge-review-title"
       describedBy="ingest-merge-review-description"
+      contentClassName="max-w-4xl"
       onClose={canClose ? onClose : undefined}
       zIndexClassName="z-[310]"
     >
       <Card
         variant="elevated"
-        className="w-full max-w-4xl space-y-4 border-spice-border p-5 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-5 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
           <h2
@@ -218,16 +219,13 @@ export const IngestMergeReviewModal = ({
           emptyMessage="No pending merge decisions."
         />
 
-        <div className="flex justify-end">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            disabled={!canClose}
-            onClick={onClose}
-          >
-            {canClose ? 'Close' : `${pendingCount} pending…`}
-          </Button>
-        </div>
+        {canClose ? null : (
+          <div className="flex justify-end">
+            <Button variant="secondary" className="h-9 text-xs" disabled>
+              {`${pendingCount} pending…`}
+            </Button>
+          </div>
+        )}
       </Card>
     </Modal>
   );

@@ -9,7 +9,7 @@ export interface KnowledgePdfDocumentState {
   pdf: PDFDocumentProxy | null;
   pageCount: number | null;
   isLoading: boolean;
-  error: string | null;
+  warning: string | null;
 }
 
 /**
@@ -22,14 +22,14 @@ export function useKnowledgePdfDocument(
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) {
       setPdf(null);
       setPageCount(null);
       setIsLoading(false);
-      setError(null);
+      setWarning(null);
       return;
     }
 
@@ -37,7 +37,7 @@ export function useKnowledgePdfDocument(
     let opened: PDFDocumentProxy | null = null;
 
     setIsLoading(true);
-    setError(null);
+    setWarning(null);
     setPdf(null);
     setPageCount(null);
 
@@ -63,8 +63,8 @@ export function useKnowledgePdfDocument(
         if (!cancelled) {
           setPdf(null);
           setPageCount(null);
-          setError(
-            'Could not read this PDF. Page ranges will be validated on upload.',
+          setWarning(
+            "Couldn't preview this PDF in your browser. You can still upload it; if you're splitting the document, page ranges will be checked on upload.",
           );
         }
       } finally {
@@ -81,5 +81,5 @@ export function useKnowledgePdfDocument(
     };
   }, [file]);
 
-  return { pdf, pageCount, isLoading, error };
+  return { pdf, pageCount, isLoading, warning };
 }

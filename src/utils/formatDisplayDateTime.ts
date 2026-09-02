@@ -64,6 +64,16 @@ export function formatDisplayDateTime(
   return `${month} ${day} ${year} • ${time}`;
 }
 
+/**
+ * Same as `formatDisplayDateTime`, but splits date and time onto two lines
+ * (break before `•`) for compact KPI / card layouts.
+ */
+export function formatDisplayDateTimeMultiline(
+  value: string | null | undefined,
+): string {
+  return formatDisplayDateTime(value).replace(' • ', '\n• ');
+}
+
 /** Formats an ISO date (or timestamp) for dashboard labels, e.g. `Aug 1, 2026`. */
 export function formatDisplayDate(value: string | null | undefined): string {
   if (!value) {

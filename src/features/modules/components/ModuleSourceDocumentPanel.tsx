@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CloseIcon } from '@/assets/icon';
 import { Card, TruncatedText } from '@/components/ui';
 import type { AdminModuleSourceDocument } from '@/features/modules/api/adminModulesApi';
 import {
@@ -72,10 +73,11 @@ export const ModuleSourceDocumentPanel = ({
           {onClose ? (
             <button
               type="button"
-              className="shrink-0 text-[11px] font-semibold text-spice-text-muted hover:text-spice-text-primary"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-spice-text-muted hover:bg-spice-bg-tint hover:text-spice-text-primary"
               onClick={onClose}
+              aria-label="Close"
             >
-              Close
+              <CloseIcon className="h-5 w-5" />
             </button>
           ) : null}
         </div>

@@ -7,7 +7,7 @@ export interface ChatbotFaqsOnlyFieldProps {
   onChange: (checked: boolean) => void;
 }
 
-/** Shared checkbox for marking a module as chatbot FAQ-only (not CHW-assignable). */
+/** Shared checkbox for marking a module as chatbot FAQ-only (not assignable to SKs/POs). */
 export function ChatbotFaqsOnlyField({
   checked,
   disabled = false,
@@ -28,7 +28,7 @@ export function ChatbotFaqsOnlyField({
         </span>
         <span className="mt-0.5 block text-xs text-spice-text-muted">
           Published FAQ-only modules are available for chatbot Q&A and cannot be
-          assigned to CHWs.
+          assigned to SKs or POs.
         </span>
       </span>
     </label>

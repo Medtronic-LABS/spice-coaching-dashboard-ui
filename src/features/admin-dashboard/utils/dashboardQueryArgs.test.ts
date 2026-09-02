@@ -80,6 +80,47 @@ describe('dashboardQueryArgs', () => {
     });
   });
 
+  it('includes module_id and sort extras for published module completions', () => {
+    expect(
+      buildPublishedModuleCompletionsQueryArgs(
+        '2026-01-01',
+        '2026-01-31',
+        EMPTY_DASHBOARD_GEOGRAPHY,
+        {
+          limit: 20,
+          offset: 40,
+          module_id: ['mod-a', 'mod-b'],
+          sort_by: 'published_at',
+          sort_dir: 'asc',
+        },
+      ),
+    ).toEqual({
+      from_date: '2026-01-01',
+      to_date: '2026-01-31',
+      limit: 20,
+      offset: 40,
+      module_id: ['mod-a', 'mod-b'],
+      sort_by: 'published_at',
+      sort_dir: 'asc',
+    });
+  });
+
+  it('omits empty module_id from published module completion args', () => {
+    expect(
+      buildPublishedModuleCompletionsQueryArgs(
+        '2026-01-01',
+        '2026-01-31',
+        EMPTY_DASHBOARD_GEOGRAPHY,
+        { module_id: [] },
+      ),
+    ).toEqual({
+      from_date: '2026-01-01',
+      to_date: '2026-01-31',
+      limit: PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
+      offset: 0,
+    });
+  });
+
   it('omits empty geography params', () => {
     expect(
       buildTeamActivityQueryArgs(

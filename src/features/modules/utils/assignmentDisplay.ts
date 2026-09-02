@@ -197,12 +197,11 @@ export function buildEntriesFromAssignedUsers(
   hierarchyUsers: AdminUser[],
 ): AssignedUserEntry[] {
   const assignedIds = new Set(assignedUsers.map((user) => user.id));
-  const assignedPos = assignedUsers.filter((user) => user.role === 'PO');
   const assignedSk = assignedUsers.filter((user) => user.role === 'SK');
 
   const poSkEntries = buildAssignedUserEntries(
     'po_sk',
-    assignedPos.map((user) => user.id),
+    assignedUsers.map((user) => user.id),
     hierarchyUsers.length ? hierarchyUsers : assignedUsers,
   );
 

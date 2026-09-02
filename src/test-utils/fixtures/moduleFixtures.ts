@@ -1,5 +1,7 @@
 import type { SourceDocumentSummary } from '@/features/modules/api/adminSourceDocumentsApi';
+import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types';
 import type { ModuleLibraryResponse } from '@/features/modules/types/moduleLibrary.types';
+import type { AdminBadge } from '@/features/badges/types/badge.types';
 
 /** Test-only catalog used by Module Library / source-document API tests. */
 export const testModuleLibrary: ModuleLibraryResponse = {
@@ -194,8 +196,9 @@ export const testSourceDocuments: SourceDocumentSummary[] = [
     stored_path:
       'medtronics-storage/source-documents/doc-htn-counselling-video.mp4',
     original_filename: 'htn_counselling_demo.mp4',
-    description: null,
-    thumbnail_storage_path: null,
+    description:
+      'Demonstrationed counselling walkthrough for hypertension visits.',
+    thumbnail_storage_path: 'thumbnails/htn_counselling_demo.jpg',
     uploaded_date: '2026-04-15T10:00:00Z',
     ingested_at: '2026-04-15T10:00:00Z',
     updated_at: '2026-04-15T10:00:00Z',
@@ -204,5 +207,180 @@ export const testSourceDocuments: SourceDocumentSummary[] = [
     ingested_by: { id: 1, name: 'ingest-bot' },
     assigned: false,
     sync_published_visible: false,
+  },
+  {
+    id: 'knowledge-asset-1',
+    title: 'HTN Referral Guidelines',
+    source_type: 'pdf',
+    status: 'uploaded',
+    content_domain: 'clinical',
+    authority_label: '',
+    stored_path:
+      'medtronics-storage/source-documents/knowledge/knowledge-asset-1.pdf',
+    original_filename: 'htn-referral-guidelines.pdf',
+    description: null,
+    thumbnail_storage_path: 'medtronics-storage/uploads/knowledge-asset-1.png',
+    uploaded_date: '2026-07-10T09:00:00Z',
+    ingested_at: '2026-07-10T09:00:00Z',
+    updated_at: '2026-07-11T08:15:00Z',
+    uploaded_by: { id: 101, name: 'alice' },
+    updated_by: { id: 101, name: 'alice' },
+    ingested_by: { id: 101, name: 'alice' },
+    assigned: true,
+    sync_published_visible: true,
+  },
+  {
+    id: 'knowledge-asset-2',
+    title: 'Visit Workflow — Overview',
+    source_type: 'pdf',
+    status: 'uploaded',
+    content_domain: 'clinical',
+    authority_label: '',
+    stored_path:
+      'medtronics-storage/source-documents/knowledge/knowledge-asset-2.pdf',
+    original_filename: 'visit-workflow_p1-4.pdf',
+    description: null,
+    thumbnail_storage_path: 'medtronics-storage/uploads/knowledge-asset-2.png',
+    uploaded_date: '2026-07-12T11:30:00Z',
+    ingested_at: '2026-07-12T11:30:00Z',
+    updated_at: '2026-07-12T11:30:00Z',
+    uploaded_by: { id: 102, name: 'bob' },
+    updated_by: { id: 102, name: 'bob' },
+    ingested_by: { id: 102, name: 'bob' },
+    assigned: false,
+    sync_published_visible: true,
+  },
+  {
+    id: 'knowledge-asset-4',
+    title: 'Retired Protocol Notes',
+    source_type: 'pdf',
+    status: 'retired',
+    content_domain: 'clinical',
+    authority_label: '',
+    stored_path:
+      'medtronics-storage/source-documents/knowledge/knowledge-asset-4.pdf',
+    original_filename: 'retired-protocol.pdf',
+    description: null,
+    thumbnail_storage_path: 'medtronics-storage/uploads/knowledge-asset-4.png',
+    uploaded_date: '2026-06-01T08:00:00Z',
+    ingested_at: '2026-06-01T08:00:00Z',
+    updated_at: '2026-06-20T14:00:00Z',
+    uploaded_by: { id: 101, name: 'alice' },
+    updated_by: { id: 101, name: 'alice' },
+    ingested_by: { id: 101, name: 'alice' },
+    assigned: false,
+    sync_published_visible: true,
+  },
+];
+
+export const testCourseDraft: ModuleDraftData = {
+  id: 'draft-htn-referral',
+  title: '',
+  topic: '',
+  description: '',
+  sourceFile: '',
+  status: 'draft',
+  generationStatus: 'idle',
+  generatedAt: '',
+  moduleDetails: {
+    description: [],
+    estimatedTime: 0,
+  },
+  lessons: [],
+  moduleContent: {
+    fieldMessage: '',
+    objectives: [],
+    dangerSigns: [],
+    lessonContent: '',
+  },
+  quiz: {
+    instructions: '',
+    config: {
+      shuffleQuestions: true,
+      evaluationBehavior: 'immediate',
+      explanationVisibility: 'after_answer',
+    },
+    questions: [],
+  },
+  estimateMinutes: 0,
+};
+
+export const testBadges: AdminBadge[] = [
+  {
+    id: 'badge-safe-motherhood',
+    name: 'Safe Motherhood Champion',
+    domain: 'hypertension',
+    image_storage_path: 'microcoaching-uploads/badges/safe-motherhood.png',
+    module_ids: ['htn-referral', 'fbs-rbs'],
+    modules: [
+      {
+        id: 'htn-referral',
+        title: { bn: 'HTN Referral Thresholds', en: 'HTN Referral Thresholds' },
+      },
+      {
+        id: 'fbs-rbs',
+        title: {
+          bn: 'FBS vs RBS — Timing Rules',
+          en: 'FBS vs RBS — Timing Rules',
+        },
+      },
+    ],
+    status: 'active',
+    sequence: 1,
+    created_at: '2026-04-01T10:00:00.000Z',
+    updated_at: '2026-04-10T12:00:00.000Z',
+    created_by: 'alice',
+    updated_by: 'alice',
+  },
+  {
+    id: 'badge-spice-navigator',
+    name: 'SPICE Navigator',
+    domain: 'spice_app',
+    image_storage_path: 'microcoaching-uploads/badges/spice-navigator.png',
+    module_ids: ['spice-visit', 'med-adherence'],
+    modules: [
+      {
+        id: 'spice-visit',
+        title: {
+          bn: 'SPICE App — Visit Submission',
+          en: 'SPICE App — Visit Submission',
+        },
+      },
+      {
+        id: 'med-adherence',
+        title: {
+          bn: 'Medication Adherence Counseling',
+          en: 'Medication Adherence Counseling',
+        },
+      },
+    ],
+    status: 'active',
+    sequence: 2,
+    created_at: '2026-04-05T09:30:00.000Z',
+    updated_at: '2026-04-12T08:00:00.000Z',
+    created_by: 'bob',
+    updated_by: 'bob',
+  },
+  {
+    id: 'badge-referral-pro',
+    name: 'Referral Pro',
+    domain: 'referral',
+    image_storage_path: 'microcoaching-uploads/badges/referral-pro.png',
+    module_ids: ['community-clinic'],
+    modules: [
+      {
+        id: 'community-clinic',
+        title: {
+          bn: 'Community Clinic Referral Protocol',
+          en: 'Community Clinic Referral Protocol',
+        },
+      },
+    ],
+    status: 'active',
+    sequence: 3,
+    created_at: '2026-04-08T14:15:00.000Z',
+    updated_at: '2026-04-08T14:15:00.000Z',
+    created_by: 'alice',
+    updated_by: null,
   },
 ];

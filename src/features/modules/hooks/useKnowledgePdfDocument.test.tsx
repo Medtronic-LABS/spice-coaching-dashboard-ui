@@ -31,11 +31,11 @@ describe('useKnowledgePdfDocument', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.pageCount).toBe(7);
-      expect(result.current.error).toBeNull();
+      expect(result.current.warning).toBeNull();
     });
   });
 
-  it('surfaces a readable error when PDF open fails', async () => {
+  it('surfaces a preview warning when PDF open fails', async () => {
     openPdfDocument.mockRejectedValue(new Error('bad pdf'));
     const file = new File(['x'], 'bad.pdf', { type: 'application/pdf' });
     const { result } = renderHook(() => useKnowledgePdfDocument(file));
@@ -43,7 +43,7 @@ describe('useKnowledgePdfDocument', () => {
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.pageCount).toBeNull();
-      expect(result.current.error).toMatch(/could not read this pdf/i);
+      expect(result.current.warning).toMatch(/couldn't preview this pdf/i);
     });
   });
 
