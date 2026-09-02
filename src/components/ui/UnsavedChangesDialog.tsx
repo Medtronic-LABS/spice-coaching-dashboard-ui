@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
 export interface UnsavedChangesDialogProps {
   open: boolean;
@@ -28,7 +29,7 @@ export const UnsavedChangesDialog = ({
       open={open}
       labelledBy="unsaved-changes-title"
       contentClassName="max-w-md"
-      zIndexClassName="z-[310]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalRaised}
     >
       <Card
         variant="elevated"

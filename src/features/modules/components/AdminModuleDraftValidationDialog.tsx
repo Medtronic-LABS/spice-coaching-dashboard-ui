@@ -1,5 +1,6 @@
 import { Button, Card } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import {
   groupAdminModuleDraftIssues,
@@ -31,7 +32,7 @@ export function AdminModuleDraftValidationDialog({
       labelledBy="admin-module-draft-validation-title"
       describedBy="admin-module-draft-validation-description"
       contentClassName="max-w-lg"
-      zIndexClassName="z-[310]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalRaised}
     >
       <Card
         variant="elevated"

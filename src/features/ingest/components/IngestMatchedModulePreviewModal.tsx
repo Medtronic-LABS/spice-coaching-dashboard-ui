@@ -5,6 +5,7 @@ import {
   KeyValue,
   Modal,
 } from '@/components/ui';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -48,7 +49,7 @@ export const IngestMatchedModulePreviewModal = ({
       labelledBy="ingest-matched-module-preview-title"
       contentClassName="max-w-4xl"
       onClose={onClose}
-      zIndexClassName="z-[320]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalTop}
     >
       <Card
         variant="elevated"

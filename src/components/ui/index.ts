@@ -37,6 +37,8 @@ export { Modal } from '@/components/ui/Modal';
 export type { ModalProps } from '@/components/ui/Modal';
 export { ModalActionBar } from '@/components/ui/ModalActionBar';
 export type { ModalActionBarProps } from '@/components/ui/ModalActionBar';
+export { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
+export type { OverlayZIndex } from '@/components/ui/overlayZIndex';
 export { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
 export type { QuotedDisplayLabelProps } from '@/components/ui/QuotedDisplayLabel';
 export { SearchInput } from '@/components/ui/SearchInput';

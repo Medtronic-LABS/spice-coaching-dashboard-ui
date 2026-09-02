@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { ModalActionBar } from '@/components/ui/ModalActionBar';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
 export interface ModuleVersionConflictDialogProps {
   open: boolean;
@@ -31,7 +32,7 @@ export const ModuleVersionConflictDialog = ({
       describedBy="module-version-conflict-description"
       contentClassName="max-w-md"
       onClose={isReloading ? undefined : onDismiss}
-      zIndexClassName="z-[320]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalTop}
     >
       <Card
         variant="elevated"

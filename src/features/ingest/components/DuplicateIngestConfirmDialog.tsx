@@ -3,6 +3,7 @@ import { Table, type ColumnDef } from '@/components/common/Table';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { IngestDuplicateConflict } from '@/features/ingest/api/adminIngestApi';
 import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
@@ -354,7 +355,7 @@ export const DuplicateIngestConfirmDialog = ({
       contentClassName="max-w-4xl"
       showCloseButton={false}
       onClose={isConfirming ? undefined : onCancel}
-      zIndexClassName="z-[110]"
+      zIndexClassName={OVERLAY_Z_INDEX.modal}
     >
       <Card
         variant="elevated"

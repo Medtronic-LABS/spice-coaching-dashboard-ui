@@ -9,6 +9,7 @@ import {
   Modal,
   TruncatedText,
 } from '@/components/ui';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import {
   MODULE_ASSIGNMENT_DURATION_KEY,
   useFetchConfigByKeyQuery,
@@ -409,7 +410,7 @@ export const AssignmentSuccessModal = ({
       labelledBy="assignment-success-title"
       contentClassName="max-w-xl"
       onClose={onClose}
-      zIndexClassName="z-[320]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalTop}
     >
       <AssignmentSuccessCard
         state={state}

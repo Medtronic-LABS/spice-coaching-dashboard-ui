@@ -6,6 +6,7 @@ import {
   type TransitionEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import { cn } from '@/utils';
 
 const DRAWER_TRANSITION_MS = 420;
@@ -30,7 +31,7 @@ export const Drawer = ({
   labelledBy,
   describedBy,
   onClose,
-  zIndexClassName = 'z-[300]',
+  zIndexClassName = OVERLAY_Z_INDEX.modal,
   panelClassName,
 }: DrawerProps) => {
   const [mounted, setMounted] = useState(open);

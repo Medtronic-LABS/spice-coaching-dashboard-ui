@@ -1,5 +1,6 @@
 import { Button, Card } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
 export interface QuizExplanationReviewDialogProps {
   open: boolean;
@@ -18,7 +19,7 @@ export const QuizExplanationReviewDialog = ({
       labelledBy="quiz-explanation-review-title"
       describedBy="quiz-explanation-review-description"
       contentClassName="max-w-md"
-      zIndexClassName="z-[310]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalRaised}
     >
       <Card
         variant="elevated"

@@ -1,6 +1,7 @@
 import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { Badge, Banner, Button, Card, Modal, Tooltip } from '@/components/ui';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import type { BannerProps } from '@/components/ui/Banner';
 import type {
   AdminV3IngestMergeDecision,
@@ -183,7 +184,7 @@ export const IngestMergeReviewModal = ({
       describedBy="ingest-merge-review-description"
       contentClassName="max-w-4xl"
       onClose={canClose ? onClose : undefined}
-      zIndexClassName="z-[310]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalRaised}
     >
       <Card
         variant="elevated"

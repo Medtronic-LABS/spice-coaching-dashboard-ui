@@ -1220,94 +1220,96 @@ export const ModuleLibraryPage = () => {
                   !createForm.domain.trim() ||
                   estimatedMinutesError !== null
                 }
-                onClick={async () => {
-                  setCreateError('');
-                  if (estimatedMinutesError) {
-                    setCreateError(estimatedMinutesError);
-                    return;
-                  }
-                  const domainRaw = createForm.domain.trim();
-                  if (!domainRaw) {
-                    setCreateError('Domain is required.');
-                    return;
-                  }
-                  if (domainRaw.length > FIELD_LIMITS.taxonomy) {
-                    setCreateError(
-                      fieldLimitExceededMessage(
-                        'Domain',
-                        FIELD_LIMITS.taxonomy,
-                      ),
-                    );
-                    return;
-                  }
-                  const titleBn = createForm.title_bn.trim();
-                  if (titleBn.length > FIELD_LIMITS.moduleTitle) {
-                    setCreateError(
-                      fieldLimitExceededMessage(
-                        'Title',
-                        FIELD_LIMITS.moduleTitle,
-                      ),
-                    );
-                    return;
-                  }
-                  const descriptionBn = createForm.description_bn.trim();
-                  if (descriptionBn.length > FIELD_LIMITS.description) {
-                    setCreateError(
-                      fieldLimitExceededMessage(
-                        'Description',
-                        FIELD_LIMITS.description,
-                      ),
-                    );
-                    return;
-                  }
-                  try {
-                    const domain = normalizeModuleTaxonomyLabel(domainRaw);
-                    const created = await createModule({
-                      title: {
-                        bn: titleBn,
-                      },
-                      ...(descriptionBn
-                        ? {
-                            description: {
-                              bn: descriptionBn,
-                            },
-                          }
-                        : {}),
-                      domain,
-                      sub_domain: null,
-                      content_domain: createForm.content_domain,
-                      module_type: createForm.module_type,
-                      estimated_minutes: Math.min(
-                        MAX_ESTIMATED_MINUTES,
-                        Math.max(
-                          1,
-                          Number.isFinite(createForm.estimated_minutes)
-                            ? createForm.estimated_minutes
-                            : 1,
+                onClick={() => {
+                  void (async () => {
+                    setCreateError('');
+                    if (estimatedMinutesError) {
+                      setCreateError(estimatedMinutesError);
+                      return;
+                    }
+                    const domainRaw = createForm.domain.trim();
+                    if (!domainRaw) {
+                      setCreateError('Domain is required.');
+                      return;
+                    }
+                    if (domainRaw.length > FIELD_LIMITS.taxonomy) {
+                      setCreateError(
+                        fieldLimitExceededMessage(
+                          'Domain',
+                          FIELD_LIMITS.taxonomy,
                         ),
-                      ),
+                      );
+                      return;
+                    }
+                    const titleBn = createForm.title_bn.trim();
+                    if (titleBn.length > FIELD_LIMITS.moduleTitle) {
+                      setCreateError(
+                        fieldLimitExceededMessage(
+                          'Title',
+                          FIELD_LIMITS.moduleTitle,
+                        ),
+                      );
+                      return;
+                    }
+                    const descriptionBn = createForm.description_bn.trim();
+                    if (descriptionBn.length > FIELD_LIMITS.description) {
+                      setCreateError(
+                        fieldLimitExceededMessage(
+                          'Description',
+                          FIELD_LIMITS.description,
+                        ),
+                      );
+                      return;
+                    }
+                    try {
+                      const domain = normalizeModuleTaxonomyLabel(domainRaw);
+                      const created = await createModule({
+                        title: {
+                          bn: titleBn,
+                        },
+                        ...(descriptionBn
+                          ? {
+                              description: {
+                                bn: descriptionBn,
+                              },
+                            }
+                          : {}),
+                        domain,
+                        sub_domain: null,
+                        content_domain: createForm.content_domain,
+                        module_type: createForm.module_type,
+                        estimated_minutes: Math.min(
+                          MAX_ESTIMATED_MINUTES,
+                          Math.max(
+                            1,
+                            Number.isFinite(createForm.estimated_minutes)
+                              ? createForm.estimated_minutes
+                              : 1,
+                          ),
+                        ),
 
-                      difficulty_level: createForm.difficulty_level,
-                      chatbot_faqs_only: createForm.chatbot_faqs_only,
-                      module_json: {
-                        cards: [createEmptyAdminModuleCard()],
-                        quiz: [createEmptyAdminModuleQuizItem(1)],
-                      },
-                    }).unwrap();
-                    setCreateOpen(false);
-                    void refetchDomainOptions();
-                    setCreateForm(createEmptyCreateForm());
-                    navigate(
-                      paths.adminModuleReviewDetails.replace(
-                        ':moduleId',
-                        encodeURIComponent(created.id),
-                      ),
-                    );
-                  } catch {
-                    setCreateError(
-                      'Failed to create module. Please try again.',
-                    );
-                  }
+                        difficulty_level: createForm.difficulty_level,
+                        chatbot_faqs_only: createForm.chatbot_faqs_only,
+                        module_json: {
+                          cards: [createEmptyAdminModuleCard()],
+                          quiz: [createEmptyAdminModuleQuizItem(1)],
+                        },
+                      }).unwrap();
+                      setCreateOpen(false);
+                      void refetchDomainOptions();
+                      setCreateForm(createEmptyCreateForm());
+                      navigate(
+                        paths.adminModuleReviewDetails.replace(
+                          ':moduleId',
+                          encodeURIComponent(created.id),
+                        ),
+                      );
+                    } catch {
+                      setCreateError(
+                        'Failed to create module. Please try again.',
+                      );
+                    }
+                  })();
                 }}
               >
                 {isCreating ? 'Creating…' : 'Create draft'}
