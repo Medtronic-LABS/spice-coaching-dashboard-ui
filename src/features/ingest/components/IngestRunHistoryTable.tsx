@@ -3,13 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
-import {
-  Button,
-  Card,
-  Loader,
-  SearchInput,
-  TruncatedText,
-} from '@/components/ui';
+import { Button, Card, SearchInput, TruncatedText } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useFetchIngestionRunsQuery } from '@/features/ingest/api/adminIngestionRunsApi';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
@@ -297,11 +291,9 @@ export const IngestRunHistoryTable = () => {
     [openGeneratedModules],
   );
 
-  const emptyMessage = isLoading
-    ? 'Loading run history…'
-    : searchQ
-      ? 'No ingestion runs match your search.'
-      : 'No ingestion history available. Upload your first document to generate learning modules.';
+  const emptyMessage = searchQ
+    ? 'No ingestion runs match your search.'
+    : 'No ingestion history available. Upload your first document to generate learning modules.';
 
   return (
     <Card variant="elevated" className="space-y-4 p-4">
@@ -334,13 +326,13 @@ export const IngestRunHistoryTable = () => {
         </div>
       </div>
 
-      <Loader open={isLoading} label="Loading run history…" />
-
       <Table<IngestRunHistoryRow>
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.id}
         caption="Ingestion run history"
+        isLoading={isLoading}
+        loadingMessage="Loading run history…"
         emptyMessage={emptyMessage}
         sortBy={sortBy}
         sortDir={sortDir}

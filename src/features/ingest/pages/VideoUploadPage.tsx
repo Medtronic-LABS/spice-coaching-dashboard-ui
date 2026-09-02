@@ -13,7 +13,6 @@ import {
   Card,
   LimitedTextInput,
   LimitedTextarea,
-  Loader,
   SearchInput,
   StatusBadge,
   Tooltip,
@@ -1447,12 +1446,13 @@ export const VideoUploadPage = () => {
             onApply={handleApplyFilters}
           />
         </SettingsFilterDrawer>
-        <Loader open={isLoadingVideos} label="Loading uploaded videos…" />
         <Table
           data={rows}
           columns={columns}
           keyExtractor={(row) => row.id}
           caption="Uploaded videos"
+          isLoading={isLoadingVideos}
+          loadingMessage="Loading uploaded videos…"
           emptyMessage="No videos uploaded yet."
           sortBy={sortBy}
           sortDir={sortDir}

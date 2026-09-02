@@ -85,6 +85,37 @@ describe('Table', () => {
     expect(onSortMock).toHaveBeenCalledWith('name', 'asc');
   });
 
+  it('renders a loading state when isLoading is true and data is empty', () => {
+    render(
+      <Table
+        data={[]}
+        columns={columns}
+        keyExtractor={(item) => String(item.id)}
+        isLoading
+        loadingMessage="Loading items…"
+        emptyMessage="No items found"
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading items…');
+    expect(screen.queryByText('No items found')).not.toBeInTheDocument();
+  });
+
+  it('renders data while isLoading when rows are already present', () => {
+    render(
+      <Table
+        data={[{ id: '1', name: 'Alice' }]}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        isLoading
+        loadingMessage="Loading items…"
+      />,
+    );
+
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.queryByText('Loading items…')).not.toBeInTheDocument();
+  });
+
   it('renders a query error state inside the table body', async () => {
     const onRetryQuery = vi.fn();
     const user = userEvent.setup();

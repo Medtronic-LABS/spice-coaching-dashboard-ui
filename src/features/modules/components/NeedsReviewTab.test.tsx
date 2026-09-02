@@ -187,6 +187,11 @@ describe('NeedsReviewTab', () => {
     await waitFor(() => {
       expect(handleKeepNew).toHaveBeenCalledWith('candidate-1');
     });
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('button', { name: 'Keep New' })[0],
+      ).toBeEnabled();
+    });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discard New' })[0]);
     const discardDialog = screen.getByRole('dialog');

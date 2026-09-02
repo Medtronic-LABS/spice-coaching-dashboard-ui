@@ -1514,7 +1514,9 @@ export const ModuleLibraryPage = () => {
             columns={columns}
             keyExtractor={(r) => r.id}
             caption={tableCaption}
-            emptyMessage={isFetchingModules ? 'Loading modules…' : emptyMessage}
+            isLoading={isFetchingModules}
+            loadingMessage="Loading modules…"
+            emptyMessage={emptyMessage}
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}

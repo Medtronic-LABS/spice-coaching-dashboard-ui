@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { SectionQueryErrorState } from '@/components/common/SectionQueryErrorState';
 import { TablePagination } from '@/components/common/TablePagination';
-import { Card, Loader } from '@/components/ui';
+import { Card } from '@/components/ui';
 import {
   useFetchConfigChangesQuery,
   type ConfigThresholdChangeItem,
@@ -122,18 +122,14 @@ export const ConfigHistoryTable = ({
         />
       ) : null}
 
-      <Loader open={isLoading} label="Loading configuration history…" />
-
       <Table<ConfigHistoryRow>
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.id}
         caption="Configuration history"
-        emptyMessage={
-          isLoading
-            ? 'Loading configuration history…'
-            : 'No configuration changes yet.'
-        }
+        isLoading={isLoading}
+        loadingMessage="Loading configuration history…"
+        emptyMessage="No configuration changes yet."
       />
 
       <TablePagination

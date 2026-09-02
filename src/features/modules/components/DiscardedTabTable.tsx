@@ -68,6 +68,7 @@ function getDiscardedAt(item: AdminModulesListItem): string {
 
 export const DiscardedTabTable = ({
   modules,
+  isLoading = false,
   onView,
   sortBy,
   sortDir,
@@ -167,6 +168,8 @@ export const DiscardedTabTable = ({
       data={data}
       columns={columns}
       keyExtractor={(r) => r.id}
+      isLoading={isLoading}
+      loadingMessage="Loading discarded modules…"
       emptyMessage="No discarded modules found."
       sortBy={sortBy}
       sortDir={sortDir}

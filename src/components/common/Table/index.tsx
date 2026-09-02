@@ -36,6 +36,8 @@ export function Table<T extends object>({
   renderExpandedRow,
   getRowClassName,
   density = 'compact',
+  isLoading = false,
+  loadingMessage = 'Loading…',
   queryError,
   queryErrorTitle,
   onRetryQuery,
@@ -43,6 +45,8 @@ export function Table<T extends object>({
 }: TableProps<T>) {
   const styles = DENSITY_STYLES[density];
   const showQueryError = queryError != null;
+  const showLoading = isLoading && data.length === 0 && !showQueryError;
+  const bodyMessage = showLoading ? loadingMessage : emptyMessage;
 
   return (
     <div
@@ -210,8 +214,10 @@ export function Table<T extends object>({
               <td
                 colSpan={columns.length}
                 className="px-3 py-8 text-center text-spice-text-muted sm:px-6"
+                role={showLoading ? 'status' : undefined}
+                aria-live={showLoading ? 'polite' : undefined}
               >
-                {emptyMessage}
+                {bodyMessage}
               </td>
             </tr>
           )}

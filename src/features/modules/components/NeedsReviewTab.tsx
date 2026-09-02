@@ -3,7 +3,6 @@ import { ChevronIcon, EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import {
   Button,
-  Card,
   ConfirmDialog,
   ErrorState,
   QuotedDisplayLabel,
@@ -724,17 +723,6 @@ export const NeedsReviewTab = ({
     },
   ];
 
-  if (isLoading) {
-    return (
-      <Card
-        variant="bordered"
-        className="p-12 text-center text-sm text-spice-text-muted rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
-      >
-        Loading review modules…
-      </Card>
-    );
-  }
-
   return (
     <>
       {actionError ? (
@@ -746,6 +734,8 @@ export const NeedsReviewTab = ({
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.id}
+        isLoading={isLoading}
+        loadingMessage="Loading review modules…"
         emptyMessage={emptyMessage ?? 'No modules requiring review.'}
         sortBy={sortBy}
         sortDir={sortDir}

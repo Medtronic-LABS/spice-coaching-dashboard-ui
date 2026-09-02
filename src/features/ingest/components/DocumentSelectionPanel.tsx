@@ -254,6 +254,7 @@ export const DocumentSelectionPanel = ({
 
   const {
     data: catalog,
+    isLoading,
     isFetching,
     isError,
     error,
@@ -686,12 +687,12 @@ export const DocumentSelectionPanel = ({
           columns={availableColumns}
           keyExtractor={(row) => row.id}
           caption="Documents available to select for ingestion"
+          isLoading={isLoading}
+          loadingMessage="Loading documents…"
           emptyMessage={
-            isFetching
-              ? 'Loading documents…'
-              : searchQ
-                ? 'No documents match your search.'
-                : 'No documents available. Upload files above to get started.'
+            searchQ
+              ? 'No documents match your search.'
+              : 'No documents available. Upload files above to get started.'
           }
           sortBy={sortBy}
           sortDir={sortDir}

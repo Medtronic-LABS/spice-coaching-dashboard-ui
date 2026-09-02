@@ -16,7 +16,6 @@ import {
 import {
   Button,
   Card,
-  Loader,
   SearchInput,
   Tabs,
   TruncatedText,
@@ -582,8 +581,6 @@ export const KnowledgeLibraryTable = () => {
 
   return (
     <div className="space-y-4">
-      <Loader open={isLoading} label="Loading knowledge…" />
-
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
@@ -666,6 +663,8 @@ export const KnowledgeLibraryTable = () => {
           data={assets}
           columns={columns}
           keyExtractor={(row) => row.id}
+          isLoading={isLoading}
+          loadingMessage="Loading knowledge…"
           emptyMessage="No results"
           sortBy={sortBy}
           sortDir={sortOrder}
