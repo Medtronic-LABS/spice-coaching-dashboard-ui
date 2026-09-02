@@ -56,6 +56,7 @@ export const DashboardKpiRow = ({
   if (teamUi.showError) {
     return (
       <DashboardWidgetErrorState
+        error={teamQuery.error}
         onRetry={() => {
           void teamQuery.refetch();
           void modulesQuery.refetch();

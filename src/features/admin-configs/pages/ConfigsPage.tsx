@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, Button, Card, ErrorState, Loader } from '@/components/ui';
+import { PageQueryErrorState } from '@/components/common/PageQueryErrorState';
+import { Banner, Button, Card, Loader } from '@/components/ui';
 import {
   MODULE_ASSIGNMENT_DURATION_KEY,
   useFetchConfigByKeyQuery,
@@ -56,6 +57,7 @@ export const ConfigsPage = () => {
     data: config,
     isLoading,
     isError,
+    error,
     refetch,
   } = useFetchConfigByKeyQuery(MODULE_ASSIGNMENT_DURATION_KEY);
   const [updateConfig, { isLoading: isSaving }] = useUpdateConfigMutation();
@@ -124,13 +126,12 @@ export const ConfigsPage = () => {
 
   if (isError || !config) {
     return (
-      <ErrorState
-        title="Failed to load configuration"
-        action={
-          <Button variant="secondary" onClick={() => void refetch()}>
-            Retry
-          </Button>
-        }
+      <PageQueryErrorState
+        pageTitle="Configuration"
+        pageSubtitle="Manage quiz reattempt validity and review configuration history."
+        error={error ?? { status: 'UNKNOWN' }}
+        errorTitle="Unable to load configuration"
+        onRetry={() => void refetch()}
       />
     );
   }

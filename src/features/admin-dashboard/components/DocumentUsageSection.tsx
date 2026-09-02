@@ -364,6 +364,7 @@ export const DocumentUsageSection = ({
               onDocumentSearchChange={setDocumentSearch}
               isTableLoading={showLoading}
               isTableError={showError}
+              tableError={query.error}
               onRetry={() => void refetch()}
               documentRows={documentRows}
               documentColumns={documentColumns}
@@ -399,7 +400,10 @@ export const DocumentUsageSection = ({
               <DashboardListSkeleton rows={8} />
             </div>
           ) : showError ? (
-            <DashboardWidgetErrorState onRetry={() => void refetch()} />
+            <DashboardWidgetErrorState
+              error={query.error}
+              onRetry={() => void refetch()}
+            />
           ) : !data ? (
             <EmptyState
               title={t('adminDashboard.documentUsage.emptyTitle')}
@@ -442,6 +446,7 @@ export const DocumentUsageSection = ({
               <DashboardListSkeleton rows={6} />
             ) : showDetailError ? (
               <DashboardWidgetErrorState
+                error={detailQuery.error}
                 onRetry={() => void detailQuery.refetch()}
               />
             ) : (

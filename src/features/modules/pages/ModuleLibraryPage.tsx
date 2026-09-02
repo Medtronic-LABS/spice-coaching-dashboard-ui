@@ -377,6 +377,8 @@ export const ModuleLibraryPage = () => {
     currentData: currentModulesPage,
     refetch,
     isFetching: isFetchingModules,
+    isError: modulesQueryError,
+    error: modulesFetchError,
     isUninitialized: modulesQueryUninitialized,
   } = useFetchModulesQuery(
     {
@@ -411,6 +413,15 @@ export const ModuleLibraryPage = () => {
       // Query may be skipped or unsubscribed after navigation.
     }
   }, [dateRangeInvalid, modulesQueryUninitialized, refetch]);
+
+  const modulesTableQueryError =
+    modulesQueryError && !isFetchingModules
+      ? {
+          queryError: modulesFetchError,
+          queryErrorTitle: 'Failed to load modules',
+          onRetryQuery: refreshModuleList,
+        }
+      : {};
 
   const handleOpenFiltersDrawer = () => {
     setDraftFilters(activeFilters);
@@ -1484,6 +1495,7 @@ export const ModuleLibraryPage = () => {
             onSort={handleSort}
             initialExpandedId={expandedReviewModuleId}
             emptyMessage={emptyMessage}
+            {...modulesTableQueryError}
           />
         ) : tab === 'discarded' ? (
           <DiscardedTabTable
@@ -1493,6 +1505,7 @@ export const ModuleLibraryPage = () => {
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}
+            {...modulesTableQueryError}
           />
         ) : (
           <Table<ModuleLibraryItem>
@@ -1505,6 +1518,7 @@ export const ModuleLibraryPage = () => {
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}
+            {...modulesTableQueryError}
           />
         )}
 

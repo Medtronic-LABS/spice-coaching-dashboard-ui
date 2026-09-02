@@ -89,6 +89,7 @@ export const ExistingModuleInlineEvidence = ({
   if (showError) {
     return (
       <DashboardWidgetErrorState
+        error={questionsQuery.error ?? requestsQuery.error}
         onRetry={() => {
           void questionsQuery.refetch();
           void requestsQuery.refetch();
@@ -163,6 +164,7 @@ export const SuggestedModuleInlineEvidence = ({
   if (ui.showError) {
     return (
       <DashboardWidgetErrorState
+        error={detailQuery.error}
         onRetry={() => {
           void detailQuery.refetch();
         }}

@@ -21,6 +21,9 @@ interface DiscardedTabTableProps {
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
+  queryError?: unknown;
+  queryErrorTitle?: string;
+  onRetryQuery?: () => void;
 }
 
 interface DiscardedTableRow {
@@ -69,6 +72,9 @@ export const DiscardedTabTable = ({
   sortBy,
   sortDir,
   onSort,
+  queryError,
+  queryErrorTitle,
+  onRetryQuery,
 }: DiscardedTabTableProps) => {
   const data = useMemo<DiscardedTableRow[]>(() => {
     return (modules ?? []).map((m) => ({
@@ -165,6 +171,9 @@ export const DiscardedTabTable = ({
       sortBy={sortBy}
       sortDir={sortDir}
       onSort={onSort}
+      queryError={queryError}
+      queryErrorTitle={queryErrorTitle}
+      onRetryQuery={onRetryQuery}
     />
   );
 };

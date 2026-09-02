@@ -1,5 +1,12 @@
-import { Card, ErrorState, Loader, SectionHeader } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
+import { ApiErrorScreen } from '@/components/common/ApiErrorScreen';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Loader,
+  SectionHeader,
+} from '@/components/ui';
 
 export interface SectionStateCardProps {
   title: string;
@@ -7,6 +14,8 @@ export interface SectionStateCardProps {
   state: 'loading' | 'error';
   loadingLabel?: string;
   errorDescription?: string;
+  error?: unknown;
+  onRetry?: () => void;
 }
 
 export const SectionStateCard = ({
@@ -15,6 +24,8 @@ export const SectionStateCard = ({
   state,
   loadingLabel,
   errorDescription,
+  error,
+  onRetry,
 }: SectionStateCardProps) => {
   const { t } = useTranslation();
   const resolvedErrorDescription =
@@ -29,10 +40,29 @@ export const SectionStateCard = ({
             loadingLabel ?? t('ui.sectionState.loadingWithTitle', { title })
           }
         />
+      ) : error ? (
+        <ApiErrorScreen
+          error={error}
+          variant="compact"
+          onRetry={onRetry}
+          showGoHome={false}
+        />
       ) : (
         <ErrorState
           title={t('ui.sectionState.unavailableWithTitle', { title })}
           description={resolvedErrorDescription}
+          action={
+            onRetry ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-8 text-xs"
+                onClick={onRetry}
+              >
+                {t('common.retry')}
+              </Button>
+            ) : undefined
+          }
         />
       )}
     </Card>

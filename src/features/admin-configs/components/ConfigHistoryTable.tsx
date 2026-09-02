@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Table, type ColumnDef } from '@/components/common/Table';
+import { SectionQueryErrorState } from '@/components/common/SectionQueryErrorState';
 import { TablePagination } from '@/components/common/TablePagination';
-import { Button, Card, ErrorState, Loader } from '@/components/ui';
+import { Card, Loader } from '@/components/ui';
 import {
   useFetchConfigChangesQuery,
   type ConfigThresholdChangeItem,
@@ -51,11 +52,12 @@ export const ConfigHistoryTable = ({
     resetPage();
   }, [refreshNonce, configKey, resetPage]);
 
-  const { data, isLoading, isError, refetch } = useFetchConfigChangesQuery({
-    key: configKey,
-    limit: pageSize,
-    offset: tablePageOffset(page, pageSize),
-  });
+  const { data, isLoading, isError, error, refetch } =
+    useFetchConfigChangesQuery({
+      key: configKey,
+      limit: pageSize,
+      offset: tablePageOffset(page, pageSize),
+    });
 
   const totalChanges = data?.total_changes ?? 0;
   const totalPages = data?.total_pages ?? 0;
@@ -113,13 +115,10 @@ export const ConfigHistoryTable = ({
       </div>
 
       {isError ? (
-        <ErrorState
-          title="Unable to load configuration history"
-          action={
-            <Button variant="secondary" onClick={() => void refetch()}>
-              Retry
-            </Button>
-          }
+        <SectionQueryErrorState
+          error={error}
+          errorTitle="Unable to load configuration history"
+          onRetry={() => void refetch()}
         />
       ) : null}
 

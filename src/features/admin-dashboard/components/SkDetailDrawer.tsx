@@ -256,6 +256,7 @@ export const SkDetailDrawer = ({
                 <div className="py-3">
                   <DashboardWidgetErrorState
                     compact
+                    error={questionsQuery.error}
                     onRetry={() => void questionsQuery.refetch()}
                   />
                 </div>

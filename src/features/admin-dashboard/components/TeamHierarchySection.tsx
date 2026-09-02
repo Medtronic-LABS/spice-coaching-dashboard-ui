@@ -390,6 +390,7 @@ const HierarchyMemberRow = ({
             <div className="px-4 py-3">
               <DashboardWidgetErrorState
                 compact
+                error={descendantsQuery.error}
                 onRetry={() => void descendantsQuery.refetch()}
               />
             </div>
@@ -562,7 +563,10 @@ export const TeamHierarchySection = ({
           <DashboardHierarchySkeleton rows={5} />
         ) : showError && offset === 0 ? (
           <div className="px-4 py-4">
-            <DashboardWidgetErrorState onRetry={() => void refetch()} />
+            <DashboardWidgetErrorState
+              error={query.error}
+              onRetry={() => void refetch()}
+            />
           </div>
         ) : members.length === 0 ? (
           <div className="px-4 py-4">

@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { TableQueryErrorState } from '@/components/common/TableQueryErrorState';
 import { cn } from '@/utils';
 import type { TableProps } from './Table.types';
 
@@ -35,9 +36,13 @@ export function Table<T extends object>({
   renderExpandedRow,
   getRowClassName,
   density = 'compact',
+  queryError,
+  queryErrorTitle,
+  onRetryQuery,
   ...tableProps
 }: TableProps<T>) {
   const styles = DENSITY_STYLES[density];
+  const showQueryError = queryError != null;
 
   return (
     <div
@@ -151,7 +156,17 @@ export function Table<T extends object>({
           </tr>
         </thead>
         <tbody className="divide-y divide-spice-border bg-spice-bg-surface">
-          {data.length > 0 ? (
+          {showQueryError ? (
+            <tr>
+              <td colSpan={columns.length} className="p-0">
+                <TableQueryErrorState
+                  error={queryError}
+                  errorTitle={queryErrorTitle}
+                  onRetry={onRetryQuery}
+                />
+              </td>
+            </tr>
+          ) : data.length > 0 ? (
             data.map((row) => {
               const rowKey = keyExtractor(row);
               const expandedContent = renderExpandedRow?.(row);

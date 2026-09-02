@@ -149,6 +149,7 @@ export const ModuleDemandSummaryWidget = ({
           <div className="min-w-0 flex-1">
             <DashboardWidgetErrorState
               compact
+              error={query.error}
               onRetry={() => void query.refetch()}
             />
           </div>

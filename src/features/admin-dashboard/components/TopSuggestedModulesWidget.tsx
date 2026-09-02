@@ -168,6 +168,7 @@ export const TopSuggestedModulesWidget = ({
       rows={rows}
       showLoading={showLoading}
       showError={ui.showError}
+      error={query.error}
       onRetry={() => void query.refetch()}
       showActions={showActions}
       emptyTitle={t('adminDashboard.suggestedModules.emptyTitle')}

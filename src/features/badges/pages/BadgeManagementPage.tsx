@@ -5,7 +5,6 @@ import {
   Card,
   type ComboboxOption,
   ConfirmDialog,
-  ErrorState,
   Loader,
   QuotedDisplayLabel,
   SearchInput,
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui';
 import { ArrowRightIcon, CloseIcon, EyeIcon, SearchIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
+import { PageQueryErrorState } from '@/components/common/PageQueryErrorState';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
@@ -221,6 +221,7 @@ export const BadgeManagementPage = () => {
     data: badgeList,
     isLoading: badgesLoading,
     isError: badgesError,
+    error: badgesFetchError,
     refetch: refetchBadges,
   } = useFetchBadgesQuery(listQueryArgs, { skip: isSequenceEditing });
 
@@ -845,13 +846,12 @@ export const BadgeManagementPage = () => {
 
   if (badgesError && !isSequenceEditing) {
     return (
-      <ErrorState
-        title="Failed to load milestones"
-        action={
-          <Button variant="secondary" onClick={() => void refetchBadges()}>
-            Retry
-          </Button>
-        }
+      <PageQueryErrorState
+        pageTitle="Milestone Management"
+        pageSubtitle={PAGE_SUBTITLE}
+        error={badgesFetchError}
+        errorTitle="Unable to load milestones"
+        onRetry={() => void refetchBadges()}
       />
     );
   }

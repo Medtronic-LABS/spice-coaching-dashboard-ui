@@ -32,7 +32,6 @@ import { truncateDisplayText } from '@/utils/truncateDisplayText';
 interface NeedsReviewTabProps {
   modules: AdminModulesListItem[];
   isLoading?: boolean;
-  error?: unknown;
   onMerge: (moduleId: string) => Promise<void>;
   onDiscardNew: (moduleId: string) => Promise<void>;
   /** Wired when the keep-new API is available. */
@@ -43,6 +42,9 @@ interface NeedsReviewTabProps {
   onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
   initialExpandedId?: string | null;
   emptyMessage?: string;
+  queryError?: unknown;
+  queryErrorTitle?: string;
+  onRetryQuery?: () => void;
 }
 
 type NeedsReviewTableRow = {
@@ -419,7 +421,6 @@ function ComparisonModulePanel({
 export const NeedsReviewTab = ({
   modules,
   isLoading,
-  error,
   onMerge,
   onDiscardNew,
   onKeepNew,
@@ -429,6 +430,9 @@ export const NeedsReviewTab = ({
   onSort,
   initialExpandedId,
   emptyMessage,
+  queryError,
+  queryErrorTitle = 'Failed to load review pending modules',
+  onRetryQuery,
 }: NeedsReviewTabProps) => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<
@@ -720,10 +724,6 @@ export const NeedsReviewTab = ({
     },
   ];
 
-  if (error) {
-    return <ErrorState title="Failed to load review pending modules." />;
-  }
-
   if (isLoading) {
     return (
       <Card
@@ -750,6 +750,9 @@ export const NeedsReviewTab = ({
         sortBy={sortBy}
         sortDir={sortDir}
         onSort={onSort}
+        queryError={queryError}
+        queryErrorTitle={queryErrorTitle}
+        onRetryQuery={onRetryQuery}
         containerClassName="rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
         getRowClassName={(row) =>
           expandedIds.has(row.id)

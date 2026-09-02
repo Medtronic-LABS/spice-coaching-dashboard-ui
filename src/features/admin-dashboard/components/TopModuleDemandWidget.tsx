@@ -23,6 +23,7 @@ interface TopModuleDemandWidgetProps {
   rows: TopModuleDemandRow[];
   showLoading: boolean;
   showError: boolean;
+  error?: unknown;
   onRetry: () => void;
   showActions: boolean;
   emptyTitle?: string;
@@ -42,6 +43,7 @@ export const TopModuleDemandWidget = ({
   rows,
   showLoading,
   showError,
+  error,
   onRetry,
   showActions,
   emptyTitle,
@@ -73,7 +75,7 @@ export const TopModuleDemandWidget = ({
       {showLoading ? (
         <DashboardListSkeleton rows={5} />
       ) : showError ? (
-        <DashboardWidgetErrorState onRetry={onRetry} />
+        <DashboardWidgetErrorState error={error} onRetry={onRetry} />
       ) : rows.length === 0 ? (
         <EmptyState
           title={emptyTitle ?? t('adminDashboard.moduleDemand.emptyTitle')}

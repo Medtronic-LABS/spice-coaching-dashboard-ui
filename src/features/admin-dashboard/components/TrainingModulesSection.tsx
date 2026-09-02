@@ -129,7 +129,10 @@ export const TrainingModulesSection = ({
         <DashboardTableSkeleton rows={5} columns={4} />
       ) : showError && offset === 0 ? (
         <div className="px-4 pb-4">
-          <DashboardWidgetErrorState onRetry={() => void refetch()} />
+          <DashboardWidgetErrorState
+            error={query.error}
+            onRetry={() => void refetch()}
+          />
         </div>
       ) : modules.length === 0 ? (
         <div className="px-4 pb-4">

@@ -6,7 +6,6 @@ import { TablePagination } from '@/components/common/TablePagination';
 import {
   Button,
   Card,
-  ErrorState,
   Loader,
   SearchInput,
   TruncatedText,
@@ -35,7 +34,6 @@ import {
   tablePageOffset,
   tablePaginationRange,
 } from '@/utils/tablePagination';
-import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 
 const RUN_HISTORY_POLL_INTERVAL_MS = 30000;
@@ -107,6 +105,7 @@ export const IngestRunHistoryTable = () => {
     data: runList,
     isLoading,
     isFetching,
+    isError,
     error,
     refetch,
     fulfilledTimeStamp,
@@ -335,24 +334,6 @@ export const IngestRunHistoryTable = () => {
         </div>
       </div>
 
-      {error ? (
-        <ErrorState
-          title="Unable to load run history"
-          description={formatRtkQueryError(error)}
-          action={
-            <Button
-              variant="secondary"
-              className="h-8 text-xs"
-              onClick={() => {
-                refetch();
-              }}
-            >
-              Retry
-            </Button>
-          }
-        />
-      ) : null}
-
       <Loader open={isLoading} label="Loading run history…" />
 
       <Table<IngestRunHistoryRow>
@@ -364,6 +345,11 @@ export const IngestRunHistoryTable = () => {
         sortBy={sortBy}
         sortDir={sortDir}
         onSort={handleSort}
+        queryError={isError && !isFetching ? error : undefined}
+        queryErrorTitle="Unable to load ingestion history"
+        onRetryQuery={() => {
+          void refetch();
+        }}
       />
 
       <TablePagination

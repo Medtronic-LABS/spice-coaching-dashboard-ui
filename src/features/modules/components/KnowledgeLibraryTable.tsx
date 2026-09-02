@@ -80,22 +80,6 @@ type KnowledgeStatusTone =
 
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
 
-const RefreshIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-    <path d="M21 3v6h-6" />
-  </svg>
-);
-
 function formatKnowledgeStatusDisplay(status: string | undefined): string {
   const trimmed = (status ?? '').trim();
   if (!trimmed) return 'Unknown';
@@ -269,6 +253,7 @@ export const KnowledgeLibraryTable = () => {
     data: catalog,
     isLoading,
     isFetching,
+    isError,
     error,
     refetch,
   } = useFetchSourceDocumentsQuery(queryArgs, {
@@ -591,23 +576,6 @@ export const KnowledgeLibraryTable = () => {
     ],
   );
 
-  const retryErrorBanner = error ? (
-    <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-      <div className="flex items-start justify-between gap-3">
-        <div>{formatRtkQueryError(error)}</div>
-        <Button
-          variant="secondary"
-          className="h-8 w-8 shrink-0 px-0"
-          aria-label="Refresh knowledge library"
-          title="Refresh knowledge library"
-          onClick={() => void refetch()}
-        >
-          <RefreshIcon className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  ) : null;
-
   const editModalDisabled =
     isPatchingTitle || isReplacingThumbnail || isRetiring;
   const retireModalDisabled = isRetiring;
@@ -668,7 +636,6 @@ export const KnowledgeLibraryTable = () => {
           </div>
         </div>
 
-        {retryErrorBanner}
         {downloadError ? (
           <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
             {downloadError}
@@ -703,6 +670,9 @@ export const KnowledgeLibraryTable = () => {
           sortBy={sortBy}
           sortDir={sortOrder}
           onSort={handleSort}
+          queryError={isError && !isFetching ? error : undefined}
+          queryErrorTitle="Unable to load knowledge documents"
+          onRetryQuery={() => void refetch()}
         />
 
         <TablePagination

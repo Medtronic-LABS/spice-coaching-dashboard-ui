@@ -511,6 +511,7 @@ export const VideoUploadPage = () => {
     isLoading: isLoadingVideos,
     isFetching: isFetchingVideos,
     isError: isVideoListError,
+    error: videoListError,
     refetch: refetchSourceDocumentList,
   } = useFetchSourceDocumentsQuery({
     source_type: 'video',
@@ -1425,9 +1426,6 @@ export const VideoUploadPage = () => {
           </div>
         </div>
 
-        {isVideoListError ? (
-          <Banner tone="critical">Unable to load uploaded videos.</Banner>
-        ) : null}
         <SettingsFilterDrawer
           open={filtersDrawerOpen}
           onClose={handleCloseFiltersDrawer}
@@ -1459,6 +1457,11 @@ export const VideoUploadPage = () => {
           sortBy={sortBy}
           sortDir={sortDir}
           onSort={handleSort}
+          queryError={
+            isVideoListError && !isFetchingVideos ? videoListError : undefined
+          }
+          queryErrorTitle="Unable to load uploaded videos"
+          onRetryQuery={() => void refetchSourceDocumentList()}
         />
 
         <TablePagination

@@ -606,23 +606,6 @@ export const DocumentSelectionPanel = ({
 
   return (
     <div className="space-y-4">
-      {isError ? (
-        <Banner tone="critical">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>Unable to load documents. {formatRtkQueryError(error)}</span>
-            <Button
-              variant="secondary"
-              className="h-8 text-xs"
-              onClick={() => {
-                void refetch();
-              }}
-            >
-              Retry
-            </Button>
-          </div>
-        </Banner>
-      ) : null}
-
       <div className="space-y-3">
         <div className="text-sm font-semibold text-spice-text-primary">
           Upload
@@ -713,6 +696,11 @@ export const DocumentSelectionPanel = ({
           sortBy={sortBy}
           sortDir={sortDir}
           onSort={handleSort}
+          queryError={isError && !isFetching ? error : undefined}
+          queryErrorTitle="Unable to load documents"
+          onRetryQuery={() => {
+            void refetch();
+          }}
         />
 
         <TablePagination
