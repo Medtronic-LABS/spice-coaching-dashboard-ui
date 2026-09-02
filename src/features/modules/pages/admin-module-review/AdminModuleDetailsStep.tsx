@@ -278,7 +278,8 @@ export const AdminModuleDetailsStep = () => {
               {canEditMetadata ? (
                 <SummaryFitControl sizerText={domainTypeDisplay} selectArrow>
                   <Select
-                    className={COMPACT_CONTROL_CLASS}
+                    className="w-full min-w-0"
+                    triggerClassName="h-8 truncate rounded-lg border-spice-border bg-spice-bg-surface px-2 text-xs font-semibold"
                     options={INGEST_CONTENT_DOMAIN_OPTIONS}
                     value={
                       working.content_domain ??

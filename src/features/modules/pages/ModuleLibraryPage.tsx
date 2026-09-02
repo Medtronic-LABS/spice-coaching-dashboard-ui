@@ -12,6 +12,7 @@ import {
   Banner,
   Button,
   Card,
+  ConfirmDialog,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
@@ -52,6 +53,7 @@ import {
 import { usePublishModuleMutation } from '@/features/modules/api/moduleCreationPipelineApi';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
 import { ModuleAssignmentDialog } from '@/features/modules/components/ModuleAssignmentDialog';
+import { ModuleAssignedUsersCell } from '@/features/modules/components/ModuleAssignedUsersCell';
 import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
 import { ModuleLibraryFilters } from '@/features/modules/components/ModuleLibraryFilters';
 import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
@@ -108,6 +110,14 @@ import { resolveDisplayText } from '@/config/deploymentLocale';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
+import {
   CREATE_MODULE_FORM_DEFAULTS,
   CREATE_MODULE_FORM_PLACEHOLDERS,
 } from '@/features/modules/constants/createModuleFormDefaults';
@@ -133,8 +143,6 @@ const MODULE_SEARCH_MIN_CHARS = 1;
 const MODULE_SEARCH_DEBOUNCE_MS = 300;
 /** Page size for the server-side source document typeahead. */
 const SOURCE_DOCUMENT_SEARCH_LIMIT = 50;
-const MODULE_PAGE_SIZE_OPTIONS = [5, 10, 15, 25, 50] as const;
-const DEFAULT_MODULE_PAGE_SIZE = 10;
 
 const CREATE_MODULE_INPUT_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
@@ -249,7 +257,7 @@ export const ModuleLibraryPage = () => {
     setFilters,
     resolveExternalViewSearch,
   } = useModuleListFilters(isProgramManager);
-  const [pageSize, setPageSize] = useState(DEFAULT_MODULE_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(0);
   const {
     page,
@@ -373,7 +381,7 @@ export const ModuleLibraryPage = () => {
   } = useFetchModulesQuery(
     {
       limit: pageSize,
-      offset: page * pageSize,
+      offset: tablePageOffset(page, pageSize),
       status: lifecycleStatus,
       domain: activeFilters.domain || undefined,
       ...dateParams,
@@ -661,16 +669,17 @@ export const ModuleLibraryPage = () => {
     isProgramManager,
   );
 
-  const hasNextPage = totalPages > 0 && page + 1 < totalPages;
-  const hasPrevPage = page > 0;
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const hasPrevPage = tableHasPrevPage(page);
   const currentTabItemCount =
     tab === 'needs_review' || tab === 'discarded'
       ? modulesForList.length
       : filtered.length;
-  const rangeStart = currentTabItemCount ? page * pageSize + 1 : 0;
-  const rangeEnd = currentTabItemCount
-    ? page * pageSize + currentTabItemCount
-    : 0;
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    currentTabItemCount,
+  );
 
   const columns: Array<ColumnDef<ModuleLibraryItem>> = useMemo(
     () => [
@@ -760,6 +769,24 @@ export const ModuleLibraryPage = () => {
       },
       ...dateColumns.map(listingDateColumnDef),
       ...actorColumns.map(listingActorColumnDef),
+      ...(tab === 'published' || tab === 'all'
+        ? [
+            {
+              key: 'assigned',
+              header: 'Assigned',
+              className: 'whitespace-nowrap',
+              render: (row: ModuleLibraryItem) => (
+                <ModuleAssignedUsersCell
+                  moduleId={row.id}
+                  enabled={
+                    row.status === 'published' &&
+                    isAssignablePublishedModule(row)
+                  }
+                />
+              ),
+            } satisfies ColumnDef<ModuleLibraryItem>,
+          ]
+        : []),
       {
         key: 'id',
         header: 'Actions',
@@ -941,6 +968,7 @@ export const ModuleLibraryPage = () => {
       publishModule,
       publishingModuleId,
       reactivateModule,
+      reactivatingModuleId,
       refreshModuleList,
       setTab,
       tab,
@@ -977,6 +1005,7 @@ export const ModuleLibraryPage = () => {
         <Modal
           open={createOpen}
           labelledBy="create-module-title"
+          contentClassName="max-w-2xl"
           onClose={() => {
             if (isCreating) return;
             setCreateError('');
@@ -985,40 +1014,25 @@ export const ModuleLibraryPage = () => {
         >
           <Card
             variant="elevated"
-            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden border-spice-border p-0 shadow-lg"
+            className="w-full space-y-4 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
           >
-            <div className="shrink-0 space-y-4 p-6 pb-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2
-                    id="create-module-title"
-                    className="text-xl font-semibold text-spice-text-primary"
-                  >
-                    Create module
-                  </h2>
-                  <p className="mt-1 text-xs text-spice-text-muted">
-                    Creates a draft module in the admin module library.
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="h-9 px-3 text-xs"
-                  disabled={isCreating}
-                  onClick={() => {
-                    setCreateError('');
-                    setCreateOpen(false);
-                  }}
-                >
-                  Close
-                </Button>
-              </div>
-
-              {createError ? (
-                <Banner tone="critical">{createError}</Banner>
-              ) : null}
+            <div>
+              <h2
+                id="create-module-title"
+                className="text-xl font-semibold text-spice-text-primary"
+              >
+                Create module
+              </h2>
+              <p className="mt-1 text-xs text-spice-text-muted">
+                Creates a draft module in the admin module library.
+              </p>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6">
+            {createError ? (
+              <Banner tone="critical">{createError}</Banner>
+            ) : null}
+
+            <div className="space-y-4">
               <div className="grid gap-3">
                 <label className="block w-full space-y-1">
                   <span className="text-xs font-semibold text-spice-text-primary">
@@ -1092,7 +1106,7 @@ export const ModuleLibraryPage = () => {
                     />
                   </span>
                   <Select
-                    className="w-full rounded-lg"
+                    className="w-full"
                     options={INGEST_CONTENT_DOMAIN_OPTIONS}
                     value={createForm.content_domain}
                     disabled={isCreating}
@@ -1186,7 +1200,7 @@ export const ModuleLibraryPage = () => {
               />
             </div>
 
-            <div className="flex shrink-0 justify-end gap-2 px-6 pb-6 pt-6">
+            <div className="flex justify-end gap-2 border-t border-spice-border pt-4">
               <Button
                 variant="secondary"
                 className="h-9 text-xs"
@@ -1304,79 +1318,50 @@ export const ModuleLibraryPage = () => {
       ) : null}
 
       {deactivateConfirmOpen && deactivateModuleData ? (
-        <Modal
+        <ConfirmDialog
           open={deactivateConfirmOpen}
           labelledBy="deactivate-module-title"
+          describedBy="deactivate-module-description"
+          title="Deactivate module"
+          description={
+            <>
+              You are deactivating{' '}
+              <QuotedDisplayLabel text={deactivateModuleData.title} />. Once
+              deactivated, this module will no longer be visible to users for
+              new assignments or training workflows. Do you want to proceed?
+            </>
+          }
+          confirmLabel="Deactivate"
+          confirmingLabel="Deactivating…"
+          isConfirming={isDeactivating}
+          disabled={isDeactivating}
           onClose={() => {
-            if (isDeactivating) return;
             setDeactivateError('');
             setDeactivateConfirmOpen(false);
             setDeactivateModuleData(null);
           }}
+          onConfirm={() => {
+            void (async () => {
+              setDeactivateError('');
+              try {
+                await deactivateModule({
+                  moduleId: deactivateModuleData.id,
+                }).unwrap();
+                setDeactivateConfirmOpen(false);
+                setDeactivateModuleData(null);
+                refreshModuleList();
+              } catch {
+                setDeactivateError(
+                  'Failed to deactivate module. Please try again.',
+                );
+              }
+            })();
+          }}
         >
-          <Card
-            variant="elevated"
-            className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden border-spice-border p-0 shadow-lg"
-          >
-            <div className="shrink-0 space-y-4 p-6 pb-4">
-              <div>
-                <h2
-                  id="deactivate-module-title"
-                  className="text-xl font-semibold text-spice-text-primary"
-                >
-                  Deactivate Module
-                </h2>
-                <p className="mt-2 text-sm text-spice-text-medium">
-                  You are deactivating{' '}
-                  <QuotedDisplayLabel text={deactivateModuleData.title} />. Once
-                  deactivated, this module will no longer be visible to users
-                  for new assignments or training workflows. Do you want to
-                  proceed?
-                </p>
-              </div>
-
-              {deactivateError ? (
-                <Banner tone="critical">{deactivateError}</Banner>
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 justify-end gap-2 p-6 pt-2">
-              <Button
-                variant="secondary"
-                className="h-9 text-xs"
-                disabled={isDeactivating}
-                onClick={() => {
-                  setDeactivateError('');
-                  setDeactivateConfirmOpen(false);
-                  setDeactivateModuleData(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="h-9 text-xs bg-spice-semantic-error hover:bg-spice-semantic-error/90"
-                disabled={isDeactivating}
-                onClick={async () => {
-                  setDeactivateError('');
-                  try {
-                    await deactivateModule({
-                      moduleId: deactivateModuleData.id,
-                    }).unwrap();
-                    setDeactivateConfirmOpen(false);
-                    setDeactivateModuleData(null);
-                    refreshModuleList();
-                  } catch {
-                    setDeactivateError(
-                      'Failed to deactivate module. Please try again.',
-                    );
-                  }
-                }}
-              >
-                {isDeactivating ? 'Deactivating…' : 'Deactivate'}
-              </Button>
-            </div>
-          </Card>
-        </Modal>
+          {deactivateError ? (
+            <Banner tone="critical">{deactivateError}</Banner>
+          ) : null}
+        </ConfirmDialog>
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1524,7 +1509,7 @@ export const ModuleLibraryPage = () => {
         <TablePagination
           page={page}
           pageSize={pageSize}
-          pageSizeOptions={MODULE_PAGE_SIZE_OPTIONS}
+          pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
           totalItems={totalModules}
           totalPages={totalPages}
           rangeStart={rangeStart}

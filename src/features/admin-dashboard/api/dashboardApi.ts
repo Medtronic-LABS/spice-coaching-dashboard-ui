@@ -62,6 +62,10 @@ export interface PublishedModuleCompletionsQuery
   extends DashboardDateParams, DashboardGeoQueryParams {
   limit?: number;
   offset?: number;
+  /** Repeated `module_id` query params on the backend. */
+  module_id?: string[];
+  sort_by?: 'published_at';
+  sort_dir?: 'asc' | 'desc';
 }
 
 export interface DigitalHelpModuleQuestionsQuery extends DashboardDateParams {
@@ -98,6 +102,7 @@ export interface DocumentUsageQuery extends DashboardGeoQueryParams {
   to: string;
   user_id?: number;
   document_id?: string;
+  q?: string;
   top_limit?: number;
   documents_limit?: number;
   documents_offset?: number;
@@ -232,13 +237,25 @@ export const dashboardApi = baseApi.injectEndpoints({
       PublishedModuleCompletionsQuery
     >({
       extraOptions: DASHBOARD_QUERY_RETRY,
-      query: ({ from_date, to_date, limit, offset, ...geo }) => ({
+      query: ({
+        from_date,
+        to_date,
+        limit,
+        offset,
+        module_id,
+        sort_by,
+        sort_dir,
+        ...geo
+      }) => ({
         url: '/dashboard/published-module-completions',
         params: {
           from_date,
           to_date,
           limit,
           offset,
+          ...(module_id && module_id.length > 0 ? { module_id } : {}),
+          ...(sort_by ? { sort_by } : {}),
+          ...(sort_dir ? { sort_dir } : {}),
           ...geo,
         },
       }),
@@ -311,6 +328,7 @@ export const dashboardApi = baseApi.injectEndpoints({
         to,
         user_id,
         document_id,
+        q,
         top_limit,
         documents_limit,
         documents_offset,
@@ -324,6 +342,7 @@ export const dashboardApi = baseApi.injectEndpoints({
           to,
           user_id,
           document_id,
+          q,
           top_limit,
           documents_limit,
           documents_offset,

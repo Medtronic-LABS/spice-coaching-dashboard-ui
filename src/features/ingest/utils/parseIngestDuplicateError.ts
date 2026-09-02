@@ -217,6 +217,38 @@ export function isOverriddenUploadedSource(
   return false;
 }
 
+/** Count sources that were newly uploaded rather than reused from duplicates. */
+export function countNewlyUploadedSources(
+  response: AdminV3IngestUploadResponse,
+  context: {
+    overriddenFilenames: readonly string[];
+    duplicateConflicts: readonly IngestDuplicateConflict[];
+  },
+): number {
+  const reusedSourceIds = new Set(
+    (response.skipped_duplicates ?? []).flatMap((conflict) =>
+      conflict.existing_source_documents.map(
+        (existing) => existing.source_document_id,
+      ),
+    ),
+  );
+  const duplicateConflicts =
+    context.duplicateConflicts.length > 0
+      ? context.duplicateConflicts
+      : (response.skipped_duplicates ?? []);
+
+  return response.sources.filter((source) => {
+    if (!reusedSourceIds.has(source.source_document_id)) {
+      return true;
+    }
+    return isOverriddenUploadedSource(
+      source,
+      context.overriddenFilenames,
+      duplicateConflicts,
+    );
+  }).length;
+}
+
 export function uploadedSourcesFromConflicts(
   conflicts: IngestDuplicateConflict[],
   contentDomain?: IngestContentDomain | null,

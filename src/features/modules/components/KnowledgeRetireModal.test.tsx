@@ -35,10 +35,10 @@ describe('KnowledgeRetireModal', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Remove Knowledge Document' }),
+      screen.getByRole('heading', { name: 'Delete knowledge document' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Are you sure you want to remove/),
+      screen.getByText(/Are you sure you want to delete/),
     ).toBeInTheDocument();
     expect(screen.getByText(/HTN Referral Guidelines/)).toBeInTheDocument();
     expect(
@@ -46,15 +46,13 @@ describe('KnowledgeRetireModal', () => {
         /This will retire the knowledge document and remove it from users’ access and active assignments/,
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Confirm Remove' }),
-    ).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Confirm Remove' })).toHaveClass(
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
       'bg-spice-semantic-error',
     );
   });
 
-  it('shows Removing… and blocks cancel while busy', () => {
+  it('shows Deleting… and blocks cancel while busy', () => {
     render(
       <KnowledgeRetireModal
         open
@@ -68,7 +66,7 @@ describe('KnowledgeRetireModal', () => {
     );
 
     expect(screen.getByText('Retire failed')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Removing…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Deleting…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   });
 
@@ -89,7 +87,7 @@ describe('KnowledgeRetireModal', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Confirm Remove' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));

@@ -130,15 +130,18 @@ describe('BadgeManagementPage', () => {
 
     await screen.findByText('Safe Motherhood Champion');
 
-    expect(screen.getByLabelText('Rows per page')).toHaveValue('10');
+    expect(screen.getByLabelText('Rows per page')).toHaveTextContent('10');
     expect(screen.getByLabelText('Page number')).toHaveValue('1');
     expect(screen.getByText('Rows')).toBeInTheDocument();
     expect(screen.getByText('Page')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Previous page' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
 
-    await user.selectOptions(screen.getByLabelText('Rows per page'), '5');
-    expect(screen.getByLabelText('Rows per page')).toHaveValue('5');
+    await user.click(screen.getByLabelText('Rows per page'));
+    await user.click(screen.getByRole('option', { name: '5' }));
+    expect(screen.getByLabelText('Rows per page')).toHaveTextContent('5');
   });
 
   it('uses TruncatedText for table module lists and reveals the full list on hover', async () => {

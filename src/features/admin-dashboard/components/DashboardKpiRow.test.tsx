@@ -28,8 +28,18 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
           users_chatbot_engaged: 1,
         },
       },
+      currentData: {
+        summary: {
+          total_users: 3,
+          active_users: 3,
+          non_active_users: 0,
+          users_completed_module: 2,
+          users_chatbot_engaged: 1,
+        },
+      },
       isLoading: false,
       isFetching: false,
+      isError: false,
       error: undefined,
       refetch: refetchTeam,
     };
@@ -48,8 +58,13 @@ vi.mock('@/features/admin-dashboard/api/dashboardApi', () => ({
         total_modules: 12,
         modules: [],
       },
+      currentData: {
+        total_modules: 12,
+        modules: [],
+      },
       isLoading: false,
       isFetching: false,
+      isError: false,
       error: undefined,
       refetch: refetchModules,
     };

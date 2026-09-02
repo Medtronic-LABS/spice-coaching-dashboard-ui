@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
 import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimatedMinutesValidation';
-import { mockModuleLibrary } from '@/store/apis/mockData';
+import { testModuleLibrary } from '@/test-utils/fixtures/moduleFixtures';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleLibraryPage } from './ModuleLibraryPage';
 import type { AppRole } from '@/constants/role';
@@ -12,7 +12,7 @@ import type { AppRole } from '@/constants/role';
 const roleState = vi.hoisted(() => ({ role: 'supervisor' as AppRole }));
 
 function snapshotModuleStatuses() {
-  return mockModuleLibrary.modules.map((module) => ({
+  return testModuleLibrary.modules.map((module) => ({
     id: module.id,
     status: module.status,
   }));
@@ -30,7 +30,7 @@ const initialModuleStatuses = snapshotModuleStatuses();
 
 function resetMockModuleStatuses() {
   for (const entry of initialModuleStatuses) {
-    const module = mockModuleLibrary.modules.find(
+    const module = testModuleLibrary.modules.find(
       (item) => item.id === entry.id,
     );
     if (module) {
@@ -94,8 +94,20 @@ async function applyFilters(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: /^apply$/i }));
 }
 
+async function openDomainSelect(user: ReturnType<typeof userEvent.setup>) {
+  const domainSelect = await getDomainSelect();
+  await user.click(domainSelect);
+  return domainSelect;
+}
+
 async function waitForDomainOption(label: string) {
   await screen.findByRole('option', { name: label });
+}
+
+async function expectDomainSelected(domain: string) {
+  await waitFor(async () => {
+    expect(await getDomainSelect()).toHaveTextContent(domain);
+  });
 }
 
 async function selectDomain(
@@ -103,9 +115,9 @@ async function selectDomain(
   domain: string,
 ) {
   await openFiltersDrawer(user);
+  await openDomainSelect(user);
   await waitForDomainOption(domain);
-  const domainSelect = await getDomainSelect();
-  await user.selectOptions(domainSelect, domain);
+  await user.click(screen.getByRole('option', { name: domain }));
   await applyFilters(user);
 }
 
@@ -274,7 +286,7 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByLabelText(/source document/i)).toHaveValue(
       'Hypertension guide',
     );
-    expect(await getDomainSelect()).toHaveValue('');
+    expect(await getDomainSelect()).toHaveTextContent('All domains');
     expect(screen.getByLabelText(/created date from/i)).toHaveValue('');
     expect(screen.getByLabelText(/created date to/i)).toHaveValue('');
   });
@@ -347,7 +359,7 @@ describe('ModuleLibraryPage', () => {
 
   it('opens a deactivated module from its title for program manager', async () => {
     roleState.role = 'programManager';
-    mockModuleLibrary.modules[0].status = 'deactivated';
+    testModuleLibrary.modules[0].status = 'deactivated';
     const user = userEvent.setup();
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=deactivated`);
 
@@ -394,6 +406,9 @@ describe('ModuleLibraryPage', () => {
       screen.queryByRole('columnheader', { name: /^published at$/i }),
     ).not.toBeInTheDocument();
     expect(
+      screen.queryByRole('columnheader', { name: /^assigned$/i }),
+    ).not.toBeInTheDocument();
+    expect(
       (await screen.findAllByRole('button', { name: /^publish$/i })).length,
     ).toBeGreaterThan(0);
 
@@ -409,6 +424,9 @@ describe('ModuleLibraryPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: /^published by$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /^assigned$/i }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /deactivated/i }));
@@ -429,6 +447,9 @@ describe('ModuleLibraryPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('columnheader', { name: /^published at$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: /^assigned$/i }),
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /^all$/i }));
@@ -458,6 +479,9 @@ describe('ModuleLibraryPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: /^deactivated by$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /^assigned$/i }),
     ).toBeInTheDocument();
   });
 
@@ -569,7 +593,7 @@ describe('ModuleLibraryPage', () => {
 
     await openFiltersDrawer(user);
     await user.click(screen.getByRole('button', { name: /clear all/i }));
-    expect(await getDomainSelect()).toHaveValue('');
+    expect(await getDomainSelect()).toHaveTextContent('All domains');
     expect(
       await screen.findByText('SPICE App — Visit Submission'),
     ).toBeInTheDocument();
@@ -585,12 +609,12 @@ describe('ModuleLibraryPage', () => {
 
     await user.click(screen.getByRole('tab', { name: /drafts/i }));
     await openFiltersDrawer(user);
-    expect(await getDomainSelect()).toHaveValue('Hypertension');
+    await expectDomainSelected('Hypertension');
 
     await user.click(screen.getByRole('button', { name: /close filters/i }));
     await user.click(screen.getByRole('tab', { name: /deactivated/i }));
     await openFiltersDrawer(user);
-    expect(await getDomainSelect()).toHaveValue('Hypertension');
+    await expectDomainSelected('Hypertension');
   });
 
   it('keeps a domain that only exists on another lifecycle status when switching tabs', async () => {
@@ -604,8 +628,9 @@ describe('ModuleLibraryPage', () => {
     await user.click(screen.getByRole('tab', { name: /deactivated/i }));
 
     await openFiltersDrawer(user);
-    expect(await getDomainSelect()).toHaveValue('Referral');
+    await expectDomainSelected('Referral');
     // Domain options stay unscoped (All-tab set), so Referral remains selectable.
+    await openDomainSelect(user);
     expect(
       screen.getByRole('option', { name: 'Referral' }),
     ).toBeInTheDocument();
@@ -619,8 +644,9 @@ describe('ModuleLibraryPage', () => {
     );
 
     await openFiltersDrawer(user);
+    await expectDomainSelected('Referral');
+    await openDomainSelect(user);
     await waitForDomainOption('Referral');
-    expect(await getDomainSelect()).toHaveValue('Referral');
   });
 
   it('restores filters from URL search params', async () => {
@@ -631,8 +657,9 @@ describe('ModuleLibraryPage', () => {
     );
 
     await openFiltersDrawer(user);
+    await expectDomainSelected('Hypertension');
+    await openDomainSelect(user);
     await waitForDomainOption('Hypertension');
-    expect(await getDomainSelect()).toHaveValue('Hypertension');
     await user.click(screen.getByRole('button', { name: /close filters/i }));
     await waitFor(() => {
       const table = screen.getByRole('table');
@@ -880,8 +907,8 @@ describe('ModuleLibraryPage', () => {
       within(dialog).queryByText(/domain & settings/i),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog).getByRole('combobox', { name: /content domain type/i }),
-    ).toHaveValue('clinical');
+      within(dialog).getByRole('button', { name: 'Content domain type' }),
+    ).toHaveTextContent('Clinical');
     expect(within(dialog).getByLabelText(/^difficulty level/i)).toHaveClass(
       'select-arrow',
     );
@@ -1029,7 +1056,7 @@ describe('ModuleLibraryPage', () => {
 
   it('switches to needs review tab with expanded accordion when Resolve is clicked for a review_pending module from all tab', async () => {
     roleState.role = 'programManager';
-    mockModuleLibrary.modules[6].status = 'review_pending';
+    testModuleLibrary.modules[6].status = 'review_pending';
     const user = userEvent.setup();
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=all`);
 

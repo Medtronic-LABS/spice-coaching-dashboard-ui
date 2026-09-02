@@ -125,8 +125,8 @@ export const SkDetailDrawer = ({
     latestModuleCompletedAt(member?.assigned_modules ?? []),
   );
   const topQueries = useMemo(
-    () => rankTopQueries(questionsQuery.data?.questions ?? []),
-    [questionsQuery.data?.questions],
+    () => rankTopQueries(questionsQuery.currentData?.questions ?? []),
+    [questionsQuery.currentData?.questions],
   );
 
   return (
@@ -140,30 +140,30 @@ export const SkDetailDrawer = ({
       {member ? (
         <div className="flex h-full min-h-0 flex-col">
           <header className="shrink-0 bg-spiceSkDrawer px-4 pb-12 pt-4 text-white">
+            <p id={DRAWER_DESCRIPTION_ID} className="sr-only">
+              {t('adminDashboard.skDrawer.description', { name: member.name })}
+            </p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 aria-label={t('adminDashboard.skDrawer.close')}
               >
                 <ArrowRightIcon className="h-5 w-5 rotate-180" />
               </button>
-              <h2 id={DRAWER_TITLE_ID} className="text-sm font-semibold">
-                {t('adminDashboard.skDrawer.title')}
-              </h2>
-            </div>
-            <p id={DRAWER_DESCRIPTION_ID} className="sr-only">
-              {t('adminDashboard.skDrawer.description', { name: member.name })}
-            </p>
-            <div className="mt-6 flex items-center gap-3 px-1">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-semibold text-white">
-                {memberInitials(member.name)}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-xl font-bold leading-tight">
-                  {member.name}
-                </p>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-semibold text-white">
+                  {memberInitials(member.name)}
+                </div>
+                <div className="min-w-0">
+                  <p
+                    id={DRAWER_TITLE_ID}
+                    className="truncate text-xl font-bold leading-tight"
+                  >
+                    {member.name}
+                  </p>
+                </div>
               </div>
             </div>
           </header>
@@ -267,15 +267,12 @@ export const SkDetailDrawer = ({
                   )}
                 />
               ) : (
-                <ol className="mt-2 divide-y divide-spice-border/70">
-                  {topQueries.map((query, index) => (
+                <ul className="mt-2 divide-y divide-spice-border/70">
+                  {topQueries.map((query) => (
                     <li
                       key={`${query.question}-${query.last_asked_at}`}
                       className="flex items-center gap-4 py-3"
                     >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-spice-palette-pinkLt text-xs font-semibold text-spice-palette-pink">
-                        {index + 1}
-                      </span>
                       <span className="min-w-0 flex-1 text-sm text-spice-text-primary">
                         {query.question}
                       </span>
@@ -284,7 +281,7 @@ export const SkDetailDrawer = ({
                       </span>
                     </li>
                   ))}
-                </ol>
+                </ul>
               )}
             </section>
           </div>

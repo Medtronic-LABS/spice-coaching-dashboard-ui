@@ -114,10 +114,11 @@ export const ModulePreviewModal = () => {
     <Modal
       open={isOpen}
       labelledBy="module-preview-modal-title"
+      contentClassName="max-w-lg"
       onClose={closePreview}
     >
-      <div className="flex h-[min(90vh,800px)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-spice-bg-surface shadow-xl">
-        <ModulePreviewPanel onClose={closePreview} />
+      <div className="flex h-[min(90vh,800px)] w-full flex-col overflow-hidden rounded-xl bg-spice-bg-surface shadow-xl">
+        <ModulePreviewPanel />
       </div>
     </Modal>
   );

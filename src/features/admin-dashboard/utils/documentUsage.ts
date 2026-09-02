@@ -3,15 +3,30 @@ import type {
   DocumentUsageEventRow,
   DocumentUsageTopItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
+import { hierarchyRoleKind } from '@/features/admin-dashboard/utils/teamActivity';
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
+
+export {
+  DEFAULT_TABLE_PAGE_SIZE as DEFAULT_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS as PAGE_SIZE_OPTIONS,
+  tablePaginationRange as paginationRange,
+};
+
+export type DocumentUsageListView = 'overview' | 'documentsAll';
+export type DocumentUsageView = DocumentUsageListView | 'documentDetail';
+
+const DOCUMENT_USAGE_ROLE_ABBREVIATION = {
+  am: 'AM',
+  po: 'PO',
+  sk: 'SK',
+} as const;
 
 export const OVERVIEW_TOP_LIMIT = 5;
 export const OVERVIEW_DOCUMENTS_LIMIT = 5;
-export const TOP_ALL_LIMIT = 50;
-export const PAGE_SIZE_OPTIONS = [5, 10, 15, 25] as const;
-export const DEFAULT_PAGE_SIZE = 10;
-
-export type DocumentUsageListView = 'overview' | 'topAll' | 'documentsAll';
-export type DocumentUsageView = DocumentUsageListView | 'documentDetail';
 
 export interface DocumentUsageQueryArgs {
   top_limit: number;
@@ -20,6 +35,7 @@ export interface DocumentUsageQueryArgs {
   events_limit: number;
   events_offset: number;
   document_id?: string;
+  q?: string;
 }
 
 export interface DocumentUsageTopCard {
@@ -38,6 +54,8 @@ export function buildDocumentUsageQueryArgs(params: {
   documentsPageSize: number;
   eventsPage: number;
   eventsPageSize: number;
+  /** Server-side title search; only sent on documentsAll. */
+  q?: string;
 }): DocumentUsageQueryArgs {
   const {
     view,
@@ -46,22 +64,13 @@ export function buildDocumentUsageQueryArgs(params: {
     documentsPageSize,
     eventsPage,
     eventsPageSize,
+    q,
   } = params;
 
   if (view === 'overview') {
     return {
       top_limit: OVERVIEW_TOP_LIMIT,
       documents_limit: OVERVIEW_DOCUMENTS_LIMIT,
-      documents_offset: 0,
-      events_limit: 1,
-      events_offset: 0,
-    };
-  }
-
-  if (view === 'topAll') {
-    return {
-      top_limit: TOP_ALL_LIMIT,
-      documents_limit: TOP_ALL_LIMIT,
       documents_offset: 0,
       events_limit: 1,
       events_offset: 0,
@@ -79,12 +88,14 @@ export function buildDocumentUsageQueryArgs(params: {
     };
   }
 
+  const trimmedQ = q?.trim();
   return {
     top_limit: OVERVIEW_TOP_LIMIT,
     documents_limit: documentsPageSize,
     documents_offset: documentsPage * documentsPageSize,
     events_limit: 1,
     events_offset: 0,
+    ...(trimmedQ ? { q: trimmedQ } : {}),
   };
 }
 
@@ -113,24 +124,21 @@ export function mapTopDocuments(
   }));
 }
 
-export function filterDocumentsBySearch(
-  rows: DocumentUsageDocumentRow[],
-  search: string,
-): DocumentUsageDocumentRow[] {
-  const needle = search.trim().toLowerCase();
-  if (!needle) return rows;
-  return rows.filter((row) => {
-    const title = (row.document_title ?? row.document_id).toLowerCase();
-    const viewer = (row.last_viewed_by_user_name ?? '').toLowerCase();
-    return title.includes(needle) || viewer.includes(needle);
-  });
-}
-
 export function formatEventGeography(
   district: string | null,
   upazilaId: string | null,
 ): string {
   return [district, upazilaId].filter(Boolean).join(' / ') || '—';
+}
+
+/** Compact AM / PO / SK labels for the document-usage opens table. */
+export function formatDocumentUsageRoleAbbreviation(
+  role: string | null,
+): string {
+  if (role == null || role.trim() === '') return '—';
+  const kind = hierarchyRoleKind(role);
+  if (kind === 'unknown') return role;
+  return DOCUMENT_USAGE_ROLE_ABBREVIATION[kind];
 }
 
 export function mapEventRows(
@@ -140,15 +148,4 @@ export function mapEventRows(
     ...event,
     geography: formatEventGeography(event.district, event.upazila_id),
   }));
-}
-
-export function paginationRange(
-  page: number,
-  pageSize: number,
-  rowCount: number,
-): { start: number; end: number } {
-  if (rowCount <= 0) return { start: 0, end: 0 };
-  const start = page * pageSize + 1;
-  const end = page * pageSize + rowCount;
-  return { start, end };
 }

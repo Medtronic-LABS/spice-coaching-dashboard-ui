@@ -50,22 +50,35 @@ const sk: TeamActivityMember = {
 function questionsQuery(
   partial: Record<string, unknown> = {},
 ): Record<string, unknown> {
+  const baseData = {
+    questions: [
+      {
+        question: 'Danger Signs in Pregnancy',
+        occurrence_count: 1,
+        last_asked_at: '2026-08-07T09:00:00.000Z',
+      },
+    ],
+  };
+  const data =
+    'data' in partial
+      ? (partial.data as typeof baseData | undefined)
+      : baseData;
   return {
-    data: {
-      questions: [
-        {
-          question: 'Danger Signs in Pregnancy',
-          occurrence_count: 1,
-          last_asked_at: '2026-08-07T09:00:00.000Z',
-        },
-      ],
-    },
+    data,
+    currentData: data,
     isLoading: false,
     isFetching: false,
     isError: false,
     error: undefined,
     refetch: vi.fn(),
     ...partial,
+    // Keep currentData aligned with data after partial overrides.
+    currentData:
+      'currentData' in partial
+        ? partial.currentData
+        : 'data' in partial
+          ? partial.data
+          : data,
   };
 }
 
@@ -102,7 +115,9 @@ describe('SkDetailDrawer', () => {
 
     renderDrawer(sk, onClose);
 
-    expect(screen.getByRole('dialog', { name: 'My SK' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Rokeya Akter' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Rokeya Akter')).toBeInTheDocument();
     expect(screen.getByText('1/2')).toBeInTheDocument();
     expect(screen.getByText('Pregnancy Danger Signs')).toBeInTheDocument();
@@ -158,6 +173,7 @@ describe('SkDetailDrawer', () => {
     useFetchTeamMemberQuestionsQuery.mockReturnValue(
       questionsQuery({
         data: undefined,
+        currentData: undefined,
         isError: true,
         refetch,
       }),

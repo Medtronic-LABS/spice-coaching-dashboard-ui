@@ -30,4 +30,44 @@ describe('BadgeModuleMultiSelect', () => {
     expect(tooltip).toHaveTextContent(title);
     expect(tooltip.className).toContain('z-[500]');
   });
+
+  it('selects all currently loaded options', () => {
+    const onChange = vi.fn();
+
+    render(
+      <BadgeModuleMultiSelect
+        options={[
+          { id: 'm-1', title: 'Module One', domain: 'htn' },
+          { id: 'm-2', title: 'Module Two', domain: 'diabetes' },
+        ]}
+        selectedIds={['m-1']}
+        onChange={onChange}
+        searchValue=""
+        onSearchChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select all loaded' }));
+    expect(onChange).toHaveBeenCalledWith(['m-1', 'm-2']);
+  });
+
+  it('deselects all currently loaded options when all are selected', () => {
+    const onChange = vi.fn();
+
+    render(
+      <BadgeModuleMultiSelect
+        options={[
+          { id: 'm-1', title: 'Module One', domain: 'htn' },
+          { id: 'm-2', title: 'Module Two', domain: 'diabetes' },
+        ]}
+        selectedIds={['m-1', 'm-2', 'm-other']}
+        onChange={onChange}
+        searchValue=""
+        onSearchChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deselect all' }));
+    expect(onChange).toHaveBeenCalledWith(['m-other']);
+  });
 });

@@ -59,6 +59,9 @@ export const adminFilesApi = baseApi.injectEndpoints({
       AdminFilePresignedUrlResponse,
       AdminFilePresignedUrlParams
     >({
+      // Avoid remount refetch (e.g. milestone modal) minting a new URL and
+      // flashing every thumb already showing this object.
+      refetchOnMountOrArgChange: false,
       query: ({
         object_name,
         expires_seconds = 600,

@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import { screen, waitFor, within, fireEvent } from '@testing-library/react';
+import {
+  screen,
+  waitFor,
+  within,
+  fireEvent,
+  act,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -23,7 +29,22 @@ type IngestAcceptedCallback = (
 
 type IngestUploadedCallback = (
   response: AdminV3IngestUploadResponse,
-  meta: { isReupload: boolean },
+  meta: {
+    isReupload: boolean;
+    overriddenFilenames: string[];
+    duplicateConflicts: Array<{
+      filename: string;
+      title: string;
+      content_sha256: string;
+      existing_source_documents: Array<{
+        source_document_id: string;
+        title: string;
+        original_filename: string;
+        ingested_at: string;
+        status: string;
+      }>;
+    }>;
+  },
 ) => void;
 
 const mocks = vi.hoisted(() => {
@@ -278,7 +299,11 @@ async function stageAndApiUpload(
       },
       ...mocks.sourceDocuments.filter((document) => document.id !== sourceId),
     ];
-    mocks.onUploadedRef.current?.(response, { isReupload: false });
+    mocks.onUploadedRef.current?.(response, {
+      isReupload: false,
+      overriddenFilenames: [],
+      duplicateConflicts: [],
+    });
     return response;
   });
 
@@ -369,6 +394,50 @@ describe('VideoUploadPage', () => {
     expect(
       screen.getByLabelText(/^description/i, { selector: 'textarea' }),
     ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
+  });
+
+  it('does not show upload success when skip upload reuses an existing video', async () => {
+    const conflicts = [
+      {
+        filename: 'existing.mp4',
+        title: 'Existing video',
+        content_sha256: 'video-source-1',
+        existing_source_documents: [
+          {
+            source_document_id: 'video-source-1',
+            title: 'Existing video',
+            original_filename: 'existing.mp4',
+            ingested_at: '2026-07-15T08:00:00Z',
+            status: 'ingested',
+          },
+        ],
+      },
+    ];
+    renderPage();
+    const response: AdminV3IngestUploadResponse = {
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: 'video-source-1',
+          title: 'Existing video',
+          source_type: 'video',
+          stored_path: 'path',
+          status: 'ingested',
+        },
+      ],
+      skipped_duplicates: conflicts,
+    };
+    await act(async () => {
+      mocks.onUploadedRef.current?.(response, {
+        isReupload: true,
+        overriddenFilenames: [],
+        duplicateConflicts: conflicts,
+      });
+    });
+
+    expect(
+      screen.queryByText('Video uploaded successfully.'),
+    ).not.toBeInTheDocument();
   });
 
   it('stages a video, uploads it, then starts ingest with source ids', async () => {
@@ -532,7 +601,11 @@ describe('VideoUploadPage', () => {
           },
         ],
       };
-      mocks.onUploadedRef.current?.(response, { isReupload: false });
+      mocks.onUploadedRef.current?.(response, {
+        isReupload: false,
+        overriddenFilenames: [],
+        duplicateConflicts: [],
+      });
       return response;
     });
 

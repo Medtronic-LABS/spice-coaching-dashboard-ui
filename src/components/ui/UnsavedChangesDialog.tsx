@@ -27,11 +27,12 @@ export const UnsavedChangesDialog = ({
     <Modal
       open={open}
       labelledBy="unsaved-changes-title"
+      contentClassName="max-w-md"
       zIndexClassName="z-[310]"
     >
       <Card
         variant="elevated"
-        className="w-full max-w-md space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
           <h2
@@ -46,7 +47,7 @@ export const UnsavedChangesDialog = ({
           <Button variant="secondary" onClick={onStay} disabled={isSaving}>
             Stay on page
           </Button>
-          <Button variant="ghost" onClick={onDiscard} disabled={isSaving}>
+          <Button variant="secondary" onClick={onDiscard} disabled={isSaving}>
             Discard changes
           </Button>
           {onSaveAndLeave ? (

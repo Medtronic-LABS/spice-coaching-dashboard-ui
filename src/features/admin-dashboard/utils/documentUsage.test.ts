@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_PAGE_SIZE,
   OVERVIEW_DOCUMENTS_LIMIT,
   OVERVIEW_TOP_LIMIT,
-  TOP_ALL_LIMIT,
   buildDocumentUsageQueryArgs,
-  filterDocumentsBySearch,
+  formatDocumentUsageRoleAbbreviation,
   formatEventGeography,
   mapEventRows,
   mapTopDocuments,
@@ -52,22 +50,6 @@ describe('buildDocumentUsageQueryArgs', () => {
     });
   });
 
-  it('builds topAll limits', () => {
-    expect(
-      buildDocumentUsageQueryArgs({
-        view: 'topAll',
-        documentsPage: 0,
-        documentsPageSize: DEFAULT_PAGE_SIZE,
-        eventsPage: 0,
-        eventsPageSize: DEFAULT_PAGE_SIZE,
-      }),
-    ).toMatchObject({
-      top_limit: TOP_ALL_LIMIT,
-      documents_limit: TOP_ALL_LIMIT,
-      documents_offset: 0,
-    });
-  });
-
   it('builds documentsAll pagination offsets', () => {
     expect(
       buildDocumentUsageQueryArgs({
@@ -84,6 +66,46 @@ describe('buildDocumentUsageQueryArgs', () => {
       events_limit: 1,
       events_offset: 0,
     });
+  });
+
+  it('includes trimmed q on documentsAll and omits blank q', () => {
+    expect(
+      buildDocumentUsageQueryArgs({
+        view: 'documentsAll',
+        documentsPage: 0,
+        documentsPageSize: 10,
+        eventsPage: 0,
+        eventsPageSize: 10,
+        q: '  protocol  ',
+      }),
+    ).toEqual({
+      top_limit: OVERVIEW_TOP_LIMIT,
+      documents_limit: 10,
+      documents_offset: 0,
+      events_limit: 1,
+      events_offset: 0,
+      q: 'protocol',
+    });
+    expect(
+      buildDocumentUsageQueryArgs({
+        view: 'documentsAll',
+        documentsPage: 0,
+        documentsPageSize: 10,
+        eventsPage: 0,
+        eventsPageSize: 10,
+        q: '   ',
+      }).q,
+    ).toBeUndefined();
+    expect(
+      buildDocumentUsageQueryArgs({
+        view: 'overview',
+        documentsPage: 0,
+        documentsPageSize: 10,
+        eventsPage: 0,
+        eventsPageSize: 10,
+        q: 'protocol',
+      }).q,
+    ).toBeUndefined();
   });
 
   it('builds documentDetail with document_id and event pagination', () => {
@@ -138,29 +160,6 @@ describe('document usage row mappers', () => {
     ]);
   });
 
-  it('filters documents by title or last viewer name', () => {
-    const rows = [
-      documentRow({
-        document_id: '1',
-        document_title: 'Onboarding PDF',
-        last_viewed_by_user_name: 'Asha',
-      }),
-      documentRow({
-        document_id: '2',
-        document_title: 'Policy',
-        last_viewed_by_user_name: 'Rafi',
-      }),
-    ];
-
-    expect(
-      filterDocumentsBySearch(rows, 'onboard').map((r) => r.document_id),
-    ).toEqual(['1']);
-    expect(
-      filterDocumentsBySearch(rows, 'rafi').map((r) => r.document_id),
-    ).toEqual(['2']);
-    expect(filterDocumentsBySearch(rows, '  ').length).toBe(2);
-  });
-
   it('formats event geography and maps rows', () => {
     expect(formatEventGeography('Dhaka', 'up-1')).toBe('Dhaka / up-1');
     expect(formatEventGeography(null, null)).toBe('—');
@@ -180,6 +179,21 @@ describe('document usage row mappers', () => {
     ];
 
     expect(mapEventRows(events)[0]?.geography).toBe('Dhaka / u1');
+  });
+
+  it('abbreviates AM / PO / SK roles for the opens table', () => {
+    expect(formatDocumentUsageRoleAbbreviation(null)).toBe('—');
+    expect(formatDocumentUsageRoleAbbreviation('')).toBe('—');
+    expect(formatDocumentUsageRoleAbbreviation('Area Manager')).toBe('AM');
+    expect(formatDocumentUsageRoleAbbreviation('AREA_MANAGER')).toBe('AM');
+    expect(formatDocumentUsageRoleAbbreviation('AM')).toBe('AM');
+    expect(formatDocumentUsageRoleAbbreviation('Program Organizer')).toBe('PO');
+    expect(formatDocumentUsageRoleAbbreviation('PO')).toBe('PO');
+    expect(formatDocumentUsageRoleAbbreviation('Shastiya Kormi')).toBe('SK');
+    expect(formatDocumentUsageRoleAbbreviation('Shasthya Kormi')).toBe('SK');
+    expect(formatDocumentUsageRoleAbbreviation('SHASTIYA_KORMI')).toBe('SK');
+    expect(formatDocumentUsageRoleAbbreviation('SK')).toBe('SK');
+    expect(formatDocumentUsageRoleAbbreviation('Other')).toBe('Other');
   });
 
   it('computes pagination display ranges', () => {

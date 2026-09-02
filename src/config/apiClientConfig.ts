@@ -48,8 +48,3 @@ function resolveApiBaseUrl(): string {
 
 /** API origin (no trailing slash). Use for absolute URLs e.g. file downloads, `EventSource`. */
 export const apiBaseUrl = resolveApiBaseUrl();
-
-/** Mock API is opt-in via VITE_USE_MOCK_API=true (tests always use mocks). */
-export const useMockApi =
-  import.meta.env.MODE === 'test' ||
-  import.meta.env.VITE_USE_MOCK_API === 'true';

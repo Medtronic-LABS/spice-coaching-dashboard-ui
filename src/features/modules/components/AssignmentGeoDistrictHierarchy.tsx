@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronIcon } from '@/assets/icon';
-import { InfiniteScrollContainer } from '@/components/ui';
+import { CircularSpinner, InfiniteScrollContainer } from '@/components/ui';
 import {
   ASSIGNMENT_LIST_PAGE_SIZE,
   ASSIGNMENT_USERS_PAGE_SIZE,
@@ -530,7 +530,8 @@ export const AssignmentGeoDistrictHierarchy = ({
   };
 
   const districtsHasMore = loadedDistricts.length < districtsTotal;
-  const districtsLoading = loadingDistricts && loadedDistricts.length === 0;
+  const districtsLoading =
+    (loadingDistricts || fetchingDistricts) && loadedDistricts.length === 0;
 
   return (
     <div className="overflow-hidden rounded-lg border border-spice-border">
@@ -549,8 +550,14 @@ export const AssignmentGeoDistrictHierarchy = ({
         disabled={districtsLoading || Boolean(districtsError)}
       >
         {districtsLoading ? (
-          <div className="p-4 text-center text-sm text-spice-text-muted">
-            Loading districts…
+          <div
+            className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-sm text-spice-text-muted"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading districts"
+          >
+            <CircularSpinner className="h-8 w-8 text-spice-brand-primary" />
+            <span>Loading districts…</span>
           </div>
         ) : districtsError ? (
           <div className="p-4 text-center text-sm text-spice-text-muted">
@@ -713,8 +720,14 @@ function DistrictUpazilaList({
 }: DistrictUpazilaListProps) {
   if (!page || page.isLoading) {
     return (
-      <div className="bg-spice-bg-tint/40 px-8 py-2.5 text-xs text-spice-text-muted">
-        Loading upazilas…
+      <div
+        className="flex items-center justify-center gap-2 bg-spice-bg-tint/40 px-8 py-3 text-xs text-spice-text-muted"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading upazilas"
+      >
+        <CircularSpinner className="h-4 w-4 text-spice-brand-primary" />
+        <span>Loading upazilas…</span>
       </div>
     );
   }

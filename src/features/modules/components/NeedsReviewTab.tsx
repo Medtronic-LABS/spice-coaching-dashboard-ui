@@ -4,7 +4,9 @@ import { Table, type ColumnDef } from '@/components/common/Table';
 import {
   Button,
   Card,
+  ConfirmDialog,
   ErrorState,
+  QuotedDisplayLabel,
   Tooltip,
   TruncatedText,
 } from '@/components/ui';
@@ -441,6 +443,7 @@ export const NeedsReviewTab = ({
     return initial;
   });
   const [previewModuleId, setPreviewModuleId] = useState<string | null>(null);
+  const [discardTargetId, setDiscardTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialExpandedId) {
@@ -501,12 +504,19 @@ export const NeedsReviewTab = ({
     }
   };
 
-  const handleDiscardNewClick = async (moduleId: string) => {
+  const handleDiscardNewClick = (moduleId: string) => {
+    setActionError('');
+    setDiscardTargetId(moduleId);
+  };
+
+  const handleConfirmDiscardNew = async () => {
+    if (!discardTargetId) return;
+    const moduleId = discardTargetId;
     try {
-      setActionError('');
       setSubmittingId(moduleId);
       setActionType('discard_new');
       await onDiscardNew(moduleId);
+      setDiscardTargetId(null);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -689,7 +699,7 @@ export const NeedsReviewTab = ({
               variant="secondary"
               className="h-8 px-2.5 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
               disabled={isSubmittingThis}
-              onClick={() => void handleDiscardNewClick(row.id)}
+              onClick={() => handleDiscardNewClick(row.id)}
             >
               {isSubmittingThis && actionType === 'discard_new'
                 ? 'Discarding…'
@@ -805,6 +815,39 @@ export const NeedsReviewTab = ({
         open={Boolean(previewModuleId)}
         moduleId={previewModuleId}
         onClose={() => setPreviewModuleId(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(discardTargetId)}
+        labelledBy="discard-new-module-title"
+        describedBy="discard-new-module-description"
+        title="Discard new module?"
+        description={
+          <>
+            Are you sure you want to discard{' '}
+            {discardTargetId ? (
+              <QuotedDisplayLabel
+                text={
+                  rows.find((row) => row.id === discardTargetId)?.title ??
+                  'this module'
+                }
+              />
+            ) : (
+              'this module'
+            )}
+            ? The existing module will remain unchanged.
+          </>
+        }
+        confirmLabel="Discard New"
+        confirmingLabel="Discarding…"
+        isConfirming={
+          submittingId === discardTargetId && actionType === 'discard_new'
+        }
+        disabled={
+          submittingId === discardTargetId && actionType === 'discard_new'
+        }
+        onClose={() => setDiscardTargetId(null)}
+        onConfirm={() => void handleConfirmDiscardNew()}
       />
     </>
   );

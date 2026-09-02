@@ -109,8 +109,14 @@ export type HierarchyRoleKind = 'am' | 'po' | 'sk' | 'unknown';
 
 export function hierarchyRoleKind(role: string): HierarchyRoleKind {
   const normalized = role.trim().toUpperCase();
-  if (normalized.includes('AREA')) return 'am';
+  if (normalized === 'AM' || normalized.includes('AREA')) return 'am';
   if (normalized === 'PO' || normalized.includes('PROGRAM')) return 'po';
-  if (normalized.includes('SHASTIYA') || normalized === 'SK') return 'sk';
+  if (
+    normalized === 'SK' ||
+    normalized.includes('SHASTIYA') ||
+    normalized.includes('SHASTHYA')
+  ) {
+    return 'sk';
+  }
   return 'unknown';
 }

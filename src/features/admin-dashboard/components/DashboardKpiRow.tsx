@@ -64,14 +64,14 @@ export const DashboardKpiRow = ({
     );
   }
 
-  const summary = teamQuery.data?.summary;
+  const summary = teamQuery.currentData?.summary;
   const totalUsers = summary?.total_users ?? 0;
   const totalModulesValue = modulesUi.showLoading
     ? '…'
     : modulesUi.showError
       ? '—'
-      : (modulesQuery.data?.total_modules ??
-        modulesQuery.data?.modules?.length ??
+      : (modulesQuery.currentData?.total_modules ??
+        modulesQuery.currentData?.modules?.length ??
         0);
 
   return (

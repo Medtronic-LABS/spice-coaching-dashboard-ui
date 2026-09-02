@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   Banner,
-  Button,
   Card,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
   Modal,
+  ModalActionBar,
 } from '@/components/ui';
 import {
   FIELD_LIMITS,
@@ -167,12 +167,13 @@ export const VideoMetadataEditDialog = ({
     <Modal
       open={open}
       labelledBy="video-metadata-edit-title"
+      contentClassName="max-w-lg"
       onClose={isSaving ? () => undefined : onClose}
     >
       <Loader open={isSaving} label="Saving video details…" />
       <Card
         variant="elevated"
-        className="w-full max-w-lg space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
         <h2
           id="video-metadata-edit-title"
@@ -195,7 +196,7 @@ export const VideoMetadataEditDialog = ({
             disabled={isSaving}
             onChange={setTitle}
             inputClassName={cn(
-              'w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
+              'w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary caret-spice-palette-purple',
               SPICE_INPUT_FOCUS_CLASSNAME,
             )}
           />
@@ -211,7 +212,7 @@ export const VideoMetadataEditDialog = ({
             maxLength={FIELD_LIMITS.description}
             disabled={isSaving}
             rows={3}
-            textareaClassName="min-h-0 rounded-md border-spice-border-mid"
+            textareaClassName="min-h-0 rounded-lg border-spice-border-mid"
             onChange={setDescription}
           />
         </label>
@@ -291,23 +292,14 @@ export const VideoMetadataEditDialog = ({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            disabled={isSaving}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            disabled={isSaving}
-            onClick={() => void handleSave()}
-          >
-            {isSaving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
+        <ModalActionBar
+          className="border-0 px-0 pb-0 pt-1"
+          confirmLabel="Save"
+          confirmingLabel="Saving…"
+          isConfirming={isSaving}
+          onCancel={onClose}
+          onConfirm={() => void handleSave()}
+        />
       </Card>
     </Modal>
   );

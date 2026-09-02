@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { DeleteIcon, EyeIcon } from '@/assets/icon';
+import { ArrowRightIcon, CloseIcon, DeleteIcon, EyeIcon } from '@/assets/icon';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -28,13 +28,23 @@ import {
 import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
 import { INGEST_MEDIA_MAX_UPLOAD_LABEL } from '@/constants/uploadLimits';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  TABLE_PAGE_SIZE_OPTIONS,
+  tableHasNextPage,
+  tableHasPrevPage,
+  tablePageOffset,
+  tablePaginationRange,
+} from '@/utils/tablePagination';
 import {
   type AdminV3IngestAcceptedResponse,
   type AdminV3IngestAcceptedSource,
   type AdminV3IngestBatchStatusResponse,
   type AdminV3IngestUploadResponse,
   type AdminV3IngestUploadedSource,
+  type IngestDuplicateConflict,
 } from '@/features/ingest/api/adminIngestApi';
 import {
   useFetchSourceDocumentsQuery,
@@ -98,6 +108,7 @@ import {
 } from '@/features/ingest/utils/videoThumbnail';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
+import { countNewlyUploadedSources } from '@/features/ingest/utils/parseIngestDuplicateError';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 
@@ -130,9 +141,6 @@ type VideoRow = {
   actions: string;
   sourceDocumentId?: string;
 };
-
-const VIDEO_PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const;
-const DEFAULT_VIDEO_PAGE_SIZE = 10;
 
 const VIDEO_SEARCH_DEBOUNCE_MS = 300;
 
@@ -215,6 +223,11 @@ function isNeedsReviewStatus(status: string): boolean {
   );
 }
 
+type VideoUploadFeedback = {
+  message: string;
+  tone: 'success' | 'critical';
+};
+
 export const VideoUploadPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -246,12 +259,19 @@ export const VideoUploadPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDragActive, setIsDragActive] = useState(false);
   const [fileError, setFileError] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [actionSuccess, setActionSuccess] = useState('');
+  const [feedback, setFeedback] = useState<VideoUploadFeedback | null>(null);
+  const clearFeedback = useCallback(() => setFeedback(null), []);
+  const showFeedback = useCallback(
+    (message: string, tone: VideoUploadFeedback['tone']) => {
+      setFeedback({ message, tone });
+    },
+    [],
+  );
+  useAutoDismissFeedback(feedback, clearFeedback);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
-  const [pageSize, setPageSize] = useState(DEFAULT_VIDEO_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(1);
   const {
     page,
@@ -509,7 +529,7 @@ export const VideoUploadPage = () => {
         }
       : {}),
     limit: pageSize,
-    offset: page * pageSize,
+    offset: tablePageOffset(page, pageSize),
     sort_by: sortBy,
     sort_dir: sortDir,
   });
@@ -573,10 +593,13 @@ export const VideoUploadPage = () => {
 
   const totalServerVideos = sourceDocumentList?.total_source_documents ?? 0;
   const totalPages = Math.max(1, sourceDocumentList?.total_pages ?? 1);
-  const hasPrevPage = page > 0;
-  const hasNextPage = page + 1 < totalPages;
-  const rangeStart = serverRows.length ? page * pageSize + 1 : 0;
-  const rangeEnd = serverRows.length ? page * pageSize + serverRows.length : 0;
+  const hasPrevPage = tableHasPrevPage(page);
+  const hasNextPage = tableHasNextPage(page, totalPages);
+  const { start: rangeStart, end: rangeEnd } = tablePaginationRange(
+    page,
+    pageSize,
+    serverRows.length,
+  );
 
   useEffect(() => {
     setPaginationTotalPages(totalPages);
@@ -608,12 +631,13 @@ export const VideoUploadPage = () => {
       }
 
       if (failures.length) {
-        setActionError(
+        showFeedback(
           failures[0] ?? 'Some video thumbnails could not be uploaded.',
+          'critical',
         );
       }
     },
-    [updateSourceDocumentThumbnail],
+    [showFeedback, updateSourceDocumentThumbnail],
   );
 
   const clearPendingAfterUpload = useCallback(() => {
@@ -627,22 +651,39 @@ export const VideoUploadPage = () => {
   }, []);
 
   const handleUploaded = useCallback(
-    (response: AdminV3IngestUploadResponse) => {
+    (
+      response: AdminV3IngestUploadResponse,
+      context: {
+        isReupload: boolean;
+        overriddenFilenames: string[];
+        duplicateConflicts: IngestDuplicateConflict[];
+      },
+    ) => {
       const metas = pendingUploadMetaRef.current;
       pendingUploadMetaRef.current = [];
       clearPendingAfterUpload();
       void uploadPendingThumbnails(response.sources, metas).then(() => {
         void refetchSourceDocumentList();
       });
-      setActionSuccess(
-        response.sources.length === 1
-          ? 'Video uploaded successfully.'
-          : 'Videos uploaded successfully.',
-      );
+      const newlyUploadedCount = countNewlyUploadedSources(response, context);
+      const isSkipUploadReuse =
+        context.isReupload && context.overriddenFilenames.length === 0;
+      if (newlyUploadedCount > 0 && !isSkipUploadReuse) {
+        showFeedback(
+          newlyUploadedCount === 1
+            ? 'Video uploaded successfully.'
+            : 'Videos uploaded successfully.',
+          'success',
+        );
+      } else {
+        clearFeedback();
+      }
     },
     [
+      clearFeedback,
       clearPendingAfterUpload,
       refetchSourceDocumentList,
+      showFeedback,
       uploadPendingThumbnails,
     ],
   );
@@ -687,7 +728,7 @@ export const VideoUploadPage = () => {
   } = useIngestWithDuplicateHandling({
     onUploaded: handleUploaded,
     onAccepted: (response) => handleIngestAccepted(response),
-    onError: setActionError,
+    onError: (message) => showFeedback(message, 'critical'),
   });
 
   const pendingMergeDecisions = hasPendingMergeDecisions(
@@ -726,8 +767,7 @@ export const VideoUploadPage = () => {
   const runIngest = useCallback(async () => {
     const rowsToIngest = selectedRowsReadyToIngest;
     if (!rowsToIngest.length) return;
-    setActionError('');
-    setActionSuccess('');
+    clearFeedback();
     setAcceptedSources([]);
     setBatchStatus(null);
     await startIngest({
@@ -743,6 +783,7 @@ export const VideoUploadPage = () => {
   }, [
     assessmentMode,
     cardsPerModule,
+    clearFeedback,
     ingestionInstructions,
     quizzesPerModule,
     selectedRowsReadyToIngest,
@@ -831,8 +872,7 @@ export const VideoUploadPage = () => {
     }
 
     setPendingTitleErrorKeys(new Set());
-    setActionError('');
-    setActionSuccess('');
+    clearFeedback();
     setFileError('');
 
     pendingUploadMetaRef.current = items.map((item) => ({
@@ -854,7 +894,7 @@ export const VideoUploadPage = () => {
     // Pending items are cleared in handleUploaded after a successful upload
     // (including duplicate-confirm flows). Keep them if the dialog opens.
     if (!response) return;
-  }, [contentDomain, pendingItems, uploadFiles]);
+  }, [clearFeedback, contentDomain, pendingItems, uploadFiles]);
 
   const columns = useMemo<Array<ColumnDef<VideoRow>>>(
     () => [
@@ -971,8 +1011,7 @@ export const VideoUploadPage = () => {
               <Button
                 className="h-8 shrink-0 px-3 text-xs"
                 onClick={() => {
-                  setActionError('');
-                  setActionSuccess('');
+                  clearFeedback();
                   setAssignTarget({
                     id: row.sourceDocumentId as string,
                     title: row.title,
@@ -989,8 +1028,7 @@ export const VideoUploadPage = () => {
                     row.sourceDocumentId as string,
                   );
                   if (!document) return;
-                  setActionError('');
-                  setActionSuccess('');
+                  clearFeedback();
                   setEditDocument(document);
                 }}
               >
@@ -1036,6 +1074,7 @@ export const VideoUploadPage = () => {
       },
     ],
     [
+      clearFeedback,
       goToDraftsForSource,
       goToNeedsReviewForSource,
       isUploading,
@@ -1074,15 +1113,31 @@ export const VideoUploadPage = () => {
         </div>
         <Button
           variant="secondary"
-          className="h-9 text-xs"
+          className="inline-flex h-9 items-center gap-1.5 text-xs"
           onClick={() => navigate(paths.moduleLibrary)}
         >
           Module Library
+          <ArrowRightIcon className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
-      {actionSuccess ? <Banner tone="success">{actionSuccess}</Banner> : null}
+      {feedback ? (
+        <Banner tone={feedback.tone}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{feedback.message}</span>
+            {feedback.tone === 'success' ? (
+              <Button
+                variant="ghost"
+                aria-label="Dismiss success message"
+                onClick={clearFeedback}
+                className="h-8 w-8 p-0"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </Button>
+            ) : null}
+          </div>
+        </Banner>
+      ) : null}
 
       <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
         <div className="text-sm font-semibold text-spice-text-primary">
@@ -1409,7 +1464,7 @@ export const VideoUploadPage = () => {
         <TablePagination
           page={page}
           pageSize={pageSize}
-          pageSizeOptions={VIDEO_PAGE_SIZE_OPTIONS}
+          pageSizeOptions={TABLE_PAGE_SIZE_OPTIONS}
           totalItems={totalServerVideos}
           totalPages={totalPages}
           rangeStart={rangeStart}
@@ -1509,7 +1564,7 @@ export const VideoUploadPage = () => {
             ...previous,
             [document.id]: document,
           }));
-          setActionSuccess('Video details updated.');
+          showFeedback('Video details updated.', 'success');
           void refetchSourceDocumentList();
         }}
       />

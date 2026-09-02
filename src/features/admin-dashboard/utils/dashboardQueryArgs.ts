@@ -66,14 +66,26 @@ export function buildPublishedModuleCompletionsQueryArgs(
   fromDate: string,
   toDate: string,
   geography: DashboardGeographyFilters,
-  extra: { limit?: number; offset?: number } = {},
+  extra: {
+    limit?: number;
+    offset?: number;
+    module_id?: string[];
+    sort_by?: 'published_at';
+    sort_dir?: 'asc' | 'desc';
+  } = {},
 ) {
+  const { module_id, ...rest } = extra;
   return {
     from_date: fromDate,
     to_date: toDate,
-    limit: extra.limit ?? PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
-    offset: extra.offset ?? 0,
+    limit: rest.limit ?? PUBLISHED_MODULE_COMPLETIONS_QUERY_LIMIT,
+    offset: rest.offset ?? 0,
     ...buildDashboardGeoParams(geography),
+    ...omitUndefined({
+      sort_by: rest.sort_by,
+      sort_dir: rest.sort_dir,
+    }),
+    ...(module_id && module_id.length > 0 ? { module_id } : {}),
   };
 }
 

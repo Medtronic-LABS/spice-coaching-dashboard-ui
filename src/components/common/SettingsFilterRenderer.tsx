@@ -207,7 +207,7 @@ function renderField(field: SettingsFilterField) {
       >
         <Select
           id={field.id}
-          className="w-full min-w-0 rounded-lg"
+          className="w-full min-w-0"
           value={field.value}
           onChange={field.onChange}
           options={field.options}

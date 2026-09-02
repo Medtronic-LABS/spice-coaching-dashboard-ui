@@ -2,15 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { BookIcon, EyeIcon, UsersIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
-import { StatCard, TruncatedText } from '@/components/ui';
+import { StatCard } from '@/components/ui';
 import { WidgetSubheading } from '@/features/admin-dashboard/components/document-usage/DocumentUsageChrome';
 import type { DocumentUsageEventRow } from '@/features/admin-dashboard/types/dashboard.types';
-import { PAGE_SIZE_OPTIONS } from '@/features/admin-dashboard/utils/documentUsage';
+import {
+  formatDocumentUsageRoleAbbreviation,
+  PAGE_SIZE_OPTIONS,
+} from '@/features/admin-dashboard/utils/documentUsage';
 import {
   DOC_TABLE_CELL,
   DOCUMENT_USAGE_TABLE_PROPS,
 } from '@/features/admin-dashboard/utils/documentUsageTableLayout';
+import { tableHasNextPage, tableHasPrevPage } from '@/utils/tablePagination';
 import {
+  formatDisplayDate,
   formatDisplayDateTime,
   DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
 } from '@/utils/formatDisplayDateTime';
@@ -60,27 +65,24 @@ export const DocumentUsageDetailView = ({
     {
       key: 'user_name',
       header: t('adminDashboard.documentUsage.eventColumns.user'),
-      colClassName: 'w-[8rem]',
-      headerClassName: `max-w-[8rem] ${DOC_TABLE_CELL.compact}`,
-      className: `max-w-[8rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
+      colClassName: 'w-[14rem]',
+      headerClassName: `max-w-[14rem] ${DOC_TABLE_CELL.compact}`,
+      className: `max-w-[14rem] ${DOC_TABLE_CELL.wrap} ${DOC_TABLE_CELL.compact}`,
       render: (row) => {
         const name =
           row.user_name ?? t('adminDashboard.documentUsage.unknownUser');
         return (
-          <TruncatedText
-            text={name}
-            className="min-w-0 font-medium text-spice-text-primary"
-          />
+          <span className="font-medium text-spice-text-primary">{name}</span>
         );
       },
     },
     {
       key: 'user_role',
       header: t('adminDashboard.documentUsage.eventColumns.role'),
-      colClassName: 'w-20',
-      headerClassName: `w-20 ${DOC_TABLE_CELL.compact}`,
-      className: `w-20 ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
-      render: (row) => row.user_role ?? '—',
+      colClassName: 'w-14',
+      headerClassName: `w-14 ${DOC_TABLE_CELL.compact}`,
+      className: `w-14 ${DOC_TABLE_CELL.nowrap} ${DOC_TABLE_CELL.compact}`,
+      render: (row) => formatDocumentUsageRoleAbbreviation(row.user_role),
     },
     {
       key: 'viewed_at',
@@ -93,18 +95,16 @@ export const DocumentUsageDetailView = ({
     {
       key: 'geography',
       header: t('adminDashboard.documentUsage.eventColumns.geography'),
-      colClassName: 'w-[7rem]',
-      headerClassName: `max-w-[7rem] ${DOC_TABLE_CELL.compact}`,
-      className: `max-w-[7rem] ${DOC_TABLE_CELL.truncate} ${DOC_TABLE_CELL.compact}`,
-      render: (row) => (
-        <TruncatedText text={row.geography} className="min-w-0" />
-      ),
+      // No fixed max-width — takes remaining space after Role / Opened At.
+      headerClassName: DOC_TABLE_CELL.compact,
+      className: `${DOC_TABLE_CELL.wrap} ${DOC_TABLE_CELL.compact}`,
+      render: (row) => row.geography,
     },
   ];
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid items-stretch gap-2 sm:grid-cols-3">
         <StatCard
           icon={<EyeIcon className="h-3.5 w-3.5" />}
           label={t('adminDashboard.documentUsage.kpis.views')}
@@ -118,8 +118,10 @@ export const DocumentUsageDetailView = ({
         <StatCard
           icon={<BookIcon className="h-3.5 w-3.5" />}
           label={t('adminDashboard.documentUsage.columns.lastViewed')}
-          value={formatDisplayDateTime(lastViewedAt)}
-          valueClassName="text-sm"
+          labelClassName="shrink-0 whitespace-nowrap"
+          value={formatDisplayDate(lastViewedAt)}
+          valueClassName="text-base font-bold leading-snug"
+          allowValueWrap
         />
       </div>
       <WidgetSubheading title={t('adminDashboard.documentUsage.opensTitle')} />
@@ -140,8 +142,8 @@ export const DocumentUsageDetailView = ({
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
         pageInput={pageInput}
-        hasPrevPage={page > 0}
-        hasNextPage={page + 1 < totalPages}
+        hasPrevPage={tableHasPrevPage(page)}
+        hasNextPage={tableHasNextPage(page, totalPages)}
         onPageSizeChange={onPageSizeChange}
         onPageInputChange={onPageInputChange}
         onCommitPageInput={onCommitPageInput}

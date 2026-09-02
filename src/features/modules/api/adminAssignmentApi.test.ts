@@ -1,13 +1,11 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { buildAssignmentUsersMutationBody } from './adminAssignmentApi';
 
-const mockBaseQuerySpy = vi.fn();
+import { fetchBaseQuerySpy } from '@/test-utils/installTestFetchMock';
 
-vi.mock('@/store/apis/mockBaseQuery', () => ({
-  mockBaseQuery: (...args: unknown[]) => mockBaseQuerySpy(...args),
-}));
+const mockBaseQuerySpy = fetchBaseQuerySpy;
 
 async function createAssignmentStore() {
   const { baseApi } = await import('@/store/apis/base');

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatDisplayDate,
   formatDisplayDateTime,
+  formatDisplayDateTimeMultiline,
 } from '@/utils/formatDisplayDateTime';
 
 function expectedDisplayDateTime(date: Date): string {
@@ -48,6 +49,21 @@ describe('formatDisplayDateTime', () => {
     const date = new Date('2026-07-21T12:45:13.192+00:00');
 
     expect(formatDisplayDateTime(iso)).toBe(expectedDisplayDateTime(date));
+  });
+});
+
+describe('formatDisplayDateTimeMultiline', () => {
+  it('breaks before the bullet so date and time are on separate lines', () => {
+    const iso = '2026-06-01T11:27:29.877549Z';
+    const singleLine = formatDisplayDateTime(iso);
+    const expected = singleLine.replace(' • ', '\n• ');
+
+    expect(formatDisplayDateTimeMultiline(iso)).toBe(expected);
+    expect(formatDisplayDateTimeMultiline(iso)).toContain('\n• ');
+  });
+
+  it('returns em dash for empty values without inserting a break', () => {
+    expect(formatDisplayDateTimeMultiline(null)).toBe('—');
   });
 });
 

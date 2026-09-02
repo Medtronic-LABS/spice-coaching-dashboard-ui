@@ -99,20 +99,28 @@ describe('KnowledgeLibraryTable', () => {
     ).toBeInTheDocument();
 
     const rowsSelect = screen.getByLabelText('Rows per page');
-    expect(rowsSelect).toHaveValue('10');
-    expect(
-      Array.from((rowsSelect as HTMLSelectElement).options).map((o) => o.value),
-    ).toEqual(['5', '10', '15', '25', '50']);
+    expect(rowsSelect).toHaveTextContent('10');
+
+    await user.click(rowsSelect);
+    expect(screen.getByRole('option', { name: '5' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '10' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '15' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '25' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '50' })).toBeInTheDocument();
 
     expect(screen.getByLabelText('Page number')).toHaveValue('1');
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Previous page' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
     expect(screen.getByText(/Showing/)).toHaveTextContent(/Showing/);
 
-    await user.selectOptions(rowsSelect, '5');
-    expect(screen.getByLabelText('Rows per page')).toHaveValue('5');
+    await user.click(screen.getByRole('option', { name: '5' }));
+    expect(screen.getByLabelText('Rows per page')).toHaveTextContent('5');
     expect(screen.getByLabelText('Page number')).toHaveValue('1');
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Previous page' }),
+    ).toBeDisabled();
 
     const pageInput = screen.getByLabelText('Page number');
     await user.clear(pageInput);
@@ -143,11 +151,14 @@ describe('KnowledgeLibraryTable', () => {
     });
 
     await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    const retireDialog = await screen.findByRole('dialog');
     expect(
-      await screen.findByRole('heading', { name: 'Remove Knowledge Document' }),
+      within(retireDialog).getByRole('heading', {
+        name: 'Delete knowledge document',
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Confirm Remove' }),
+      within(retireDialog).getByRole('button', { name: 'Delete' }),
     ).toBeInTheDocument();
   });
 
@@ -190,7 +201,8 @@ describe('KnowledgeLibraryTable', () => {
     expect(screen.getByText('Visit Workflow — Overview')).toBeInTheDocument();
 
     const dialog = await openKnowledgeFilters(user);
-    await user.selectOptions(within(dialog).getByLabelText('Assigned'), 'true');
+    await user.click(within(dialog).getByLabelText('Assigned'));
+    await user.click(within(dialog).getByRole('option', { name: 'Yes' }));
     await user.click(within(dialog).getByRole('button', { name: 'Apply' }));
 
     await waitFor(() => {
@@ -207,12 +219,16 @@ describe('KnowledgeLibraryTable', () => {
     ).toBeInTheDocument();
 
     const reopened = await openKnowledgeFilters(user);
-    expect(within(reopened).getByLabelText('Assigned')).toHaveValue('true');
+    expect(within(reopened).getByLabelText('Assigned')).toHaveTextContent(
+      'Yes',
+    );
     await user.click(
       within(reopened).getByRole('button', { name: 'Clear All' }),
     );
 
-    expect(within(reopened).getByLabelText('Assigned')).toHaveValue('');
+    expect(within(reopened).getByLabelText('Assigned')).toHaveTextContent(
+      'All',
+    );
     await waitFor(() => {
       expect(screen.getByText('HTN Referral Guidelines')).toBeInTheDocument();
       expect(screen.getByText('Visit Workflow — Overview')).toBeInTheDocument();

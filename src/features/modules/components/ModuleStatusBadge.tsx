@@ -31,7 +31,7 @@ export function getModuleStatusBadgeProps(status: UnifiedModuleStatus): {
       return { semanticStatus: 'warning', label: 'Review' };
     case 'retired':
     case 'discarded':
-      return { semanticStatus: 'neutral', label: 'Discarded' };
+      return { semanticStatus: 'info', label: 'Discarded' };
     case 'deactivated':
       return { semanticStatus: 'critical', label: 'Deactivated' };
     case 'draft':

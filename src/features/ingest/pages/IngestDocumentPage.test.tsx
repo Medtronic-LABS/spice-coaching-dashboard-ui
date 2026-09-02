@@ -114,6 +114,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock('@/features/ingest/components/DuplicateIngestConfirmDialog', () => ({
+  DuplicateIngestConfirmDialog: () => null,
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual =
     await vi.importActual<typeof import('react-router-dom')>(
@@ -463,9 +467,6 @@ describe('IngestDocumentPage', () => {
     });
 
     await user.click(
-      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
-    );
-    await user.click(
       screen.getByRole('checkbox', { name: /select diabetes guide/i }),
     );
 
@@ -533,9 +534,6 @@ describe('IngestDocumentPage', () => {
     mocks.startIngest.mockResolvedValue(null);
 
     await user.click(
-      screen.getByRole('checkbox', { name: /select hypertension guide/i }),
-    );
-    await user.click(
       screen.getByRole('checkbox', { name: /select diabetes guide/i }),
     );
     await user.click(screen.getByRole('button', { name: /start ingestion/i }));
@@ -583,7 +581,7 @@ describe('IngestDocumentPage', () => {
       );
     });
     expect(
-      screen.queryByText(/selected for ingestion/i),
+      screen.queryByText(/selected for ingestion \(\d+\)/i),
     ).not.toBeInTheDocument();
   });
 });
