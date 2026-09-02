@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   ImagePicker,
@@ -136,7 +135,6 @@ export const AdminModuleDetailsStep = () => {
   );
   const { registerEditorContext } = useModulePreview();
   const {
-    actionError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -223,7 +221,6 @@ export const AdminModuleDetailsStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}

@@ -43,7 +43,7 @@ describe('useAutoDismissFeedback', () => {
     );
 
     act(() => {
-      vi.advanceTimersByTime(5_000);
+      vi.advanceTimersByTime(DEFAULT_FEEDBACK_DISMISS_MS - 1);
     });
 
     rerender({ feedback: null });

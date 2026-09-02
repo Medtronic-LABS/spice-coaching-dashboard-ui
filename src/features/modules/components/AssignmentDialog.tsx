@@ -10,7 +10,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { RefreshIcon } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   Combobox,
@@ -23,6 +22,7 @@ import {
   Select,
   Tabs,
   TruncatedText,
+  useSnackbar,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
@@ -334,6 +334,7 @@ export const AssignmentDialog = ({
   target,
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
+  const snackbar = useSnackbar();
   const noun = entityNoun(target);
   const [successState, setSuccessState] =
     useState<AssignmentSuccessLocationState | null>(null);
@@ -404,7 +405,6 @@ export const AssignmentDialog = ({
   const [geoKnownUsers, setGeoKnownUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersOffset, setUsersOffset] = useState(0);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const divisionsRequestSeqRef = useRef(0);
   const districtsRequestSeqRef = useRef(0);
@@ -738,7 +738,6 @@ export const AssignmentDialog = ({
     if (nextTab === activeTab) return;
     resetGeographyFilters();
     setActiveTab(nextTab);
-    setErrorMsg('');
     void loadDivisionsPage(0, false);
     if (nextTab === 'user') {
       void loadDistrictsPage(0, false);
@@ -751,7 +750,6 @@ export const AssignmentDialog = ({
     setUserLevelMode('po_sk');
     resetGeographyFilters();
     setUserSearchQuery('');
-    setErrorMsg('');
     setLoadedUsers([]);
     setPoChildUsers([]);
     setUsersTotal(0);
@@ -1034,15 +1032,13 @@ export const AssignmentDialog = ({
   };
 
   const handleAssign = async () => {
-    setErrorMsg('');
-
     try {
       const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
       const addedIds = nextIds.filter((id) => !baselineSet.has(id));
       const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
 
       if (addedIds.length === 0 && removedIds.length === 0) {
-        setErrorMsg(
+        snackbar.showError(
           activeTab === 'geographical'
             ? 'Please select at least one geography or change assignments.'
             : 'Please select at least one user or change assignments.',
@@ -1093,7 +1089,7 @@ export const AssignmentDialog = ({
         err && typeof err === 'object' && 'data' in err
           ? (err as { data?: { detail?: string } }).data?.detail
           : undefined;
-      setErrorMsg(
+      snackbar.showError(
         detail || `An error occurred while creating ${noun} assignment.`,
       );
     }
@@ -1259,8 +1255,6 @@ export const AssignmentDialog = ({
           </p>
         </div>
 
-        {errorMsg ? <Banner tone="critical">{errorMsg}</Banner> : null}
-
         <Tabs
           items={ASSIGNMENT_TABS}
           value={activeTab}
@@ -1279,7 +1273,6 @@ export const AssignmentDialog = ({
                   value={userLevelMode}
                   onChange={(value) => {
                     setUserLevelMode(value as AssignmentUserLevelMode);
-                    setErrorMsg('');
                   }}
                   className="min-w-0 flex-1"
                   triggerClassName="rounded-lg"

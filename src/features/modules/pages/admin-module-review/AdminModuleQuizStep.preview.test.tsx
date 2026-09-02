@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { paths } from '@/constants/routes';
 import { setCurrentRole } from '@/constants/role';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
@@ -95,22 +96,24 @@ function renderQuizPreview() {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewQuiz}
-              element={<PreviewHarness />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[
+              paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
+            ]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewQuiz}
+                element={<PreviewHarness />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };

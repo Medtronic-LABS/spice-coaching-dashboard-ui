@@ -7,7 +7,6 @@ import {
   SaveDraftIcon,
 } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   EmptyState,
@@ -89,7 +88,6 @@ export const AdminModuleQuizStep = () => {
     useQuizExplanationReview(moduleId);
   const pendingReviewSet = useMemo(() => new Set(pendingIds), [pendingIds]);
   const {
-    actionError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -227,7 +225,6 @@ export const AdminModuleQuizStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}

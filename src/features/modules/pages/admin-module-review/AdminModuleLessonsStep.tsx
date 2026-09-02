@@ -1,6 +1,5 @@
 import { ArrowRightIcon, DeleteIcon, SaveDraftIcon } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   EmptyState,
@@ -93,7 +92,6 @@ export const AdminModuleLessonsStep = () => {
     closePreview,
   } = useModulePreview();
   const {
-    actionError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -252,7 +250,6 @@ export const AdminModuleLessonsStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}

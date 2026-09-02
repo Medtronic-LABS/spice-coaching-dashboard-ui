@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { setCurrentRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
@@ -117,27 +118,29 @@ function renderQuizStep() {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <ExplanationReviewDialogHost />
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewQuiz}
-              element={<AdminModuleQuizStep />}
-            />
-            <Route
-              path={paths.adminModuleReviewPublish}
-              element={<div>Review step</div>}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[
+              paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
+            ]}
+          >
+            <ExplanationReviewDialogHost />
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewQuiz}
+                element={<AdminModuleQuizStep />}
+              />
+              <Route
+                path={paths.adminModuleReviewPublish}
+                element={<div>Review step</div>}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };

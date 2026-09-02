@@ -45,6 +45,16 @@ export { SearchInput } from '@/components/ui/SearchInput';
 export { SectionHeader } from '@/components/ui/SectionHeader';
 export { Select } from '@/components/ui/Select';
 export type { SelectOption, SelectProps } from '@/components/ui/Select';
+export {
+  SnackbarProvider,
+  useSnackbar,
+} from '@/components/ui/Snackbar/SnackbarProvider';
+export type {
+  ShowSnackbarOptions,
+  SnackbarApi,
+  SnackbarItem,
+  SnackbarTone,
+} from '@/components/ui/Snackbar/snackbar.types';
 export { StatCard } from '@/components/ui/StatCard';
 export { StatusBadge } from '@/components/ui/StatusBadge';
 export { InfoIcon, Tooltip } from '@/components/ui/Tooltip';

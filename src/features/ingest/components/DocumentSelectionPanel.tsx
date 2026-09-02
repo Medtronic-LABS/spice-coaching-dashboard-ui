@@ -4,12 +4,12 @@ import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
-  Banner,
   Button,
   FileDropzone,
   SearchInput,
   StatusBadge,
   TruncatedText,
+  useSnackbar,
 } from '@/components/ui';
 import type { StatusBadgeProps } from '@/components/ui/StatusBadge';
 import { paths } from '@/constants/routes';
@@ -228,8 +228,8 @@ export const DocumentSelectionPanel = ({
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState('');
-  const [uploadError, setUploadError] = useState('');
   const [uploadComplete, setUploadComplete] = useState(false);
+  const snackbar = useSnackbar();
 
   const clearPendingUpload = useCallback(() => {
     setPendingFiles([]);
@@ -387,7 +387,6 @@ export const DocumentSelectionPanel = ({
 
   const handlePendingFilesChange = (next: File[]) => {
     setUploadComplete(false);
-    setUploadError('');
     setPendingFiles(next);
   };
 
@@ -405,7 +404,6 @@ export const DocumentSelectionPanel = ({
 
   const runUpload = useCallback(async () => {
     if (!pendingFiles.length || disabled || isUploading) return;
-    setUploadError('');
     setUploadComplete(false);
 
     try {
@@ -419,7 +417,7 @@ export const DocumentSelectionPanel = ({
         clearPendingUpload();
       }
     } catch (err) {
-      setUploadError(formatRtkQueryError(err));
+      snackbar.showError(formatRtkQueryError(err));
       setUploadComplete(false);
     }
   }, [
@@ -428,6 +426,7 @@ export const DocumentSelectionPanel = ({
     disabled,
     isUploading,
     pendingFiles,
+    snackbar,
     uploadFiles,
   ]);
 
@@ -643,7 +642,6 @@ export const DocumentSelectionPanel = ({
             {fileError}
           </div>
         ) : null}
-        {uploadError ? <Banner tone="critical">{uploadError}</Banner> : null}
 
         <IngestUploadProgress
           active={isUploading}

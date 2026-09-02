@@ -1,4 +1,5 @@
-import { Banner, Button, EmptyState, Loader } from '@/components/ui';
+import { useEffect, useRef } from 'react';
+import { Button, EmptyState, Loader, useSnackbar } from '@/components/ui';
 import { ModulePreviewNavigator } from '@/features/modules/components/module-preview/ModulePreviewNavigator';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -15,8 +16,20 @@ export const ModulePreviewPanel = () => {
     syncPreview,
     setPosition,
   } = useModulePreview();
+  const snackbar = useSnackbar();
+  const lastSyncErrorRef = useRef('');
   const working = useAppSelector(selectAdminModuleWorking);
   const isReadonly = useAdminModuleReviewReadonly();
+
+  useEffect(() => {
+    if (!syncError) {
+      lastSyncErrorRef.current = '';
+      return;
+    }
+    if (syncError === lastSyncErrorRef.current) return;
+    lastSyncErrorRef.current = syncError;
+    snackbar.showError(syncError);
+  }, [snackbar, syncError]);
 
   const isEmpty =
     snapshot !== null &&
@@ -49,12 +62,6 @@ export const ModulePreviewPanel = () => {
           ) : null}
         </div>
       </div>
-
-      {syncError ? (
-        <div className="mx-4 mt-3 shrink-0">
-          <Banner tone="critical">{syncError}</Banner>
-        </div>
-      ) : null}
 
       <div className="relative flex h-0 min-h-0 flex-1 flex-col overflow-hidden px-4 py-2">
         {snapshot ? (

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import {
-  Banner,
   Button,
   Card,
   LimitedTextInput,
@@ -131,6 +130,10 @@ export function BadgeFormModal({
           </h2>
         </div>
 
+        {formError ? (
+          <p className="text-xs text-spice-semantic-error">{formError}</p>
+        ) : null}
+
         <label className="block space-y-1.5">
           <span className="text-xs font-semibold text-spice-text-primary">
             Milestone name <span className="text-spice-semantic-error">*</span>
@@ -223,8 +226,6 @@ export function BadgeFormModal({
             />
           </div>
         </div>
-
-        {formError ? <Banner tone="critical">{formError}</Banner> : null}
 
         {isViewMode ? (
           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-spice-border pt-4">

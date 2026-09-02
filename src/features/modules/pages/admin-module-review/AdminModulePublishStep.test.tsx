@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import type { AppRole } from '@/constants/role';
 import { paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
@@ -106,22 +107,24 @@ function renderPublishStep() {
   });
 
   return render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewPublish.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewPublish}
-              element={<AdminModulePublishStep />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[
+              paths.adminModuleReviewPublish.replace(':moduleId', 'mod-1'),
+            ]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewPublish}
+                element={<AdminModulePublishStep />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 

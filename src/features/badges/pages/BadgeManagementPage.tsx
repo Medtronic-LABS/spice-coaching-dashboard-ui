@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Banner,
   Button,
   Card,
   type ComboboxOption,
@@ -10,8 +9,9 @@ import {
   SearchInput,
   Tooltip,
   TruncatedText,
+  useSnackbar,
 } from '@/components/ui';
-import { ArrowRightIcon, CloseIcon, EyeIcon, SearchIcon } from '@/assets/icon';
+import { ArrowRightIcon, EyeIcon, SearchIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
 import { PageQueryErrorState } from '@/components/common/PageQueryErrorState';
 import { TablePagination } from '@/components/common/TablePagination';
@@ -69,7 +69,6 @@ import {
   TABLE_MODULE_LIST_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
 import {
   DEFAULT_TABLE_PAGE_SIZE,
@@ -102,11 +101,6 @@ const SEQUENCE_EDIT_INFO =
 const PAGE_SUBTITLE =
   'Configure milestones by mapping an image and published modules. Learners earn a milestone after completing all mapped active modules. Use Rearrange Milestone to reorder milestones on the roadmap.';
 const TOOLBAR_BUTTON_CLASS = 'h-9 text-xs';
-
-type FeedbackState =
-  | { tone: 'success'; message: string }
-  | { tone: 'critical'; message: string }
-  | null;
 
 function emptyForm(): BadgeFormState {
   return {
@@ -147,6 +141,7 @@ function moduleCacheFromBadge(
 }
 
 export const BadgeManagementPage = () => {
+  const snackbar = useSnackbar();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const [moduleSearchQuery, setModuleSearchQuery] = useState('');
@@ -183,7 +178,6 @@ export const BadgeManagementPage = () => {
   >({});
   const [activeBadge, setActiveBadge] = useState<AdminBadge | null>(null);
   const [formError, setFormError] = useState('');
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminBadge | null>(null);
 
   const [isSequenceEditing, setIsSequenceEditing] = useState(false);
@@ -419,8 +413,6 @@ export const BadgeManagementPage = () => {
     );
   }, [sequenceBaseline, sequenceDraft]);
 
-  useAutoDismissFeedback(feedback, () => setFeedback(null));
-
   const resetForm = useCallback(() => {
     setForm(emptyForm());
     setSelectedModuleCache({});
@@ -439,7 +431,6 @@ export const BadgeManagementPage = () => {
     setFormMode('create');
     setFormOpen(true);
     setFormError('');
-    setFeedback(null);
   }, []);
 
   const startEdit = useCallback((badge: AdminBadge) => {
@@ -450,7 +441,6 @@ export const BadgeManagementPage = () => {
     setFormMode('edit');
     setFormOpen(true);
     setFormError('');
-    setFeedback(null);
   }, []);
 
   const startView = useCallback((badge: AdminBadge) => {
@@ -461,7 +451,6 @@ export const BadgeManagementPage = () => {
     setFormMode('view');
     setFormOpen(true);
     setFormError('');
-    setFeedback(null);
   }, []);
 
   const resolveWriteDomain = useCallback((): string | null => {
@@ -519,7 +508,6 @@ export const BadgeManagementPage = () => {
     }
 
     setFormError('');
-    setFeedback(null);
 
     const domain = resolveWriteDomain();
     if (!domain) {
@@ -536,7 +524,7 @@ export const BadgeManagementPage = () => {
         ).unwrap();
         sequence = nextGlobalBadgeSequence(catalog.badges);
       } catch (error) {
-        setFormError(getMutationErrorMessage(error));
+        snackbar.showError(getMutationErrorMessage(error));
         return;
       }
     }
@@ -552,20 +540,14 @@ export const BadgeManagementPage = () => {
     try {
       if (formMode === 'edit' && activeBadge) {
         await updateBadge({ badgeId: activeBadge.id, body }).unwrap();
-        setFeedback({
-          tone: 'success',
-          message: 'Milestone updated successfully.',
-        });
+        snackbar.showSuccess('Milestone updated successfully.');
       } else {
         await createBadge(body).unwrap();
-        setFeedback({
-          tone: 'success',
-          message: 'Milestone created successfully.',
-        });
+        snackbar.showSuccess('Milestone created successfully.');
       }
       resetForm();
     } catch (error) {
-      setFormError(getMutationErrorMessage(error));
+      snackbar.showError(getMutationErrorMessage(error));
     }
   };
 
@@ -577,7 +559,6 @@ export const BadgeManagementPage = () => {
   }, []);
 
   const handleEnterSequenceEdit = useCallback(async () => {
-    setFeedback(null);
     setFormOpen(false);
     setFiltersOpen(false);
     setQuery('');
@@ -590,18 +571,16 @@ export const BadgeManagementPage = () => {
       const catalog = await fetchBadgeCatalog(BADGE_CATALOG_QUERY).unwrap();
       const ordered = sortBadgesBySequenceAsc(catalog.badges);
       if (ordered.length < 2) {
-        setFeedback({
-          tone: 'critical',
-          message: 'At least two milestones are required to edit sequence.',
-        });
+        snackbar.showError(
+          'At least two milestones are required to edit sequence.',
+        );
         return;
       }
       if (catalog.total > ordered.length) {
         setSequenceCatalogTruncated(true);
-        setFeedback({
-          tone: 'critical',
-          message: `Only the first ${ordered.length} of ${catalog.total} milestones can be rearranged in this view. Save is disabled until the catalog fits the limit.`,
-        });
+        snackbar.showError(
+          `Only the first ${ordered.length} of ${catalog.total} milestones can be rearranged in this view. Save is disabled until the catalog fits the limit.`,
+        );
       } else {
         setSequenceCatalogTruncated(false);
       }
@@ -609,14 +588,11 @@ export const BadgeManagementPage = () => {
       setSequenceDraft(ordered);
       setIsSequenceEditing(true);
     } catch (error) {
-      setFeedback({
-        tone: 'critical',
-        message: getMutationErrorMessage(error),
-      });
+      snackbar.showError(getMutationErrorMessage(error));
     } finally {
       setIsEnteringSequenceEdit(false);
     }
-  }, [fetchBadgeCatalog, resetPage]);
+  }, [fetchBadgeCatalog, resetPage, snackbar]);
 
   const handleSequenceReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -627,39 +603,28 @@ export const BadgeManagementPage = () => {
 
   const handleResetSequence = useCallback(() => {
     setSequenceDraft([...sequenceBaseline]);
-    setFeedback(null);
   }, [sequenceBaseline]);
 
   const handleBackToList = useCallback(() => {
-    setFeedback(null);
     exitSequenceEdit();
   }, [exitSequenceEdit]);
 
   const handleSaveSequence = useCallback(async () => {
     if (sequenceCatalogTruncated) {
-      setFeedback({
-        tone: 'critical',
-        message:
-          'Cannot save rearrangement while the milestone catalog exceeds the editable limit.',
-      });
+      snackbar.showError(
+        'Cannot save rearrangement while the milestone catalog exceeds the editable limit.',
+      );
       return;
     }
-    setFeedback(null);
     try {
       await commitBadgeSequenceOrder({
         baseline: sequenceBaseline,
         draft: sequenceDraft,
       }).unwrap();
-      setFeedback({
-        tone: 'success',
-        message: 'Milestone sequence updated successfully.',
-      });
+      snackbar.showSuccess('Milestone sequence updated successfully.');
       exitSequenceEdit();
     } catch (error) {
-      setFeedback({
-        tone: 'critical',
-        message: getMutationErrorMessage(error),
-      });
+      snackbar.showError(getMutationErrorMessage(error));
     }
   }, [
     commitBadgeSequenceOrder,
@@ -667,26 +632,20 @@ export const BadgeManagementPage = () => {
     sequenceBaseline,
     sequenceCatalogTruncated,
     sequenceDraft,
+    snackbar,
   ]);
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
-    setFeedback(null);
     try {
       await deleteBadge({ badgeId: deleteTarget.id }).unwrap();
       if (activeBadge?.id === deleteTarget.id) {
         resetForm();
       }
       setDeleteTarget(null);
-      setFeedback({
-        tone: 'success',
-        message: 'Milestone deleted successfully.',
-      });
+      snackbar.showSuccess('Milestone deleted successfully.');
     } catch (error) {
-      setFeedback({
-        tone: 'critical',
-        message: getMutationErrorMessage(error),
-      });
+      snackbar.showError(getMutationErrorMessage(error));
       setDeleteTarget(null);
     }
   };
@@ -981,24 +940,6 @@ export const BadgeManagementPage = () => {
           />
         </div>
       </div>
-
-      {feedback ? (
-        <Banner tone={feedback.tone}>
-          <div className="flex items-center justify-between gap-3">
-            <span>{feedback.message}</span>
-            {feedback.tone === 'success' ? (
-              <Button
-                variant="ghost"
-                aria-label="Dismiss success message"
-                onClick={() => setFeedback(null)}
-                className="h-8 w-8 p-0"
-              >
-                <CloseIcon className="h-5 w-5" />
-              </Button>
-            ) : null}
-          </div>
-        </Banner>
-      ) : null}
 
       <Card className="overflow-hidden p-0">
         {isSequenceEditing ? (

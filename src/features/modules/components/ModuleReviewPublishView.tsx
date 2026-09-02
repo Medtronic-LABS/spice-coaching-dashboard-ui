@@ -43,7 +43,6 @@ export interface ModuleReviewPublishViewProps {
   isPublishing: boolean;
   /** When true, disables the secondary save action on the publish card. */
   isSaving?: boolean;
-  publishError?: string;
   isAlreadyPublished?: boolean;
   editActionLabel?: string;
   /** Shown when there are unsaved edits. */
@@ -113,7 +112,6 @@ export const ModuleReviewPublishView = ({
   onSave,
   isPublishing,
   isSaving = false,
-  publishError,
   isAlreadyPublished = false,
   editActionLabel = 'Edit',
   unsavedChangesMessage,
@@ -347,11 +345,6 @@ export const ModuleReviewPublishView = ({
             <p className="mt-1 text-xs leading-relaxed text-white/90">
               {publishCardDescription}
             </p>
-            {publishError ? (
-              <div className="mt-3 rounded-lg bg-white/15 px-3 py-2 text-xs text-white">
-                {publishError}
-              </div>
-            ) : null}
             <div className="mt-4 space-y-2">
               {readonly || isAlreadyPublished ? (
                 <>

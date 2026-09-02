@@ -1,11 +1,6 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { renderWithSnackbar } from '@/test-utils/render';
 import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
 import { truncateDisplayText } from '@/utils/truncateDisplayText';
@@ -96,7 +91,7 @@ const mockModulesWithActorRefs: AdminModulesListItem[] = [
 
 describe('NeedsReviewTab', () => {
   it('renders modules in a tabular format', () => {
-    render(
+    renderWithSnackbar(
       <NeedsReviewTab
         modules={mockModules}
         onMerge={vi.fn()}
@@ -120,7 +115,7 @@ describe('NeedsReviewTab', () => {
 
   it('character-truncates long module titles and reveals the full title on hover', () => {
     const title = 'A'.repeat(TABLE_CELL_LABEL_MAX_LENGTH + 20);
-    render(
+    renderWithSnackbar(
       <NeedsReviewTab
         modules={[{ ...mockModules[0], title }]}
         onMerge={vi.fn()}
@@ -142,7 +137,7 @@ describe('NeedsReviewTab', () => {
   });
 
   it('toggles accordion row and shows comparison cards on click', async () => {
-    render(
+    renderWithSnackbar(
       <NeedsReviewTab
         modules={mockModules}
         onMerge={vi.fn()}
@@ -173,7 +168,7 @@ describe('NeedsReviewTab', () => {
     const handleDiscardNew = vi.fn().mockResolvedValue(undefined);
     const handleKeepNew = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    renderWithSnackbar(
       <NeedsReviewTab
         modules={mockModules}
         onMerge={handleMerge}
@@ -214,7 +209,7 @@ describe('NeedsReviewTab', () => {
   });
 
   it('shows created_by and published_by actor names from API objects', async () => {
-    render(
+    renderWithSnackbar(
       <NeedsReviewTab
         modules={mockModulesWithActorRefs}
         onMerge={vi.fn()}
@@ -237,7 +232,7 @@ describe('NeedsReviewTab', () => {
   });
 
   it('loads the merge preview from merge_secondary_module_id', async () => {
-    render(
+    renderWithSnackbar(
       <NeedsReviewTab
         modules={[
           {

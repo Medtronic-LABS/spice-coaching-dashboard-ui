@@ -4,10 +4,10 @@ import { Table, type ColumnDef } from '@/components/common/Table';
 import {
   Button,
   ConfirmDialog,
-  ErrorState,
   QuotedDisplayLabel,
   Tooltip,
   TruncatedText,
+  useSnackbar,
 } from '@/components/ui';
 import {
   TABLE_CELL_LABEL_MAX_LENGTH,
@@ -437,7 +437,7 @@ export const NeedsReviewTab = ({
   const [actionType, setActionType] = useState<
     'keep_new' | 'discard_new' | 'merge' | null
   >(null);
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     if (initialExpandedId) {
@@ -484,10 +484,11 @@ export const NeedsReviewTab = ({
 
   const handleMergeClick = async (moduleId: string) => {
     try {
-      setActionError('');
       setSubmittingId(moduleId);
       setActionType('merge');
       await onMerge(moduleId);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -497,10 +498,11 @@ export const NeedsReviewTab = ({
   const handleKeepNewClick = async (moduleId: string) => {
     if (!onKeepNew) return;
     try {
-      setActionError('');
       setSubmittingId(moduleId);
       setActionType('keep_new');
       await onKeepNew(moduleId);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -508,7 +510,6 @@ export const NeedsReviewTab = ({
   };
 
   const handleDiscardNewClick = (moduleId: string) => {
-    setActionError('');
     setDiscardTargetId(moduleId);
   };
 
@@ -520,6 +521,8 @@ export const NeedsReviewTab = ({
       setActionType('discard_new');
       await onDiscardNew(moduleId);
       setDiscardTargetId(null);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -725,11 +728,6 @@ export const NeedsReviewTab = ({
 
   return (
     <>
-      {actionError ? (
-        <div className="mb-3">
-          <ErrorState title={actionError} />
-        </div>
-      ) : null}
       <Table
         data={rows}
         columns={columns}

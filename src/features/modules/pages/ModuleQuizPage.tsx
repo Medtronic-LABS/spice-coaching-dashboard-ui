@@ -1,12 +1,11 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Banner,
   Button,
   Card,
   LimitedTextarea,
   LimitedTextInput,
   Loader,
+  useSnackbar,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
@@ -21,7 +20,7 @@ export const ModuleQuizPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { working, isSavingQuiz, saveQuiz, formatError } = useModuleEditor();
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const isReadOnly = Boolean(working?.isReadOnly);
   const quiz = working?.quiz;
 
@@ -207,18 +206,16 @@ export const ModuleQuizPage = () => {
               </div>
             </div>
           ))}
-          {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
           <div className="flex justify-end gap-2">
             {!isReadOnly ? (
               <Button
                 variant="secondary"
                 disabled={isSavingQuiz || !quiz || isReadOnly}
                 onClick={async () => {
-                  setActionError('');
                   try {
                     await saveQuiz();
                   } catch (err) {
-                    setActionError(formatError(err));
+                    snackbar.showError(formatError(err));
                   }
                 }}
               >

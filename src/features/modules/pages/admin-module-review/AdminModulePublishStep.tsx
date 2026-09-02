@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Banner, Button, Card, Loader } from '@/components/ui';
+import { Button, Card, Loader, useSnackbar } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
@@ -47,8 +47,8 @@ export const AdminModulePublishStep = () => {
   } = useAdminModuleReviewEditor(moduleId);
   const [publishModule, { isLoading: isPublishing }] =
     usePublishModuleMutation();
+  const snackbar = useSnackbar();
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
-  const [publishError, setPublishError] = useState('');
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
   const isReadonly = useAdminModuleReviewReadonly();
   const {
@@ -58,7 +58,6 @@ export const AdminModulePublishStep = () => {
   } = useModulePreview();
   const { validateBeforeProceed } = useQuizExplanationReview(moduleId);
   const {
-    actionError: saveError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -154,7 +153,6 @@ export const AdminModulePublishStep = () => {
           onRedirect={goToModuleLibrary}
         />
       ) : null}
-      {saveError ? <Banner tone="critical">{saveError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}
@@ -195,7 +193,6 @@ export const AdminModulePublishStep = () => {
           }
           isAlreadyPublished={isAlreadyPublished}
           isPublishing={isPublishing}
-          publishError={publishError}
           isSaving={isSaving}
           readonly={isReadonly}
           unsavedChangesMessage={
@@ -233,7 +230,6 @@ export const AdminModulePublishStep = () => {
           onPublish={() =>
             validateBeforeProceed(async () => {
               if (isReadonly) return;
-              setPublishError('');
               clearSaveFeedback();
               try {
                 const moduleIdForPublish = isDirty
@@ -249,7 +245,7 @@ export const AdminModulePublishStep = () => {
                   captureSaveError(err);
                   return;
                 }
-                setPublishError(formatError(err));
+                snackbar.showApiError(err);
               }
             })
           }

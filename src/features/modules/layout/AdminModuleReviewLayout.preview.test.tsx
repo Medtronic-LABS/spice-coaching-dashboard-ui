@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { paths } from '@/constants/routes';
 import { setCurrentRole } from '@/constants/role';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
@@ -88,18 +89,20 @@ function renderLayout(
   );
 
   return render(
-    <Provider store={store}>
-      <MemoryRouter initialEntries={[detailsPath]}>
-        <Routes>
-          <Route
-            path={paths.adminModuleReview}
-            element={<AdminModuleReviewLayout />}
-          >
-            <Route path="details" element={<StepStub />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[detailsPath]}>
+          <Routes>
+            <Route
+              path={paths.adminModuleReview}
+              element={<AdminModuleReviewLayout />}
+            >
+              <Route path="details" element={<StepStub />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 
@@ -150,18 +153,20 @@ describe('AdminModuleReviewLayout preview integration', () => {
     );
 
     render(
-      <Provider store={store}>
-        <MemoryRouter initialEntries={[detailsPath]}>
-          <Routes>
-            <Route
-              path={paths.adminModuleReview}
-              element={<AdminModuleReviewLayout />}
-            >
-              <Route path="details" element={<StepStub />} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
-      </Provider>,
+      <SnackbarProvider>
+        <Provider store={store}>
+          <MemoryRouter initialEntries={[detailsPath]}>
+            <Routes>
+              <Route
+                path={paths.adminModuleReview}
+                element={<AdminModuleReviewLayout />}
+              >
+                <Route path="details" element={<StepStub />} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </Provider>
+      </SnackbarProvider>,
     );
 
     await user.click(screen.getByRole('button', { name: 'Preview' }));

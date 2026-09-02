@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightIcon } from '@/assets/icon';
-import { Banner, Button, Card } from '@/components/ui';
+import { Button, Card, useSnackbar } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type {
   AdminV3IngestAcceptedResponse,
   AdminV3IngestBatchStatusResponse,
   AdminV3IngestUploadResponse,
   IngestContentDomain,
+  IngestDuplicateConflict,
 } from '@/features/ingest/api/adminIngestApi';
 import { DocumentSelectionCollapsible } from '@/features/ingest/components/DocumentSelectionCollapsible';
 import { DocumentSelectionPanel } from '@/features/ingest/components/DocumentSelectionPanel';
@@ -26,6 +27,10 @@ import {
 } from '@/features/ingest/constants/ingestFormDefaults';
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
 import {
+  countNewlyUploadedSources,
+  keptExistingSourcesFromConflicts,
+} from '@/features/ingest/utils/parseIngestDuplicateError';
+import {
   clearActiveIngestSession,
   mergeKeptExistingIngestSources,
   readActiveIngestSession,
@@ -39,7 +44,6 @@ import {
   isIngestSucceeded,
   isTerminalIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
-import { keptExistingSourcesFromConflicts } from '@/features/ingest/utils/parseIngestDuplicateError';
 import {
   selectedDocumentsFromIngestSourceIds,
   selectedDocumentsFromUploadResponse,
@@ -76,27 +80,51 @@ export const IngestDocumentPage = () => {
   const [restoredBatchId, setRestoredBatchId] = useState(
     () => readActiveIngestSession()?.batch_id ?? '',
   );
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const [statusData, setStatusData] =
     useState<AdminV3IngestBatchStatusResponse | null>(null);
   const [keptExistingSources, setKeptExistingSources] = useState<
     KeptExistingIngestSource[]
   >(() => readActiveIngestSession()?.kept_existing_sources ?? []);
 
-  const handleUploaded = useCallback((res: AdminV3IngestUploadResponse) => {
-    const uploaded = selectedDocumentsFromUploadResponse(res);
+  const handleUploaded = useCallback(
+    (
+      res: AdminV3IngestUploadResponse,
+      context: {
+        isReupload: boolean;
+        overriddenFilenames: string[];
+        duplicateConflicts: IngestDuplicateConflict[];
+      },
+    ) => {
+      const uploaded = selectedDocumentsFromUploadResponse(res);
 
-    if (uploaded.length) {
-      setSelectedDocuments((previous) => {
-        const withoutDupes = previous.filter(
-          (doc) => !uploaded.some((item) => item.id === doc.id),
+      if (uploaded.length) {
+        setSelectedDocuments((previous) => {
+          const withoutDupes = previous.filter(
+            (doc) => !uploaded.some((item) => item.id === doc.id),
+          );
+          // Newest / just-resolved uploads stay at the top of the selection.
+          return [...uploaded, ...withoutDupes].slice(
+            0,
+            MAX_DOCUMENT_SELECTION,
+          );
+        });
+      }
+      setUploadClearSignal((current) => current + 1);
+
+      const newlyUploadedCount = countNewlyUploadedSources(res, context);
+      const isSkipUploadReuse =
+        context.isReupload && context.overriddenFilenames.length === 0;
+      if (newlyUploadedCount > 0 && !isSkipUploadReuse) {
+        snackbar.showSuccess(
+          newlyUploadedCount === 1
+            ? 'Document uploaded successfully.'
+            : 'Documents uploaded successfully.',
         );
-        // Newest / just-resolved uploads stay at the top of the selection.
-        return [...uploaded, ...withoutDupes].slice(0, MAX_DOCUMENT_SELECTION);
-      });
-    }
-    setUploadClearSignal((current) => current + 1);
-  }, []);
+      }
+    },
+    [snackbar],
+  );
 
   const handleIngestAccepted = useCallback(
     (res: AdminV3IngestAcceptedResponse) => {
@@ -122,9 +150,9 @@ export const IngestDocumentPage = () => {
     reusedUploadNotice,
     keptExistingIngestNotice,
   } = useIngestWithDuplicateHandling({
-    onUploaded: (response) => handleUploaded(response),
+    onUploaded: (response, context) => handleUploaded(response, context),
     onAccepted: (response) => handleIngestAccepted(response),
-    onError: setActionError,
+    onError: (message) => snackbar.showError(message),
   });
 
   const batchId = activeBatchId || restoredBatchId;
@@ -331,7 +359,6 @@ export const IngestDocumentPage = () => {
   const runStartIngest = useCallback(async () => {
     if (!selectedDocuments.length) return;
     const nextSourceIds = selectedDocuments.map((doc) => doc.id);
-    setActionError('');
     setAccepted(null);
     setActiveBatchId('');
     setRestoredBatchId('');
@@ -395,8 +422,6 @@ export const IngestDocumentPage = () => {
           </span>
         </div>
       ) : null}
-
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
 
       {reusedUploadNotice?.length ? (
         <div

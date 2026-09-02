@@ -1,15 +1,15 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightIcon } from '@/assets/icon';
 import {
   Button,
-  Banner,
   Card,
   FileDropzone,
   ImagePicker,
   LimitedTextInput,
   Tabs,
   Tooltip,
+  useSnackbar,
   type TabItem,
 } from '@/components/ui';
 import {
@@ -19,7 +19,6 @@ import {
 import { paths } from '@/constants/routes';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
 import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
-import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   useUploadKnowledgeDocumentMutation,
   type KnowledgeUploadPayload,
@@ -64,6 +63,7 @@ async function resolveThumbnailFile(options: {
 
 export const KnowledgeLibraryPage = () => {
   const navigate = useNavigate();
+  const snackbar = useSnackbar();
 
   const [uploadKnowledgeDocument, { isLoading: isUploadingKnowledge }] =
     useUploadKnowledgeDocumentMutation();
@@ -196,6 +196,12 @@ export const KnowledgeLibraryPage = () => {
   const isBusy =
     isUploadingKnowledge || isUploadingThumbnail || isConfirmingDuplicate;
 
+  useEffect(() => {
+    if (file && pdfReadWarning) {
+      snackbar.showWarning(pdfReadWarning);
+    }
+  }, [file, pdfReadWarning, snackbar]);
+
   const canSubmit = useMemo(() => {
     if (!file) return false;
     if (isBusy) return false;
@@ -207,6 +213,12 @@ export const KnowledgeLibraryPage = () => {
     async (payload: KnowledgeUploadPayload) => {
       try {
         await uploadKnowledgeDocument(payload).unwrap();
+        const splitCount = payload.splits?.length ?? 0;
+        snackbar.showSuccess(
+          splitCount > 1
+            ? 'Knowledge documents uploaded successfully.'
+            : 'Knowledge document uploaded successfully.',
+        );
         setReusedUploadNotice(null);
         clearAllDrafts();
         return true;
@@ -218,11 +230,11 @@ export const KnowledgeLibraryPage = () => {
           setDuplicateDialogOpen(true);
           return false;
         }
-        setActionError(formatRtkQueryError(err));
+        snackbar.showApiError(err);
         return false;
       }
     },
-    [clearAllDrafts, uploadKnowledgeDocument],
+    [clearAllDrafts, snackbar, uploadKnowledgeDocument],
   );
 
   const submitUpload = useCallback(async () => {
@@ -343,7 +355,7 @@ export const KnowledgeLibraryPage = () => {
         splits: splitsPayload,
       });
     } catch (err) {
-      setActionError(formatRtkQueryError(err));
+      snackbar.showApiError(err);
     }
   }, [
     clearDuplicateDialog,
@@ -357,6 +369,7 @@ export const KnowledgeLibraryPage = () => {
     pdfDocument,
     runKnowledgeUpload,
     splitDrafts,
+    snackbar,
     uploadAdminFile,
   ]);
 
@@ -504,10 +517,6 @@ export const KnowledgeLibraryPage = () => {
               </span>{' '}
               {pageCount === 1 ? 'page' : 'pages'}.
             </p>
-          ) : null}
-
-          {file && pdfReadWarning ? (
-            <Banner tone="warning">{pdfReadWarning}</Banner>
           ) : null}
 
           {file ? (

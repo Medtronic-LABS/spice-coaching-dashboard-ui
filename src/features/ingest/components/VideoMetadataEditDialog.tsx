@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
-  Banner,
   Card,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
   Modal,
   ModalActionBar,
+  useSnackbar,
 } from '@/components/ui';
 import {
   FIELD_LIMITS,
@@ -26,7 +26,6 @@ import {
   isAcceptedVideoThumbnailFile,
 } from '@/features/ingest/utils/videoThumbnail';
 import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
-import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 interface VideoMetadataEditDialogProps {
   open: boolean;
@@ -48,7 +47,7 @@ export const VideoMetadataEditDialog = ({
     string | null
   >(null);
   const [fieldError, setFieldError] = useState('');
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [updateMetadata, { isLoading: isSavingMetadata }] =
@@ -73,7 +72,6 @@ export const VideoMetadataEditDialog = ({
     setThumbnailFile(null);
     setLocalThumbnailPreviewUrl(null);
     setFieldError('');
-    setActionError('');
   }, [open, document]);
 
   useEffect(() => {
@@ -131,7 +129,6 @@ export const VideoMetadataEditDialog = ({
     }
 
     setFieldError('');
-    setActionError('');
 
     try {
       let latest = document;
@@ -159,7 +156,7 @@ export const VideoMetadataEditDialog = ({
       onSaved(latest);
       onClose();
     } catch (error) {
-      setActionError(formatRtkQueryError(error));
+      snackbar.showApiError(error);
     }
   };
 
@@ -182,8 +179,11 @@ export const VideoMetadataEditDialog = ({
           Edit video details
         </h2>
 
-        {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
-        {fieldError ? <Banner tone="critical">{fieldError}</Banner> : null}
+        {fieldError ? (
+          <p className="text-xs text-spice-semantic-error" role="alert">
+            {fieldError}
+          </p>
+        ) : null}
 
         <label className="block space-y-1.5">
           <span className="text-xs font-semibold text-spice-text-primary">

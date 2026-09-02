@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { paths } from '@/constants/routes';
 import { setCurrentRole } from '@/constants/role';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
@@ -96,22 +97,24 @@ function renderLessonsPreview() {
   });
 
   return render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewLessons}
-              element={<PreviewHarness />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[
+              paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
+            ]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewLessons}
+                element={<PreviewHarness />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 

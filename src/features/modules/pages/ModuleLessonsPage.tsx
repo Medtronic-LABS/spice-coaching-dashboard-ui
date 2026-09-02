@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner, Button, Card, Loader } from '@/components/ui';
+import { Button, Card, Loader, useSnackbar } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
 import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
@@ -14,8 +14,8 @@ export const ModuleLessonsPage = () => {
   const dispatch = useAppDispatch();
   const { working, isLoading, saveContent, isSavingContent, formatError } =
     useModuleEditor();
+  const snackbar = useSnackbar();
   const [selectedLessonId, setSelectedLessonId] = useState('');
-  const [actionError, setActionError] = useState('');
   const isReadOnly = Boolean(working?.isReadOnly);
 
   const selectedLesson = working?.lessons.find(
@@ -96,7 +96,6 @@ export const ModuleLessonsPage = () => {
         </Card>
 
         <Card variant="elevated" className="space-y-4">
-          {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
           <div className="text-4xl font-semibold text-spice-text-primary">
             Lesson Content
           </div>
@@ -112,11 +111,10 @@ export const ModuleLessonsPage = () => {
                 variant="secondary"
                 disabled={isSavingContent || isReadOnly}
                 onClick={async () => {
-                  setActionError('');
                   try {
                     await saveContent();
                   } catch (err) {
-                    setActionError(formatError(err));
+                    snackbar.showError(formatError(err));
                   }
                 }}
               >

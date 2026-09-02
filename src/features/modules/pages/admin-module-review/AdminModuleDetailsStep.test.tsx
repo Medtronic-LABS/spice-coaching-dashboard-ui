@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import type { AppRole } from '@/constants/role';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
@@ -76,26 +77,28 @@ function renderDetailsStep() {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewDetails}
-              element={<AdminModuleDetailsStep />}
-            />
-            <Route
-              path={paths.adminModuleReviewLessons}
-              element={<div data-testid="lessons-step" />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[
+              paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+            ]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewDetails}
+                element={<AdminModuleDetailsStep />}
+              />
+              <Route
+                path={paths.adminModuleReviewLessons}
+                element={<div data-testid="lessons-step" />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PageQueryErrorState } from '@/components/common/PageQueryErrorState';
-import { Banner, Button, Card, Loader } from '@/components/ui';
+import { Button, Card, Loader, useSnackbar } from '@/components/ui';
 import {
   MODULE_ASSIGNMENT_DURATION_KEY,
   useFetchConfigByKeyQuery,
@@ -17,12 +17,6 @@ import {
 } from '@/features/admin-configs/utils/configDuration';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
-import { useAutoDismissFeedback } from '@/hooks/useAutoDismissFeedback';
-
-type FeedbackState =
-  | { tone: 'success'; message: string }
-  | { tone: 'critical'; message: string }
-  | null;
 
 const inputClassName = cn(
   'h-11 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary caret-spice-palette-purple',
@@ -39,20 +33,8 @@ function handleDurationChange(
   setError(getDurationValidationError(next) ?? '');
 }
 
-function getMutationErrorMessage(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error &&
-    'data' in error &&
-    typeof (error as { data?: unknown }).data === 'object' &&
-    (error as { data?: { message?: unknown } }).data?.message
-  ) {
-    return String((error as { data: { message: unknown } }).data.message);
-  }
-  return 'Something went wrong. Please try again.';
-}
-
 export const ConfigsPage = () => {
+  const snackbar = useSnackbar();
   const {
     data: config,
     isLoading,
@@ -64,7 +46,6 @@ export const ConfigsPage = () => {
 
   const [assignmentDurationDays, setAssignmentDurationDays] = useState('');
   const [formError, setFormError] = useState('');
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const savedDuration = useMemo(
@@ -81,8 +62,6 @@ export const ConfigsPage = () => {
   const isDirty = assignmentDurationDays !== savedDuration;
   const isValid = parseConfigDurationDays(assignmentDurationDays) !== null;
 
-  useAutoDismissFeedback(feedback, () => setFeedback(null));
-
   const handleSave = async () => {
     if (!config) return;
 
@@ -93,7 +72,6 @@ export const ConfigsPage = () => {
     }
 
     setFormError('');
-    setFeedback(null);
 
     try {
       await updateConfig({
@@ -105,19 +83,15 @@ export const ConfigsPage = () => {
         },
       }).unwrap();
       setHistoryRefreshNonce((current) => current + 1);
-      setFeedback({
-        tone: 'success',
-        message: 'Quiz reattempt validity updated successfully.',
-      });
-    } catch (error) {
-      setFormError(getMutationErrorMessage(error));
+      snackbar.showSuccess('Quiz reattempt validity updated successfully.');
+    } catch (saveError) {
+      snackbar.showApiError(saveError);
     }
   };
 
   const handleReset = () => {
     setAssignmentDurationDays(savedDuration);
     setFormError('');
-    setFeedback(null);
   };
 
   if (isLoading) {
@@ -153,86 +127,62 @@ export const ConfigsPage = () => {
 
       <Card variant="elevated" className="max-w-xl overflow-hidden">
         <div className="space-y-5 p-6">
-          {feedback ? (
-            <Banner tone={feedback.tone === 'success' ? 'success' : 'critical'}>
-              {feedback.message}
-            </Banner>
-          ) : null}
-
-          {formError ? <Banner tone="critical">{formError}</Banner> : null}
-
           <div className="space-y-3">
             <label
               htmlFor="quiz-reattempt-validity-days"
               className="block text-sm font-semibold text-spice-text-primary"
             >
-              Quiz reattempt validity
+              Quiz reattempt validity (days)
             </label>
-
-            <div className="flex items-stretch">
-              <input
-                id="quiz-reattempt-validity-days"
-                className={cn(
-                  inputClassName,
-                  'w-28 rounded-r-none border-r-0 focus:z-10',
-                )}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={DURATION_MAX_DIGITS}
-                autoComplete="off"
-                value={assignmentDurationDays}
-                disabled={isSaving}
-                onChange={(event) => {
-                  setFeedback(null);
-                  handleDurationChange(
-                    event.target.value,
-                    setAssignmentDurationDays,
-                    setFormError,
-                  );
-                }}
-                onBlur={() => {
-                  if (!isDirty) {
-                    setFormError('');
-                    return;
-                  }
-                  setFormError(
-                    getDurationValidationError(assignmentDurationDays) ?? '',
-                  );
-                }}
-                placeholder="30"
-                aria-label="Quiz reattempt validity days"
-                aria-describedby="quiz-reattempt-validity-hint"
-                aria-invalid={Boolean(formError)}
-              />
-              <span className="inline-flex shrink-0 items-center rounded-r-lg border border-spice-border bg-spice-bg-tint px-3 text-sm font-medium text-spice-text-medium">
-                days
-              </span>
-            </div>
-
-            <p
-              id="quiz-reattempt-validity-hint"
-              className="text-xs text-spice-text-muted"
-            >
-              Enter a value between 1 and {DURATION_MAX_DAYS}.
+            <input
+              id="quiz-reattempt-validity-days"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={DURATION_MAX_DIGITS}
+              value={assignmentDurationDays}
+              aria-invalid={Boolean(formError)}
+              aria-describedby={
+                formError ? 'quiz-reattempt-validity-error' : undefined
+              }
+              className={inputClassName}
+              onChange={(event) => {
+                handleDurationChange(
+                  event.target.value,
+                  setAssignmentDurationDays,
+                  setFormError,
+                );
+              }}
+            />
+            {formError ? (
+              <p
+                id="quiz-reattempt-validity-error"
+                className="text-xs text-spice-semantic-error"
+              >
+                {formError}
+              </p>
+            ) : null}
+            <p className="text-xs text-spice-text-muted">
+              Number of days a learner may reattempt a quiz after assignment.
+              Maximum {DURATION_MAX_DAYS} days.
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2 border-t border-spice-border pt-4">
+          <div className="flex flex-wrap gap-2">
             <Button
+              type="button"
+              disabled={!isDirty || !isValid || isSaving}
+              onClick={() => void handleSave()}
+            >
+              Save changes
+            </Button>
+            <Button
+              type="button"
               variant="secondary"
-              className="h-9 min-w-[5.5rem] text-xs"
               disabled={!isDirty || isSaving}
               onClick={handleReset}
             >
               Reset
-            </Button>
-            <Button
-              className="h-9 min-w-[5.5rem] text-xs"
-              disabled={!isDirty || !isValid || isSaving || Boolean(formError)}
-              onClick={() => void handleSave()}
-            >
-              Save changes
             </Button>
           </div>
         </div>

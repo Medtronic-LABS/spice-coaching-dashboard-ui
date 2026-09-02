@@ -447,9 +447,9 @@ describe('VideoUploadPage', () => {
 
     await stageAndApiUpload(user, video);
 
-    expect(
-      screen.getByText('Video uploaded successfully.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Video uploaded successfully.',
+    );
     expect(mocks.uploadFiles).toHaveBeenCalledWith(
       expect.objectContaining({
         files: [video],
@@ -611,9 +611,9 @@ describe('VideoUploadPage', () => {
 
     await user.click(screen.getByRole('button', { name: /upload 2 videos/i }));
     await waitFor(() =>
-      expect(
-        screen.getByText('Videos uploaded successfully.'),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Videos uploaded successfully.',
+      ),
     );
   });
 

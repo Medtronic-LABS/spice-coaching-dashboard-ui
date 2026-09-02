@@ -1,3 +1,4 @@
+import { getApiErrorCatalogEntry } from '@/constants/apiErrorCatalog';
 import {
   assignSequencesByOrder,
   dateRangeValidationMessage,
@@ -109,7 +110,7 @@ describe('badgeForm utils', () => {
       }),
     ).toBe("An active badge named 'asdfd' already exists.");
     expect(getMutationErrorMessage({ status: 500 })).toBe(
-      'Request failed (500)',
+      getApiErrorCatalogEntry('internal_error')?.description,
     );
     expect(getMutationErrorMessage({})).toBe(
       'Something went wrong. Please try again.',

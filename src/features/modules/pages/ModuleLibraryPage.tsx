@@ -9,7 +9,6 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Banner,
   Button,
   Card,
   ConfirmDialog,
@@ -23,6 +22,7 @@ import {
   Tabs,
   Tooltip,
   TruncatedText,
+  useSnackbar,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
@@ -238,6 +238,7 @@ function isNeedsReviewStatus(status?: string): boolean {
 }
 
 export const ModuleLibraryPage = () => {
+  const snackbar = useSnackbar();
   const role = getCurrentRole();
   const isProgramManager = role === 'programManager';
   const { t } = useTranslation();
@@ -286,7 +287,6 @@ export const ModuleLibraryPage = () => {
     id: string;
     title: string;
   } | null>(null);
-  const [deactivateError, setDeactivateError] = useState('');
   const [assignmentOpen, setAssignmentOpen] = useState(false);
   const [assignmentModule, setAssignmentModule] = useState<{
     id: string;
@@ -312,7 +312,6 @@ export const ModuleLibraryPage = () => {
   const [publishingModuleId, setPublishingModuleId] = useState<string | null>(
     null,
   );
-  const [publishError, setPublishError] = useState('');
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [publishSuccessSummary, setPublishSuccessSummary] =
     useState<ModulePublishedSuccessSummary | null>(null);
@@ -858,7 +857,6 @@ export const ModuleLibraryPage = () => {
                 disabled={isPublishingRow}
                 onClick={async () => {
                   if (isPublishing) return;
-                  setPublishError('');
                   setPublishingModuleId(row.id);
                   try {
                     await publishModule({ moduleId: row.id }).unwrap();
@@ -870,9 +868,10 @@ export const ModuleLibraryPage = () => {
                       estimateMinutes: row.estimatedMinutes,
                     });
                     setPublishSuccessOpen(true);
+                    snackbar.showSuccess('Module published successfully.');
                     refreshModuleList();
                   } catch (error) {
-                    setPublishError(
+                    snackbar.showError(
                       formatRtkQueryError(error) ||
                         'Failed to publish module. Please try again.',
                     );
@@ -895,7 +894,6 @@ export const ModuleLibraryPage = () => {
                   'text-spice-semantic-error hover:bg-spice-semantic-errorBg',
                 )}
                 onClick={() => {
-                  setDeactivateError('');
                   setDeactivateModuleData({
                     id: row.id,
                     title: row.title,
@@ -1011,7 +1009,6 @@ export const ModuleLibraryPage = () => {
                 : 'Publishing module…'
         }
       />
-      {publishError ? <Banner tone="critical">{publishError}</Banner> : null}
       {createOpen ? (
         <Modal
           open={createOpen}
@@ -1040,7 +1037,7 @@ export const ModuleLibraryPage = () => {
             </div>
 
             {createError ? (
-              <Banner tone="critical">{createError}</Banner>
+              <p className="text-xs text-spice-semantic-error">{createError}</p>
             ) : null}
 
             <div className="space-y-4">
@@ -1316,7 +1313,7 @@ export const ModuleLibraryPage = () => {
                         ),
                       );
                     } catch {
-                      setCreateError(
+                      snackbar.showError(
                         'Failed to create module. Please try again.',
                       );
                     }
@@ -1349,32 +1346,28 @@ export const ModuleLibraryPage = () => {
           isConfirming={isDeactivating}
           disabled={isDeactivating}
           onClose={() => {
-            setDeactivateError('');
             setDeactivateConfirmOpen(false);
             setDeactivateModuleData(null);
           }}
           onConfirm={() => {
             void (async () => {
-              setDeactivateError('');
               try {
                 await deactivateModule({
                   moduleId: deactivateModuleData.id,
                 }).unwrap();
                 setDeactivateConfirmOpen(false);
                 setDeactivateModuleData(null);
+                snackbar.showSuccess('Module deactivated successfully.');
                 refreshModuleList();
-              } catch {
-                setDeactivateError(
-                  'Failed to deactivate module. Please try again.',
+              } catch (error) {
+                snackbar.showError(
+                  formatRtkQueryError(error) ||
+                    'Failed to deactivate module. Please try again.',
                 );
               }
             })();
           }}
-        >
-          {deactivateError ? (
-            <Banner tone="critical">{deactivateError}</Banner>
-          ) : null}
-        </ConfirmDialog>
+        />
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

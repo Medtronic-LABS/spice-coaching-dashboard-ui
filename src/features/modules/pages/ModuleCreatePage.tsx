@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, Button, Card, FileDropzone, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  FileDropzone,
+  Loader,
+  useSnackbar,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetIngestStatusByDocumentQuery } from '@/features/ingest/api/adminIngestApi';
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
@@ -29,8 +36,8 @@ function redirectToModuleLibrary(): void {
 }
 
 export const ModuleCreatePage = () => {
+  const snackbar = useSnackbar();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState('');
   const [sourceDocumentId, setSourceDocumentId] = useState(
     () => readActiveIngestSession()?.source_document_id ?? '',
   );
@@ -53,13 +60,13 @@ export const ModuleCreatePage = () => {
     onAccepted: (accepted) => {
       const first = accepted.sources?.[0]?.source_document_id ?? '';
       if (!first) {
-        setUploadError('Ingest accepted but no source ID was returned.');
+        snackbar.showError('Ingest accepted but no source ID was returned.');
         return;
       }
       persistIngestSession(first);
       setSelectedFile(null);
     },
-    onError: setUploadError,
+    onError: (message) => snackbar.showError(message),
   });
 
   const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
@@ -90,9 +97,10 @@ export const ModuleCreatePage = () => {
 
   useEffect(() => {
     if (!isIngestSucceeded(statusData?.status)) return;
+    snackbar.showSuccess('Ingestion succeeded. Redirecting to Module Library…');
     clearActiveIngestSession();
     redirectToModuleLibrary();
-  }, [statusData?.status]);
+  }, [snackbar, statusData?.status]);
 
   const ingestionInProgress = isIngestInProgress(
     sourceDocumentId,
@@ -173,7 +181,6 @@ export const ModuleCreatePage = () => {
             files={selectedFile ? [selectedFile] : []}
             onChange={(next) => {
               setSelectedFile(next[0] ?? null);
-              setUploadError('');
             }}
             accept={INGEST_FILE_INPUT_ACCEPT}
             disabled={uploadFieldsDisabled}
@@ -187,14 +194,13 @@ export const ModuleCreatePage = () => {
                 ? null
                 : formatIngestFileRejectionError([file])
             }
-            onReject={setUploadError}
+            onReject={(message) => snackbar.showError(message)}
           />
 
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={uploadFieldsDisabled || !selectedFile}
               onClick={async () => {
-                setUploadError('');
                 if (!selectedFile) return;
 
                 clearActiveIngestSession();
@@ -217,8 +223,6 @@ export const ModuleCreatePage = () => {
             </Button>
           </div>
         </div>
-
-        {uploadError ? <Banner tone="critical">{uploadError}</Banner> : null}
 
         {statusError ? (
           <div className="space-y-2">
@@ -295,12 +299,6 @@ export const ModuleCreatePage = () => {
                 </div>
               ))}
             </div>
-          ) : null}
-
-          {ingestionSucceeded ? (
-            <Banner tone="success">
-              Ingestion succeeded. Redirecting to Module Library…
-            </Banner>
           ) : null}
         </Card>
       ) : null}
