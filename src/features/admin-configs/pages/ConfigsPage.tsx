@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageQueryErrorState } from '@/components/common/PageQueryErrorState';
-import { Button, Card, Loader, useSnackbar } from '@/components/ui';
+import { PageTitle } from '@/components/common/PageTitle';
+import {
+  Button,
+  Card,
+  FormHelperText,
+  FormLabel,
+  Loader,
+  SectionHeader,
+  Tooltip,
+  useSnackbar,
+} from '@/components/ui';
 import {
   MODULE_ASSIGNMENT_DURATION_KEY,
   useFetchConfigByKeyQuery,
@@ -34,6 +45,7 @@ function handleDurationChange(
 }
 
 export const ConfigsPage = () => {
+  const { t } = useTranslation();
   const snackbar = useSnackbar();
   const {
     data: config,
@@ -101,8 +113,7 @@ export const ConfigsPage = () => {
   if (isError || !config) {
     return (
       <PageQueryErrorState
-        pageTitle="Configuration"
-        pageSubtitle="Manage quiz reattempt validity and review configuration history."
+        pageTitle={t('layout.sidebar.nav.configs')}
         error={error ?? { status: 'UNKNOWN' }}
         errorTitle="Unable to load configuration"
         onRetry={() => void refetch()}
@@ -110,81 +121,82 @@ export const ConfigsPage = () => {
     );
   }
 
+  const configFieldLabel =
+    config.title?.trim() || 'Quiz reattempt validity (days)';
+
   return (
     <section className="space-y-6">
       <Loader open={isSaving} label="Saving configuration…" />
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-spice-text-primary">
-          {config.title ?? 'Configuration'}
-        </h1>
-        {config.description ? (
-          <p className="w-full text-sm leading-relaxed text-spice-text-muted">
-            {config.description}
-          </p>
-        ) : null}
-      </div>
+      <PageTitle title={t('layout.sidebar.nav.configs')} />
 
-      <Card variant="elevated" className="max-w-xl overflow-hidden">
-        <div className="space-y-5 p-6">
-          <div className="space-y-3">
-            <label
-              htmlFor="quiz-reattempt-validity-days"
-              className="block text-sm font-semibold text-spice-text-primary"
+      <Card variant="elevated" className="max-w-xl space-y-5">
+        <SectionHeader
+          title={configFieldLabel}
+          titleAccessory={
+            config.description ? (
+              <Tooltip
+                label="Setting description"
+                content={config.description}
+                placement="top"
+              />
+            ) : undefined
+          }
+        />
+        <div className="space-y-3">
+          <FormLabel htmlFor="quiz-reattempt-validity-days" className="sr-only">
+            {configFieldLabel}
+          </FormLabel>
+          <input
+            id="quiz-reattempt-validity-days"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={DURATION_MAX_DIGITS}
+            value={assignmentDurationDays}
+            aria-invalid={Boolean(formError)}
+            aria-describedby={
+              formError ? 'quiz-reattempt-validity-error' : undefined
+            }
+            className={inputClassName}
+            onChange={(event) => {
+              handleDurationChange(
+                event.target.value,
+                setAssignmentDurationDays,
+                setFormError,
+              );
+            }}
+          />
+          {formError ? (
+            <p
+              id="quiz-reattempt-validity-error"
+              className="text-xs text-spice-semantic-error"
             >
-              Quiz reattempt validity (days)
-            </label>
-            <input
-              id="quiz-reattempt-validity-days"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={DURATION_MAX_DIGITS}
-              value={assignmentDurationDays}
-              aria-invalid={Boolean(formError)}
-              aria-describedby={
-                formError ? 'quiz-reattempt-validity-error' : undefined
-              }
-              className={inputClassName}
-              onChange={(event) => {
-                handleDurationChange(
-                  event.target.value,
-                  setAssignmentDurationDays,
-                  setFormError,
-                );
-              }}
-            />
-            {formError ? (
-              <p
-                id="quiz-reattempt-validity-error"
-                className="text-xs text-spice-semantic-error"
-              >
-                {formError}
-              </p>
-            ) : null}
-            <p className="text-xs text-spice-text-muted">
-              Number of days a learner may reattempt a quiz after assignment.
-              Maximum {DURATION_MAX_DAYS} days.
+              {formError}
             </p>
-          </div>
+          ) : null}
+          <FormHelperText>
+            Number of days a learner may reattempt a quiz after assignment.
+            Maximum {DURATION_MAX_DAYS} days.
+          </FormHelperText>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              disabled={!isDirty || !isValid || isSaving}
-              onClick={() => void handleSave()}
-            >
-              Save changes
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={!isDirty || isSaving}
-              onClick={handleReset}
-            >
-              Reset
-            </Button>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            disabled={!isDirty || !isValid || isSaving}
+            onClick={() => void handleSave()}
+          >
+            Save changes
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!isDirty || isSaving}
+            onClick={handleReset}
+          >
+            Reset
+          </Button>
         </div>
       </Card>
 

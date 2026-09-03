@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { LimitedTextInput } from '@/components/ui';
+import { FormLabel, LimitedTextInput } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
 import { cn } from '@/utils';
@@ -67,15 +67,7 @@ export const ModuleTaxonomyField = ({
 
   const selectValue = useCustom ? OTHER_VALUE : value;
   const labelContent = hideLabel ? null : (
-    <span className="text-xs font-semibold text-spice-text-primary">
-      {label}
-      {required ? (
-        <span className="text-spice-semantic-error" aria-hidden="true">
-          {' '}
-          *
-        </span>
-      ) : null}
-    </span>
+    <FormLabel required={required}>{label}</FormLabel>
   );
 
   if (inputOnly) {

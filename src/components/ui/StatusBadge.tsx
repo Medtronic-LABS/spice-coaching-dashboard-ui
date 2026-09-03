@@ -7,12 +7,20 @@ import { cn } from '@/utils';
  *
  * Usage:
  * <StatusBadge status="success" label="Active" />
+ * <StatusBadge status="success" label="Active" className={TABLE_STATUS_BADGE_CLASSNAME} />
  */
 export interface StatusBadgeProps {
   status: 'success' | 'warning' | 'critical' | 'info' | 'neutral';
   label: string;
   className?: string;
 }
+
+/** Shared capsule sizing for every semantic status badge. */
+export const STATUS_BADGE_CLASSNAME =
+  'h-6 whitespace-nowrap px-2.5 py-0 text-xs font-semibold leading-none tracking-wide justify-center text-center';
+
+/** Extra width for status values in admin data tables. */
+export const TABLE_STATUS_BADGE_CLASSNAME = 'min-w-[8.5rem]';
 
 const statusClassMap: Record<StatusBadgeProps['status'], string> = {
   success:
@@ -28,11 +36,7 @@ const statusClassMap: Record<StatusBadgeProps['status'], string> = {
 export const StatusBadge = ({ status, label, className }: StatusBadgeProps) => {
   return (
     <Badge
-      className={cn(
-        'min-w-[6.5rem] justify-center px-2.5 py-1 text-center text-[10px] font-semibold tracking-wide',
-        statusClassMap[status],
-        className,
-      )}
+      className={cn(STATUS_BADGE_CLASSNAME, statusClassMap[status], className)}
     >
       {label}
     </Badge>

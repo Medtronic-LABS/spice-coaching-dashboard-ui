@@ -1,13 +1,19 @@
 import { useNavigate } from 'react-router-dom';
+import { PageTitle } from '@/components/common/PageTitle';
 import {
   Button,
   Card,
+  CardTitle,
+  FieldGroupLabel,
+  ModalTitle,
   QuotedDisplayLabel,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   TruncatedText,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetModuleDraftQuery } from '@/features/modules/api/moduleDraftApi';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 
 export const ModulePublishedPage = () => {
   const navigate = useNavigate();
@@ -16,9 +22,7 @@ export const ModulePublishedPage = () => {
   if (data?.status !== 'published') {
     return (
       <Card variant="elevated" className="space-y-3">
-        <div className="text-lg font-semibold text-spice-text-primary">
-          Module is still in draft
-        </div>
+        <ModalTitle as="h2">Module is still in draft</ModalTitle>
         <p className="text-sm text-spice-text-medium">
           Publish the module from Review & Publish to see the live screen.
         </p>
@@ -39,11 +43,12 @@ export const ModulePublishedPage = () => {
         </div>
         <div className="space-y-2 text-center">
           <div className="flex justify-center">
-            <ModuleStatusBadge status="published" />
+            <StatusBadge
+              {...getModuleStatusBadgeProps('published')}
+              className={TABLE_STATUS_BADGE_CLASSNAME}
+            />
           </div>
-          <h1 className="text-3xl font-semibold text-spice-text-primary">
-            Module is Live
-          </h1>
+          <PageTitle title="Module is Live" />
           <p className="text-sm text-spice-text-muted">
             {data?.title ? <QuotedDisplayLabel text={data.title} /> : null} has
             been published to the module library and is ready to assign.
@@ -51,9 +56,7 @@ export const ModulePublishedPage = () => {
         </div>
 
         <Card variant="bordered" className="space-y-2">
-          <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-            Module Summary
-          </div>
+          <FieldGroupLabel>Module Summary</FieldGroupLabel>
           <div className="rounded-lg bg-spice-bg-tint p-3">
             <div className="text-xs text-spice-text-muted">Module</div>
             <div className="min-w-0 font-semibold text-spice-text-primary">
@@ -108,9 +111,7 @@ export const ModulePublishedPage = () => {
             className="flex w-full items-center justify-between rounded-lg bg-spice-bg-tint px-4 py-3 text-left"
           >
             <div>
-              <div className="text-sm font-semibold text-spice-text-primary">
-                Assign this module now
-              </div>
+              <CardTitle>Assign this module now</CardTitle>
               <div className="text-xs text-spice-text-muted">
                 Select CHWs and set a deadline
               </div>
@@ -123,9 +124,7 @@ export const ModulePublishedPage = () => {
             className="flex w-full items-center justify-between rounded-lg bg-spice-bg-tint px-4 py-3 text-left"
           >
             <div>
-              <div className="text-sm font-semibold text-spice-text-primary">
-                Create another module
-              </div>
+              <CardTitle>Create another module</CardTitle>
               <div className="text-xs text-spice-text-muted">
                 Build a new module from a document or from scratch
               </div>

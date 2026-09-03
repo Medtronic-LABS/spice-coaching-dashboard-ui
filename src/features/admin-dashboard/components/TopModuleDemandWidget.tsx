@@ -1,7 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import { Button, EmptyState, TruncatedText } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  TruncatedText,
+  typographyClasses,
+} from '@/components/ui';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
@@ -57,8 +62,8 @@ export const TopModuleDemandWidget = ({
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   const gridClass = showActions
-    ? 'grid-cols-[minmax(0,1fr)_6rem_5.25rem]'
-    : 'grid-cols-[minmax(0,1fr)_6rem]';
+    ? 'grid-cols-[minmax(0,1fr)_8rem_8.5rem]'
+    : 'grid-cols-[minmax(0,1fr)_8rem]';
 
   return (
     <DashboardWidgetShell
@@ -84,16 +89,16 @@ export const TopModuleDemandWidget = ({
           <div
             className={cn(
               'mb-2 grid items-center gap-2 border-b border-spice-border/60 pb-2',
-              'text-[11px] font-bold uppercase tracking-wide text-spice-palette-purple',
+              'text-xs font-bold uppercase tracking-wide text-spice-palette-purple',
               gridClass,
             )}
           >
             <span className="text-left">{titleColumnLabel}</span>
-            <span className="text-left">
+            <span className="whitespace-nowrap text-center">
               {t('adminDashboard.moduleDemand.columns.searchCount')}
             </span>
             {showActions ? (
-              <span className="text-left">
+              <span className="whitespace-nowrap text-left">
                 {t('adminDashboard.moduleDemand.columns.action')}
               </span>
             ) : null}
@@ -108,7 +113,10 @@ export const TopModuleDemandWidget = ({
                   <div className={cn('grid items-center gap-2', gridClass)}>
                     <button
                       type="button"
-                      className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
+                      className={cn(
+                        typographyClasses.tableCellPrimary,
+                        'flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left hover:text-spice-brand-primary',
+                      )}
                       aria-expanded={isExpanded}
                       onClick={() =>
                         setExpandedRowId((current) =>
@@ -128,15 +136,15 @@ export const TopModuleDemandWidget = ({
                         />
                       </span>
                     </button>
-                    <span className="text-center text-sm font-semibold tabular-nums text-spice-palette-purple">
+                    <span className="whitespace-nowrap text-center text-sm font-semibold tabular-nums text-spice-palette-purple">
                       {row.searchCount}
                     </span>
                     {showActions ? (
-                      <div className="flex w-full justify-stretch">
+                      <div className="flex justify-stretch">
                         {row.actionLabel && row.onAction ? (
                           <Button
                             variant="secondary"
-                            className="h-7 w-full px-0.5 py-0 text-[10px] leading-none"
+                            className="h-7 w-full whitespace-nowrap px-2 py-0 text-xs leading-none"
                             onClick={(event) => {
                               event.stopPropagation();
                               row.onAction?.();

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { SectionQueryErrorState } from '@/components/common/SectionQueryErrorState';
 import { TablePagination } from '@/components/common/TablePagination';
-import { Card } from '@/components/ui';
+import { Card, SectionHeader } from '@/components/ui';
 import {
   useFetchConfigChangesQuery,
   type ConfigThresholdChangeItem,
@@ -17,7 +17,10 @@ import {
   tablePageOffset,
   tablePaginationRange,
 } from '@/utils/tablePagination';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
 
 type ConfigHistoryRow = {
   id: string;
@@ -77,8 +80,8 @@ export const ConfigHistoryTable = ({
       {
         key: 'updatedAtLabel',
         header: 'Last Updated Date & Time',
-        headerClassName: 'whitespace-nowrap',
-        className: 'whitespace-nowrap',
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => row.updatedAtLabel,
       },
       {
@@ -104,15 +107,11 @@ export const ConfigHistoryTable = ({
   );
 
   return (
-    <Card variant="elevated" className="space-y-4 p-4">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-spice-text-primary">
-          Configuration History
-        </h2>
-        <p className="text-sm text-spice-text-muted">
-          Audit trail of Quiz Reattempt Validity updates.
-        </p>
-      </div>
+    <Card variant="elevated" className="space-y-4">
+      <SectionHeader
+        title="Configuration History"
+        subtitle="Audit trail of Quiz Reattempt Validity updates."
+      />
 
       {isError ? (
         <SectionQueryErrorState

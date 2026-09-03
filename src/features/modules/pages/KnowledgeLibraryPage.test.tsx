@@ -116,7 +116,13 @@ describe('KnowledgeLibraryPage', () => {
     expect(
       screen.queryByText(/choose upload mode, pick one pdf/i),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/PDF file/)).toHaveTextContent('PDF file *');
+    expect(screen.queryByText(/^PDF file \*$/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Upload one PDF \(Max 100 MB\)/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /select pdf/i }),
+    ).toBeInTheDocument();
   });
 
   it('rejects a non-PDF file', async () => {

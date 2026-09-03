@@ -27,8 +27,8 @@ import { Button, Card, SectionHeader, StatCard } from '@/components/ui';
 
 ### `StatCard`
 
-- **Props:** `label: string`, `value: string | number`, `change?: number`
-- **Variants:** none (`change` value controls positive/negative/neutral tone)
+- **Props:** `label: string`, `value: string | number`, `change?: number`, `outOf?: string | number`, `tone?: StatCardTone`, `tooltip?: string`, …
+- **Typography:** label `text-xs font-medium text-spice-text-muted`; value `text-2xl font-semibold leading-tight`; `outOf` denominator `text-sm font-medium text-spice-text-muted`
 
 ### `InfoCard`
 
@@ -66,10 +66,39 @@ import { Button, Card, SectionHeader, StatCard } from '@/components/ui';
 - **Props:** `value: string`, `onChange: (value: string) => void`, plus native `<input>` props except `onChange` and `value`
 - **Variants:** none
 
+### `FormLabel`
+
+- **Props:** `children`, `htmlFor?`, `required?`, `size?: 'default' | 'compact'`, `className?`
+- **Default (`size="default"`):** `text-sm font-semibold text-spice-text-primary` (14px) — forms, modals, settings pages
+- **Compact (`size="compact"`):** `text-xs font-semibold tracking-wide text-spice-text-medium` (12px) — filter drawers and dense grids
+- Omit `htmlFor` to render a `<span>` inside an existing `<label>` wrapper
+
+### `FormHelperText`
+
+- **Props:** `children`, `className?`
+- **Styles:** `text-xs text-spice-text-muted` — captions and hints under fields
+
+### Typography (`PageSubtitle`, `ModalTitle`, `CardTitle`, `FieldGroupLabel`)
+
+- **Import:** `from '@/components/ui'` (tokens: `typographyClasses`)
+- **`PageSubtitle`:** secondary line under page titles (`text-sm` muted)
+- **`ModalTitle`:** dialog headings (`text-lg` semibold); props: `as`, `id`, `className`
+- **`CardTitle`:** in-card section headings (`text-sm` semibold); props: `as`, `className`
+- **`FieldGroupLabel`:** uppercase micro-labels for field groups (`text-xs` tracking-wider); props: `as` (`div` | `h3` | `h4` | `p` | `span`), `className`
+- **Page titles:** use `PageTitle` from `@/components/common/PageTitle` with optional `subtitle` prop
+- **Full scale:** see [`docs/design-system-usage.md`](../../docs/design-system-usage.md#typography-scale)
+
+### Table typography
+
+- **Primary cell text:** inherited from `Table` (`text-sm text-spice-text-medium`) — do not wrap with `text-xs`.
+- **Secondary line in same cell** (e.g. filename under title): `typographyClasses.tableCellSecondary`.
+- **Headers:** `text-xs uppercase` via `Table` compact density.
+
 ### `Badge`
 
-- **Props:** `children: ReactNode`, `className?: string`
-- **Variants:** none
+- **Props:** `children: ReactNode`, `variant?: 'default' | 'outline' | 'subtle'`, `size?: 'sm' | 'md'`, `className?: string`
+- **Variants:** `default` (tint fill), `outline` (bordered), `subtle` (low emphasis)
+- **Sizes:** `sm`, `md` (default)
 
 ### `StatusBadge`
 
@@ -78,15 +107,16 @@ import { Button, Card, SectionHeader, StatCard } from '@/components/ui';
 
 ### `Button`
 
-- **Props:** native `<button>` props plus `variant?: 'primary' | 'secondary' | 'ghost'`
+- **Props:** native `<button>` props plus `variant?: 'primary' | 'secondary' | 'ghost'`, `size?: 'sm' | 'md' | 'lg' | 'iconSm' | 'iconMd'`
 - **Variants:** `primary`, `secondary`, `ghost`
+- **Sizes:** `sm` (h-8), `md` (h-9, default), `lg` (h-10), `iconSm`, `iconMd`
 
 ### `Tabs`
 
 - **Types:** `TabItem = { label: string; value: string }`
-- **Props:** `items: TabItem[]`, `value: string`, `onChange: (value: string) => void`, `idBase?: string`, `className?: string`
+- **Props:** `items: TabItem[]`, `value: string`, `onChange: (value: string) => void`, `idBase?: string`, `className?: string`, `variant?: 'underline' | 'default' | 'moduleLibrary'`
 - **Helpers:** `getTabsA11yIds(idBase, value)` returns `{ tabId, panelId }` so tab panels can be linked via `aria-labelledby` and `aria-controls`
-- **Variants:** none
+- **Variants:** `underline` (default — Team View style), `default` and `moduleLibrary` deprecated
 
 ### `EmptyState`
 

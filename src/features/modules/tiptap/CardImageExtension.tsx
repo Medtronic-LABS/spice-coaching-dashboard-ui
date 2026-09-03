@@ -220,7 +220,7 @@ function CardImageNodeView({
           {/* {editable ? (
             <button
               type="button"
-              className="shrink-0 pt-0.5 text-[11px] font-semibold text-spice-semantic-error hover:underline"
+              className="shrink-0 pt-0.5 text-xs font-semibold text-spice-semantic-error hover:underline"
               onMouseDown={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

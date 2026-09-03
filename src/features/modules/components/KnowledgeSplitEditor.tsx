@@ -1,5 +1,11 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { Button, ImagePicker, LimitedTextInput } from '@/components/ui';
+import {
+  Button,
+  CardTitle,
+  FormLabel,
+  ImagePicker,
+  LimitedTextInput,
+} from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
@@ -72,12 +78,11 @@ export const KnowledgeSplitEditor = ({
   return (
     <div className="rounded-xl border border-spice-border bg-spice-bg-surface/70 p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          {rowLabel}
-        </div>
+        <CardTitle>{rowLabel}</CardTitle>
         <Button
           variant="ghost"
-          className="h-8 w-8 shrink-0 px-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+          size="iconSm"
+          className="shrink-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
           onClick={onRemove}
           disabled={disabled || !canRemove}
           aria-label={`Delete ${rowLabel}`}
@@ -90,9 +95,9 @@ export const KnowledgeSplitEditor = ({
       <div className="mt-3 space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1 space-y-4">
-            <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-              Title <span className="text-spice-semantic-error">*</span>
-            </div>
+            <FormLabel htmlFor={`knowledge-split-title-${index}`} required>
+              Title
+            </FormLabel>
             <LimitedTextInput
               id={`knowledge-split-title-${index}`}
               value={value.title}
@@ -115,11 +120,11 @@ export const KnowledgeSplitEditor = ({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                  Start page{' '}
-                  <span className="text-spice-semantic-error">*</span>
-                </div>
+                <FormLabel htmlFor={`knowledge-split-start-${index}`} required>
+                  Start page
+                </FormLabel>
                 <input
+                  id={`knowledge-split-start-${index}`}
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -152,10 +157,11 @@ export const KnowledgeSplitEditor = ({
                 ) : null}
               </div>
               <div>
-                <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                  End page <span className="text-spice-semantic-error">*</span>
-                </div>
+                <FormLabel htmlFor={`knowledge-split-end-${index}`} required>
+                  End page
+                </FormLabel>
                 <input
+                  id={`knowledge-split-end-${index}`}
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -189,9 +195,7 @@ export const KnowledgeSplitEditor = ({
           </div>
 
           <div className="w-full shrink-0 space-y-2 sm:w-44">
-            <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-              Thumbnail{thumbnailStatus}
-            </div>
+            <FormLabel>Thumbnail{thumbnailStatus}</FormLabel>
             <ImagePicker
               variant="tile"
               value={thumbnailValue}
@@ -226,7 +230,7 @@ export const KnowledgeSplitEditor = ({
               <button
                 type="button"
                 disabled={disabled || !pdfDocument}
-                className="text-left text-[11px] font-medium text-spice-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                className="text-left text-xs font-medium text-spice-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() =>
                   onChange({
                     ...value,

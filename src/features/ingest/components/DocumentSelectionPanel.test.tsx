@@ -168,7 +168,7 @@ describe('DocumentSelectionPanel', () => {
     expect(initialArgs).not.toHaveProperty('sync_published_visible');
 
     await user.type(
-      screen.getByRole('searchbox', { name: /search knowledge documents/i }),
+      screen.getByRole('searchbox', { name: /search available documents/i }),
       'hyper',
     );
 
@@ -250,6 +250,27 @@ describe('DocumentSelectionPanel', () => {
     await waitFor(() => {
       expect(screen.getByTestId('selected-count')).toHaveTextContent('1');
     });
+  });
+
+  it('clears staged files when Reset is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ControlledPanel />);
+
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const pdf = new File(['%PDF-1.4'], 'new-protocol.pdf', {
+      type: 'application/pdf',
+    });
+    await user.upload(fileInput, pdf);
+
+    expect(screen.getByRole('button', { name: /^upload$/i })).toBeEnabled();
+    expect(screen.getByText('new-protocol.pdf')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(screen.getByRole('button', { name: /^upload$/i })).toBeDisabled();
+    expect(screen.queryByText('new-protocol.pdf')).not.toBeInTheDocument();
   });
 
   it('shows uploaded by and ingested by columns', () => {

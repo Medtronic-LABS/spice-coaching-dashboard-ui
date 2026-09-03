@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Table, type ColumnDef } from '@/components/common/Table';
+import { ModalTitle } from '@/components/ui';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
@@ -264,15 +265,15 @@ export const DuplicateIngestConfirmDialog = ({
         ? 'w-[22%] px-3 py-2 sm:px-3'
         : 'w-[16%] px-3 py-2 sm:px-3',
       className: isUpload
-        ? 'w-[22%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3'
-        : 'w-[16%] min-w-0 px-3 py-2 align-middle whitespace-normal text-xs text-spice-text-muted sm:px-3',
+        ? 'w-[22%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3'
+        : 'w-[16%] min-w-0 px-3 py-2 align-middle whitespace-normal sm:px-3',
       render: (row) => {
         const latest = latestExistingSource(row);
         const label = latest?.title || row.title || '—';
         return (
           <TruncatedTooltipText
             text={label}
-            className="block truncate text-xs text-spice-text-muted"
+            className="block truncate text-spice-text-muted"
           />
         );
       },
@@ -284,8 +285,8 @@ export const DuplicateIngestConfirmDialog = ({
         ? 'w-[30%] whitespace-nowrap px-3 py-2 sm:px-3'
         : 'w-[24%] whitespace-nowrap px-3 py-2 sm:px-3',
       className: isUpload
-        ? 'w-[30%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3'
-        : 'w-[24%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3',
+        ? 'w-[30%] whitespace-nowrap px-3 py-2 align-middle sm:px-3'
+        : 'w-[24%] whitespace-nowrap px-3 py-2 align-middle sm:px-3',
       render: (row) => {
         const latest = latestExistingSource(row);
         const meta = latest
@@ -302,8 +303,8 @@ export const DuplicateIngestConfirmDialog = ({
         ? 'w-[24%] whitespace-nowrap px-3 py-2 sm:px-3'
         : 'w-[16%] whitespace-nowrap px-3 py-2 sm:px-3',
       className: isUpload
-        ? 'w-[24%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3'
-        : 'w-[16%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3',
+        ? 'w-[24%] whitespace-nowrap px-3 py-2 align-middle sm:px-3'
+        : 'w-[16%] whitespace-nowrap px-3 py-2 align-middle sm:px-3',
       render: (row) => {
         const latest = latestExistingSource(row);
         const meta = latest
@@ -320,7 +321,7 @@ export const DuplicateIngestConfirmDialog = ({
             header: 'Ingested by',
             headerClassName: 'w-[16%] whitespace-nowrap px-3 py-2 sm:px-3',
             className:
-              'w-[16%] whitespace-nowrap px-3 py-2 align-middle text-xs text-spice-text-medium sm:px-3',
+              'w-[16%] whitespace-nowrap px-3 py-2 align-middle sm:px-3',
             render: (row: ConflictRow) => {
               const latest = latestExistingSource(row);
               const meta = latest
@@ -363,12 +364,7 @@ export const DuplicateIngestConfirmDialog = ({
       >
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <h2
-              id="duplicate-ingest-title"
-              className="text-lg font-semibold text-spice-text-primary"
-            >
-              {title}
-            </h2>
+            <ModalTitle id="duplicate-ingest-title">{title}</ModalTitle>
             <Tooltip label={tooltip.label} content={tooltip.content} />
           </div>
         </div>

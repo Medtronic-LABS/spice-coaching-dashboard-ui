@@ -1,10 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProgressBar } from '@/components/common/ProgressBar';
+import { Table } from '@/components/common/Table';
+import type { ColumnDef } from '@/components/common/Table/Table.types';
 import {
   EmptyState,
   InfiniteScrollContainer,
   TruncatedText,
+  typographyClasses,
 } from '@/components/ui';
 import { useFetchPublishedModuleCompletionsQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import type { PublishedModuleCompletionItem } from '@/features/admin-dashboard/types/dashboard.types';
@@ -104,13 +107,84 @@ export const TrainingModulesSection = ({
     setOffset((prev) => prev + TRAINING_MODULES_PAGE_LIMIT);
   }, [hasMore, isFetching, setOffset]);
 
-  const toggleLaunchedSort = useCallback(() => {
-    setSortDir((prev) => (prev === 'desc' ? 'asc' : 'desc'));
-  }, []);
+  const handleSort = useCallback(
+    (_sortKey: string, nextDir: 'asc' | 'desc') => {
+      setSortDir(nextDir);
+    },
+    [],
+  );
+
+  const columns = useMemo<ColumnDef<PublishedModuleCompletionItem>[]>(
+    () => [
+      {
+        key: 'title',
+        header: t('adminDashboard.trainingModules.columns.name'),
+        colClassName: 'min-w-0',
+        className: 'min-w-0',
+        render: (row) => (
+          <TruncatedText
+            text={resolveDisplayText(row.title)}
+            className={typographyClasses.tableCellPrimary}
+          />
+        ),
+      },
+      {
+        key: 'published_at',
+        header: t('adminDashboard.trainingModules.columns.launched'),
+        sortable: true,
+        sortKey: 'published_at',
+        className: 'w-28 whitespace-nowrap text-spice-text-muted',
+        headerClassName: 'w-28 whitespace-nowrap',
+        colClassName: 'w-28',
+        render: (row) => formatLaunchedDate(row.published_at),
+      },
+      {
+        key: 'progress',
+        header: t('adminDashboard.trainingModules.columns.progress'),
+        colClassName: 'min-w-0 w-[22%]',
+        className: 'min-w-0',
+        render: (row) => {
+          const total = row.assigned_sk_count ?? row.total_descendant_sk_count;
+          const completed = row.completed_sk_count;
+          const percent = total > 0 ? (completed / total) * 100 : 0;
+          const tone = resolveModuleCompletionTone(percent);
+
+          return (
+            <ProgressBar
+              value={percent}
+              className="h-2 w-full"
+              barClassName={tone.barClassName}
+            />
+          );
+        },
+      },
+      {
+        key: 'completed',
+        header: t('adminDashboard.trainingModules.columns.completed'),
+        className: 'w-32 whitespace-nowrap',
+        headerClassName: 'w-32 whitespace-nowrap',
+        colClassName: 'w-32',
+        render: (row) => {
+          const total = row.assigned_sk_count ?? row.total_descendant_sk_count;
+          const completed = row.completed_sk_count;
+          const percent = total > 0 ? (completed / total) * 100 : 0;
+          const tone = resolveModuleCompletionTone(percent);
+
+          return (
+            <span
+              className={cn('font-semibold tabular-nums', tone.textClassName)}
+            >
+              {completed}
+              <span className="text-spice-text-muted">/{total}</span>
+            </span>
+          );
+        },
+      },
+    ],
+    [t],
+  );
 
   if (isForbidden) return null;
-
-  const sortIndicator = sortDir === 'asc' ? '↑' : '↓';
 
   return (
     <DashboardWidgetShell
@@ -149,83 +223,19 @@ export const TrainingModulesSection = ({
           isLoadingMore={isLoadingMore}
           error={showError}
           onRetry={() => void refetch()}
+          className="min-w-0"
         >
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left text-sm">
-              <thead className="bg-spice-palette-violetLt text-xs font-bold uppercase leading-[15px] text-spice-palette-violetDeep">
-                <tr>
-                  <th className="min-w-0 px-4 py-2.5">
-                    {t('adminDashboard.trainingModules.columns.name')}
-                  </th>
-                  <th className="w-28 whitespace-nowrap px-4 py-2.5">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 uppercase"
-                      onClick={toggleLaunchedSort}
-                      aria-label={t(
-                        'adminDashboard.trainingModules.columns.launchedSortAria',
-                        { direction: sortDir },
-                      )}
-                    >
-                      {t('adminDashboard.trainingModules.columns.launched')}
-                      <span aria-hidden className="text-[10px] font-bold">
-                        {sortIndicator}
-                      </span>
-                    </button>
-                  </th>
-                  <th className="min-w-[8rem] px-4 py-2.5">
-                    {t('adminDashboard.trainingModules.columns.progress')}
-                  </th>
-                  <th className="w-32 whitespace-nowrap px-4 py-2.5">
-                    {t('adminDashboard.trainingModules.columns.completed')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {modules.map((row: PublishedModuleCompletionItem) => {
-                  const title = resolveDisplayText(row.title);
-                  const total =
-                    row.assigned_sk_count ?? row.total_descendant_sk_count;
-                  const completed = row.completed_sk_count;
-                  const percent = total > 0 ? (completed / total) * 100 : 0;
-                  const tone = resolveModuleCompletionTone(percent);
-
-                  return (
-                    <tr
-                      key={row.module_id}
-                      className="border-t border-spice-border"
-                    >
-                      <td className="min-w-0 px-4 py-2.5">
-                        <TruncatedText
-                          text={title}
-                          className="font-medium text-spice-text-primary"
-                        />
-                      </td>
-                      <td className="w-28 whitespace-nowrap px-4 py-2.5 text-spice-text-muted">
-                        {formatLaunchedDate(row.published_at)}
-                      </td>
-                      <td className="min-w-[8rem] px-4 py-2.5">
-                        <ProgressBar
-                          value={percent}
-                          className="h-2 w-full min-w-[6rem]"
-                          barClassName={tone.barClassName}
-                        />
-                      </td>
-                      <td
-                        className={cn(
-                          'w-32 whitespace-nowrap px-4 py-2.5 font-semibold tabular-nums',
-                          tone.textClassName,
-                        )}
-                      >
-                        {completed}
-                        <span className="text-spice-text-muted">/{total}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={modules}
+            columns={columns}
+            keyExtractor={(row) => row.module_id}
+            containerClassName="overflow-x-hidden border-0 rounded-none"
+            className="table-fixed w-full"
+            sortBy="published_at"
+            sortDir={sortDir}
+            onSort={handleSort}
+            emptyMessage={t('adminDashboard.trainingModules.emptyTitle')}
+          />
         </InfiniteScrollContainer>
       )}
     </DashboardWidgetShell>

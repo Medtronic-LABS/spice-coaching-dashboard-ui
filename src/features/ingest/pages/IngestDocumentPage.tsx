@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageTitle } from '@/components/common/PageTitle';
 import { ArrowRightIcon } from '@/assets/icon';
 import { Button, Card, useSnackbar } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -387,20 +388,14 @@ export const IngestDocumentPage = () => {
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
-            Ingest Document
-          </h1>
-          <p className="mt-1 text-sm text-spice-text-muted">
-            Select a configuration, upload a new document or choose existing
-            documents under Document Selection, then start the ingestion process
-            to generate modules.
-          </p>
-        </div>
+        <PageTitle
+          title="Ingest Document"
+          subtitle="Select a configuration, upload a new document or choose existing documents under Document Selection, then start the ingestion process to generate modules."
+        />
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            className="inline-flex h-9 items-center gap-1.5 text-xs"
+            className="inline-flex items-center gap-1.5"
             onClick={() => navigate(paths.moduleLibrary)}
           >
             Module Library
@@ -476,7 +471,6 @@ export const IngestDocumentPage = () => {
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button
-          className="h-9 text-xs"
           disabled={!canStartIngest}
           onClick={() => void runStartIngest()}
         >

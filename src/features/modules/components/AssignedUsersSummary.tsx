@@ -15,7 +15,7 @@ interface RoleBadgeProps {
 
 function TypeBadge({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold tracking-wide text-spice-text-muted ring-1 ring-spice-border">
+    <span className="rounded-full bg-spice-bg-tint px-2 py-0.5 text-xs font-semibold tracking-wide text-spice-text-muted ring-1 ring-spice-border">
       {label}
     </span>
   );
@@ -23,7 +23,7 @@ function TypeBadge({ label }: { label: string }) {
 
 function RoleBadge({ role }: RoleBadgeProps) {
   return (
-    <span className="rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-spice-brand-primary ring-1 ring-spice-border">
+    <span className="rounded-full bg-spice-bg-tint px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-spice-brand-primary ring-1 ring-spice-border">
       {role}
     </span>
   );

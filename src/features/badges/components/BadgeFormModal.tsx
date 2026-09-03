@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 import {
   Button,
   Card,
+  FormLabel,
   LimitedTextInput,
   Modal,
   ModalActionBar,
+  ModalTitle,
   Tooltip,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -117,9 +119,9 @@ export function BadgeFormModal({
         className="w-full space-y-5 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
       >
         <div className="border-b border-spice-border pb-4">
-          <h2
+          <ModalTitle
             id="badge-form-modal-title"
-            className="inline-flex items-center gap-2 text-lg font-semibold text-spice-text-primary"
+            className="inline-flex items-center gap-2"
           >
             {title}
             <Tooltip
@@ -127,7 +129,7 @@ export function BadgeFormModal({
               content={MILESTONE_FORM_INFO}
               placement="bottom"
             />
-          </h2>
+          </ModalTitle>
         </div>
 
         {formError ? (
@@ -135,9 +137,7 @@ export function BadgeFormModal({
         ) : null}
 
         <label className="block space-y-1.5">
-          <span className="text-xs font-semibold text-spice-text-primary">
-            Milestone name <span className="text-spice-semantic-error">*</span>
-          </span>
+          <FormLabel required>Milestone name</FormLabel>
           <LimitedTextInput
             id="badge-form-name"
             value={form.name}
@@ -187,15 +187,17 @@ export function BadgeFormModal({
 
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
-                Published modules{' '}
-                <span className="text-spice-semantic-error">*</span>
+              <FormLabel className="inline-flex items-center gap-1.5">
+                Published modules
+                <span className="text-spice-semantic-error" aria-hidden>
+                  *
+                </span>
                 <Tooltip
                   label="About published modules"
                   content={PUBLISHED_MODULES_INFO}
                   placement="bottom"
                 />
-              </span>
+              </FormLabel>
               <span className="text-xs text-spice-text-muted">
                 {form.moduleIds.length} selected
               </span>

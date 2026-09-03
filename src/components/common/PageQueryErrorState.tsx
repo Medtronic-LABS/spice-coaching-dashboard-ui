@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/common/PageTitle';
 import { PageLoadErrorPanel } from '@/components/common/PageLoadErrorPanel';
 import { parseApiError } from '@/utils/parseApiError';
 import { useMemo } from 'react';
@@ -33,14 +34,7 @@ export const PageQueryErrorState = ({
 
   return (
     <section className="space-y-6">
-      <div className="min-w-0 max-w-xl space-y-1">
-        <h1 className="text-2xl font-semibold text-spice-text-primary">
-          {pageTitle}
-        </h1>
-        {pageSubtitle ? (
-          <p className="text-sm text-spice-text-muted">{pageSubtitle}</p>
-        ) : null}
-      </div>
+      <PageTitle title={pageTitle} subtitle={pageSubtitle} />
 
       <PageLoadErrorPanel
         title={resolvedTitle}

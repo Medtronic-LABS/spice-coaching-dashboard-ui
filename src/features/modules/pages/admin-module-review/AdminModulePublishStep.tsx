@@ -1,6 +1,12 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Loader, useSnackbar } from '@/components/ui';
+import {
+  Button,
+  Card,
+  FieldGroupLabel,
+  Loader,
+  useSnackbar,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
@@ -260,9 +266,7 @@ export const AdminModulePublishStep = () => {
       </div>
       {working.quality_flags?.flags?.length ? (
         <Card variant="bordered" className="space-y-2 p-4">
-          <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-            Quality flags
-          </div>
+          <FieldGroupLabel>Quality flags</FieldGroupLabel>
           <ul className="list-inside list-disc text-xs text-spice-text-medium">
             {working.quality_flags.flags.map((flag) => (
               <li key={flag}>{flag}</li>

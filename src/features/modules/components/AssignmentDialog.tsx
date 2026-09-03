@@ -14,10 +14,12 @@ import {
   Card,
   Combobox,
   CircularSpinner,
+  FormLabel,
   InfiniteScrollContainer,
   Loader,
   Modal,
   ModalActionBar,
+  ModalTitle,
   SearchInput,
   Select,
   Tabs,
@@ -135,7 +137,8 @@ function GeoCatalogRefreshButton({
   return (
     <Button
       variant="secondary"
-      className="h-9 w-9 shrink-0 px-0"
+      size="iconMd"
+      className="shrink-0"
       onClick={onRefresh}
       aria-label={label}
       title={label}
@@ -163,9 +166,7 @@ function GeoFilterField({
 }: GeoFilterFieldProps) {
   return (
     <div className="min-w-0 space-y-1.5">
-      <span className="block text-xs font-semibold leading-5 text-spice-text-primary">
-        {label}
-      </span>
+      <FormLabel className="block leading-5">{label}</FormLabel>
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">{children}</div>
         {showRefresh ? (
@@ -266,7 +267,8 @@ function UserSelectionList({
             <p className="text-sm text-spice-text-muted">{errorMessage}</p>
             <Button
               variant="secondary"
-              className="h-8 gap-1.5 px-3 text-xs"
+              size="sm"
+              className="gap-1.5"
               onClick={onRetry}
               disabled={isFetching}
             >
@@ -1241,12 +1243,9 @@ export const AssignmentDialog = ({
         className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:p-6 sm:pr-14"
       >
         <div className="min-w-0 pr-10">
-          <h2
-            id="assignment-dialog-title"
-            className="text-lg font-semibold text-spice-text-primary sm:text-xl"
-          >
+          <ModalTitle id="assignment-dialog-title" className="sm:text-xl">
             Assign {noun}
-          </h2>
+          </ModalTitle>
           <p className="mt-1 min-w-0">
             <TruncatedText
               text={target.title}
@@ -1265,9 +1264,7 @@ export const AssignmentDialog = ({
           {activeTab === 'user' ? (
             <>
               <label className="flex items-center gap-3">
-                <span className="shrink-0 text-xs font-semibold text-spice-text-primary">
-                  Role
-                </span>
+                <FormLabel className="shrink-0">Role</FormLabel>
                 <Select
                   options={USER_LEVEL_MODE_OPTIONS}
                   value={userLevelMode}
@@ -1354,9 +1351,7 @@ export const AssignmentDialog = ({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  Search users
-                </span>
+                <FormLabel>Search users</FormLabel>
                 <SearchInput
                   value={userSearchQuery}
                   onChange={setUserSearchQuery}

@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Loader, useSnackbar } from '@/components/ui';
+import {
+  Button,
+  Card,
+  FieldGroupLabel,
+  Loader,
+  ModalTitle,
+  useSnackbar,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
 import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
@@ -43,9 +50,7 @@ export const ModuleLessonsPage = () => {
   if (working?.generationStatus !== 'generated') {
     return (
       <Card variant="elevated" className="space-y-3">
-        <div className="text-lg font-semibold text-spice-text-primary">
-          No generated module content yet
-        </div>
+        <ModalTitle as="h2">No generated module content yet</ModalTitle>
         <p className="text-sm text-spice-text-medium">
           Upload a document and generate module content before editing lessons.
         </p>
@@ -68,9 +73,7 @@ export const ModuleLessonsPage = () => {
       <ModuleFlowStepper currentStep="lessons" isGenerated />
       <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
         <Card variant="elevated" className="space-y-2">
-          <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-            Module
-          </div>
+          <FieldGroupLabel>Module</FieldGroupLabel>
           <div className="text-sm font-semibold text-spice-text-primary">
             {working.title}
           </div>
@@ -87,7 +90,7 @@ export const ModuleLessonsPage = () => {
                 }`}
               >
                 {lesson.title}
-                <div className="text-[11px] text-spice-text-muted">
+                <div className="text-xs text-spice-text-muted">
                   Lesson {lesson.order}
                 </div>
               </button>

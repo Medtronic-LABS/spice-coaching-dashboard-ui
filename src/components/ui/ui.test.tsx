@@ -10,6 +10,12 @@ import {
   EmptyState,
   ErrorState,
   FilterBar,
+  FormHelperText,
+  FormLabel,
+  FieldGroupLabel,
+  CardTitle,
+  ModalTitle,
+  PageSubtitle,
   InfoCard,
   KeyValue,
   ListItem,
@@ -264,5 +270,156 @@ describe('ui components', () => {
         'leading-none',
       );
     }
+  });
+
+  it('underline tabs are the default section navigation style', () => {
+    render(
+      <Tabs
+        idBase="team"
+        items={[
+          { label: 'Area Managers', value: 'am' },
+          { label: 'POs', value: 'po' },
+        ]}
+        value="am"
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('tablist')).toHaveClass('border-b');
+    expect(screen.getByRole('tab', { name: 'Area Managers' })).toHaveClass(
+      'border-spice-palette-purple',
+      'text-spice-palette-purple',
+    );
+  });
+
+  it('supports Badge variants and sizes', () => {
+    render(
+      <div>
+        <Badge variant="outline" size="sm">
+          Outline
+        </Badge>
+        <Badge variant="subtle">Subtle</Badge>
+      </div>,
+    );
+
+    expect(screen.getByText('Outline')).toHaveClass('ring-1', 'text-xs');
+    expect(screen.getByText('Subtle')).toHaveClass('ring-1');
+  });
+
+  it('supports Button size presets', () => {
+    render(
+      <div>
+        <Button size="sm">Small</Button>
+        <Button size="lg">Large</Button>
+        <Button size="iconSm" aria-label="Refresh">
+          R
+        </Button>
+      </div>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Small' })).toHaveClass('h-8');
+    expect(screen.getByRole('button', { name: 'Large' })).toHaveClass('h-10');
+    expect(screen.getByRole('button', { name: 'Refresh' })).toHaveClass(
+      'h-8',
+      'w-8',
+    );
+  });
+
+  it('renders StatCard with KPI typography tokens', () => {
+    render(
+      <StatCard
+        tone="purple"
+        label="Finished modules"
+        value={127}
+        outOf={155}
+        tooltip="Modules completed"
+      />,
+    );
+
+    expect(screen.getByText('Finished modules')).toHaveClass(
+      'text-[13px]',
+      'font-semibold',
+      'uppercase',
+      'tracking-wider',
+      'text-spice-text-muted',
+    );
+    const valueParagraph = screen.getByText('127').closest('p');
+    expect(valueParagraph).toHaveClass(
+      'text-3xl',
+      'font-semibold',
+      'leading-tight',
+    );
+    expect(screen.getByText('127')).toHaveClass('text-spice-palette-purple');
+    expect(screen.getByText('/155')).toHaveClass(
+      'text-base',
+      'font-medium',
+      'text-spice-text-muted',
+    );
+  });
+
+  it('renders FormLabel and FormHelperText with shared typography', () => {
+    render(
+      <div>
+        <FormLabel htmlFor="title" required>
+          Title
+        </FormLabel>
+        <FormHelperText>Helper copy</FormHelperText>
+      </div>,
+    );
+
+    expect(screen.getByText('Title')).toHaveClass(
+      'text-sm',
+      'font-semibold',
+      'text-spice-text-primary',
+    );
+    expect(screen.getByText('*')).toHaveClass('text-spice-semantic-error');
+    expect(screen.getByText('Helper copy')).toHaveClass(
+      'text-xs',
+      'text-spice-text-muted',
+    );
+  });
+
+  it('renders compact FormLabel for filter drawers', () => {
+    render(
+      <FormLabel htmlFor="status" size="compact">
+        Status
+      </FormLabel>,
+    );
+
+    expect(screen.getByText('Status')).toHaveClass(
+      'text-xs',
+      'font-semibold',
+      'tracking-wide',
+      'text-spice-text-medium',
+    );
+  });
+
+  it('renders shared typography heading components', () => {
+    render(
+      <div>
+        <PageSubtitle>Page helper</PageSubtitle>
+        <ModalTitle>Modal heading</ModalTitle>
+        <CardTitle>Card heading</CardTitle>
+        <FieldGroupLabel>Field group</FieldGroupLabel>
+      </div>,
+    );
+
+    expect(screen.getByText('Page helper')).toHaveClass(
+      'text-sm',
+      'text-spice-text-muted',
+    );
+    expect(screen.getByRole('heading', { name: 'Modal heading' })).toHaveClass(
+      'text-lg',
+      'font-semibold',
+    );
+    expect(screen.getByRole('heading', { name: 'Card heading' })).toHaveClass(
+      'text-sm',
+      'font-semibold',
+    );
+    expect(screen.getByText('Field group')).toHaveClass(
+      'text-xs',
+      'uppercase',
+      'tracking-wider',
+    );
   });
 });

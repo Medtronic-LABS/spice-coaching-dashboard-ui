@@ -256,7 +256,7 @@ describe('TrainingModulesSection', () => {
 
     await user.click(
       screen.getByRole('button', {
-        name: /Sort by launched date/i,
+        name: /^Launched$/i,
       }),
     );
 

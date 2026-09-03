@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightIcon } from '@/assets/icon';
+import { PageTitle } from '@/components/common/PageTitle';
 import {
   Button,
   Card,
   FileDropzone,
+  FormHelperText,
+  FormLabel,
   ImagePicker,
   LimitedTextInput,
   Tabs,
@@ -17,7 +20,10 @@ import {
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
-import { ADMIN_IMAGE_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import {
+  ADMIN_FILE_MAX_UPLOAD_LABEL,
+  ADMIN_IMAGE_ACCEPT_SIZE_HINT,
+} from '@/constants/uploadLimits';
 import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
 import {
   useUploadKnowledgeDocumentMutation,
@@ -412,18 +418,14 @@ export const KnowledgeLibraryPage = () => {
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
-            Upload Knowledge
-          </h1>
-          <p className="mt-1 text-sm text-spice-text-muted">
-            Upload PDFs for the Knowledge section and manage library assets.
-          </p>
-        </div>
+        <PageTitle
+          title="Upload Knowledge"
+          subtitle="Upload PDFs for the Knowledge section and manage library assets."
+        />
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            className="inline-flex h-9 items-center gap-1.5 text-xs"
+            className="inline-flex items-center gap-1.5"
             onClick={() => navigate(paths.moduleLibrary)}
           >
             Module Library
@@ -449,30 +451,13 @@ export const KnowledgeLibraryPage = () => {
         </div>
       ) : null}
 
-      <Card variant="elevated" className="min-w-0 space-y-5 p-4 sm:p-6">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          Upload
-        </div>
-
-        <div className="space-y-3 rounded-xl bg-spice-bg-tint/50 p-4 ring-1 ring-spice-border">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-spice-text-medium">
-                <span>
-                  PDF file <span className="text-spice-semantic-error">*</span>
-                </span>
-                <Tooltip
-                  label="About PDF file upload"
-                  content="PDF only. Single file upload. Max 100 MB."
-                />
-              </div>
+      <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
+        <div className="space-y-3">
+          {fileSelectionError ? (
+            <div className="text-xs text-spice-semantic-error">
+              {fileSelectionError}
             </div>
-            {fileSelectionError ? (
-              <div className="text-xs text-spice-semantic-error">
-                {fileSelectionError}
-              </div>
-            ) : null}
-          </div>
+          ) : null}
 
           <FileDropzone
             files={file ? [file] : []}
@@ -503,6 +488,13 @@ export const KnowledgeLibraryPage = () => {
             }}
           />
 
+          {!file ? (
+            <FormHelperText>
+              Upload one PDF ({ADMIN_FILE_MAX_UPLOAD_LABEL}). After you select a
+              file, choose Original or Split.
+            </FormHelperText>
+          ) : null}
+
           {file && isReadingPdf ? (
             <p className="text-xs text-spice-text-muted" role="status">
               Reading PDF…
@@ -527,10 +519,9 @@ export const KnowledgeLibraryPage = () => {
                 <div className="space-y-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     <div className="min-w-0 flex-1 space-y-2">
-                      <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-                        Title{' '}
-                        <span className="text-spice-semantic-error">*</span>
-                      </div>
+                      <FormLabel htmlFor="knowledge-original-title" required>
+                        Title
+                      </FormLabel>
                       <LimitedTextInput
                         id="knowledge-original-title"
                         aria-label="Title"
@@ -543,7 +534,7 @@ export const KnowledgeLibraryPage = () => {
                     </div>
 
                     <div className="w-full shrink-0 space-y-2 sm:w-44">
-                      <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
+                      <FormLabel>
                         Thumbnail
                         {isOriginalThumbRendering &&
                         !hasCustomOriginalThumbnail &&
@@ -556,7 +547,7 @@ export const KnowledgeLibraryPage = () => {
                               : originalAutoThumbnailUrl
                                 ? ' (from PDF)'
                                 : ''}
-                      </div>
+                      </FormLabel>
                       <ImagePicker
                         variant="tile"
                         value={originalThumbnailValue}
@@ -587,7 +578,7 @@ export const KnowledgeLibraryPage = () => {
                         <button
                           type="button"
                           disabled={disableInputs || !pdfDocument}
-                          className="text-left text-[11px] font-medium text-spice-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          className="text-left text-xs font-medium text-spice-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => {
                             setOriginalThumbnailFile(null);
                             setOriginalSuppressAutoThumbnail(false);
@@ -603,8 +594,8 @@ export const KnowledgeLibraryPage = () => {
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-spice-text-medium">
-                        <span>Page splits</span>
+                      <div className="flex items-center gap-1.5">
+                        <FormLabel>Page splits</FormLabel>
                         <Tooltip
                           label="About page splits"
                           content="Each split becomes its own PDF in the library. Thumbnail can use the PDF start page, a custom image, or stay blank."
@@ -613,7 +604,6 @@ export const KnowledgeLibraryPage = () => {
                     </div>
                     <Button
                       variant="secondary"
-                      className="h-9 text-xs"
                       disabled={disableInputs}
                       onClick={() => {
                         setSplitDraftErrors([]);
@@ -662,11 +652,7 @@ export const KnowledgeLibraryPage = () => {
                 </div>
               )}
             </>
-          ) : (
-            <p className="text-xs text-spice-text-muted">
-              Select a PDF to choose upload mode (Original or Split).
-            </p>
-          )}
+          ) : null}
         </div>
 
         {actionError ? (
@@ -685,7 +671,6 @@ export const KnowledgeLibraryPage = () => {
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
             variant="ghost"
-            className="h-9 text-xs"
             disabled={disableInputs}
             onClick={() => {
               clearAllDrafts();
@@ -695,11 +680,7 @@ export const KnowledgeLibraryPage = () => {
           >
             Reset
           </Button>
-          <Button
-            className="h-9 text-xs"
-            disabled={!canSubmit}
-            onClick={() => void submitUpload()}
-          >
+          <Button disabled={!canSubmit} onClick={() => void submitUpload()}>
             {isBusy ? 'Uploading…' : 'Upload'}
           </Button>
         </div>

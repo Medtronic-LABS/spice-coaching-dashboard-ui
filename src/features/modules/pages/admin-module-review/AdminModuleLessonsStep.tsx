@@ -3,6 +3,8 @@ import {
   Button,
   Card,
   EmptyState,
+  FieldGroupLabel,
+  FormLabel,
   LimitedTextInput,
   Loader,
   TruncatedText,
@@ -266,9 +268,7 @@ export const AdminModuleLessonsStep = () => {
       >
         <Card variant="elevated" className="space-y-3 p-4">
           <div>
-            <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Module
-            </div>
+            <FieldGroupLabel>Module</FieldGroupLabel>
             <div className="mt-1 text-sm font-semibold text-spice-text-primary">
               {resolveDisplayText(working.title)}
             </div>
@@ -327,7 +327,7 @@ export const AdminModuleLessonsStep = () => {
                           focusable
                           className="font-semibold"
                         />
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-spice-text-muted">
                           <span>Card {idx + 1}</span>
                           {edited ? (
                             <span className="rounded-full bg-spice-bg-surface px-2 py-0.5 font-semibold ring-1 ring-spice-border">
@@ -446,9 +446,7 @@ export const AdminModuleLessonsStep = () => {
                   className="block space-y-1"
                   data-card-editor-field="title"
                 >
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Title (BN)
-                  </span>
+                  <FormLabel>Title (BN)</FormLabel>
                   <LimitedTextInput
                     id={`admin-module-card-title-${selectedCard.id}`}
                     value={
@@ -477,9 +475,7 @@ export const AdminModuleLessonsStep = () => {
               </div>
 
               <div className="space-y-1" data-card-editor-field="body">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  Body/content (BN)
-                </span>
+                <FormLabel>Body/content (BN)</FormLabel>
                 <RichTextEditor
                   key={`card-body-${selectedIndex}-${selectedCard.id}-${editorRevision}`}
                   value={selectedBody}

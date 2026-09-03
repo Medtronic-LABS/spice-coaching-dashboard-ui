@@ -133,13 +133,13 @@ export const AppErrorScreen = ({
         <div className="min-w-0 text-left">
           <p className="text-sm font-medium text-spice-text-primary">{title}</p>
           {meta ? (
-            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-spice-text-muted">
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-spice-text-muted">
               {meta}
             </p>
           ) : null}
           <p className="mt-0.5 text-xs text-spice-text-muted">{description}</p>
           {showDevDetails ? (
-            <p className="mt-2 break-words text-[11px] text-spice-text-medium">
+            <p className="mt-2 break-words text-xs text-spice-text-medium">
               {devDetails}
             </p>
           ) : null}
@@ -164,7 +164,7 @@ export const AppErrorScreen = ({
             </div>
             <div className="min-w-0 flex-1">
               {meta ? (
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+                <p className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                   {meta}
                 </p>
               ) : null}

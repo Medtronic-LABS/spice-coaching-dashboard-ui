@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRightIcon, DeleteIcon, EyeIcon } from '@/assets/icon';
+import { PageTitle } from '@/components/common/PageTitle';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
@@ -8,14 +9,22 @@ import {
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
+  Banner,
   Button,
   Card,
+  FieldGroupLabel,
+  FileDropzone,
+  FormHelperText,
+  FormLabel,
   LimitedTextInput,
   LimitedTextarea,
   SearchInput,
+  SectionHeader,
   StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   Tooltip,
   TruncatedText,
+  typographyClasses,
   useSnackbar,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
@@ -105,9 +114,13 @@ import {
   titleFromVideoFilename,
 } from '@/features/ingest/utils/videoThumbnail';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
+import { getKnowledgeDocumentStatusBadgeProps } from '@/features/modules/utils/knowledgeDocumentStatusBadge';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { countNewlyUploadedSources } from '@/features/ingest/utils/parseIngestDuplicateError';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 
 type PendingVideoItem = {
@@ -171,33 +184,6 @@ function tableStatusLabel(
   return null;
 }
 
-function statusBadgeProps(status: string): {
-  status: 'success' | 'warning' | 'critical' | 'info' | 'neutral';
-  label: string;
-} {
-  const normalized = status.trim().toLowerCase();
-  if (isViewModulesStatus(normalized)) {
-    return { status: 'success', label: status };
-  }
-  if (normalized.includes('fail') || normalized.includes('error')) {
-    return { status: 'critical', label: status };
-  }
-  if (
-    normalized === 'ingesting' ||
-    normalized.includes('queue') ||
-    normalized.includes('running')
-  ) {
-    return { status: 'info', label: status };
-  }
-  if (normalized === 'uploaded') {
-    return { status: 'neutral', label: status };
-  }
-  if (normalized.includes('ingest')) {
-    return { status: 'info', label: status };
-  }
-  return { status: 'neutral', label: status };
-}
-
 /** Statuses that mean ingestion finished successfully enough to open modules. */
 function isViewModulesStatus(status: string): boolean {
   const normalized = status.trim().toLowerCase();
@@ -232,7 +218,6 @@ export const VideoUploadPage = () => {
   const pendingItemsRef = useRef<PendingVideoItem[]>([]);
   const pendingUploadMetaRef = useRef<PendingUploadMeta[]>([]);
   const thumbnailInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   const [restoredAcceptedSources, setRestoredAcceptedSources] = useState<
     AdminV3IngestAcceptedSource[]
@@ -251,7 +236,7 @@ export const VideoUploadPage = () => {
   const [batchStatus, setBatchStatus] =
     useState<AdminV3IngestBatchStatusResponse | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isDragActive, setIsDragActive] = useState(false);
+  const [fileError, setFileError] = useState('');
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, VIDEO_SEARCH_DEBOUNCE_MS);
   const searchQ = useMemo(() => debouncedQuery.trim(), [debouncedQuery]);
@@ -446,6 +431,26 @@ export const VideoUploadPage = () => {
     [],
   );
 
+  const pendingVideoFiles = useMemo(
+    () => pendingItems.map((item) => item.file),
+    [pendingItems],
+  );
+
+  const handlePendingVideoFilesChange = useCallback(
+    (nextFiles: File[]) => {
+      const currentKeys = new Set(
+        pendingItems.map((item) => pendingVideoKey(item.file)),
+      );
+      const added = nextFiles.filter(
+        (file) => !currentKeys.has(pendingVideoKey(file)),
+      );
+      if (added.length) {
+        stageVideoFiles(added);
+      }
+    },
+    [pendingItems, stageVideoFiles],
+  );
+
   const handlePendingThumbnailReplace = useCallback(
     (key: string, fileList: FileList | null) => {
       const file = fileList?.[0] ?? null;
@@ -626,7 +631,7 @@ export const VideoUploadPage = () => {
     [snackbar, updateSourceDocumentThumbnail],
   );
 
-  const clearPendingAfterUpload = useCallback(() => {
+  const clearPendingDrafts = useCallback(() => {
     setPendingItems((previous) => {
       for (const item of previous) {
         revokePreviewUrl(item.thumbnailPreviewUrl);
@@ -634,7 +639,11 @@ export const VideoUploadPage = () => {
       return [];
     });
     setPendingTitleErrorKeys(new Set());
+    setFileError('');
+    pendingUploadMetaRef.current = [];
   }, []);
+
+  const clearPendingAfterUpload = clearPendingDrafts;
 
   const handleUploaded = useCallback(
     (
@@ -913,10 +922,15 @@ export const VideoUploadPage = () => {
               text={row.title}
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
-              className="font-medium text-spice-text-primary"
+              className={typographyClasses.tableCellPrimary}
             />
             {row.description ? (
-              <p className="mt-0.5 line-clamp-2 text-[11px] text-spice-text-muted">
+              <p
+                className={cn(
+                  'mt-0.5 line-clamp-2',
+                  typographyClasses.tableCellSecondary,
+                )}
+              >
                 {row.description}
               </p>
             ) : null}
@@ -928,8 +942,8 @@ export const VideoUploadPage = () => {
         header: 'Uploaded',
         sortable: true,
         sortKey: 'uploaded_date',
-        className: 'whitespace-nowrap',
-        headerClassName: 'whitespace-nowrap',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => formatDisplayDateTime(row.uploadedAt),
       },
       {
@@ -938,19 +952,15 @@ export const VideoUploadPage = () => {
         sortable: false,
         className: 'whitespace-nowrap',
         headerClassName: 'whitespace-nowrap',
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {formatHierarchyActorName(row.uploadedBy)}
-          </span>
-        ),
+        render: (row) => formatHierarchyActorName(row.uploadedBy),
       },
       {
         key: 'ingestedAt',
         header: 'Ingested Date',
         sortable: true,
         sortKey: 'ingested_at',
-        className: 'whitespace-nowrap',
-        headerClassName: 'whitespace-nowrap',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => formatDisplayDateTime(row.ingestedAt),
       },
       {
@@ -959,11 +969,7 @@ export const VideoUploadPage = () => {
         sortable: false,
         className: 'whitespace-nowrap',
         headerClassName: 'whitespace-nowrap',
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {formatHierarchyActorName(row.ingestedBy)}
-          </span>
-        ),
+        render: (row) => formatHierarchyActorName(row.ingestedBy),
       },
       {
         key: 'status',
@@ -971,7 +977,12 @@ export const VideoUploadPage = () => {
         sortable: true,
         sortKey: 'status',
         className: 'whitespace-nowrap',
-        render: (row) => <StatusBadge {...statusBadgeProps(row.status)} />,
+        render: (row) => (
+          <StatusBadge
+            {...getKnowledgeDocumentStatusBadgeProps(row.status)}
+            className={TABLE_STATUS_BADGE_CLASSNAME}
+          />
+        ),
       },
       {
         key: 'actions',
@@ -981,7 +992,7 @@ export const VideoUploadPage = () => {
         headerClassName: 'min-w-[18rem] whitespace-nowrap',
         render: (row) => {
           if (!row.sourceDocumentId) {
-            return <span className="text-xs text-spice-text-muted">—</span>;
+            return <span className="text-spice-text-muted">—</span>;
           }
 
           return (
@@ -1041,7 +1052,7 @@ export const VideoUploadPage = () => {
                 <StatusBadge
                   status="neutral"
                   label="Not ingested"
-                  className="min-w-0 w-[9.25rem]"
+                  className={TABLE_STATUS_BADGE_CLASSNAME}
                 />
               )}
             </div>
@@ -1065,30 +1076,17 @@ export const VideoUploadPage = () => {
   } else if (pendingItems.length > 1) {
     uploadButtonLabel = `Upload ${pendingItems.length} videos`;
   }
-  let dropzoneStateClasses =
-    'cursor-pointer border-spice-border-mid bg-spice-bg-tint hover:border-spice-border hover:bg-spice-bg-surface';
-  if (uploadBusy) {
-    dropzoneStateClasses =
-      'cursor-not-allowed border-spice-border-mid bg-spice-bg-tint opacity-60';
-  } else if (isDragActive) {
-    dropzoneStateClasses =
-      'cursor-pointer border-spice-brand-primary bg-spice-bg-surface';
-  }
 
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
-            Video Upload
-          </h1>
-          <p className="mt-1 text-sm text-spice-text-muted">
-            Upload videos and generate learning modules from their content.
-          </p>
-        </div>
+        <PageTitle
+          title="Video Upload"
+          subtitle="Upload videos and generate learning modules from their content."
+        />
         <Button
           variant="secondary"
-          className="inline-flex h-9 items-center gap-1.5 text-xs"
+          className="inline-flex items-center gap-1.5"
           onClick={() => navigate(paths.moduleLibrary)}
         >
           Module Library
@@ -1097,10 +1095,6 @@ export const VideoUploadPage = () => {
       </div>
 
       <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          Upload
-        </div>
-
         <div className="space-y-3">
           {pendingItems.map((item) => {
             const titleInvalid = pendingTitleErrorKeys.has(item.key);
@@ -1113,9 +1107,7 @@ export const VideoUploadPage = () => {
                   <div className="space-y-2 sm:w-40 sm:shrink-0">
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-                          Thumbnail
-                        </span>
+                        <FieldGroupLabel>Thumbnail</FieldGroupLabel>
                         <button
                           type="button"
                           disabled={uploadBusy}
@@ -1151,7 +1143,7 @@ export const VideoUploadPage = () => {
                             className="max-h-[160px] max-w-full object-contain"
                           />
                         ) : (
-                          <div className="flex min-h-[120px] items-center justify-center text-[11px] text-spice-text-muted">
+                          <div className="flex min-h-[120px] items-center justify-center text-xs text-spice-text-muted">
                             Capturing…
                           </div>
                         )}
@@ -1186,16 +1178,16 @@ export const VideoUploadPage = () => {
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <label
+                        <FormLabel
                           htmlFor={`pending-video-title-${item.key}`}
-                          className="text-xs font-semibold text-spice-text-primary"
+                          required
                         >
-                          Title{' '}
-                          <span className="text-spice-semantic-error">*</span>
-                        </label>
+                          Title
+                        </FormLabel>
                         <Button
                           variant="ghost"
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center p-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                          size="iconSm"
+                          className="shrink-0 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
                           disabled={uploadBusy}
                           aria-label={`Remove ${item.file.name}`}
                           title="Remove"
@@ -1228,15 +1220,17 @@ export const VideoUploadPage = () => {
                         }}
                       />
                       {titleInvalid ? (
-                        <span className="text-[11px] text-spice-semantic-error">
+                        <span className="text-xs text-spice-semantic-error">
                           Title is required.
                         </span>
                       ) : null}
                     </div>
                     <label className="block space-y-1">
-                      <span className="text-xs font-semibold text-spice-text-primary">
+                      <FormLabel
+                        htmlFor={`pending-video-description-${item.key}`}
+                      >
                         Description
-                      </span>
+                      </FormLabel>
                       <LimitedTextarea
                         id={`pending-video-description-${item.key}`}
                         value={item.description}
@@ -1255,86 +1249,42 @@ export const VideoUploadPage = () => {
             );
           })}
 
-          <div className="relative">
-            <input
-              ref={videoFileInputRef}
-              type="file"
-              multiple
-              accept={VIDEO_FILE_INPUT_ACCEPT}
-              tabIndex={-1}
-              className="sr-only"
-              disabled={uploadBusy}
-              aria-label={
-                pendingItems.length ? 'Add more videos' : 'Upload video'
-              }
-              onFocus={(event) => {
-                // Windows Chrome scrolls the page to reveal focused sr-only
-                // file inputs, which leaves a blank gap under the table.
-                event.currentTarget.blur();
-              }}
-              onChange={(event) => {
-                const files = event.target.files;
-                stageVideoFiles(files);
-                event.target.value = '';
-              }}
-            />
-            <button
-              type="button"
-              aria-label={
-                pendingItems.length ? 'Add more videos' : 'Upload video'
-              }
-              disabled={uploadBusy}
-              className={cn(
-                'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
-                dropzoneStateClasses,
-              )}
-              onClick={() => videoFileInputRef.current?.click()}
-              onDragOver={(event) => {
-                event.preventDefault();
-                if (uploadBusy) return;
-                setIsDragActive(true);
-              }}
-              onDragLeave={() => setIsDragActive(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setIsDragActive(false);
-                if (uploadBusy) return;
-                stageVideoFiles(event.dataTransfer.files);
-              }}
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </span>
-              <span className="text-xs font-semibold text-spice-text-primary">
-                {pendingItems.length ? 'Add more videos' : 'Upload videos'}
-              </span>
-              <span className="text-[11px] text-spice-text-muted">
-                Click to select or drag and drop videos
-              </span>
-            </button>
-          </div>
+          <FileDropzone
+            files={pendingVideoFiles}
+            onChange={handlePendingVideoFilesChange}
+            accept={VIDEO_FILE_INPUT_ACCEPT}
+            multiple
+            disabled={uploadBusy}
+            title="Upload videos"
+            titleWhenSelected="Add more videos"
+            subtitle="Click to select or drag and drop videos"
+            hideSubtitleWhenSelected
+            ariaLabel={pendingItems.length ? 'Add more videos' : 'Upload video'}
+            validateFile={(file) =>
+              isAcceptedVideoFile(file)
+                ? null
+                : formatVideoFileRejectionError(file)
+            }
+            onReject={setFileError}
+          />
+
+          {fileError ? <Banner tone="critical">{fileError}</Banner> : null}
         </div>
 
-        <p className="text-xs text-spice-text-muted">
+        <FormHelperText>
           {VIDEO_ACCEPTED_FILE_TYPES_LABEL} · {INGEST_MEDIA_MAX_UPLOAD_LABEL}
-        </p>
+        </FormHelperText>
 
         <IngestUploadProgress active={isUploading} label="Uploading videos…" />
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="ghost"
+            disabled={uploadBusy}
+            onClick={clearPendingDrafts}
+          >
+            Reset
+          </Button>
           <Button
             disabled={!pendingItems.length || uploadBusy}
             onClick={() => void uploadPendingFiles()}
@@ -1345,40 +1295,38 @@ export const VideoUploadPage = () => {
       </Card>
 
       <Card variant="elevated" className="space-y-2 p-4 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm font-semibold text-spice-text-primary">
-            <span>Uploaded videos</span>
+        <SectionHeader
+          title="Uploaded videos"
+          variant="h2"
+          titleAccessory={
             <Tooltip
               label="About uploaded videos"
               content="Previously ingested videos must be chosen again before they can be selected for re-ingestion."
             />
-            {isFetchingVideos && !isLoadingVideos ? (
-              <span className="text-xs font-normal text-spice-text-muted">
-                Updating…
-              </span>
-            ) : null}
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <SearchInput
-              value={query}
-              onChange={setQuery}
-              placeholder="Search videos…"
-              aria-label="Search uploaded videos"
-              className="h-9"
-            />
-            <SettingsFilterTriggerButton
-              ariaLabel="Open video filters"
-              active={filtersActive}
-              expanded={filtersDrawerOpen}
-              tooltip={
-                filtersActive
-                  ? 'Filters are applied. Open filters to edit or clear them.'
-                  : 'Filter uploaded videos by status or uploaded date'
-              }
-              onClick={handleOpenFiltersDrawer}
-            />
-          </div>
-        </div>
+          }
+          action={
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <SearchInput
+                value={query}
+                onChange={setQuery}
+                placeholder="Search videos…"
+                aria-label="Search uploaded videos"
+                className="h-9"
+              />
+              <SettingsFilterTriggerButton
+                ariaLabel="Open video filters"
+                active={filtersActive}
+                expanded={filtersDrawerOpen}
+                tooltip={
+                  filtersActive
+                    ? 'Filters are applied. Open filters to edit or clear them.'
+                    : 'Filter uploaded videos by status or uploaded date'
+                }
+                onClick={handleOpenFiltersDrawer}
+              />
+            </div>
+          }
+        />
 
         <SettingsFilterDrawer
           open={filtersDrawerOpen}
@@ -1461,11 +1409,7 @@ export const VideoUploadPage = () => {
 
         <div className="flex flex-col gap-2 sm:items-end">
           <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              className="h-9 text-xs"
-              disabled={!canIngest}
-              onClick={() => void runIngest()}
-            >
+            <Button disabled={!canIngest} onClick={() => void runIngest()}>
               {isStartingIngest
                 ? 'Starting…'
                 : anyIngestionInProgress

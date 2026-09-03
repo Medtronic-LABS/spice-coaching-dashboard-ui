@@ -1,6 +1,14 @@
 import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Badge, Banner, Button, Card, Modal, Tooltip } from '@/components/ui';
+import {
+  Badge,
+  Banner,
+  Button,
+  Card,
+  Modal,
+  ModalTitle,
+  Tooltip,
+} from '@/components/ui';
 import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import type { BannerProps } from '@/components/ui/Banner';
 import type {
@@ -87,7 +95,7 @@ export const IngestMergeReviewModal = ({
               {resolveMergeDecisionTitle(row)}
             </div>
             {mergeUnavailable ? (
-              <div className="mt-1 text-[11px] text-spice-semantic-warning">
+              <div className="mt-1 text-xs text-spice-semantic-warning">
                 Matched module unavailable. You can Skip Merge to create a new
                 module.
               </div>
@@ -167,7 +175,7 @@ export const IngestMergeReviewModal = ({
               View Module
             </Button>
             {!matchedModuleId ? (
-              <div className="mt-1 text-[11px] text-spice-text-muted">
+              <div className="mt-1 text-xs text-spice-text-muted">
                 Module id unavailable
               </div>
             ) : null}
@@ -191,12 +199,9 @@ export const IngestMergeReviewModal = ({
         className="w-full space-y-4 border-spice-border p-5 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
-          <h2
-            id="ingest-merge-review-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
+          <ModalTitle id="ingest-merge-review-title">
             Review module merge decisions
-          </h2>
+          </ModalTitle>
           <p
             id="ingest-merge-review-description"
             className="text-sm text-spice-text-muted"

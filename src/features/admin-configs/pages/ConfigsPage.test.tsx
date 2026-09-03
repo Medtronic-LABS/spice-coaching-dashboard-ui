@@ -29,7 +29,8 @@ async function saveDuration(
   user: ReturnType<typeof userEvent.setup>,
   days: string,
 ) {
-  const input = await screen.findByLabelText(/quiz reattempt validity/i, {
+  const input = await screen.findByRole('textbox', {
+    name: /quiz reattempt validity/i,
     timeout: FIND_TIMEOUT_MS,
   });
   await user.clear(input);
@@ -124,7 +125,8 @@ describe('ConfigsPage configuration history', () => {
     const user = userEvent.setup();
     renderWithProviders(<ConfigsPage />);
 
-    const input = await screen.findByLabelText(/quiz reattempt validity/i, {
+    const input = await screen.findByRole('textbox', {
+      name: /quiz reattempt validity/i,
       timeout: FIND_TIMEOUT_MS,
     });
     expect(input).toHaveAttribute('maxLength', '3');

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import { TruncatedText } from '@/components/ui';
+import { TruncatedText, typographyClasses } from '@/components/ui';
 import type {
   ModuleDemandQueryRow,
   ModuleDemandUserEntry,
@@ -74,13 +74,13 @@ function UserDetailRow({
       <span className="min-w-0">
         <TruncatedText
           text={interactionLabel}
-          className="text-[11px] text-spice-text-muted"
+          className="text-xs text-spice-text-muted"
         />
       </span>
       <span className="min-w-0 text-right">
         <TruncatedText
           text={timestamp ?? '—'}
-          className="text-[11px] tabular-nums text-spice-text-muted"
+          className="text-xs tabular-nums text-spice-text-muted"
         />
       </span>
     </div>
@@ -134,12 +134,12 @@ export const EvidenceQueryRow = ({
         <span className="min-w-0 flex-1">
           <TruncatedText
             text={row.primaryText}
-            className="text-sm font-medium text-spice-text-primary"
+            className={typographyClasses.tableCellPrimary}
           />
         </span>
         <span
           className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
+            'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
             'bg-spice-brand-primary/10 text-spice-brand-primary',
           )}
         >
@@ -152,10 +152,10 @@ export const EvidenceQueryRow = ({
       {usersOpen && hasUserDetails ? (
         <div className="space-y-2 border-t border-spice-border/60 bg-spice-bg-tint/30 px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted">
+            <p className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
               {t('adminDashboard.moduleDemand.usersHeading')}
             </p>
-            <span className="text-[10px] tabular-nums text-spice-text-muted">
+            <span className="text-xs tabular-nums text-spice-text-muted">
               {t('adminDashboard.moduleDemand.userCount', {
                 count: users.length,
               })}
@@ -164,7 +164,7 @@ export const EvidenceQueryRow = ({
 
           <div
             className={cn(
-              'grid gap-x-2 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted',
+              'grid gap-x-2 px-2.5 text-xs font-semibold uppercase tracking-wide text-spice-text-muted',
               'grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.3fr)]',
             )}
           >
@@ -216,11 +216,11 @@ function EvidenceSection({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
           {heading}
         </h4>
         {rows.length > 0 ? (
-          <span className="text-[10px] tabular-nums text-spice-text-muted">
+          <span className="text-xs tabular-nums text-spice-text-muted">
             {rows.length}
           </span>
         ) : null}

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { RefreshIcon } from '@/assets/icon';
 import { PageLoadErrorIllustration } from '@/components/common/PageLoadErrorIllustration';
 import { Button } from '@/components/ui';
+import { ModalTitle } from '@/components/ui/Typography';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { cn } from '@/utils';
 import { parseApiError } from '@/utils/parseApiError';
 
@@ -55,15 +57,20 @@ export const TableQueryErrorState = ({
     >
       <PageLoadErrorIllustration className="h-[100px] w-[140px] shrink-0 sm:h-[120px] sm:w-[160px]" />
 
-      <h3 className="mt-6 max-w-md text-lg font-semibold text-spice-text-primary sm:text-xl">
+      <ModalTitle as="h3" className="mt-6 max-w-md sm:text-xl">
         {resolvedTitle}
-      </h3>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-spice-text-muted">
+      </ModalTitle>
+      <p
+        className={cn(
+          'mt-2 max-w-md leading-relaxed',
+          typographyClasses.caption,
+        )}
+      >
         {resolvedDescription}
       </p>
 
       {showDevMeta ? (
-        <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-spice-text-muted">
+        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-spice-text-muted">
           {meta}
         </p>
       ) : null}

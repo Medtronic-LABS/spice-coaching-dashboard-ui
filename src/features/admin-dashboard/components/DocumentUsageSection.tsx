@@ -8,7 +8,9 @@ import {
   Card,
   EmptyState,
   Modal,
+  ModalTitle,
   TruncatedText,
+  typographyClasses,
 } from '@/components/ui';
 import { useFetchDocumentUsageQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
@@ -37,6 +39,7 @@ import {
   formatDisplayDateTime,
   DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
 } from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 
 interface DocumentUsageSectionProps {
   fromDate: string;
@@ -264,7 +267,7 @@ export const DocumentUsageSection = ({
               </span>
               <TruncatedText
                 text={title}
-                className="min-w-0 font-medium text-spice-text-primary"
+                className={cn('min-w-0', typographyClasses.tableCellPrimary)}
               />
             </span>
           );
@@ -433,13 +436,13 @@ export const DocumentUsageSection = ({
           variant="elevated"
           className="flex max-h-[min(85dvh,calc(100vh-3rem))] w-full flex-col overflow-hidden border-spice-border p-4 shadow-lg sm:p-6"
         >
-          <h2
+          <ModalTitle
             id={DOCUMENT_DETAIL_TITLE_ID}
-            className="min-w-0 shrink-0 pr-10 text-lg font-semibold text-spice-text-primary"
+            className="min-w-0 shrink-0 pr-10"
           >
             {detailDocument?.documentTitle ??
               t('adminDashboard.documentUsage.detailTitle')}
-          </h2>
+          </ModalTitle>
 
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {showDetailLoading ? (

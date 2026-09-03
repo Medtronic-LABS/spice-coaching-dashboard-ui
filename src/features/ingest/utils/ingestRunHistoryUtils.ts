@@ -40,27 +40,6 @@ export function ingestRunStatusTone(
   return 'neutral';
 }
 
-export function ingestRunStatusBadgeClassName(
-  tone: IngestRunStatusTone,
-): string {
-  switch (tone) {
-    case 'processing':
-      return 'bg-spice-palette-violetLt text-spice-palette-violet';
-    case 'completed':
-      return 'bg-spice-palette-purpleLt text-spice-palette-purple';
-    case 'partial':
-      return 'bg-spice-palette-pinkLt text-spice-palette-pink';
-    case 'failed':
-      return 'bg-spice-semantic-errorBg text-spice-semantic-error';
-    case 'neutral':
-      return 'bg-spice-bg-tint text-spice-text-muted';
-    default: {
-      const exhaustiveCheck: never = tone;
-      return exhaustiveCheck;
-    }
-  }
-}
-
 /** Modules / cards / quizzes labels from the ingestion result reported by the API. */
 export function formatIngestRunGeneratedCountParts(run: IngestionRunSummary): {
   modules: string;
