@@ -1,24 +1,22 @@
 import type { NavigateFunction } from 'react-router-dom';
-import { paths } from '@/constants/routes';
+import { matchPath } from 'react-router-dom';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import type {
   EditAdminModuleRequestBody,
   EditAdminModuleResponse,
 } from '@/features/modules/api/adminModulesApi';
 
-const ADMIN_MODULE_REVIEW_PREFIX = paths.adminModuleReview.replace(
-  ':moduleId',
-  '',
-);
-
 export function buildAdminModuleReviewPath(
   currentPathname: string,
   moduleId: string,
 ): string | null {
-  if (!currentPathname.startsWith(ADMIN_MODULE_REVIEW_PREFIX)) return null;
-  const afterPrefix = currentPathname.slice(ADMIN_MODULE_REVIEW_PREFIX.length);
-  const slashIndex = afterPrefix.indexOf('/');
-  const suffix = slashIndex === -1 ? '' : afterPrefix.slice(slashIndex);
-  return `${ADMIN_MODULE_REVIEW_PREFIX}${encodeURIComponent(moduleId)}${suffix}`;
+  const match = matchPath(
+    { path: paths.adminModuleReview, end: false },
+    currentPathname,
+  );
+  if (!match) return null;
+  const suffix = currentPathname.slice(match.pathnameBase.length);
+  return `${adminModuleReviewPaths.root(moduleId)}${suffix}`;
 }
 
 type EditModuleTrigger = (args: {
@@ -43,13 +41,9 @@ export async function applyEditModuleAndSyncRoute(options: {
       options.navigate(nextPath, { replace: true });
       return response;
     }
-    options.navigate(
-      paths.adminModuleReviewDetails.replace(
-        ':moduleId',
-        encodeURIComponent(response.id),
-      ),
-      { replace: true },
-    );
+    options.navigate(adminModuleReviewPaths.details(response.id), {
+      replace: true,
+    });
   }
 
   return response;

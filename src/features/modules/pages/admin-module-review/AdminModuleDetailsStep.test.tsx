@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import type { AppRole } from '@/constants/role';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import {
   adminModuleReviewReducer,
@@ -81,9 +81,7 @@ function renderDetailsStep() {
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
           <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-            ]}
+            initialEntries={[adminModuleReviewPaths.details('mod-1')]}
           >
             <Routes>
               <Route

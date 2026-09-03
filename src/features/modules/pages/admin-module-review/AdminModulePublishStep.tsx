@@ -7,7 +7,7 @@ import {
   Loader,
   useSnackbar,
 } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
@@ -101,7 +101,7 @@ export const AdminModulePublishStep = () => {
   }, [navigate]);
 
   const modulePath = (suffix: string) =>
-    `${paths.adminModuleReview.replace(':moduleId', encodeURIComponent(moduleId))}${suffix}`;
+    `${adminModuleReviewPaths.root(moduleId)}${suffix}`;
 
   const moduleDisplayTitle = working
     ? resolveDisplayText(working.title)

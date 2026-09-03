@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import { Button, TruncatedText, UnsavedChangesDialog } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 import { ModuleVersionConflictDialog } from '@/features/modules/components/ModuleVersionConflictDialog';
 import {
@@ -32,41 +32,25 @@ const stepMeta: Array<{
     key: 'details',
     label: 'Module Details',
     breadcrumbLabel: 'Details',
-    path: (moduleId) =>
-      paths.adminModuleReviewDetails.replace(
-        ':moduleId',
-        encodeURIComponent(moduleId),
-      ),
+    path: adminModuleReviewPaths.details,
   },
   {
     key: 'lessons',
     label: 'Lessons',
     breadcrumbLabel: 'Lessons',
-    path: (moduleId) =>
-      paths.adminModuleReviewLessons.replace(
-        ':moduleId',
-        encodeURIComponent(moduleId),
-      ),
+    path: adminModuleReviewPaths.lessons,
   },
   {
     key: 'quiz',
     label: 'Quiz',
     breadcrumbLabel: 'Quiz',
-    path: (moduleId) =>
-      paths.adminModuleReviewQuiz.replace(
-        ':moduleId',
-        encodeURIComponent(moduleId),
-      ),
+    path: adminModuleReviewPaths.quiz,
   },
   {
     key: 'review',
     label: 'Review & Publish',
     breadcrumbLabel: 'Review',
-    path: (moduleId) =>
-      paths.adminModuleReviewPublish.replace(
-        ':moduleId',
-        encodeURIComponent(moduleId),
-      ),
+    path: adminModuleReviewPaths.publish,
   },
 ];
 

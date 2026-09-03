@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { setCurrentRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { QuizExplanationReviewDialog } from '@/features/modules/components/QuizExplanationReviewDialog';
@@ -121,11 +121,7 @@ function renderQuizStep() {
     <SnackbarProvider>
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
-          <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-            ]}
-          >
+          <MemoryRouter initialEntries={[adminModuleReviewPaths.quiz('mod-1')]}>
             <ExplanationReviewDialogHost />
             <Routes>
               <Route

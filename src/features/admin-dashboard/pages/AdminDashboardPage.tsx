@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageTitle } from '@/components/common/PageTitle';
 import { Banner, Button } from '@/components/ui';
-import { buildPath, paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
 import { DocumentUsageSection } from '@/features/admin-dashboard/components/DocumentUsageSection';
@@ -62,7 +62,7 @@ export const AdminDashboardPage = () => {
   const createLabel = t('adminDashboard.moduleDemand.actions.create');
 
   const handlePublish = (moduleId: string) => {
-    navigate(buildPath(paths.adminModuleReviewPublish, { moduleId }));
+    navigate(adminModuleReviewPaths.publish(moduleId));
   };
 
   const handleCreate = (topic: string) => {

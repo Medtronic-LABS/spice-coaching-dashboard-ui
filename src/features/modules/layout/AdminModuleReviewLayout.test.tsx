@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
 import {
   adminModuleReviewReducer,
@@ -98,7 +98,7 @@ describe('AdminModuleReviewLayout', () => {
   });
 
   it('highlights the active review step from the current route', () => {
-    renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
+    renderLayout(adminModuleReviewPaths.details('mod-1'));
 
     expect(screen.getByRole('button', { name: /module details/i })).toHaveClass(
       'bg-spice-brand-pm',
@@ -108,7 +108,7 @@ describe('AdminModuleReviewLayout', () => {
 
   it('shows read-only badge for supervisors', () => {
     roleState.role = 'supervisor';
-    renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
+    renderLayout(adminModuleReviewPaths.details('mod-1'));
 
     expect(screen.getByText('Read-only review')).toBeInTheDocument();
     expect(
@@ -118,14 +118,14 @@ describe('AdminModuleReviewLayout', () => {
 
   it('navigates between review steps', async () => {
     const user = userEvent.setup();
-    renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
+    renderLayout(adminModuleReviewPaths.details('mod-1'));
 
     await user.click(screen.getByRole('button', { name: /lessons/i }));
     expect(screen.getByTestId('lessons-outlet')).toBeInTheDocument();
   });
 
   it('renders breadcrumb for the current review step', () => {
-    renderLayout(paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'), {
+    renderLayout(adminModuleReviewPaths.lessons('mod-1'), {
       moduleTitle: 'Hypertension basics',
     });
 
@@ -139,9 +139,6 @@ describe('AdminModuleReviewLayout', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Hypertension basics' }),
-    ).toHaveAttribute(
-      'href',
-      paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-    );
+    ).toHaveAttribute('href', adminModuleReviewPaths.details('mod-1'));
   });
 });

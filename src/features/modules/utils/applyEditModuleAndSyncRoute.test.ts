@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import {
   applyEditModuleAndSyncRoute,
   buildAdminModuleReviewPath,
@@ -7,14 +7,9 @@ import {
 
 describe('buildAdminModuleReviewPath', () => {
   it('replaces module id while preserving review step suffix', () => {
-    const current = paths.adminModuleReviewLessons.replace(
-      ':moduleId',
-      'old-id',
-    );
+    const current = adminModuleReviewPaths.lessons('old-id');
     const next = buildAdminModuleReviewPath(current, 'new-id');
-    expect(next).toBe(
-      paths.adminModuleReviewLessons.replace(':moduleId', 'new-id'),
-    );
+    expect(next).toBe(adminModuleReviewPaths.lessons('new-id'));
   });
 
   it('returns null outside admin module review routes', () => {
@@ -32,7 +27,7 @@ describe('applyEditModuleAndSyncRoute', () => {
     const response = await applyEditModuleAndSyncRoute({
       editModule,
       navigate,
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       moduleEntityId: 'mod-1',
       body: {
         expected_version: 1,
@@ -59,7 +54,7 @@ describe('applyEditModuleAndSyncRoute', () => {
     await applyEditModuleAndSyncRoute({
       editModule,
       navigate,
-      pathname: paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.quiz('mod-1'),
       moduleEntityId: 'mod-1',
       body: {
         expected_version: 1,
@@ -69,7 +64,7 @@ describe('applyEditModuleAndSyncRoute', () => {
     });
 
     expect(navigate).toHaveBeenCalledWith(
-      paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-2'),
+      adminModuleReviewPaths.quiz('mod-2'),
       { replace: true },
     );
   });

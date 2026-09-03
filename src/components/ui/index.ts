@@ -89,3 +89,24 @@ export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';
 export type { BadgeSize, BadgeVariant } from '@/components/ui/Badge';
 export type { ButtonSize } from '@/components/ui/Button';
 export { useWindowedList } from '@/components/ui/useWindowedList';
+export { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
+export type { RichTextEditorProps } from '@/components/ui/rich-text/RichTextEditor';
+export type {
+  RichAudioBlock,
+  RichBlock,
+  RichImageBlock,
+  RichStoredFileAttrs,
+  RichTextLeaf,
+  RichTextMark,
+  RichVideoBlock,
+} from '@/components/ui/rich-text/types/richText.types';
+export {
+  blocksToHtml,
+  blocksToPlainText,
+  htmlToBlocks,
+} from '@/components/ui/rich-text/utils/richText';
+export {
+  blocksToTiptapDoc,
+  richBlocksEqual,
+  tiptapDocToBlocks,
+} from '@/components/ui/rich-text/utils/richTextDocument';

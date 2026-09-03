@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
 import { persistAdminModuleDraft } from '@/features/modules/utils/persistAdminModuleDraft';
 import { AdminModuleDraftValidationError } from '@/features/modules/utils/validateAdminModuleDraftContent';
@@ -59,7 +59,7 @@ describe('persistAdminModuleDraft', () => {
       working,
       editModule,
       navigate,
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       refetchModule,
       onSaved,
     });
@@ -103,7 +103,7 @@ describe('persistAdminModuleDraft', () => {
       working: { ...working, chatbot_faqs_only: true },
       editModule,
       navigate,
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       refetchModule,
       onSaved,
     });
@@ -133,7 +133,7 @@ describe('persistAdminModuleDraft', () => {
       working,
       editModule,
       navigate,
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       refetchModule,
       onSaved,
     });
@@ -144,7 +144,7 @@ describe('persistAdminModuleDraft', () => {
     );
     expect(refetchModule).toHaveBeenCalledWith('mod-2');
     expect(navigate).toHaveBeenCalledWith(
-      paths.adminModuleReviewDetails.replace(':moduleId', 'mod-2'),
+      adminModuleReviewPaths.details('mod-2'),
       { replace: true },
     );
     expect(saved.id).toBe('mod-2');
@@ -167,7 +167,7 @@ describe('persistAdminModuleDraft', () => {
       working,
       editModule,
       navigate,
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       refetchModule,
       onSaved,
     });
@@ -196,7 +196,7 @@ describe('persistAdminModuleDraft', () => {
         },
         editModule,
         navigate: vi.fn(),
-        pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+        pathname: adminModuleReviewPaths.details('mod-1'),
         refetchModule: vi.fn(),
         onSaved: vi.fn(),
       }),
@@ -218,7 +218,7 @@ describe('persistAdminModuleDraft', () => {
       working: { ...working, content_domain: null },
       editModule,
       navigate: vi.fn(),
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       refetchModule: vi.fn().mockResolvedValue(undefined),
       onSaved: vi.fn(),
     });
@@ -238,7 +238,7 @@ describe('persistAdminModuleDraft', () => {
         working: { ...working, domain: '   ' },
         editModule,
         navigate: vi.fn(),
-        pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+        pathname: adminModuleReviewPaths.details('mod-1'),
         refetchModule: vi.fn(),
         onSaved: vi.fn(),
       }),
@@ -256,7 +256,7 @@ describe('persistAdminModuleDraft', () => {
         },
         editModule,
         navigate: vi.fn(),
-        pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+        pathname: adminModuleReviewPaths.details('mod-1'),
         refetchModule: vi.fn(),
         onSaved: vi.fn(),
       }),
@@ -271,7 +271,7 @@ describe('persistAdminModuleDraft', () => {
         working: { ...working, estimated_minutes: 0 },
         editModule,
         navigate: vi.fn(),
-        pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+        pathname: adminModuleReviewPaths.details('mod-1'),
         refetchModule: vi.fn(),
         onSaved: vi.fn(),
       }),

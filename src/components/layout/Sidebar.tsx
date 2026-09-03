@@ -124,6 +124,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           <NavLink
             className={linkClassName}
             to={paths.ingestDocument}
+            end
             draggable={false}
             onClick={onMobileClose}
           >

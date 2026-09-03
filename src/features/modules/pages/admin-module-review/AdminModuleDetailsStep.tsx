@@ -13,7 +13,7 @@ import {
   Select,
   TruncatedText,
 } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   FIELD_LIMITS,
   fieldLimitExceededMessage,
@@ -550,12 +550,7 @@ export const AdminModuleDetailsStep = () => {
             disabled={busy || metadataInvalid}
             onClick={() => {
               if (metadataInvalid) return;
-              navigate(
-                paths.adminModuleReviewLessons.replace(
-                  ':moduleId',
-                  encodeURIComponent(working.id),
-                ),
-              );
+              navigate(adminModuleReviewPaths.lessons(working.id));
             }}
           >
             Continue to Lessons

@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import type { AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import {
@@ -111,9 +111,7 @@ function renderPublishStep() {
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
           <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewPublish.replace(':moduleId', 'mod-1'),
-            ]}
+            initialEntries={[adminModuleReviewPaths.publish('mod-1')]}
           >
             <Routes>
               <Route

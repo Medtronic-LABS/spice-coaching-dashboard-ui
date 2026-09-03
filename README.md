@@ -72,13 +72,15 @@ Feature-first layout: product code lives under `src/features/<feature>/`. Shared
 src/
   features/           # Domain modules (pages, api, hooks, utils, tests)
     modules/          # Module library, review/publish, create flow
+    knowledge-library/# Knowledge upload & catalog management
     ingest/           # Document/video upload and ingestion history
     admin-configs/    # Configurations
     auth/             # SSO bootstrap and suite-access gate
   components/
     common/           # Tables, charts, shared patterns
+    shared/           # Cross-feature widgets (e.g. ReorderableList)
     layout/           # MainLayout, Header, Sidebar
-    ui/               # Buttons, cards, form primitives
+    ui/               # Buttons, cards, form primitives, rich-text editor
   routes/             # AppRoutes, lazy imports
   store/
     apis/             # baseApi (real fetch)
@@ -99,6 +101,7 @@ docs/                 # Specs (e.g. UI component system)
 5. **Co-located tests** — `*.test.tsx` next to the module they cover.
 6. **Suite access gate** — entry requires coaching suite access from the Spice profile or login flow.
 7. **Capability roles** — Spice/login roles map to `supervisor` vs `programManager` via `getCurrentRole()` (`src/constants/role.ts`). This affects read-only vs edit UX in module library and admin module review (e.g. supervisors cannot reorder quiz cards). It is **not** route-level RBAC; all authenticated users can reach the same routes.
+8. **Routes** — define path segments and `paths` only in `src/constants/routes.ts`. Navigate / link / match with `paths`, `buildPath`, or `adminModuleReviewPaths` — never hardcode SPA URL strings. Legacy URLs under `/module-library/...` redirect to the feature paths (`/knowledge`, `/ingest`, …).
 
 ## Code standards
 

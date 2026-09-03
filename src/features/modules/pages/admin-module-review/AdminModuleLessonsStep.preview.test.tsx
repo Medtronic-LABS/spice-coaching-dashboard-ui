@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { setCurrentRole } from '@/constants/role';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
@@ -37,7 +37,7 @@ const mockModule = baseAdminModuleDetail({
   },
 });
 
-vi.mock('@/features/modules/components/RichTextEditor', () => ({
+vi.mock('@/components/ui/rich-text/RichTextEditor', () => ({
   RichTextEditor: () => <div data-testid="rich-text-editor" />,
 }));
 
@@ -101,9 +101,7 @@ function renderLessonsPreview() {
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
           <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
-            ]}
+            initialEntries={[adminModuleReviewPaths.lessons('mod-1')]}
           >
             <Routes>
               <Route

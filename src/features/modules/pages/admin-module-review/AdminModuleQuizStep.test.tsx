@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { setCurrentRole, type AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import {
@@ -74,11 +74,7 @@ function renderQuizStep(role: AppRole = 'programManager') {
     <SnackbarProvider>
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
-          <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-            ]}
-          >
+          <MemoryRouter initialEntries={[adminModuleReviewPaths.quiz('mod-1')]}>
             <Routes>
               <Route
                 path={paths.adminModuleReviewQuiz}

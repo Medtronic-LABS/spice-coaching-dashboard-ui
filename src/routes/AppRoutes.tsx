@@ -1,7 +1,8 @@
 import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { paths, ROUTE_PREFIX } from '@/constants/routes';
+import { legacyPaths, paths, ROUTE_PREFIX } from '@/constants/routes';
+import { PreserveSearchRedirect } from '@/routes/PreserveSearchRedirect';
 
 const LoginPage = lazy(() =>
   import('@/features/auth/pages/LoginPage').then((module) => ({
@@ -44,9 +45,11 @@ const VideoUploadPage = lazy(() =>
   })),
 );
 const KnowledgeLibraryPage = lazy(() =>
-  import('@/features/modules/pages/KnowledgeLibraryPage').then((module) => ({
-    default: module.KnowledgeLibraryPage,
-  })),
+  import('@/features/knowledge-library/pages/KnowledgeLibraryPage').then(
+    (module) => ({
+      default: module.KnowledgeLibraryPage,
+    }),
+  ),
 );
 const AdminModuleReviewLayout = lazy(() =>
   import('@/features/modules/layout/AdminModuleReviewLayout').then(
@@ -138,8 +141,25 @@ export const AppRoutes = () => {
           element={<Navigate to={paths.adminDashboard} replace />}
         />
         <Route
-          path={`${ROUTE_PREFIX}/admin-dashboard`}
-          element={<Navigate to={paths.adminDashboard} replace />}
+          path={legacyPaths.adminDashboard}
+          element={<PreserveSearchRedirect to={paths.adminDashboard} />}
+        />
+        {/* Legacy feature URLs previously nested under /module-library */}
+        <Route
+          path={legacyPaths.uploadKnowledge}
+          element={<PreserveSearchRedirect to={paths.uploadKnowledge} />}
+        />
+        <Route
+          path={legacyPaths.ingestDocument}
+          element={<PreserveSearchRedirect to={paths.ingestDocument} />}
+        />
+        <Route
+          path={legacyPaths.videoUpload}
+          element={<PreserveSearchRedirect to={paths.videoUpload} />}
+        />
+        <Route
+          path={legacyPaths.ingestHistory}
+          element={<PreserveSearchRedirect to={paths.ingestHistory} />}
         />
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
         <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type {
   RichTextLeaf,
   RichTextMark,
-} from '@/features/modules/types/richText.types';
+} from '@/components/ui/rich-text/types/richText.types';
 import { normalizeHref } from '@/utils/sanitizeHref';
 
 function applyMark(

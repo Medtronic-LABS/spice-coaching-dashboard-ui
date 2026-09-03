@@ -12,7 +12,7 @@ import {
   useSaveModuleContentMutation,
 } from '@/features/modules/api/moduleDraftApi';
 import { useModuleEditor } from '@/features/modules/hooks/useModuleEditor';
-import { blocksToPlainText } from '@/features/modules/utils/richText';
+import { blocksToPlainText } from '@/components/ui/rich-text/utils/richText';
 
 export const ModuleReviewPublishPage = () => {
   const navigate = useNavigate();

@@ -9,18 +9,22 @@ import {
   Loader,
   TruncatedText,
 } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   FIELD_LIMITS,
   TABLE_CELL_LABEL_MAX_LENGTH,
 } from '@/constants/fieldLimits';
+import {
+  storedFileAttrsFromUpload,
+  useUploadAdminFileMutation,
+} from '@/features/modules/api/adminFilesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
 import {
   ReorderableList,
   ReorderDragHandle,
-} from '@/features/modules/components/ReorderableList';
-import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
+} from '@/components/shared/ReorderableList';
+import { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -85,6 +89,7 @@ export const AdminModuleLessonsStep = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editorRevision, setEditorRevision] = useState(0);
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
+  const [uploadAdminFile] = useUploadAdminFileMutation();
   const previousModuleIdRef = useRef(moduleId);
   const pendingCardFocusRef = useRef<AdminModuleDraftIssue | null>(null);
   const isReadonly = useAdminModuleReviewReadonly();
@@ -100,6 +105,14 @@ export const AdminModuleLessonsStep = () => {
     captureSaveError,
     closeDraftValidation,
   } = useAdminModuleDraftSaveFeedback(formatError);
+
+  const uploadMediaFile = useCallback(
+    async (file: File) =>
+      storedFileAttrsFromUpload(
+        await uploadAdminFile({ file, prefix: 'media' }).unwrap(),
+      ),
+    [uploadAdminFile],
+  );
 
   const cards = useMemo(
     () =>
@@ -480,6 +493,7 @@ export const AdminModuleLessonsStep = () => {
                   key={`card-body-${selectedIndex}-${selectedCard.id}-${editorRevision}`}
                   value={selectedBody}
                   onEditorFocus={handleEditorFocus}
+                  onUploadMediaFile={uploadMediaFile}
                   onChange={(body) =>
                     updateSelectedCard({
                       body: setLocaleRichBody(
@@ -520,14 +534,7 @@ export const AdminModuleLessonsStep = () => {
             <Button
               className="inline-flex h-9 items-center gap-1.5 text-xs"
               disabled={busy}
-              onClick={() =>
-                navigate(
-                  paths.adminModuleReviewQuiz.replace(
-                    ':moduleId',
-                    encodeURIComponent(working.id),
-                  ),
-                )
-              }
+              onClick={() => navigate(adminModuleReviewPaths.quiz(working.id))}
             >
               Continue to Quiz
               <ArrowRightIcon className="h-3.5 w-3.5" />

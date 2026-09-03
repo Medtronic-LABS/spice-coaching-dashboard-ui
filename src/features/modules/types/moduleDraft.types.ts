@@ -1,4 +1,4 @@
-import type { RichBlock } from '@/features/modules/types/richText.types';
+import type { RichBlock } from '@/components/ui/rich-text/types/richText.types';
 
 export interface ModuleDraftData {
   id: string;

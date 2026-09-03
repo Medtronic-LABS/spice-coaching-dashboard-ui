@@ -16,7 +16,7 @@ import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepp
 import { useModuleEditor } from '@/features/modules/hooks/useModuleEditor';
 import { setModuleQuiz } from '@/features/modules/store/moduleEditSlice';
 import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types';
-import { blocksToPlainText } from '@/features/modules/utils/richText';
+import { blocksToPlainText } from '@/components/ui/rich-text/utils/richText';
 import { useAppDispatch } from '@/store/hooks';
 
 export const ModuleQuizPage = () => {

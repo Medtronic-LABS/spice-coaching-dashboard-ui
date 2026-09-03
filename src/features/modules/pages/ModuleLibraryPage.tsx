@@ -37,7 +37,7 @@ import {
   SettingsFilterTriggerButton,
 } from '@/components/common/SettingsFilterDrawer';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   FIELD_LIMITS,
   TABLE_CELL_LABEL_MAX_LENGTH,
@@ -344,12 +344,7 @@ export const ModuleLibraryPage = () => {
   };
 
   const handleViewModule = (moduleId: string) => {
-    navigate(
-      paths.adminModuleReviewDetails.replace(
-        ':moduleId',
-        encodeURIComponent(moduleId),
-      ),
-    );
+    navigate(adminModuleReviewPaths.details(moduleId));
   };
 
   const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
@@ -736,10 +731,7 @@ export const ModuleLibraryPage = () => {
                   </button>
                 ) : (
                   <Link
-                    to={paths.adminModuleReviewDetails.replace(
-                      ':moduleId',
-                      encodeURIComponent(row.id),
-                    )}
+                    to={adminModuleReviewPaths.details(row.id)}
                     className={cn(
                       typographyClasses.tableCellPrimary,
                       'block truncate break-all font-semibold text-spice-brand-primary hover:underline',
@@ -850,12 +842,7 @@ export const ModuleLibraryPage = () => {
                     setExpandedReviewModuleId(row.id);
                     setTab('needs_review');
                   } else {
-                    navigate(
-                      paths.adminModuleReviewDetails.replace(
-                        ':moduleId',
-                        encodeURIComponent(row.id),
-                      ),
-                    );
+                    navigate(adminModuleReviewPaths.details(row.id));
                   }
                 }}
               >
@@ -1299,12 +1286,7 @@ export const ModuleLibraryPage = () => {
                       setCreateOpen(false);
                       void refetchDomainOptions();
                       setCreateForm(createEmptyCreateForm());
-                      navigate(
-                        paths.adminModuleReviewDetails.replace(
-                          ':moduleId',
-                          encodeURIComponent(created.id),
-                        ),
-                      );
+                      navigate(adminModuleReviewPaths.details(created.id));
                     } catch {
                       snackbar.showError(
                         'Failed to create module. Please try again.',

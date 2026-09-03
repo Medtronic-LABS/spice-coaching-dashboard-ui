@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { setCurrentRole } from '@/constants/role';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
@@ -99,11 +99,7 @@ function renderQuizPreview() {
     <SnackbarProvider>
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
-          <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-            ]}
-          >
+          <MemoryRouter initialEntries={[adminModuleReviewPaths.quiz('mod-1')]}>
             <Routes>
               <Route
                 path={paths.adminModuleReviewQuiz}

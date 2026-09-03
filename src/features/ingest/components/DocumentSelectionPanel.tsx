@@ -48,7 +48,7 @@ import type { SelectedIngestDocument } from '@/features/ingest/types/documentSel
 import { readRecentIngestDocuments } from '@/features/ingest/utils/recentIngestDocumentsStorage';
 import { isIngestSucceeded } from '@/features/ingest/utils/ingestStatus';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
-import { getKnowledgeDocumentStatusBadgeProps } from '@/features/modules/utils/knowledgeDocumentStatusBadge';
+import { getKnowledgeDocumentStatusBadgeProps } from '@/features/knowledge-library/utils/knowledgeDocumentStatusBadge';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';

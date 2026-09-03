@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { setCurrentRole } from '@/constants/role';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
 import {
@@ -83,10 +83,7 @@ function renderLayout(
     }),
   );
 
-  const detailsPath = paths.adminModuleReviewDetails.replace(
-    ':moduleId',
-    'mod-1',
-  );
+  const detailsPath = adminModuleReviewPaths.details('mod-1');
 
   return render(
     <SnackbarProvider>
@@ -147,10 +144,7 @@ describe('AdminModuleReviewLayout preview integration', () => {
 
     store.dispatch(setCards([emptyCard('c1', 'Updated Card')]));
 
-    const detailsPath = paths.adminModuleReviewDetails.replace(
-      ':moduleId',
-      'mod-1',
-    );
+    const detailsPath = adminModuleReviewPaths.details('mod-1');
 
     render(
       <SnackbarProvider>

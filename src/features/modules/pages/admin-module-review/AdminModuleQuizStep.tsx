@@ -19,13 +19,13 @@ import {
   TruncatedText,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import {
   ReorderableList,
   ReorderDragHandle,
-} from '@/features/modules/components/ReorderableList';
+} from '@/components/shared/ReorderableList';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -598,12 +598,7 @@ export const AdminModuleQuizStep = () => {
                   const moduleIdForNav = isDirty
                     ? (await save()).id
                     : working.id;
-                  navigate(
-                    paths.adminModuleReviewPublish.replace(
-                      ':moduleId',
-                      encodeURIComponent(moduleIdForNav),
-                    ),
-                  );
+                  navigate(adminModuleReviewPaths.publish(moduleIdForNav));
                 } catch (err) {
                   captureSaveError(err);
                 }

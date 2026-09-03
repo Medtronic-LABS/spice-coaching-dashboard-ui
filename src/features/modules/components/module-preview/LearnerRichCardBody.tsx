@@ -3,7 +3,7 @@ import type {
   RichBlock,
   RichListBlock,
   RichListItem,
-} from '@/features/modules/types/richText.types';
+} from '@/components/ui/rich-text/types/richText.types';
 import { PreviewAudioBlock } from '@/features/modules/components/module-preview/PreviewAudioBlock';
 import { PreviewImageBlock } from '@/features/modules/components/module-preview/PreviewImageBlock';
 import {

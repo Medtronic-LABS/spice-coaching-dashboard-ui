@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { setCurrentRole, type AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import {
   baseAdminModuleDetail,
   emptyCard,
@@ -34,7 +34,7 @@ const mockModule = baseAdminModuleDetail({
   },
 });
 
-vi.mock('@/features/modules/components/RichTextEditor', () => ({
+vi.mock('@/components/ui/rich-text/RichTextEditor', () => ({
   RichTextEditor: () => <div data-testid="rich-text-editor" />,
 }));
 
@@ -76,9 +76,7 @@ function renderLessonsStep(role: AppRole = 'programManager') {
       <Provider store={store}>
         <ModulePreviewProvider moduleId="mod-1">
           <MemoryRouter
-            initialEntries={[
-              paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
-            ]}
+            initialEntries={[adminModuleReviewPaths.lessons('mod-1')]}
           >
             <Routes>
               <Route

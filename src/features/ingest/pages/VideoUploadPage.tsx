@@ -105,7 +105,7 @@ import {
 import {
   uploadedDateInputToFromIso,
   uploadedDateInputToToIso,
-} from '@/features/modules/utils/knowledgeLibraryFilters';
+} from '@/features/knowledge-library/utils/knowledgeLibraryFilters';
 import {
   VIDEO_THUMBNAIL_ACCEPT,
   captureVideoFirstFrame,
@@ -114,7 +114,7 @@ import {
   titleFromVideoFilename,
 } from '@/features/ingest/utils/videoThumbnail';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
-import { getKnowledgeDocumentStatusBadgeProps } from '@/features/modules/utils/knowledgeDocumentStatusBadge';
+import { getKnowledgeDocumentStatusBadgeProps } from '@/features/knowledge-library/utils/knowledgeDocumentStatusBadge';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { countNewlyUploadedSources } from '@/features/ingest/utils/parseIngestDuplicateError';
 import {

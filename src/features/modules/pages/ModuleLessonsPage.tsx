@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -8,12 +8,16 @@ import {
   ModalTitle,
   useSnackbar,
 } from '@/components/ui';
+import { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
+import type { RichBlock } from '@/components/ui/rich-text/types/richText.types';
 import { paths } from '@/constants/routes';
+import {
+  storedFileAttrsFromUpload,
+  useUploadAdminFileMutation,
+} from '@/features/modules/api/adminFilesApi';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
-import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
 import { useModuleEditor } from '@/features/modules/hooks/useModuleEditor';
 import { setModuleLessons } from '@/features/modules/store/moduleEditSlice';
-import type { RichBlock } from '@/features/modules/types/richText.types';
 import { useAppDispatch } from '@/store/hooks';
 
 export const ModuleLessonsPage = () => {
@@ -23,7 +27,16 @@ export const ModuleLessonsPage = () => {
     useModuleEditor();
   const snackbar = useSnackbar();
   const [selectedLessonId, setSelectedLessonId] = useState('');
+  const [uploadAdminFile] = useUploadAdminFileMutation();
   const isReadOnly = Boolean(working?.isReadOnly);
+
+  const uploadMediaFile = useCallback(
+    async (file: File) =>
+      storedFileAttrsFromUpload(
+        await uploadAdminFile({ file, prefix: 'media' }).unwrap(),
+      ),
+    [uploadAdminFile],
+  );
 
   const selectedLesson = working?.lessons.find(
     (lesson) => lesson.id === selectedLessonId,
@@ -105,6 +118,7 @@ export const ModuleLessonsPage = () => {
           <RichTextEditor
             value={lessonContent}
             onChange={updateLessonContent}
+            onUploadMediaFile={uploadMediaFile}
             minHeightClassName="min-h-[320px]"
             readOnly={isReadOnly}
           />
