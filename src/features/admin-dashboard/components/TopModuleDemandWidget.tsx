@@ -1,7 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import { ProgressBar } from '@/components/common/ProgressBar';
 import { Button, EmptyState, TruncatedText } from '@/components/ui';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
@@ -56,14 +55,10 @@ export const TopModuleDemandWidget = ({
 }: TopModuleDemandWidgetProps) => {
   const { t } = useTranslation();
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const maxCount = useMemo(
-    () => Math.max(...rows.map((row) => row.searchCount), 1),
-    [rows],
-  );
 
   const gridClass = showActions
-    ? 'grid-cols-[minmax(0,1fr)_5rem_6rem_5.25rem]'
-    : 'grid-cols-[minmax(0,1fr)_5rem_6rem]';
+    ? 'grid-cols-[minmax(0,1fr)_6rem_5.25rem]'
+    : 'grid-cols-[minmax(0,1fr)_6rem]';
 
   return (
     <DashboardWidgetShell
@@ -94,7 +89,6 @@ export const TopModuleDemandWidget = ({
             )}
           >
             <span className="text-left">{titleColumnLabel}</span>
-            <span className="hidden sm:block" aria-hidden />
             <span className="text-left">
               {t('adminDashboard.moduleDemand.columns.searchCount')}
             </span>
@@ -107,7 +101,6 @@ export const TopModuleDemandWidget = ({
 
           <ol className="min-h-0 flex-1 divide-y divide-spice-border/60 overflow-y-auto overflow-x-hidden pr-1">
             {rows.map((row) => {
-              const barValue = (row.searchCount / maxCount) * 100;
               const isExpanded = expandedRowId === row.id;
 
               return (
@@ -135,13 +128,6 @@ export const TopModuleDemandWidget = ({
                         />
                       </span>
                     </button>
-                    <div className="hidden min-w-0 sm:block">
-                      <ProgressBar
-                        value={barValue}
-                        className="h-2"
-                        barClassName="bg-spice-palette-purple"
-                      />
-                    </div>
                     <span className="text-center text-sm font-semibold tabular-nums text-spice-palette-purple">
                       {row.searchCount}
                     </span>
@@ -163,13 +149,6 @@ export const TopModuleDemandWidget = ({
                         )}
                       </div>
                     ) : null}
-                  </div>
-                  <div className="mt-2 pl-5 sm:hidden">
-                    <ProgressBar
-                      value={barValue}
-                      className="h-2"
-                      barClassName="bg-spice-palette-purple"
-                    />
                   </div>
                   {isExpanded ? (
                     <div className="mt-3 rounded-lg border border-spice-border/70 bg-spice-bg-tint/40 p-3">

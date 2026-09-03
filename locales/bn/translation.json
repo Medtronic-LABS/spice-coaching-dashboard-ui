@@ -391,7 +391,8 @@
       "detailDescription": "এই মডিউল বা টপিকের সাথে যুক্ত প্রশ্ন এবং অনুরোধ।",
       "occurrences": "{{count}} ঘটনা",
       "usersHeading": "যারা এই প্রশ্ন করেছেন",
-      "userCount": "{{count}} জন",
+      "userCount_one": "{{count}} জন",
+      "userCount_other": "{{count}} জন",
       "interaction": {
         "chatbotServed": "চ্যাটবটে সরবরাহ",
         "assignmentRequested": "অ্যাসাইনমেন্টের জন্য অনুরোধ"

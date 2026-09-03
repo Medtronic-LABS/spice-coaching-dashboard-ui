@@ -390,7 +390,8 @@
       "detailDescription": "Queries and requests associated with this module or topic.",
       "occurrences": "{{count}} occurrences",
       "usersHeading": "Users who asked this question",
-      "userCount": "{{count}} users",
+      "userCount_one": "{{count}} User",
+      "userCount_other": "{{count}} Users",
       "interaction": {
         "chatbotServed": "Served by chatbot",
         "assignmentRequested": "Requested for assignment"
