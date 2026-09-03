@@ -746,11 +746,22 @@ export const AssignmentDialog = ({
     }
   };
 
-  useEffect(() => {
-    if (!open) return;
+  const targetId = target.id;
+  const targetKind = target.kind;
+
+  const loadUsersPageRef = useRef(loadUsersPage);
+  loadUsersPageRef.current = loadUsersPage;
+  const resetGeographyFiltersRef = useRef(resetGeographyFilters);
+  resetGeographyFiltersRef.current = resetGeographyFilters;
+  const triggerModuleAssignedUsersRef = useRef(triggerModuleAssignedUsers);
+  triggerModuleAssignedUsersRef.current = triggerModuleAssignedUsers;
+  const triggerDocumentAssignedUsersRef = useRef(triggerDocumentAssignedUsers);
+  triggerDocumentAssignedUsersRef.current = triggerDocumentAssignedUsers;
+
+  const initializeAssignmentSession = useCallback(() => {
     setActiveTab('user');
     setUserLevelMode('po_sk');
-    resetGeographyFilters();
+    resetGeographyFiltersRef.current();
     setUserSearchQuery('');
     setLoadedUsers([]);
     setPoChildUsers([]);
@@ -767,26 +778,29 @@ export const AssignmentDialog = ({
       setGeoKnownUsers(users);
     };
 
-    if (target.kind === 'module') {
-      void triggerModuleAssignedUsers(target.id).then((result) => {
+    if (targetKind === 'module') {
+      void triggerModuleAssignedUsersRef.current(targetId).then((result) => {
         if ('data' in result && result.data) {
           applyAssignedUsers(result.data);
         }
       });
     } else {
-      void triggerDocumentAssignedUsers(target.id).then((result) => {
+      void triggerDocumentAssignedUsersRef.current(targetId).then((result) => {
         if ('data' in result && result.data) {
           applyAssignedUsers(result.data);
         }
       });
     }
-  }, [
-    open,
-    resetGeographyFilters,
-    target,
-    triggerDocumentAssignedUsers,
-    triggerModuleAssignedUsers,
-  ]);
+
+    // Always reload the hierarchy list. "Assign to more" keeps `open` true, so the
+    // usersListQueryKey effect may not re-run on its own.
+    void loadUsersPageRef.current(0, false);
+  }, [targetId, targetKind]);
+
+  useEffect(() => {
+    if (!open) return;
+    initializeAssignmentSession();
+  }, [initializeAssignmentSession, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -1108,7 +1122,10 @@ export const AssignmentDialog = ({
           setSuccessState(null);
           onClose();
         }}
-        onAssignMore={() => setSuccessState(null)}
+        onAssignMore={() => {
+          setSuccessState(null);
+          initializeAssignmentSession();
+        }}
       />
     );
   }
