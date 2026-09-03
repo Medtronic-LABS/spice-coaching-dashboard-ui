@@ -285,99 +285,94 @@ const HierarchyMemberRow = ({
         depth > 0 && 'bg-spice-bg-tint/30',
       )}
     >
-      <div className="overflow-x-auto">
-        <div className="flex min-w-[48rem] items-center gap-3 px-4 py-3">
-          {isSkRow ? (
-            <button
-              type="button"
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary"
-              style={{ paddingLeft: `${depth * 24}px` }}
-              onClick={() => onSelectSk(member)}
-              title={t('adminDashboard.hierarchy.openSkDetail')}
-            >
-              {personBlock}
-            </button>
-          ) : (
-            <div
-              className="flex min-w-0 flex-1 items-center gap-3"
-              style={{ paddingLeft: `${depth * 24}px` }}
-            >
-              {personBlock}
-            </div>
-          )}
-
-          <div className="ml-auto flex shrink-0 items-center gap-6">
-            {isSkRow ? (
-              <>
-                <MetricCell
-                  className="w-[6.5rem]"
-                  value={`${modules.completed}/${modules.total}`}
-                  label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
-                  valueClassName={moduleCompletionTone(
-                    modules.completed,
-                    modules.total,
-                  )}
-                />
-                <MetricCell
-                  className="w-[5.5rem]"
-                  value={member.chatbot_query_count}
-                  label={t('adminDashboard.hierarchy.metrics.queriesLabel')}
-                />
-                <div className="flex w-[5.75rem] justify-end">
-                  <StatusBadge
-                    status={atRisk ? 'critical' : 'success'}
-                    label={
-                      atRisk
-                        ? t('adminDashboard.filters.status.at_risk')
-                        : t('adminDashboard.filters.status.on_track')
-                    }
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <MetricCell
-                  className="w-[4.5rem]"
-                  value={peopleValue}
-                  label={peopleLabel}
-                />
-                <MetricCell
-                  className="w-[9.5rem]"
-                  value={inactiveValue}
-                  label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
-                />
-
-                <div className="flex w-[5.75rem] justify-end">
-                  <StatusBadge
-                    status={atRisk ? 'critical' : 'success'}
-                    label={
-                      atRisk
-                        ? t('adminDashboard.filters.status.at_risk')
-                        : t('adminDashboard.filters.status.on_track')
-                    }
-                  />
-                </div>
-
-                <div className="flex w-[7.25rem] justify-end">
-                  {canExpand ? (
-                    <button
-                      type="button"
-                      className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-spice-palette-purple/40 bg-spice-bg-surface px-2 text-xs font-semibold text-spice-palette-purple transition hover:bg-spice-palette-purpleLt"
-                      onClick={() => setExpanded((value) => !value)}
-                    >
-                      {childrenActionLabel(member.role, expanded)}
-                      <ChevronIcon
-                        className="h-3.5 w-3.5"
-                        expanded={expanded}
-                      />
-                    </button>
-                  ) : (
-                    <span className="invisible h-9 w-full" aria-hidden />
-                  )}
-                </div>
-              </>
-            )}
+      <div className="flex items-center gap-3 px-4 py-3">
+        {isSkRow ? (
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-spice-brand-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spice-brand-primary"
+            style={{ paddingLeft: `${depth * 24}px` }}
+            onClick={() => onSelectSk(member)}
+            title={t('adminDashboard.hierarchy.openSkDetail')}
+          >
+            {personBlock}
+          </button>
+        ) : (
+          <div
+            className="flex min-w-0 flex-1 items-center gap-3"
+            style={{ paddingLeft: `${depth * 24}px` }}
+          >
+            {personBlock}
           </div>
+        )}
+
+        <div className="ml-auto flex shrink-0 items-center gap-6">
+          {isSkRow ? (
+            <>
+              <MetricCell
+                className="w-[6.5rem]"
+                value={`${modules.completed}/${modules.total}`}
+                label={t('adminDashboard.hierarchy.metrics.modulesLabel')}
+                valueClassName={moduleCompletionTone(
+                  modules.completed,
+                  modules.total,
+                )}
+              />
+              <MetricCell
+                className="w-[5.5rem]"
+                value={member.chatbot_query_count}
+                label={t('adminDashboard.hierarchy.metrics.queriesLabel')}
+              />
+              <div className="flex w-[5.75rem] justify-end">
+                <StatusBadge
+                  status={atRisk ? 'critical' : 'success'}
+                  label={
+                    atRisk
+                      ? t('adminDashboard.filters.status.at_risk')
+                      : t('adminDashboard.filters.status.on_track')
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <MetricCell
+                className="w-[4.5rem]"
+                value={peopleValue}
+                label={peopleLabel}
+              />
+              <MetricCell
+                className="w-[9.5rem]"
+                value={inactiveValue}
+                label={t('adminDashboard.hierarchy.metrics.inactiveLabel')}
+              />
+
+              <div className="flex w-[5.75rem] justify-end">
+                <StatusBadge
+                  status={atRisk ? 'critical' : 'success'}
+                  label={
+                    atRisk
+                      ? t('adminDashboard.filters.status.at_risk')
+                      : t('adminDashboard.filters.status.on_track')
+                  }
+                />
+              </div>
+
+              <div className="flex w-[7.25rem] justify-end">
+                {canExpand ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-spice-palette-purple/40 bg-spice-bg-surface px-2 text-xs font-semibold text-spice-palette-purple transition hover:bg-spice-palette-purpleLt"
+                    onClick={() => setExpanded((value) => !value)}
+                  >
+                    {childrenActionLabel(member.role, expanded)}
+                    <ChevronIcon className="h-3.5 w-3.5" expanded={expanded} />
+                  </button>
+                ) : (
+                  <span className="invisible h-9 w-full" aria-hidden />
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -407,6 +402,7 @@ const HierarchyMemberRow = ({
               isLoadingMore={isLoadingMoreDescendants}
               error={descendantsUi.showError}
               onRetry={() => void descendantsQuery.refetch()}
+              className="overflow-x-hidden"
             >
               {children.map((child) => (
                 <HierarchyMemberRow
@@ -569,27 +565,32 @@ export const TeamHierarchySection = ({
             />
           </div>
         ) : (
-          <InfiniteScrollContainer
-            hasMore={hasMore}
-            onLoadMore={handleLoadMore}
-            loadedCount={members.length}
-            isLoadingMore={isLoadingMore}
-            error={showError}
-            onRetry={() => void refetch()}
-          >
-            {members.map((member) => (
-              <HierarchyMemberRow
-                key={member.user_id}
-                member={member}
-                fromDate={fromDate}
-                toDate={toDate}
-                geography={geography}
-                sortKey={sortKey}
-                depth={0}
-                onSelectSk={setSelectedSk}
-              />
-            ))}
-          </InfiniteScrollContainer>
+          <div className="overflow-x-auto">
+            <div className="min-w-[48rem]">
+              <InfiniteScrollContainer
+                hasMore={hasMore}
+                onLoadMore={handleLoadMore}
+                loadedCount={members.length}
+                isLoadingMore={isLoadingMore}
+                error={showError}
+                onRetry={() => void refetch()}
+                className="overflow-x-hidden"
+              >
+                {members.map((member) => (
+                  <HierarchyMemberRow
+                    key={member.user_id}
+                    member={member}
+                    fromDate={fromDate}
+                    toDate={toDate}
+                    geography={geography}
+                    sortKey={sortKey}
+                    depth={0}
+                    onSelectSk={setSelectedSk}
+                  />
+                ))}
+              </InfiniteScrollContainer>
+            </div>
+          </div>
         )}
       </DashboardWidgetShell>
       <SkDetailDrawer
