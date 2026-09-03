@@ -87,7 +87,7 @@ describe('DashboardKpiRow', () => {
     expect(screen.getByText('Responsive SKs')).toBeInTheDocument();
     expect(screen.getByText('Non-Responsive SKs')).toBeInTheDocument();
     expect(screen.getByText('SKs Finished All Modules')).toBeInTheDocument();
-    expect(screen.getByText('Published training modules')).toBeInTheDocument();
+    expect(screen.getByText('Training Modules')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
   });

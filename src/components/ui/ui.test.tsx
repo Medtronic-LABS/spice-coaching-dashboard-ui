@@ -337,7 +337,7 @@ describe('ui components', () => {
     );
 
     expect(screen.getByText('Finished modules')).toHaveClass(
-      'text-[13px]',
+      'text-[18px]',
       'font-semibold',
       'uppercase',
       'tracking-wider',
@@ -345,16 +345,18 @@ describe('ui components', () => {
     );
     const valueParagraph = screen.getByText('127').closest('p');
     expect(valueParagraph).toHaveClass(
-      'text-3xl',
+      'text-[38px]',
       'font-semibold',
       'leading-tight',
+      'text-right',
     );
     expect(screen.getByText('127')).toHaveClass('text-spice-palette-purple');
     expect(screen.getByText('/155')).toHaveClass(
-      'text-base',
+      'text-[28px]',
       'font-medium',
       'text-spice-text-muted',
     );
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
   it('renders FormLabel and FormHelperText with shared typography', () => {

@@ -75,10 +75,11 @@ Use the `size` prop — no `className="h-9 text-xs"` overrides on `Button`.
 
 ## KPI tiles (`StatCard`)
 
-- Label: `text-xs font-medium text-spice-text-muted` (no forced uppercase; `line-clamp-2` for long labels).
-- Value: `text-2xl font-semibold leading-tight`.
-- Fraction (`outOf`): hero number + muted `/{denominator}` at `text-sm font-medium text-spice-text-muted`.
-- Long labels wrap up to two lines; the info tooltip still provides extra context when set.
+- Layout: icon + label header row → value bottom-right (optional ` / outOf`).
+- Label: `typographyClasses.kpiLabel` (18px uppercase); wraps fully with `break-words` (no ellipsis clamp).
+- Value: `typographyClasses.kpiValue` (38px).
+- Fraction (`outOf`): muted `/{denominator}` via `typographyClasses.kpiOutOf` (28px).
+- The info tooltip still provides extra context when set.
 
 ## Badge variants
 

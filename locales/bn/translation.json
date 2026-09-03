@@ -191,7 +191,7 @@
       "finishedModulesTooltip": "নির্বাচিত সময়ে সব নির্ধারিত মডিউল সম্পন্ন করা SK।",
       "chatbotEngaged": "চ্যাটবট এনগেজড",
       "chatbotEngagedTooltip": "নির্বাচিত সময়ে AI চ্যাটবটে অন্তত একটি বার্তা পাঠানো SK।",
-      "totalModules": "প্রকাশিত প্রশিক্ষণ মডিউল",
+      "totalModules": "প্রশিক্ষণ মডিউল",
       "totalModulesTooltip": "ক্যাটালগে প্রকাশিত প্রশিক্ষণ মডিউলের মোট সংখ্যা"
     },
     "filters": {

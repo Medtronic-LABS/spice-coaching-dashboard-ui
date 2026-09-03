@@ -190,7 +190,7 @@
       "finishedModulesTooltip": "SKs who have finished all assigned modules during the selected period.",
       "chatbotEngaged": "Chatbot Engaged",
       "chatbotEngagedTooltip": "SKs who sent at least one message to the AI chatbot during the selected period.",
-      "totalModules": "Published training modules",
+      "totalModules": "Training Modules",
       "totalModulesTooltip": "Total number of published training modules in the catalog"
     },
     "filters": {

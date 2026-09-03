@@ -7,9 +7,8 @@ import { cn } from '@/utils';
  * StatCard
  * KPI card for displaying a metric value and optional numeric change.
  *
- * Accent styling mirrors Needs Review module cards (`border-l-4`),
- * but uses a top accent (`border-t-4`) for dashboard metrics.
- * Label and value sit on one bottom row (label left, value bottom-right).
+ * Layout: icon + label header; value anchored bottom-right (optional /outOf).
+ * Accent styling uses a top border (`border-t-4`) for dashboard metrics.
  *
  * Usage:
  * <StatCard label="Completion Rate" value="68%" change={5} />
@@ -24,11 +23,11 @@ export type StatCardTone =
   | 'purple';
 
 export interface StatCardProps {
-  /** Optional icon shown above the label. */
+  /** Optional icon shown beside the label. */
   icon?: ReactNode;
-  /** Metric label shown on the bottom row (left of the value). */
+  /** Metric label shown in the header row (right of the icon). */
   label: string;
-  /** Primary metric value shown on the bottom row (right of the label). */
+  /** Primary metric value shown bottom-right. */
   value: string | number;
   /** Optional denominator for fraction display (`value/outOf`). */
   outOf?: string | number;
@@ -153,51 +152,57 @@ export const StatCard = ({
         </div>
       ) : null}
 
-      {icon ? (
-        <div
-          className={cn(
-            'mb-3 flex h-12 w-12 items-center justify-center rounded-full [&_svg]:h-6 [&_svg]:w-6',
-            toneStyles?.iconBg ?? 'bg-spice-bg-tint',
-            toneStyles?.iconFg ?? 'text-spice-text-muted',
-          )}
-        >
-          {icon}
-        </div>
-      ) : null}
+      <div
+        className={cn(
+          'flex items-start gap-3',
+          tooltip || hasChange || badgeLabel ? 'pr-7' : null,
+        )}
+      >
+        {icon ? (
+          <div
+            className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full [&_svg]:h-5 [&_svg]:w-5',
+              toneStyles?.iconBg ?? 'bg-spice-bg-tint',
+              toneStyles?.iconFg ?? 'text-spice-text-muted',
+            )}
+          >
+            {icon}
+          </div>
+        ) : null}
 
-      <div className="mt-auto flex items-end justify-between gap-3">
         <p
           className={cn(
-            'line-clamp-2 min-w-0 flex-1 leading-snug',
+            'min-w-0 flex-1 break-words pt-1 leading-snug',
             typographyClasses.kpiLabel,
             labelClassName,
           )}
         >
           {label}
         </p>
-
-        <p
-          className={cn(
-            typographyClasses.kpiValue,
-            allowValueWrap ? 'min-w-0 text-right' : 'shrink-0',
-            !hasOutOf && (valueClassName ?? toneStyles?.value),
-          )}
-        >
-          {hasOutOf ? (
-            <>
-              <span className={cn(valueClassName ?? toneStyles?.value)}>
-                {displayValue}
-              </span>
-              <span className={typographyClasses.kpiOutOf}>/{outOf}</span>
-            </>
-          ) : (
-            displayValue
-          )}
-        </p>
       </div>
 
+      <p
+        className={cn(
+          'mt-auto pt-1 text-right',
+          typographyClasses.kpiValue,
+          allowValueWrap ? 'min-w-0' : 'shrink-0',
+          !hasOutOf && (valueClassName ?? toneStyles?.value),
+        )}
+      >
+        {hasOutOf ? (
+          <>
+            <span className={cn(valueClassName ?? toneStyles?.value)}>
+              {displayValue}
+            </span>
+            <span className={typographyClasses.kpiOutOf}>{`/${outOf}`}</span>
+          </>
+        ) : (
+          displayValue
+        )}
+      </p>
+
       {supportingText ? (
-        <p className="mt-1.5 text-xs font-medium text-spice-text-muted">
+        <p className="mt-2 text-xs font-medium text-spice-text-muted">
           {supportingText}
         </p>
       ) : null}

@@ -27,8 +27,9 @@ import { Button, Card, SectionHeader, StatCard } from '@/components/ui';
 
 ### `StatCard`
 
-- **Props:** `label: string`, `value: string | number`, `change?: number`, `outOf?: string | number`, `tone?: StatCardTone`, `tooltip?: string`, …
-- **Typography:** label `text-xs font-medium text-spice-text-muted`; value `text-2xl font-semibold leading-tight`; `outOf` denominator `text-sm font-medium text-spice-text-muted`
+- **Props:** `label: string`, `value: string | number`, `change?: number`, `outOf?: string | number`, `tone?: StatCardTone`, `tooltip?: string`, `supportingText?: string`, …
+- **Layout:** icon + label header → value bottom-right (`/outOf` when set)
+- **Typography:** label 18px · value 38px · outOf 28px (`typographyClasses.kpiLabel` / `kpiValue` / `kpiOutOf`)
 
 ### `InfoCard`
 
