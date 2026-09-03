@@ -96,6 +96,45 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
             {t('layout.sidebar.sections.learning')}
           </div>
           <NavLink
+            className={linkClassName}
+            to={paths.videoUpload}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <VideoIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.videoUpload')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.uploadKnowledge}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <KnowledgeIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.uploadKnowledge')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.ingestDocument}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <ClipboardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.ingestDocument')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
             className={({ isActive }) =>
               linkClassName({
                 isActive: isActive || isModuleLibraryNavActive,
@@ -119,58 +158,6 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           </NavLink>
           <NavLink
             className={linkClassName}
-            to={paths.badgeManagement}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <AwardIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.badgeManagement')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
-            to={paths.ingestDocument}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <ClipboardIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.ingestDocument')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
-            to={paths.uploadKnowledge}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <KnowledgeIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.uploadKnowledge')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
-            to={paths.videoUpload}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <VideoIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.videoUpload')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
             to={paths.ingestHistory}
             draggable={false}
             onClick={onMobileClose}
@@ -179,6 +166,19 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
               <>
                 <HistoryIcon className={iconClassName({ isActive })} />
                 {t('layout.sidebar.nav.ingestHistory')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.badgeManagement}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <AwardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.badgeManagement')}
               </>
             )}
           </NavLink>
