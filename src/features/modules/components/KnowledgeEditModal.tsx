@@ -1,9 +1,11 @@
 import {
   Card,
+  FormLabel,
   ImagePicker,
   LimitedTextInput,
   Modal,
   ModalActionBar,
+  ModalTitle,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
@@ -61,12 +63,7 @@ export function KnowledgeEditModal({
         className="w-full border-spice-border p-0 shadow-lg"
       >
         <div className="space-y-4 p-5 pb-4 pr-12">
-          <h2
-            id="knowledge-edit-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            Edit Knowledge
-          </h2>
+          <ModalTitle id="knowledge-edit-title">Edit Knowledge</ModalTitle>
 
           {error ? (
             <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
@@ -75,12 +72,7 @@ export function KnowledgeEditModal({
           ) : null}
 
           <div className="space-y-1.5">
-            <label
-              htmlFor="knowledge-edit-title-input"
-              className="text-xs font-semibold tracking-wide text-spice-text-medium"
-            >
-              Title
-            </label>
+            <FormLabel htmlFor="knowledge-edit-title-input">Title</FormLabel>
             <LimitedTextInput
               id="knowledge-edit-title-input"
               value={title}
@@ -95,9 +87,7 @@ export function KnowledgeEditModal({
           </div>
 
           <div className="space-y-1.5">
-            <div className="text-xs font-semibold tracking-wide text-spice-text-medium">
-              Thumbnail
-            </div>
+            <FormLabel>Thumbnail</FormLabel>
             <ImagePicker
               variant="compact"
               value={thumbnailValue}

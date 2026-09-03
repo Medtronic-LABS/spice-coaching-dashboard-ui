@@ -7,6 +7,7 @@ import {
   SearchInput,
   Select,
   StatusBadge,
+  Tabs,
 } from '@/components/ui';
 import { useFetchTeamActivityQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import {
@@ -436,6 +437,14 @@ export const TeamHierarchySection = ({
 }: TeamHierarchySectionProps) => {
   const { t } = useTranslation();
   const roleTabs = useMemo(() => visibleHierarchyRoleTabs(), []);
+  const roleTabItems = useMemo(
+    () =>
+      roleTabs.map((tab) => ({
+        value: tab.value,
+        label: t(tab.labelKey),
+      })),
+    [roleTabs, t],
+  );
   const viewerIsAreaManager = isLoggedInAreaManager();
   const [roleTab, setRoleTab] = useState<HierarchyRoleTab>(
     defaultHierarchyRoleTab,
@@ -534,29 +543,13 @@ export const TeamHierarchySection = ({
           </>
         }
       >
-        <div className="sticky top-0 z-10 border-b border-spice-border bg-spice-bg-surface px-4 pt-3">
-          <div className="flex gap-6" role="tablist">
-            {roleTabs.map((tab) => {
-              const isActive = roleTab === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={cn(
-                    '-mb-px border-b-2 pb-2.5 text-sm font-medium transition',
-                    isActive
-                      ? 'border-spice-palette-purple text-spice-palette-purple'
-                      : 'border-transparent text-spice-text-muted hover:text-spice-text-primary',
-                  )}
-                  onClick={() => setRoleTab(tab.value)}
-                >
-                  {t(tab.labelKey)}
-                </button>
-              );
-            })}
-          </div>
+        <div className="sticky top-0 z-10 bg-spice-bg-surface px-4 pt-3">
+          <Tabs
+            idBase="team-hierarchy-role"
+            items={roleTabItems}
+            value={roleTab}
+            onChange={(value) => setRoleTab(value as HierarchyRoleTab)}
+          />
         </div>
 
         {showListLoading ? (

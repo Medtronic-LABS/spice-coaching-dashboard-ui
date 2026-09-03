@@ -2,9 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
+import {
+  CardTitle,
+  FieldGroupLabel,
+  ModalTitle,
+  QuotedDisplayLabel,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
+} from '@/components/ui';
 import { TruncatedText } from '@/components/ui/TruncatedText';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 
 export interface ModulePublishedSuccessSummary {
   title: string;
@@ -94,14 +101,17 @@ export const ModulePublishedSuccessModal = ({
         </div>
         <div className="space-y-2 text-center">
           <div className="flex justify-center">
-            <ModuleStatusBadge status="published" />
+            <StatusBadge
+              {...getModuleStatusBadgeProps('published')}
+              className={TABLE_STATUS_BADGE_CLASSNAME}
+            />
           </div>
-          <h2
+          <ModalTitle
             id="module-published-title"
-            className="text-xl font-semibold text-spice-text-primary sm:text-2xl"
+            className="text-xl sm:text-2xl"
           >
             Module is Live
-          </h2>
+          </ModalTitle>
           <p className="text-sm text-spice-text-muted">
             <QuotedDisplayLabel text={summary.title} /> has been published to
             the Module Library and is ready to use.
@@ -112,9 +122,7 @@ export const ModulePublishedSuccessModal = ({
         </div>
 
         <div className="rounded-xl bg-spice-bg-tint p-4 space-y-3">
-          <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-            MODULE SUMMARY
-          </div>
+          <FieldGroupLabel>MODULE SUMMARY</FieldGroupLabel>
           <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
             <div className="text-xs text-spice-text-muted">Module</div>
             <div className="min-w-0 font-semibold text-spice-text-primary">
@@ -129,34 +137,26 @@ export const ModulePublishedSuccessModal = ({
           </div>
           <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
-              <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                LESSONS
-              </div>
+              <FieldGroupLabel>LESSONS</FieldGroupLabel>
               <div className="font-semibold text-spice-text-primary">
                 {lessonLabel}
               </div>
             </div>
             <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
-              <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                QUIZ
-              </div>
+              <FieldGroupLabel>QUIZ</FieldGroupLabel>
               <div className="font-semibold text-spice-text-primary">
                 {quizLabel}
               </div>
             </div>
             <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
-              <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                EST. TIME
-              </div>
+              <FieldGroupLabel>EST. TIME</FieldGroupLabel>
               <div className="font-semibold text-spice-text-primary">
                 ~{summary.estimateMinutes} min
               </div>
             </div>
             {summary.sourceFileName ? (
               <div className="rounded-lg bg-spice-bg-surface p-3 ring-1 ring-spice-border">
-                <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                  SOURCE
-                </div>
+                <FieldGroupLabel>SOURCE</FieldGroupLabel>
                 <div className="min-w-0 font-semibold text-spice-text-primary">
                   <TruncatedText
                     text={summary.sourceFileName}
@@ -169,18 +169,14 @@ export const ModulePublishedSuccessModal = ({
         </div>
 
         <div className="space-y-2">
-          <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-            WHAT&apos;S NEXT
-          </div>
+          <FieldGroupLabel>WHAT&apos;S NEXT</FieldGroupLabel>
           <button
             type="button"
             onClick={handleRedirect}
             className="flex w-full items-center justify-between rounded-lg bg-spice-bg-tint px-4 py-3 text-left ring-1 ring-spice-border transition hover:bg-spice-bg-surface"
           >
             <div>
-              <div className="text-sm font-semibold text-spice-text-primary">
-                {primaryLabel}
-              </div>
+              <CardTitle>{primaryLabel}</CardTitle>
               <div className="text-xs text-spice-text-muted">
                 Return to browse and manage modules
               </div>
@@ -196,9 +192,7 @@ export const ModulePublishedSuccessModal = ({
               className="flex w-full items-center justify-between rounded-lg bg-spice-bg-tint px-4 py-3 text-left ring-1 ring-spice-border transition hover:bg-spice-bg-surface"
             >
               <div>
-                <div className="text-sm font-semibold text-spice-text-primary">
-                  Create another module
-                </div>
+                <CardTitle>Create another module</CardTitle>
                 <div className="text-xs text-spice-text-muted">
                   Build a new module from a document or from scratch
                 </div>

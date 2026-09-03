@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CloseIcon } from '@/assets/icon';
-import { Card, TruncatedText } from '@/components/ui';
+import { Card, FieldGroupLabel, TruncatedText } from '@/components/ui';
 import type { AdminModuleSourceDocument } from '@/features/modules/api/adminModulesApi';
 import {
   sourceDocumentIsPdf,
@@ -53,9 +53,9 @@ export const ModuleSourceDocumentPanel = ({
       <div className="shrink-0 space-y-2 border-b border-spice-border p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
+            <FieldGroupLabel>
               {multiple ? 'Source documents' : 'Source document'}
-            </div>
+            </FieldGroupLabel>
             <div className="mt-1 text-sm font-semibold text-spice-text-primary">
               Compare with original
               {multiple ? (
@@ -64,7 +64,7 @@ export const ModuleSourceDocumentPanel = ({
                 </span>
               ) : null}
             </div>
-            <p className="mt-1 text-[11px] text-spice-text-muted">
+            <p className="mt-1 text-xs text-spice-text-muted">
               {multiple
                 ? 'Choose a file below to preview while reviewing cards.'
                 : 'Review card content against the ingested file.'}
@@ -84,7 +84,7 @@ export const ModuleSourceDocumentPanel = ({
 
         {multiple ? (
           <label className="block space-y-1">
-            <span className="text-[11px] font-semibold text-spice-text-muted">
+            <span className="text-xs font-semibold text-spice-text-muted">
               Active file ({safeIndex + 1} of {documents.length})
             </span>
             <select

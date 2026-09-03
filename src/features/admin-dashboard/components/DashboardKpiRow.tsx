@@ -26,7 +26,7 @@ interface DashboardKpiRowProps {
   geography: DashboardGeographyFilters;
 }
 
-const iconClassName = 'h-4 w-4';
+const iconClassName = 'h-5 w-5';
 const iconProps = { className: iconClassName, strokeWidth: 2 } as const;
 
 export const DashboardKpiRow = ({

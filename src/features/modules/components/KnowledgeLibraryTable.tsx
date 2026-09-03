@@ -6,7 +6,11 @@ import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 import { type ColumnDef, Table } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
@@ -17,8 +21,12 @@ import {
   Button,
   Card,
   SearchInput,
+  SectionHeader,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   Tabs,
   TruncatedText,
+  typographyClasses,
 } from '@/components/ui';
 import { KnowledgeLibraryFilters } from '@/features/modules/components/KnowledgeLibraryFilters';
 import { KnowledgeEditModal } from '@/features/modules/components/KnowledgeEditModal';
@@ -55,6 +63,7 @@ import {
   uploadedDateInputToToIso,
   type KnowledgeLibraryDrawerFilters,
 } from '@/features/modules/utils/knowledgeLibraryFilters';
+import { getKnowledgeDocumentStatusBadgeProps } from '@/features/modules/utils/knowledgeDocumentStatusBadge';
 import type { OpenDocumentAssignmentState } from '@/features/modules/types/assignmentSuccessNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
@@ -70,66 +79,7 @@ type KnowledgeTableRow = KnowledgeLibraryItem & {
   actions: '';
 };
 
-type KnowledgeStatusTone =
-  | 'processing'
-  | 'completed'
-  | 'partial'
-  | 'failed'
-  | 'neutral';
-
 const KNOWLEDGE_SEARCH_DEBOUNCE_MS = 300;
-
-function formatKnowledgeStatusDisplay(status: string | undefined): string {
-  const trimmed = (status ?? '').trim();
-  if (!trimmed) return 'Unknown';
-  return trimmed
-    .toLowerCase()
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-function knowledgeStatusTone(status: string | undefined): KnowledgeStatusTone {
-  const normalized = (status ?? '').trim().toLowerCase();
-  if (!normalized) return 'neutral';
-  if (
-    normalized === 'uploaded' ||
-    normalized === 'uploading' ||
-    normalized === 'ingesting' ||
-    normalized === 'processing' ||
-    normalized === 'running'
-  ) {
-    return 'processing';
-  }
-  if (normalized === 'partially_succeeded') return 'partial';
-  if (normalized === 'ingested' || normalized === 'completed') {
-    return 'completed';
-  }
-  if (normalized.includes('fail') || normalized.includes('error')) {
-    return 'failed';
-  }
-  return 'neutral';
-}
-
-function knowledgeStatusBadgeClassName(tone: KnowledgeStatusTone): string {
-  switch (tone) {
-    case 'processing':
-      return 'bg-spice-palette-violetLt text-spice-palette-violet';
-    case 'completed':
-      return 'bg-spice-palette-purpleLt text-spice-palette-purple';
-    case 'partial':
-      return 'bg-spice-palette-pinkLt text-spice-palette-pink';
-    case 'failed':
-      return 'bg-spice-semantic-errorBg text-spice-semantic-error';
-    case 'neutral':
-      return 'bg-spice-bg-tint text-spice-text-muted';
-    default: {
-      const exhaustiveCheck: never = tone;
-      return exhaustiveCheck;
-    }
-  }
-}
 
 export const KnowledgeLibraryTable = () => {
   const navigate = useNavigate();
@@ -429,13 +379,16 @@ export const KnowledgeLibraryTable = () => {
               text={row.title}
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
-              className="font-semibold"
+              className={cn(
+                typographyClasses.tableCellPrimary,
+                'font-semibold',
+              )}
             />
             {row.originalFilename ? (
               <div className="mt-0.5 min-w-0">
                 <TruncatedText
                   text={row.originalFilename}
-                  className="text-xs text-spice-text-muted"
+                  className={typographyClasses.tableCellSecondary}
                 />
               </div>
             ) : null}
@@ -455,13 +408,10 @@ export const KnowledgeLibraryTable = () => {
         headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
-          <span
-            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${knowledgeStatusBadgeClassName(
-              knowledgeStatusTone(row.status),
-            )}`}
-          >
-            {formatKnowledgeStatusDisplay(row.status)}
-          </span>
+          <StatusBadge
+            {...getKnowledgeDocumentStatusBadgeProps(row.status)}
+            className={TABLE_STATUS_BADGE_CLASSNAME}
+          />
         ),
       },
       {
@@ -469,6 +419,8 @@ export const KnowledgeLibraryTable = () => {
         header: 'Uploaded Date',
         sortable: true,
         sortKey: 'uploaded_date',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) =>
           row.uploadedAt ? formatDisplayDateTime(row.uploadedAt) : '—',
       },
@@ -480,24 +432,29 @@ export const KnowledgeLibraryTable = () => {
       {
         key: 'updatedAt',
         header: 'Last Updated',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) =>
           row.updatedAt ? formatDisplayDateTime(row.updatedAt) : '—',
       },
       {
         key: 'actions',
         header: 'Actions',
+        className: 'min-w-[18rem] whitespace-nowrap',
+        headerClassName: 'min-w-[18rem] whitespace-nowrap',
         render: (row) => {
           const isRetired = row.status === 'retired';
           const mutatingBusy =
             isRetiring || isPatchingTitle || isReplacingThumbnail;
 
           return (
-            <div className="flex items-center gap-2">
+            <div className="inline-flex flex-nowrap items-center gap-2">
               {!isRetired ? (
                 <>
                   <Button
-                    className="h-8 px-3 text-xs"
+                    size="sm"
                     variant="secondary"
+                    className="shrink-0 text-xs"
                     disabled={mutatingBusy}
                     onClick={() => {
                       setEditError('');
@@ -511,8 +468,8 @@ export const KnowledgeLibraryTable = () => {
                     Edit
                   </Button>
                   <Button
-                    className="h-8 px-3 text-xs"
-                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 text-xs"
                     disabled={mutatingBusy}
                     onClick={() => {
                       setAssignTarget({ id: row.id, title: row.title });
@@ -523,7 +480,9 @@ export const KnowledgeLibraryTable = () => {
                 </>
               ) : null}
               <Button
-                className="h-8 px-3 text-xs"
+                size="sm"
+                variant="secondary"
+                className="shrink-0 text-xs"
                 disabled={downloadingId === row.id || !row.storedPath}
                 onClick={() => {
                   void (async () => {
@@ -549,8 +508,9 @@ export const KnowledgeLibraryTable = () => {
               </Button>
               {!isRetired ? (
                 <Button
-                  className="h-8 px-3 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                  size="sm"
                   variant="secondary"
+                  className="shrink-0 text-xs text-spice-semantic-error hover:bg-spice-semantic-errorBg"
                   disabled={isRetiring}
                   onClick={() => {
                     setRetireError('');
@@ -582,20 +542,20 @@ export const KnowledgeLibraryTable = () => {
   return (
     <div className="space-y-4">
       <Card variant="elevated" className="space-y-4 p-4 sm:p-6">
+        <SectionHeader title="Knowledge Library" />
+
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <div className="text-sm font-semibold text-spice-text-primary">
-              Knowledge Library
-            </div>
-            <div className="text-xs text-spice-text-muted">
-              {total
-                ? `${total} knowledge document${total === 1 ? '' : 's'}`
-                : 'No knowledge documents match your filters.'}
-              {isFetching && !isLoading ? (
-                <span className="ml-2">Updating…</span>
-              ) : null}
-            </div>
-          </div>
+          <Tabs
+            items={[
+              { label: 'Active', value: 'active' },
+              { label: 'Retired', value: 'retired' },
+            ]}
+            value={statusTab}
+            onChange={(v) =>
+              setStatusTab(v === 'retired' ? 'retired' : 'active')
+            }
+            className="w-fit"
+          />
           <div className="flex shrink-0 items-center gap-3">
             <div className="w-64 sm:w-72">
               <SearchInput
@@ -604,17 +564,6 @@ export const KnowledgeLibraryTable = () => {
                 placeholder="Search knowledge…"
               />
             </div>
-            <Tabs
-              items={[
-                { label: 'Active', value: 'active' },
-                { label: 'Retired', value: 'retired' },
-              ]}
-              value={statusTab}
-              onChange={(v) =>
-                setStatusTab(v === 'retired' ? 'retired' : 'active')
-              }
-              className="w-fit"
-            />
             <SettingsFilterTriggerButton
               active={filtersActive}
               expanded={filtersDrawerOpen}

@@ -51,7 +51,7 @@ export const Header = ({ isSidebarOpen, onMenuToggle }: HeaderProps) => {
         {canLogout ? (
           <button
             type="button"
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-spice-logout-border bg-spice-logout-bg px-4 text-[15px] font-semibold leading-4 text-spice-logout-text transition hover:bg-spice-logout-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-logout-border"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-spice-logout-border bg-spice-logout-bg px-4 text-sm font-semibold leading-4 text-spice-logout-text transition hover:bg-spice-logout-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-logout-border"
             onClick={() => logout()}
             aria-label={t('layout.header.logoutAriaLabel', {
               defaultValue: 'Log out',

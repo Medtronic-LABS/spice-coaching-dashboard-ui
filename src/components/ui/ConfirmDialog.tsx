@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { ModalActionBar } from '@/components/ui/ModalActionBar';
+import { ModalTitle } from '@/components/ui/Typography';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -74,13 +76,8 @@ export const ConfirmDialog = ({
         className="w-full border-spice-border p-0 shadow-lg"
       >
         <div className="space-y-3 p-6 pb-4 pr-12">
-          <h2
-            id={labelledBy}
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            {title}
-          </h2>
-          <div id={describedBy} className="text-sm text-spice-text-medium">
+          <ModalTitle id={labelledBy}>{title}</ModalTitle>
+          <div id={describedBy} className={typographyClasses.body}>
             {description}
           </div>
           {children}

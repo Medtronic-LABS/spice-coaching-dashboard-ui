@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { TableQueryErrorState } from '@/components/common/TableQueryErrorState';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { cn } from '@/utils';
 import type { TableProps } from './Table.types';
 
@@ -7,9 +8,8 @@ export type { ColumnDef, TableProps } from './Table.types';
 
 const DENSITY_STYLES = {
   compact: {
-    table: 'text-sm text-spice-text-medium',
-    thead:
-      'bg-spice-bg-tint text-xs uppercase tracking-wider text-spice-text-medium',
+    table: typographyClasses.tableCell,
+    thead: `bg-spice-bg-tint ${typographyClasses.tableHeader}`,
     th: 'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
     td: 'px-3 py-1.5 sm:px-6 sm:py-2',
   },
@@ -51,7 +51,7 @@ export function Table<T extends object>({
   return (
     <div
       className={cn(
-        'w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
+        'spice-thin-scroll w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
         containerClassName,
       )}
     >

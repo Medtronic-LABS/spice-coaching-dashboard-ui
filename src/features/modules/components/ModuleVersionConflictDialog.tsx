@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/Card';
+import { Card, ModalTitle } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
 import { ModalActionBar } from '@/components/ui/ModalActionBar';
 import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
@@ -39,12 +39,9 @@ export const ModuleVersionConflictDialog = ({
         className="w-full border-spice-border p-0 shadow-lg"
       >
         <div className="space-y-2 p-6 pb-4 pr-12">
-          <h2
-            id="module-version-conflict-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
+          <ModalTitle id="module-version-conflict-title">
             Module has been modified
-          </h2>
+          </ModalTitle>
           <p
             id="module-version-conflict-description"
             className="text-sm text-spice-text-muted"

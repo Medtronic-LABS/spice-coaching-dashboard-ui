@@ -26,7 +26,7 @@ const DashboardPageHeader = ({
 }) => (
   <div className="relative z-40 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
     <div className="min-w-0 shrink-0">
-      <PageTitle title={title} className="text-2xl xl:text-[30px]" />
+      <PageTitle title={title} />
     </div>
     <div className="min-w-0 w-full xl:w-auto">{children}</div>
   </div>

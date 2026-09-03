@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ModalTitle } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
 import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
@@ -36,12 +37,7 @@ export const UnsavedChangesDialog = ({
         className="w-full space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
-          <h2
-            id="unsaved-changes-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
-            {title}
-          </h2>
+          <ModalTitle id="unsaved-changes-title">{title}</ModalTitle>
           <p className="text-sm text-spice-text-muted">{description}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

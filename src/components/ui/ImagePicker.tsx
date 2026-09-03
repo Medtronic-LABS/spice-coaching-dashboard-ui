@@ -129,7 +129,7 @@ export const ImagePicker = ({
   const feedbackNode = feedbackText ? (
     <p
       className={cn(
-        'text-[10px] leading-snug',
+        'text-xs leading-snug',
         rejectionError
           ? 'text-spice-semantic-warning'
           : 'text-spice-text-muted',
@@ -255,7 +255,7 @@ export const ImagePicker = ({
       >
         {input}
         <PlusIcon className="mx-auto h-6 w-6 text-spice-text-muted opacity-60" />
-        <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
+        <span className="mt-1 block text-xs font-medium text-spice-text-muted">
           {label}
         </span>
       </label>

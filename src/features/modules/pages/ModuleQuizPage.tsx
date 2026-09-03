@@ -2,9 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Card,
+  FieldGroupLabel,
   LimitedTextarea,
   LimitedTextInput,
   Loader,
+  ModalTitle,
+  SectionHeader,
   useSnackbar,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -31,9 +34,7 @@ export const ModuleQuizPage = () => {
   if (working?.generationStatus !== 'generated') {
     return (
       <Card variant="elevated" className="space-y-3">
-        <div className="text-lg font-semibold text-spice-text-primary">
-          Generate quiz content first
-        </div>
+        <ModalTitle as="h2">Generate quiz content first</ModalTitle>
         <p className="text-sm text-spice-text-medium">
           Complete document upload and generation before editing quiz questions.
         </p>
@@ -52,32 +53,35 @@ export const ModuleQuizPage = () => {
       <ModuleFlowStepper currentStep="quiz" isGenerated />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
         <Card variant="elevated" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-2xl font-semibold text-spice-text-primary">
-              Build Quiz Questions
-            </h1>
-            {!isReadOnly ? (
-              <Button
-                variant="secondary"
-                className="h-9 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
-                disabled={isSavingQuiz || !quiz || quiz.questions.length === 0}
-                onClick={() => {
-                  if (!quiz) return;
-                  updateQuiz({ ...quiz, questions: [] });
-                }}
-              >
-                Remove all
-              </Button>
-            ) : null}
-          </div>
+          <SectionHeader
+            title="Build Quiz Questions"
+            variant="h2"
+            action={
+              !isReadOnly ? (
+                <Button
+                  variant="secondary"
+                  className="text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+                  disabled={
+                    isSavingQuiz || !quiz || quiz.questions.length === 0
+                  }
+                  onClick={() => {
+                    if (!quiz) return;
+                    updateQuiz({ ...quiz, questions: [] });
+                  }}
+                >
+                  Remove all
+                </Button>
+              ) : undefined
+            }
+          />
           {(quiz?.questions ?? []).map((question, index) => (
             <div
               key={question.id}
               className="rounded-xl border border-spice-border p-4"
             >
-              <div className="mb-2 text-xs font-semibold tracking-wider text-spice-text-muted">
+              <FieldGroupLabel className="mb-2">
                 QUESTION {index + 1} • {question.questionType}
-              </div>
+              </FieldGroupLabel>
               <LimitedTextInput
                 value={blocksToPlainText(question.question)}
                 maxLength={FIELD_LIMITS.quizQuestion}
@@ -175,9 +179,7 @@ export const ModuleQuizPage = () => {
                 ))}
               </div>
               <div className="mt-3 space-y-2">
-                <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-                  EXPLANATION
-                </div>
+                <FieldGroupLabel>EXPLANATION</FieldGroupLabel>
                 <LimitedTextarea
                   textareaClassName="min-h-[100px]"
                   value={blocksToPlainText(question.explanation)}

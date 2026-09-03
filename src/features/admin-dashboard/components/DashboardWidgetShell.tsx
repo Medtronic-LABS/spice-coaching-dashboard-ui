@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { Card } from '@/components/ui';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { cn } from '@/utils';
 
 export type DashboardWidgetShellSize = 'md' | 'lg' | 'xl' | 'xxl';
@@ -68,11 +69,9 @@ export const DashboardWidgetShell = ({
         )}
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-spice-text-primary">
-            {title}
-          </h3>
+          <h3 className={typographyClasses.sectionTitle}>{title}</h3>
           {description ? (
-            <p className="mt-1 text-sm font-normal text-spice-text-muted">
+            <p className={cn('mt-1', typographyClasses.sectionSubtitle)}>
               {description}
             </p>
           ) : null}

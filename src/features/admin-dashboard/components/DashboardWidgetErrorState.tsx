@@ -87,7 +87,7 @@ export const DashboardWidgetErrorState = ({
           <RefreshIcon className="h-4 w-4 text-spice-text-muted" />
         </div>
         {meta ? (
-          <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+          <p className="mt-2.5 text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
             {meta}
           </p>
         ) : null}

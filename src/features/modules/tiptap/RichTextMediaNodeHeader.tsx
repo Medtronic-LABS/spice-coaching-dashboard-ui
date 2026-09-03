@@ -22,7 +22,7 @@ export const RichTextMediaNodeHeader = ({
       <div className="min-w-0 flex-1">
         <TruncatedText
           text={title ?? label}
-          className="text-[11px] font-semibold text-spice-text-muted"
+          className="text-xs font-semibold text-spice-text-muted"
         >
           {label}
         </TruncatedText>

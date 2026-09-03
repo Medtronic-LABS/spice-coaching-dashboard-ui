@@ -39,7 +39,7 @@ body {
 
 .spice-thin-scroll::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
+  height: 4px;
 }
 
 .spice-thin-scroll::-webkit-scrollbar-track {

@@ -9,8 +9,10 @@ import {
   SearchInput,
   Tooltip,
   TruncatedText,
+  typographyClasses,
   useSnackbar,
 } from '@/components/ui';
+import { PageTitle } from '@/components/common/PageTitle';
 import { ArrowRightIcon, EyeIcon, SearchIcon } from '@/assets/icon';
 import { Table } from '@/components/common/Table';
 import { PageQueryErrorState } from '@/components/common/PageQueryErrorState';
@@ -78,7 +80,10 @@ import {
   tablePageOffset,
   tablePaginationRange,
 } from '@/utils/tablePagination';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
 
 const MODULE_PICKER_PAGE_SIZE = 50;
 /** Used for filter options and full-list sequence editing. */
@@ -100,7 +105,6 @@ const SEQUENCE_EDIT_INFO =
   'Enabling Rearrange Milestone clears search and filters, disables them, and loads all milestones for drag reordering. Use Reset to restore the initial order, or Back to list to discard changes and return to the table.';
 const PAGE_SUBTITLE =
   'Configure milestones by mapping an image and published modules. Learners earn a milestone after completing all mapped active modules. Use Rearrange Milestone to reorder milestones on the roadmap.';
-const TOOLBAR_BUTTON_CLASS = 'h-9 text-xs';
 
 function emptyForm(): BadgeFormState {
   return {
@@ -671,8 +675,9 @@ export const BadgeManagementPage = () => {
       {
         key: 'sequence',
         header: 'Seq No.',
-        className: 'w-24 whitespace-nowrap px-2 sm:px-3',
-        headerClassName: 'w-24 whitespace-nowrap px-2 sm:px-3',
+        colClassName: 'w-14',
+        className: 'w-14 whitespace-nowrap px-2',
+        headerClassName: 'w-14 whitespace-nowrap px-2',
         render: (row) => (
           <span className="font-medium tabular-nums text-spice-text-primary">
             {row.sequence ?? '—'}
@@ -696,7 +701,7 @@ export const BadgeManagementPage = () => {
                 text={row.name}
                 maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
                 focusable
-                className="font-medium text-spice-text-primary"
+                className={typographyClasses.tableCellPrimary}
               />
             </div>
           </div>
@@ -717,7 +722,7 @@ export const BadgeManagementPage = () => {
                 }))
           ).map((module) => resolveDisplayText(module.title, module.id));
           if (!titles.length) {
-            return <span className="text-sm text-spice-text-muted">—</span>;
+            return <span className="text-spice-text-muted">—</span>;
           }
           const label = titles.join(', ');
           return (
@@ -726,7 +731,6 @@ export const BadgeManagementPage = () => {
                 text={label}
                 maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
                 focusable
-                className="text-sm text-spice-text-medium"
               />
             </div>
           );
@@ -741,9 +745,10 @@ export const BadgeManagementPage = () => {
       {
         key: 'created_at',
         header: 'Created At',
-        className: 'whitespace-nowrap',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => (
-          <span className="text-xs text-spice-text-medium">
+          <span className="whitespace-nowrap">
             {formatDisplayDateTime(row.created_at)}
           </span>
         ),
@@ -757,9 +762,10 @@ export const BadgeManagementPage = () => {
       {
         key: 'updated_at',
         header: 'Last Updated',
-        className: 'whitespace-nowrap',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => (
-          <span className="text-xs text-spice-text-medium">
+          <span className="whitespace-nowrap">
             {formatDisplayDateTime(row.updated_at)}
           </span>
         ),
@@ -839,11 +845,8 @@ export const BadgeManagementPage = () => {
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 max-w-xl space-y-1">
-          <h1 className="text-2xl font-semibold text-spice-text-primary">
-            Milestone Management
-          </h1>
-          <p className="text-sm text-spice-text-muted">{PAGE_SUBTITLE}</p>
+        <div className="min-w-0 max-w-xl">
+          <PageTitle title="Milestone Management" subtitle={PAGE_SUBTITLE} />
         </div>
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
@@ -851,24 +854,22 @@ export const BadgeManagementPage = () => {
             <>
               <Button
                 variant="ghost"
+                size="iconMd"
                 aria-label="Back to list"
                 title="Back to list"
                 onClick={handleBackToList}
                 disabled={isSavingSequence}
-                className="h-9 w-9 p-0"
               >
                 <ArrowRightIcon className="h-5 w-5 rotate-180" />
               </Button>
               <Button
                 variant="secondary"
-                className={TOOLBAR_BUTTON_CLASS}
                 onClick={handleResetSequence}
                 disabled={isSavingSequence || !hasSequenceDraftChanges}
               >
                 Reset
               </Button>
               <Button
-                className={TOOLBAR_BUTTON_CLASS}
                 onClick={() => void handleSaveSequence()}
                 disabled={
                   isSavingSequence ||
@@ -883,7 +884,6 @@ export const BadgeManagementPage = () => {
             <span className="inline-flex items-center gap-1">
               <Button
                 variant="secondary"
-                className={TOOLBAR_BUTTON_CLASS}
                 onClick={() => void handleEnterSequenceEdit()}
                 disabled={!canEditSequence || isEnteringSequenceEdit}
               >
@@ -898,7 +898,6 @@ export const BadgeManagementPage = () => {
           )}
 
           <Button
-            className={TOOLBAR_BUTTON_CLASS}
             onClick={startCreate}
             disabled={isSequenceEditing || isEnteringSequenceEdit}
           >

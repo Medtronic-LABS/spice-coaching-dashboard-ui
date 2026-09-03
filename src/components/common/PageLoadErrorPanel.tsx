@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardIcon, RefreshIcon } from '@/assets/icon';
 import { PageLoadErrorIllustration } from '@/components/common/PageLoadErrorIllustration';
 import { Button } from '@/components/ui';
+import { ModalTitle } from '@/components/ui/Typography';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { paths } from '@/constants/routes';
 import { cn } from '@/utils';
 
@@ -36,15 +38,23 @@ export const PageLoadErrorPanel = ({
     <>
       <PageLoadErrorIllustration className="h-[100px] w-[140px] shrink-0 sm:h-[120px] sm:w-[160px]" />
 
-      <h2 className="mt-6 max-w-lg text-center text-xl font-semibold text-spice-text-primary sm:mt-8 sm:text-2xl">
+      <ModalTitle
+        as="h2"
+        className="mt-6 max-w-lg text-center sm:mt-8 sm:text-xl"
+      >
         {title}
-      </h2>
-      <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-spice-text-muted">
+      </ModalTitle>
+      <p
+        className={cn(
+          'mt-3 max-w-md text-center leading-relaxed',
+          typographyClasses.caption,
+        )}
+      >
         {description}
       </p>
 
       {showDevDetails ? (
-        <p className="mt-2 max-w-md text-center text-[11px] leading-relaxed text-spice-text-medium">
+        <p className="mt-2 max-w-md text-center text-xs leading-relaxed text-spice-text-medium">
           {devDetails}
         </p>
       ) : null}

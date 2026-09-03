@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { PageTitle } from '@/components/common/PageTitle';
 import { Button } from '@/components/ui/Button';
 import { isLoginEnabled } from '@/config/authConfig';
 import { spiceWebLoginUrl } from '@/config/spiceConfig';
@@ -14,9 +15,7 @@ export const UnAuthorizedPage = () => {
         <p className="text-sm font-semibold uppercase tracking-wide text-spice-brand-primary">
           {t('auth.login.brand')}
         </p>
-        <h1 className="mt-3 text-xl font-semibold text-spice-text-primary sm:text-2xl">
-          {t('auth.login.title')}
-        </h1>
+        <PageTitle title={t('auth.login.title')} className="mt-3" />
         <p className="mt-2 text-sm text-spice-text-medium">
           {loginEnabled
             ? t(

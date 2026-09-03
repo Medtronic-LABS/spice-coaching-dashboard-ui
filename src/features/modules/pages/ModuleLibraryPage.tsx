@@ -12,19 +12,25 @@ import {
   Button,
   Card,
   ConfirmDialog,
+  FormLabel,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
   Modal,
+  ModalTitle,
   QuotedDisplayLabel,
   SearchInput,
   Select,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   Tabs,
   Tooltip,
   TruncatedText,
+  typographyClasses,
   useSnackbar,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
+import { PageTitle } from '@/components/common/PageTitle';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
@@ -67,7 +73,7 @@ import {
 } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
 import type {
   ModuleLibraryItem,
@@ -186,7 +192,7 @@ function ModuleLibraryActionSlot({
     >
       {children ?? (
         <span
-          className="inline-flex h-full w-full items-center justify-center text-xs text-spice-text-medium"
+          className="inline-flex h-full w-full items-center justify-center text-spice-text-medium"
           aria-hidden="true"
         >
           —
@@ -222,9 +228,12 @@ function createEmptyCreateForm(): CreateModuleFormState {
   };
 }
 
-const moduleBadge = (status: ModuleStatus) => {
-  return <ModuleStatusBadge status={status} />;
-};
+const moduleBadge = (status: ModuleStatus) => (
+  <StatusBadge
+    {...getModuleStatusBadgeProps(status)}
+    className={TABLE_STATUS_BADGE_CLASSNAME}
+  />
+);
 
 function isNeedsReviewStatus(status?: string): boolean {
   const norm = (status || '').trim().toLowerCase();
@@ -718,7 +727,10 @@ export const ModuleLibraryPage = () => {
                       setExpandedReviewModuleId(row.id);
                       setTab('needs_review');
                     }}
-                    className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline"
+                    className={cn(
+                      typographyClasses.tableCellPrimary,
+                      'block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline',
+                    )}
                   >
                     {displayTitle}
                   </button>
@@ -728,7 +740,10 @@ export const ModuleLibraryPage = () => {
                       ':moduleId',
                       encodeURIComponent(row.id),
                     )}
-                    className="block truncate break-all font-semibold text-spice-brand-primary hover:underline"
+                    className={cn(
+                      typographyClasses.tableCellPrimary,
+                      'block truncate break-all font-semibold text-spice-brand-primary hover:underline',
+                    )}
                   >
                     {displayTitle}
                   </Link>
@@ -742,7 +757,7 @@ export const ModuleLibraryPage = () => {
         key: 'lessons',
         header: 'Content',
         render: (row) => (
-          <div className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap">
             <span>
               {row.lessons === 1 ? '1 lesson' : `${row.lessons} lessons`}
             </span>
@@ -756,7 +771,7 @@ export const ModuleLibraryPage = () => {
                   : `${row.questions} questions`}
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-xs font-semibold text-spice-text-muted ring-1 ring-spice-border">
                 No quiz
               </span>
             )}
@@ -1025,12 +1040,7 @@ export const ModuleLibraryPage = () => {
             className="w-full space-y-4 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
           >
             <div>
-              <h2
-                id="create-module-title"
-                className="text-xl font-semibold text-spice-text-primary"
-              >
-                Create module
-              </h2>
+              <ModalTitle id="create-module-title">Create module</ModalTitle>
               <p className="mt-1 text-xs text-spice-text-muted">
                 Creates a draft module in the admin module library.
               </p>
@@ -1043,16 +1053,7 @@ export const ModuleLibraryPage = () => {
             <div className="space-y-4">
               <div className="grid gap-3">
                 <label className="block w-full space-y-1">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Title (BN)
-                    <span
-                      className="text-spice-semantic-error"
-                      aria-hidden="true"
-                    >
-                      {' '}
-                      *
-                    </span>
-                  </span>
+                  <FormLabel required>Title (BN)</FormLabel>
                   <LimitedTextInput
                     id="create-module-title-bn"
                     value={createForm.title_bn}
@@ -1068,9 +1069,7 @@ export const ModuleLibraryPage = () => {
                   />
                 </label>
                 <label className="block w-full space-y-1">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Description (BN)
-                  </span>
+                  <FormLabel>Description (BN)</FormLabel>
                   <LimitedTextarea
                     id="create-module-description-bn"
                     value={createForm.description_bn}
@@ -1105,14 +1104,14 @@ export const ModuleLibraryPage = () => {
                   }
                 />
                 <label className="block space-y-1 self-start">
-                  <span className="flex min-h-5 items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+                  <FormLabel className="flex min-h-5 items-center gap-1.5">
                     Content domain type
                     <Tooltip
                       label="About Content domain type"
                       content={CONTENT_DOMAIN_TYPE_TOOLTIP}
                       placement="top"
                     />
-                  </span>
+                  </FormLabel>
                   <Select
                     className="w-full"
                     options={INGEST_CONTENT_DOMAIN_OPTIONS}
@@ -1128,9 +1127,7 @@ export const ModuleLibraryPage = () => {
                   />
                 </label>
                 <label className="block space-y-1 self-start">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Estimated minutes
-                  </span>
+                  <FormLabel>Estimated minutes</FormLabel>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -1172,9 +1169,7 @@ export const ModuleLibraryPage = () => {
                   ) : null}
                 </label>
                 <label className="block space-y-1 self-start">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Difficulty level
-                  </span>
+                  <FormLabel>Difficulty level</FormLabel>
                   <select
                     className={cn(CREATE_MODULE_INPUT_CLASS, 'select-arrow')}
                     value={createForm.difficulty_level}
@@ -1211,7 +1206,6 @@ export const ModuleLibraryPage = () => {
             <div className="flex justify-end gap-2 border-t border-spice-border pt-4">
               <Button
                 variant="secondary"
-                className="h-9 text-xs"
                 disabled={isCreating}
                 onClick={() => {
                   setCreateError('');
@@ -1221,7 +1215,6 @@ export const ModuleLibraryPage = () => {
                 Cancel
               </Button>
               <Button
-                className="h-9 text-xs"
                 disabled={
                   isCreating ||
                   !createForm.title_bn.trim() ||
@@ -1372,9 +1365,11 @@ export const ModuleLibraryPage = () => {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold leading-[34px] text-spice-text-primary">
-            {isProgramManager ? 'Module Library' : t('moduleLibrary.title')}
-          </h1>
+          <PageTitle
+            title={
+              isProgramManager ? 'Module Library' : t('moduleLibrary.title')
+            }
+          />
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <div className="w-full sm:w-72">
@@ -1405,7 +1400,6 @@ export const ModuleLibraryPage = () => {
         <div className="flex items-center justify-between gap-3">
           {isProgramManager ? (
             <Tabs
-              variant="moduleLibrary"
               items={[
                 { label: 'Drafts', value: 'drafts' },
                 { label: 'Published', value: 'published' },
@@ -1429,7 +1423,7 @@ export const ModuleLibraryPage = () => {
               ]}
               value={tab}
               onChange={handleTabChange}
-              className="w-fit px-[10px]"
+              className="w-fit min-w-0"
             />
           ) : (
             <div />
@@ -1502,7 +1496,6 @@ export const ModuleLibraryPage = () => {
           />
         ) : (
           <Table<ModuleLibraryItem>
-            density="comfortable"
             data={isFetchingModules ? [] : filtered}
             columns={columns}
             keyExtractor={(r) => r.id}

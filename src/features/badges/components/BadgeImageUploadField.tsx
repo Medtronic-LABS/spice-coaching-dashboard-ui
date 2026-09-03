@@ -175,7 +175,7 @@ export const BadgeImageUploadField = ({
   return (
     <div className="space-y-2 rounded-xl bg-spice-bg-surface p-3 ring-1 ring-spice-border">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+        <span className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
           Milestone image
           {required ? (
             <span className="text-spice-semantic-error"> *</span>
@@ -261,7 +261,7 @@ export const BadgeImageUploadField = ({
               d="M12 4v16m8-8H4"
             />
           </svg>
-          <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
+          <span className="mt-1 block text-xs font-medium text-spice-text-muted">
             Add image
           </span>
         </button>
@@ -277,20 +277,20 @@ export const BadgeImageUploadField = ({
         {uploadLabel}
       </Button>
 
-      <p className="text-[10px] leading-snug text-spice-text-muted">
+      <p className="text-xs leading-snug text-spice-text-muted">
         {THUMBNAIL_ACCEPT_SIZE_HINT}
       </p>
 
       {pendingFile ? (
-        <p className="break-all text-[10px] leading-snug text-spice-text-muted">
+        <p className="break-all text-xs leading-snug text-spice-text-muted">
           {isUploading ? 'Uploading' : 'Selected'}: {pendingFile.name}
         </p>
       ) : isUploaded ? (
-        <p className="text-[10px] text-spice-text-muted">Image uploaded</p>
+        <p className="text-xs text-spice-text-muted">Image uploaded</p>
       ) : null}
 
       {fieldError ? (
-        <p className="text-[10px] text-spice-semantic-error" role="alert">
+        <p className="text-xs text-spice-semantic-error" role="alert">
           {fieldError}
         </p>
       ) : null}

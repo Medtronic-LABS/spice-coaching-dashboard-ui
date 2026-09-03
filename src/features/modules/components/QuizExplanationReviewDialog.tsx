@@ -1,4 +1,4 @@
-import { Button, Card } from '@/components/ui';
+import { Button, Card, ModalTitle } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
 import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
@@ -26,12 +26,9 @@ export const QuizExplanationReviewDialog = ({
         className="w-full space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
-          <h2
-            id="quiz-explanation-review-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
+          <ModalTitle id="quiz-explanation-review-title">
             Review explanations
-          </h2>
+          </ModalTitle>
           <p
             id="quiz-explanation-review-description"
             className="text-sm text-spice-text-muted"

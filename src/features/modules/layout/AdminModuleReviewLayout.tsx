@@ -176,7 +176,7 @@ export const AdminModuleReviewLayout = () => {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-spice-bg-surface px-4 py-3 ring-1 ring-spice-border">
             {isReadonly ? (
-              <span className="rounded-full bg-spice-bg-tint px-2.5 py-1 text-[11px] font-semibold text-spice-text-medium ring-1 ring-spice-border">
+              <span className="rounded-full bg-spice-bg-tint px-2.5 py-1 text-xs font-semibold text-spice-text-medium ring-1 ring-spice-border">
                 Read-only review
               </span>
             ) : null}
@@ -197,7 +197,7 @@ export const AdminModuleReviewLayout = () => {
                     }`}
                   >
                     <span
-                      className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
+                      className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs ${
                         isActive
                           ? 'bg-white/20 text-white'
                           : isComplete
