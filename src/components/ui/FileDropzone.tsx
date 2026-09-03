@@ -260,7 +260,7 @@ export const FileDropzone = ({
             disabled={dropzoneDisabled}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
+              'flex w-full flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed px-3 py-2 text-center transition-colors',
               dropzoneStateClasses,
             )}
             onDragOver={(event: DragEvent<HTMLButtonElement>) => {
@@ -277,7 +277,7 @@ export const FileDropzone = ({
             }}
           >
             {showIcon ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
                 <PlusIcon />
               </span>
             ) : null}

@@ -1094,14 +1094,14 @@ export const VideoUploadPage = () => {
         </Button>
       </div>
 
-      <Card variant="elevated" className="min-w-0 space-y-4 p-4 sm:p-6">
-        <div className="space-y-3">
+      <Card variant="elevated" className="min-w-0 space-y-3 p-3 sm:p-4">
+        <div className="space-y-2">
           {pendingItems.map((item) => {
             const titleInvalid = pendingTitleErrorKeys.has(item.key);
             return (
               <div
                 key={item.key}
-                className="space-y-3 rounded-lg border border-spice-border bg-spice-bg-surface p-3"
+                className="space-y-2 rounded-lg border border-spice-border bg-spice-bg-surface p-2.5"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   <div className="space-y-2 sm:w-40 sm:shrink-0">
@@ -1134,16 +1134,16 @@ export const VideoUploadPage = () => {
                           </svg>
                         </button>
                       </div>
-                      <div className="flex min-h-[120px] items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint p-1">
+                      <div className="flex min-h-[96px] items-center justify-center overflow-hidden rounded-md border border-spice-border bg-spice-bg-tint p-1">
                         {item.thumbnailPreviewUrl ? (
                           <img
                             src={item.thumbnailPreviewUrl}
                             alt=""
                             draggable={false}
-                            className="max-h-[160px] max-w-full object-contain"
+                            className="max-h-[128px] max-w-full object-contain"
                           />
                         ) : (
-                          <div className="flex min-h-[120px] items-center justify-center text-xs text-spice-text-muted">
+                          <div className="flex min-h-[96px] items-center justify-center text-xs text-spice-text-muted">
                             Capturing…
                           </div>
                         )}
@@ -1269,11 +1269,11 @@ export const VideoUploadPage = () => {
           />
 
           {fileError ? <Banner tone="critical">{fileError}</Banner> : null}
-        </div>
 
-        <FormHelperText>
-          {VIDEO_ACCEPTED_FILE_TYPES_LABEL} · {INGEST_MEDIA_MAX_UPLOAD_LABEL}
-        </FormHelperText>
+          <FormHelperText>
+            {VIDEO_ACCEPTED_FILE_TYPES_LABEL} · {INGEST_MEDIA_MAX_UPLOAD_LABEL}
+          </FormHelperText>
+        </div>
 
         <IngestUploadProgress active={isUploading} label="Uploading videos…" />
 

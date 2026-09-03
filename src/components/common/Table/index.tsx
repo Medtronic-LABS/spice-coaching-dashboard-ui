@@ -51,7 +51,7 @@ export function Table<T extends object>({
   return (
     <div
       className={cn(
-        'w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
+        'spice-thin-scroll w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
         containerClassName,
       )}
     >

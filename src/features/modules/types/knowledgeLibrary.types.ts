@@ -73,5 +73,5 @@ export const KNOWLEDGE_LIBRARY_FILTER_DEFAULTS: KnowledgeLibraryFilterState = {
   sortBy: 'uploaded_date',
   sortOrder: 'desc',
   page: 0,
-  pageSize: 10,
+  pageSize: 5,
 };

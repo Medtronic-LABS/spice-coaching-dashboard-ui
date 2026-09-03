@@ -222,7 +222,7 @@ describe('KnowledgeLibraryPage', () => {
     expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
   });
 
-  it('in split mode, clicking Upload with invalid splits shows validation error (no API call)', async () => {
+  it('in split mode, Upload stays disabled until each split has a title', async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -243,11 +243,13 @@ describe('KnowledgeLibraryPage', () => {
     ).not.toBeInTheDocument();
 
     const uploadButton = screen.getByRole('button', { name: /^upload$/i });
+    expect(uploadButton).toBeDisabled();
+
+    const title = screen.getByLabelText('Split 1 title') as HTMLInputElement;
+    await user.clear(title);
+    await user.type(title, 'Split 1 title');
+
     expect(uploadButton).toBeEnabled();
-
-    await user.click(uploadButton);
-
-    expect(await screen.findByText('Title is required.')).toBeInTheDocument();
     expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
   });
 
@@ -283,7 +285,7 @@ describe('KnowledgeLibraryPage', () => {
     expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
   });
 
-  it('shows validation for all invalid splits at once (no API call)', async () => {
+  it('keeps Upload disabled when any split is invalid', async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -316,13 +318,10 @@ describe('KnowledgeLibraryPage', () => {
     await user.clear(split2End);
     await user.type(split2End, '1');
 
-    const uploadButton = screen.getByRole('button', { name: /^upload$/i });
-    await user.click(uploadButton);
-
-    expect(screen.getAllByText('Title is required.')).toHaveLength(1);
     expect(
       await screen.findByText('End page must be >= start page.'),
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^upload$/i })).toBeDisabled();
     expect(mocks.uploadKnowledgeDocumentTrigger).not.toHaveBeenCalled();
   });
 

@@ -212,8 +212,12 @@ export const KnowledgeLibraryPage = () => {
     if (!file) return false;
     if (isBusy) return false;
     if (mode === 'original') return Boolean(originalTitle.trim());
-    return true;
-  }, [file, isBusy, mode, originalTitle]);
+    if (splitDrafts.length === 0) return false;
+    return !knowledgeSplitDraftHasFieldErrors(splitDrafts, {
+      pageCount,
+      requireTitle: true,
+    });
+  }, [file, isBusy, mode, originalTitle, pageCount, splitDrafts]);
 
   const runKnowledgeUpload = useCallback(
     async (payload: KnowledgeUploadPayload) => {
