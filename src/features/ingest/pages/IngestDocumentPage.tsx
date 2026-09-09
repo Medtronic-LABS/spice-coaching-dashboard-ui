@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ModuleLibraryNavButton } from '@/components/common/ModuleLibraryNavButton';
 import { PageTitle } from '@/components/common/PageTitle';
-import { ArrowRightIcon } from '@/assets/icon';
 import { Button, Card, useSnackbar } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import type {
@@ -392,16 +392,7 @@ export const IngestDocumentPage = () => {
           title="Ingest Document"
           subtitle="Select a configuration, upload a new document or choose existing documents under Document Selection, then start the ingestion process to generate modules."
         />
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            className="inline-flex items-center gap-1.5"
-            onClick={() => navigate(paths.moduleLibrary)}
-          >
-            Module Library
-            <ArrowRightIcon className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <ModuleLibraryNavButton />
       </div>
 
       {ingestionInProgress ? (

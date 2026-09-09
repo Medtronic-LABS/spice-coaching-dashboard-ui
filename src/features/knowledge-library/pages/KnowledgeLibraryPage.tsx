@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRightIcon } from '@/assets/icon';
+import { ModuleLibraryNavButton } from '@/components/common/ModuleLibraryNavButton';
 import { PageTitle } from '@/components/common/PageTitle';
 import {
   Button,
@@ -19,7 +18,6 @@ import {
   FIELD_LIMITS,
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
-import { paths } from '@/constants/routes';
 import {
   ADMIN_FILE_MAX_UPLOAD_LABEL,
   ADMIN_IMAGE_ACCEPT_SIZE_HINT,
@@ -68,7 +66,6 @@ async function resolveThumbnailFile(options: {
 }
 
 export const KnowledgeLibraryPage = () => {
-  const navigate = useNavigate();
   const snackbar = useSnackbar();
 
   const [uploadKnowledgeDocument, { isLoading: isUploadingKnowledge }] =
@@ -426,16 +423,7 @@ export const KnowledgeLibraryPage = () => {
           title="Upload Knowledge"
           subtitle="Upload PDFs for the Knowledge section and manage library assets."
         />
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            className="inline-flex items-center gap-1.5"
-            onClick={() => navigate(paths.moduleLibrary)}
-          >
-            Module Library
-            <ArrowRightIcon className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <ModuleLibraryNavButton />
       </div>
 
       {reusedUploadNotice?.length ? (

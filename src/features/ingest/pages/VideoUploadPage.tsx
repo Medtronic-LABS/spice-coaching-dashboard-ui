@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRightIcon, DeleteIcon, EyeIcon } from '@/assets/icon';
+import { DeleteIcon, EyeIcon } from '@/assets/icon';
+import { ModuleLibraryNavButton } from '@/components/common/ModuleLibraryNavButton';
 import { PageTitle } from '@/components/common/PageTitle';
 import {
   SettingsFilterDrawer,
@@ -1084,14 +1085,7 @@ export const VideoUploadPage = () => {
           title="Video Upload"
           subtitle="Upload videos and generate learning modules from their content."
         />
-        <Button
-          variant="secondary"
-          className="inline-flex items-center gap-1.5"
-          onClick={() => navigate(paths.moduleLibrary)}
-        >
-          Module Library
-          <ArrowRightIcon className="h-3.5 w-3.5" />
-        </Button>
+        <ModuleLibraryNavButton />
       </div>
 
       <Card variant="elevated" className="min-w-0 space-y-3 p-3 sm:p-4">
