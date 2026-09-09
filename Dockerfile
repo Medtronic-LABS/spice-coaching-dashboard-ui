@@ -9,8 +9,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build-time environment variables for Vite
-ARG VITE_API_BASE_URL=https://agent-qa.beehyv.com/medtronics-api
-ARG VITE_ROUTE_PREFIX=/medtronics-ui
+ARG VITE_API_BASE_URL=https://spice-dev-backend.uhis.labsplatform.com/micro-coaching/medtronics-api
+ARG VITE_ROUTE_PREFIX=/micro-coaching
 ARG VITE_DEPLOYMENT_PRIMARY_LOCALE=bn
 ARG VITE_SPICE_API_BASE_URL=https://spice-dev-backend.uhis.labsplatform.com
 ARG VITE_SPICE_WEB_LOGIN_URL=https://spice-dev.uhis.labsplatform.com/
@@ -18,6 +18,7 @@ ARG VITE_COACHING_SUITE_ACCESS=coaching
 ARG VITE_SPICE_ADMIN_API_URL=/admin-service
 ARG VITE_SPICE_USER_API_URL=/user-service
 ARG VITE_ERROR_REPORTING_URL=
+ARG VITE_DEV_AUTH_BYPASS=false
 
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_ROUTE_PREFIX=$VITE_ROUTE_PREFIX \
@@ -27,7 +28,8 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_COACHING_SUITE_ACCESS=$VITE_COACHING_SUITE_ACCESS \
     VITE_SPICE_ADMIN_API_URL=$VITE_SPICE_ADMIN_API_URL \
     VITE_SPICE_USER_API_URL=$VITE_SPICE_USER_API_URL \
-    VITE_ERROR_REPORTING_URL=$VITE_ERROR_REPORTING_URL
+    VITE_ERROR_REPORTING_URL=$VITE_ERROR_REPORTING_URL \
+    VITE_DEV_AUTH_BYPASS=$VITE_DEV_AUTH_BYPASS
 
 RUN npm run build
 
