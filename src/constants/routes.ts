@@ -22,7 +22,6 @@ export const routeSegments = {
   dashboard: 'dashboard',
   configs: 'configs',
   modulesNew: 'modules/new',
-  login: 'login',
   unauthorized: 'unauthorized',
 } as const;
 
@@ -78,7 +77,6 @@ export const paths = {
   /** Admin analytics dashboard (default landing route). */
   adminDashboard: withRoutePrefix(`/${routeSegments.dashboard}`),
   configs: withRoutePrefix(`/${routeSegments.configs}`),
-  login: withRoutePrefix(`/${routeSegments.login}`),
   unauthorized: withRoutePrefix(`/${routeSegments.unauthorized}`),
 } as const;
 

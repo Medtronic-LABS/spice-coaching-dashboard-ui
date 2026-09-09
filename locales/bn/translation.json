@@ -9,19 +9,6 @@
       "description": "আপনি Spice SSO-এর মাধ্যমে আসেননি বলে এই ড্যাশবোর্ডে আপনার অ্যাক্সেস নেই।",
       "instruction": "অনুগ্রহ করে Spice-এ সাইন ইন করুন, তারপর ড্যাশবোর্ড খুলতে এখানে ফিরে আসুন।",
       "continueToSpice": "Spice লগইনে যান"
-    },
-    "signIn": {
-      "welcome": "স্বাগতম",
-      "title": "আপনার অ্যাকাউন্টে লগইন করুন",
-      "usernameLabel": "ইমেইল, ইউজারনেম বা মোবাইল নম্বর",
-      "passwordLabel": "পাসওয়ার্ড",
-      "submitButton": "লগইন",
-      "submitting": "লগইন হচ্ছে...",
-      "errorEmailRequired": "অনুগ্রহ করে ইমেইল দিন",
-      "errorPasswordRequired": "অনুগ্রহ করে পাসওয়ার্ড দিন",
-      "errorRequiredFields": "অনুগ্রহ করে ইউজারনেম এবং পাসওয়ার্ড উভয়ই দিন।",
-      "errorMissingAuthCookie": "সাইন ইন সফল হয়েছে কিন্তু কোনো অথ কুকি ফেরত আসেনি। আবার চেষ্টা করুন।",
-      "errorMessage": "অবৈধ পরিচয়পত্র বা লগইন ব্যর্থ। আবার চেষ্টা করুন।"
     }
   },
   "common": {

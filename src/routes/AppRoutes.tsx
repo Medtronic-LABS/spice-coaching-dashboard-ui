@@ -128,10 +128,6 @@ export const AppRoutes = () => {
         path={ROUTE_PREFIX}
         element={<Navigate to={paths.adminDashboard} replace />}
       />
-      <Route
-        path={paths.login}
-        element={<Navigate to={paths.home} replace />}
-      />
       <Route path={paths.unauthorized} element={<UnAuthorizedPage />} />
       <Route element={<MainLayout />}>
         <Route
