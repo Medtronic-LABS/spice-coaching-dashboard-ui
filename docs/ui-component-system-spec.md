@@ -1,4 +1,6 @@
-# 🧱 UI Component System – Supervisor & Program Manager Dashboard
+# UI Component System – Supervisor & Program Manager Dashboard
+
+> **Usage rules:** See [`design-system-usage.md`](./design-system-usage.md) for when to use tabs vs chips, typography scale, button sizes, and table conventions.
 
 ## 🧠 Objective
 
@@ -297,6 +299,23 @@ Props:
 
 ---
 
+### 🔹 11a. FormLabel / FormHelperText
+
+**Purpose:** Shared form field label and caption typography
+
+```tsx
+<FormLabel htmlFor="title" required>Title</FormLabel>
+<FormHelperText>Shown under the field.</FormHelperText>
+```
+
+`FormLabel` props:
+
+* `htmlFor?: string` — when set, renders `<label>`; otherwise `<span>` for nested label wrappers
+* `required?: boolean` — appends red asterisk
+* `size?: 'default' | 'compact'` — `default` is 14px semibold primary; `compact` is 12px for filter drawers
+
+---
+
 ### 🔹 12. Badge
 
 **Purpose:** Small label/status
@@ -370,9 +389,22 @@ Variants:
 
 ### Typography
 
-* Title: `text-lg font-semibold`
-* Subtitle: `text-sm text-gray-500`
-* Value: `text-2xl font-bold`
+Use shared typography components — **not** duplicate Tailwind class strings in feature files. Canonical tokens: `src/components/ui/typographyClasses.ts`. Full table: [`design-system-usage.md`](./design-system-usage.md#typography-scale).
+
+| Level | Component | Notes |
+|-------|-----------|-------|
+| Page title | `PageTitle` (`@/components/common/PageTitle`) | `24px` semibold; optional `subtitle` prop |
+| Page subtitle | `PageSubtitle` or `PageTitle` `subtitle` | `text-sm` muted |
+| Section title | `SectionHeader` | `text-lg` semibold |
+| Modal title | `ModalTitle` | Dialog headings |
+| Card title | `CardTitle` | In-card section headings |
+| Field group label | `FieldGroupLabel` | Uppercase micro-labels; supports `as` for semantics |
+| Form label | `FormLabel` | `default` (14px) or `compact` (12px) |
+| Caption / hint | `FormHelperText` | Under fields |
+| Table | `Table` (`density="compact"`) | Header `text-xs` uppercase; body `text-sm` |
+| KPI | `StatCard` | Label `text-xs`; value `text-2xl` |
+
+**Rules:** No arbitrary `text-[Npx]` in feature code. Body and inputs use `text-sm`.
 
 ---
 
@@ -407,6 +439,8 @@ components/ui/
 
   Card.tsx
   SectionHeader.tsx
+  Typography.tsx
+  typographyClasses.ts
   Divider.tsx
 
   StatCard.tsx

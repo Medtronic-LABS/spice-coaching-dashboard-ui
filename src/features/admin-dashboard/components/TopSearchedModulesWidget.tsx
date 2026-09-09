@@ -7,6 +7,7 @@ import {
   type TopModuleDemandRow,
 } from '@/features/admin-dashboard/components/TopModuleDemandWidget';
 import { ExistingModuleInlineEvidence } from '@/features/admin-dashboard/components/ModuleDemandInlineEvidence';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
 import {
   buildModuleDemandFilterKey,
   useAccumulatedModuleDemandPages,
@@ -120,11 +121,16 @@ export const TopSearchedModulesWidget = ({
   const hasMore =
     (pageData?.offset ?? offset) + TOP_MODULE_DEMAND_LIMIT < totalItems;
   const isLoadingMore = offset > 0 && query.isFetching;
-  // Skeleton on actor/date/geo change: no current page yet (or still fetching
-  // page 0 with an empty accumulator after a sync filter reset).
+  const argChangeLoading = useDashboardArgChangeLoading(
+    filterKey,
+    query.isFetching,
+  );
+  // Skeleton on actor/date/geo change, including a cached refetch after Clear all.
   const showLoading =
     offset === 0 &&
-    (ui.showLoading || (query.isFetching && accumulatedModules.length === 0));
+    (ui.showLoading ||
+      argChangeLoading ||
+      (query.isFetching && accumulatedModules.length === 0));
 
   const handleSeeMore = useCallback(() => {
     if (!hasMore || query.isFetching) return;
@@ -140,6 +146,7 @@ export const TopSearchedModulesWidget = ({
       rows={rows}
       showLoading={showLoading}
       showError={ui.showError}
+      error={query.error}
       onRetry={() => void query.refetch()}
       showActions={showActions}
       emptyTitle={t('adminDashboard.existingModules.emptyTitle')}

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { paths } from '@/constants/routes';
+import { buildPath, paths } from '@/constants/routes';
 import { Sidebar } from './Sidebar';
 
 vi.mock('@/features/auth/services/authSession', () => ({
@@ -69,7 +69,7 @@ describe('Sidebar', () => {
   ])('highlights Module Library during the %s step', (_step, routeTemplate) => {
     render(
       <MemoryRouter
-        initialEntries={[routeTemplate.replace(':moduleId', 'module-1')]}
+        initialEntries={[buildPath(routeTemplate, { moduleId: 'module-1' })]}
       >
         <Sidebar {...defaultSidebarProps} />
       </MemoryRouter>,

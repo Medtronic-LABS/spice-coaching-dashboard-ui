@@ -131,7 +131,7 @@ describe('FileDropzone', () => {
       />,
     );
 
-    const dropzone = screen.getByLabelText('PDF dropzone');
+    const dropzone = screen.getByRole('button', { name: 'PDF dropzone' });
     fireEvent.drop(dropzone, {
       dataTransfer: { files: [makeFile('dropped.pdf')] },
     });

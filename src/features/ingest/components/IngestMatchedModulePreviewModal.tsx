@@ -1,17 +1,23 @@
 import {
   Banner,
   Card,
+  CardTitle,
   CircularSpinner,
+  FieldGroupLabel,
   KeyValue,
   Modal,
+  ModalTitle,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
 } from '@/components/ui';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
 } from '@/config/deploymentLocale';
 import { useGetModuleDetailQuery } from '@/features/modules/api/adminModulesApi';
 import { LearnerRichCardBody } from '@/features/modules/components/module-preview/LearnerRichCardBody';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import {
   readLocaleOptions,
@@ -48,7 +54,7 @@ export const IngestMatchedModulePreviewModal = ({
       labelledBy="ingest-matched-module-preview-title"
       contentClassName="max-w-4xl"
       onClose={onClose}
-      zIndexClassName="z-[320]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalTop}
     >
       <Card
         variant="elevated"
@@ -56,12 +62,9 @@ export const IngestMatchedModulePreviewModal = ({
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-spice-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
           <div className="min-w-0">
-            <h2
-              id="ingest-matched-module-preview-title"
-              className="text-lg font-semibold text-spice-text-primary"
-            >
+            <ModalTitle id="ingest-matched-module-preview-title">
               Module Details
-            </h2>
+            </ModalTitle>
           </div>
         </div>
 
@@ -95,8 +98,11 @@ export const IngestMatchedModulePreviewModal = ({
                   <KeyValue
                     label="Status"
                     value={
-                      <ModuleStatusBadge
-                        status={module.lifecycle_status ?? 'draft'}
+                      <StatusBadge
+                        {...getModuleStatusBadgeProps(
+                          module.lifecycle_status ?? 'draft',
+                        )}
+                        className={TABLE_STATUS_BADGE_CLASSNAME}
                       />
                     }
                   />
@@ -120,9 +126,7 @@ export const IngestMatchedModulePreviewModal = ({
                 </div>
                 {module.description ? (
                   <div className="space-y-1 mt-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-spice-text-muted">
-                      Module Description
-                    </span>
+                    <FieldGroupLabel>Module Description</FieldGroupLabel>
                     <div className="text-xs text-spice-text-medium rounded-lg border border-spice-border bg-spice-bg-surface p-3">
                       {resolveDisplayText(module.description)}
                     </div>
@@ -131,9 +135,7 @@ export const IngestMatchedModulePreviewModal = ({
               </section>
 
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-spice-text-primary">
-                  Lessons ({lessons.length})
-                </h3>
+                <CardTitle as="h3">Lessons ({lessons.length})</CardTitle>
                 {lessons.length ? (
                   <div className="space-y-3">
                     {lessons.map((card, index) => {
@@ -156,9 +158,9 @@ export const IngestMatchedModulePreviewModal = ({
                           <div className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                             Lesson {index + 1}
                           </div>
-                          <h4 className="mt-1 text-sm font-semibold text-spice-text-primary">
+                          <CardTitle as="h4" className="mt-1">
                             {title || `Lesson ${index + 1}`}
-                          </h4>
+                          </CardTitle>
                           <div className="mt-2">
                             <LearnerRichCardBody blocks={body} />
                           </div>
@@ -174,9 +176,7 @@ export const IngestMatchedModulePreviewModal = ({
               </section>
 
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-spice-text-primary">
-                  Quizzes ({quizzes.length})
-                </h3>
+                <CardTitle as="h3">Quizzes ({quizzes.length})</CardTitle>
                 {quizzes.length ? (
                   <div className="space-y-3">
                     {quizzes.map((item, index) => {
@@ -203,9 +203,9 @@ export const IngestMatchedModulePreviewModal = ({
                           <div className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                             Question {index + 1}
                           </div>
-                          <h4 className="text-sm font-semibold text-spice-text-primary">
+                          <CardTitle as="h4">
                             {question || `Question ${index + 1}`}
-                          </h4>
+                          </CardTitle>
                           <div className="space-y-1.5 text-xs">
                             {options.map((option, optionIndex) => {
                               const isCorrect = (
@@ -227,7 +227,7 @@ export const IngestMatchedModulePreviewModal = ({
                                     {option || `Option ${optionIndex + 1}`}
                                   </span>
                                   {isCorrect ? (
-                                    <span className="rounded bg-spice-semantic-successBg px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-success">
+                                    <span className="rounded bg-spice-semantic-successBg px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-semantic-success">
                                       Correct
                                     </span>
                                   ) : null}

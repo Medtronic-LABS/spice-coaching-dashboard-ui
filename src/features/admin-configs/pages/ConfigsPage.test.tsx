@@ -29,7 +29,8 @@ async function saveDuration(
   user: ReturnType<typeof userEvent.setup>,
   days: string,
 ) {
-  const input = await screen.findByLabelText(/quiz reattempt validity days/i, {
+  const input = await screen.findByRole('textbox', {
+    name: /quiz reattempt validity/i,
     timeout: FIND_TIMEOUT_MS,
   });
   await user.clear(input);
@@ -37,9 +38,9 @@ async function saveDuration(
   await user.click(screen.getByRole('button', { name: /save changes/i }));
   await waitFor(
     () => {
-      expect(
-        screen.getByText('Quiz reattempt validity updated successfully.'),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Quiz reattempt validity updated successfully.',
+      );
     },
     { timeout: FIND_TIMEOUT_MS },
   );
@@ -124,10 +125,10 @@ describe('ConfigsPage configuration history', () => {
     const user = userEvent.setup();
     renderWithProviders(<ConfigsPage />);
 
-    const input = await screen.findByLabelText(
-      /quiz reattempt validity days/i,
-      { timeout: FIND_TIMEOUT_MS },
-    );
+    const input = await screen.findByRole('textbox', {
+      name: /quiz reattempt validity/i,
+      timeout: FIND_TIMEOUT_MS,
+    });
     expect(input).toHaveAttribute('maxLength', '3');
 
     await user.clear(input);

@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import {
@@ -39,8 +39,6 @@ function createMockModule() {
 
 let mockModule = createMockModule();
 
-const roleState = vi.hoisted(() => ({ role: 'programManager' as AppRole }));
-
 vi.mock('react-router-dom', async () => {
   const actual =
     await vi.importActual<typeof import('react-router-dom')>(
@@ -49,14 +47,6 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock('@/constants/role', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/constants/role')>();
-  return {
-    ...actual,
-    getCurrentRole: () => roleState.role,
   };
 });
 
@@ -106,28 +96,27 @@ function renderPublishStep() {
   });
 
   return render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewPublish.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewPublish}
-              element={<AdminModulePublishStep />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[adminModuleReviewPaths.publish('mod-1')]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewPublish}
+                element={<AdminModulePublishStep />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 
 describe('AdminModulePublishStep', () => {
   beforeEach(() => {
-    roleState.role = 'programManager';
     mockModule = createMockModule();
     mockNavigate.mockClear();
     publishModule.mockClear();

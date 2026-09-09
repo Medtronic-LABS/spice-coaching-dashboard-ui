@@ -13,7 +13,6 @@ import type {
   DashboardGeographyFilters,
   ModuleDemandQueryRow,
 } from '@/features/admin-dashboard/types/dashboard.types';
-import { canViewDemandMetadataTimestamps } from '@/features/admin-dashboard/utils/dashboardRoles';
 import {
   mapDigitalHelpQuestionsToRows,
   mapDigitalHelpRequestsToRows,
@@ -41,7 +40,6 @@ export const ExistingModuleInlineEvidence = ({
   actorView,
 }: ExistingModuleInlineEvidenceProps) => {
   const { t } = useTranslation();
-  const showTimestamp = canViewDemandMetadataTimestamps();
   const requestFallback = t('adminDashboard.moduleDemand.requestFallback');
 
   const questionsQuery = useFetchDigitalHelpModuleQuestionsQuery({
@@ -89,6 +87,7 @@ export const ExistingModuleInlineEvidence = ({
   if (showError) {
     return (
       <DashboardWidgetErrorState
+        error={questionsQuery.error ?? requestsQuery.error}
         onRetry={() => {
           void questionsQuery.refetch();
           void requestsQuery.refetch();
@@ -105,7 +104,7 @@ export const ExistingModuleInlineEvidence = ({
       requestsHeading={t('adminDashboard.existingModules.requestsHeading')}
       emptyQueries={t('adminDashboard.existingModules.emptyQueries')}
       emptyRequests={t('adminDashboard.existingModules.emptyRequests')}
-      showTimestamp={showTimestamp}
+      showTimestamp
     />
   );
 };
@@ -122,7 +121,6 @@ export const SuggestedModuleInlineEvidence = ({
   actorView,
 }: SuggestedModuleInlineEvidenceProps) => {
   const { t } = useTranslation();
-  const showTimestamp = canViewDemandMetadataTimestamps();
   const detailQuery = useFetchModuleCreationSuggestionDetailQuery({
     suggestionId,
     geography,
@@ -163,6 +161,7 @@ export const SuggestedModuleInlineEvidence = ({
   if (ui.showError) {
     return (
       <DashboardWidgetErrorState
+        error={detailQuery.error}
         onRetry={() => {
           void detailQuery.refetch();
         }}
@@ -178,7 +177,7 @@ export const SuggestedModuleInlineEvidence = ({
       requestsHeading={t('adminDashboard.suggestedModules.requestsHeading')}
       emptyQueries={t('adminDashboard.suggestedModules.emptyQueries')}
       emptyRequests={t('adminDashboard.suggestedModules.emptyRequests')}
-      showTimestamp={showTimestamp}
+      showTimestamp
       reasonLabel={reasonLabel}
     />
   );

@@ -7,6 +7,23 @@ export type { ComboboxOption, ComboboxProps } from '@/components/ui/Combobox';
 export { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 export type { ConfirmDialogProps } from '@/components/ui/ConfirmDialog';
 export { Divider } from '@/components/ui/Divider';
+export { FormHelperText } from '@/components/ui/FormHelperText';
+export type { FormHelperTextProps } from '@/components/ui/FormHelperText';
+export { FormLabel } from '@/components/ui/FormLabel';
+export type { FormLabelProps, FormLabelSize } from '@/components/ui/FormLabel';
+export {
+  CardTitle,
+  FieldGroupLabel,
+  ModalTitle,
+  PageSubtitle,
+} from '@/components/ui/Typography';
+export type {
+  CardTitleProps,
+  FieldGroupLabelProps,
+  ModalTitleProps,
+  PageSubtitleProps,
+} from '@/components/ui/Typography';
+export { typographyClasses } from '@/components/ui/typographyClasses';
 export { EmptyState } from '@/components/ui/EmptyState';
 export { ErrorState } from '@/components/ui/ErrorState';
 export { FileDropzone } from '@/components/ui/FileDropzone';
@@ -37,19 +54,59 @@ export { Modal } from '@/components/ui/Modal';
 export type { ModalProps } from '@/components/ui/Modal';
 export { ModalActionBar } from '@/components/ui/ModalActionBar';
 export type { ModalActionBarProps } from '@/components/ui/ModalActionBar';
+export { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
+export type { OverlayZIndex } from '@/components/ui/overlayZIndex';
 export { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
 export type { QuotedDisplayLabelProps } from '@/components/ui/QuotedDisplayLabel';
 export { SearchInput } from '@/components/ui/SearchInput';
 export { SectionHeader } from '@/components/ui/SectionHeader';
 export { Select } from '@/components/ui/Select';
 export type { SelectOption, SelectProps } from '@/components/ui/Select';
+export {
+  SnackbarProvider,
+  useSnackbar,
+} from '@/components/ui/Snackbar/SnackbarProvider';
+export type {
+  ShowSnackbarOptions,
+  SnackbarApi,
+  SnackbarItem,
+  SnackbarTone,
+} from '@/components/ui/Snackbar/snackbar.types';
 export { StatCard } from '@/components/ui/StatCard';
-export { StatusBadge } from '@/components/ui/StatusBadge';
+export {
+  StatusBadge,
+  STATUS_BADGE_CLASSNAME,
+  TABLE_STATUS_BADGE_CLASSNAME,
+} from '@/components/ui/StatusBadge';
+export type { StatusBadgeProps } from '@/components/ui/StatusBadge';
 export { InfoIcon, Tooltip } from '@/components/ui/Tooltip';
 export type { TooltipPlacement, TooltipProps } from '@/components/ui/Tooltip';
 export { TruncatedText } from '@/components/ui/TruncatedText';
 export { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
 export type { UnsavedChangesDialogProps } from '@/components/ui/UnsavedChangesDialog';
-export type { TabItem } from '@/components/ui/Tabs';
+export type { TabItem, TabsVariant } from '@/components/ui/Tabs';
 export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';
+export type { BadgeSize, BadgeVariant } from '@/components/ui/Badge';
+export type { ButtonSize } from '@/components/ui/Button';
 export { useWindowedList } from '@/components/ui/useWindowedList';
+export { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
+export type { RichTextEditorProps } from '@/components/ui/rich-text/RichTextEditor';
+export type {
+  RichAudioBlock,
+  RichBlock,
+  RichImageBlock,
+  RichStoredFileAttrs,
+  RichTextLeaf,
+  RichTextMark,
+  RichVideoBlock,
+} from '@/components/ui/rich-text/types/richText.types';
+export {
+  blocksToHtml,
+  blocksToPlainText,
+  htmlToBlocks,
+} from '@/components/ui/rich-text/utils/richText';
+export {
+  blocksToTiptapDoc,
+  richBlocksEqual,
+  tiptapDocToBlocks,
+} from '@/components/ui/rich-text/utils/richTextDocument';

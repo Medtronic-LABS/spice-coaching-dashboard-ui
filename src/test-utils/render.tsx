@@ -3,9 +3,14 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import { moduleEditReducer } from '@/features/modules/store/moduleEditSlice';
 import { baseApi } from '@/store/apis/base';
+
+export function renderWithSnackbar(ui: ReactElement) {
+  return render(<SnackbarProvider>{ui}</SnackbarProvider>);
+}
 
 export function renderWithProviders(
   ui: ReactElement,
@@ -32,7 +37,9 @@ export function renderWithProviders(
 
   return render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={[initialEntry]}>{ui}</MemoryRouter>
+      <SnackbarProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>{ui}</MemoryRouter>
+      </SnackbarProvider>
     </Provider>,
   );
 }

@@ -33,6 +33,11 @@
     "noData": "No data.",
     "somethingWentWrong": "Something went wrong",
     "somethingWentWrongDescription": "Something went wrong.",
+    "genericApiErrorDescription": "Something went wrong. Please try again.",
+    "pageLoadErrorSupport": "We couldn't retrieve the data. Please check your connection or try refreshing the page.",
+    "tableQueryErrorSupport": "Something went wrong while loading this data. Please try again.",
+    "goToDashboard": "Go to Dashboard",
+    "or": "or",
     "notFound": {
       "code": "404",
       "title": "Page not found",
@@ -185,7 +190,7 @@
       "finishedModulesTooltip": "SKs who have finished all assigned modules during the selected period.",
       "chatbotEngaged": "Chatbot Engaged",
       "chatbotEngagedTooltip": "SKs who sent at least one message to the AI chatbot during the selected period.",
-      "totalModules": "Published training modules",
+      "totalModules": "Training Modules",
       "totalModulesTooltip": "Total number of published training modules in the catalog"
     },
     "filters": {
@@ -385,7 +390,8 @@
       "detailDescription": "Queries and requests associated with this module or topic.",
       "occurrences": "{{count}} occurrences",
       "usersHeading": "Users who asked this question",
-      "userCount": "{{count}} users",
+      "userCount_one": "{{count}} User",
+      "userCount_other": "{{count}} Users",
       "interaction": {
         "chatbotServed": "Served by chatbot",
         "assignmentRequested": "Requested for assignment"

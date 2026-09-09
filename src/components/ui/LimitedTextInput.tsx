@@ -59,7 +59,7 @@ export const LimitedTextInput = ({
         <div
           id={id ? `${id}-counter` : undefined}
           className={cn(
-            'text-right text-[11px] tabular-nums',
+            'text-right text-xs tabular-nums',
             isInline && 'shrink-0',
             nearLimit
               ? 'font-medium text-spice-semantic-warning'

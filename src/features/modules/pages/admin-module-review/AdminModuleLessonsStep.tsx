@@ -1,25 +1,30 @@
 import { ArrowRightIcon, DeleteIcon, SaveDraftIcon } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   EmptyState,
+  FieldGroupLabel,
+  FormLabel,
   LimitedTextInput,
   Loader,
   TruncatedText,
 } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   FIELD_LIMITS,
   TABLE_CELL_LABEL_MAX_LENGTH,
 } from '@/constants/fieldLimits';
+import {
+  storedFileAttrsFromUpload,
+  useUploadAdminFileMutation,
+} from '@/features/modules/api/adminFilesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
 import {
   ReorderableList,
   ReorderDragHandle,
-} from '@/features/modules/components/ReorderableList';
-import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
+} from '@/components/shared/ReorderableList';
+import { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -84,6 +89,7 @@ export const AdminModuleLessonsStep = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editorRevision, setEditorRevision] = useState(0);
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
+  const [uploadAdminFile] = useUploadAdminFileMutation();
   const previousModuleIdRef = useRef(moduleId);
   const pendingCardFocusRef = useRef<AdminModuleDraftIssue | null>(null);
   const isReadonly = useAdminModuleReviewReadonly();
@@ -93,13 +99,20 @@ export const AdminModuleLessonsStep = () => {
     closePreview,
   } = useModulePreview();
   const {
-    actionError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
     captureSaveError,
     closeDraftValidation,
   } = useAdminModuleDraftSaveFeedback(formatError);
+
+  const uploadMediaFile = useCallback(
+    async (file: File) =>
+      storedFileAttrsFromUpload(
+        await uploadAdminFile({ file, prefix: 'media' }).unwrap(),
+      ),
+    [uploadAdminFile],
+  );
 
   const cards = useMemo(
     () =>
@@ -252,7 +265,6 @@ export const AdminModuleLessonsStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}
@@ -269,9 +281,7 @@ export const AdminModuleLessonsStep = () => {
       >
         <Card variant="elevated" className="space-y-3 p-4">
           <div>
-            <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-              Module
-            </div>
+            <FieldGroupLabel>Module</FieldGroupLabel>
             <div className="mt-1 text-sm font-semibold text-spice-text-primary">
               {resolveDisplayText(working.title)}
             </div>
@@ -330,7 +340,7 @@ export const AdminModuleLessonsStep = () => {
                           focusable
                           className="font-semibold"
                         />
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-spice-text-muted">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-spice-text-muted">
                           <span>Card {idx + 1}</span>
                           {edited ? (
                             <span className="rounded-full bg-spice-bg-surface px-2 py-0.5 font-semibold ring-1 ring-spice-border">
@@ -449,9 +459,7 @@ export const AdminModuleLessonsStep = () => {
                   className="block space-y-1"
                   data-card-editor-field="title"
                 >
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Title (BN)
-                  </span>
+                  <FormLabel>Title (BN)</FormLabel>
                   <LimitedTextInput
                     id={`admin-module-card-title-${selectedCard.id}`}
                     value={
@@ -480,13 +488,12 @@ export const AdminModuleLessonsStep = () => {
               </div>
 
               <div className="space-y-1" data-card-editor-field="body">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  Body/content (BN)
-                </span>
+                <FormLabel>Body/content (BN)</FormLabel>
                 <RichTextEditor
                   key={`card-body-${selectedIndex}-${selectedCard.id}-${editorRevision}`}
                   value={selectedBody}
                   onEditorFocus={handleEditorFocus}
+                  onUploadMediaFile={uploadMediaFile}
                   onChange={(body) =>
                     updateSelectedCard({
                       body: setLocaleRichBody(
@@ -527,14 +534,7 @@ export const AdminModuleLessonsStep = () => {
             <Button
               className="inline-flex h-9 items-center gap-1.5 text-xs"
               disabled={busy}
-              onClick={() =>
-                navigate(
-                  paths.adminModuleReviewQuiz.replace(
-                    ':moduleId',
-                    encodeURIComponent(working.id),
-                  ),
-                )
-              }
+              onClick={() => navigate(adminModuleReviewPaths.quiz(working.id))}
             >
               Continue to Quiz
               <ArrowRightIcon className="h-3.5 w-3.5" />

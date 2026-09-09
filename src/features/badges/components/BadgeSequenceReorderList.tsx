@@ -6,7 +6,7 @@ import { assignSequencesByOrder } from '@/features/badges/utils/badgeSequence';
 import {
   ReorderDragHandle,
   ReorderableList,
-} from '@/features/modules/components/ReorderableList';
+} from '@/components/shared/ReorderableList';
 import { resolveDisplayText } from '@/config/deploymentLocale';
 
 export interface BadgeSequenceReorderListProps {

@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, Button, Card, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  CardTitle,
+  Loader,
+  SectionHeader,
+  StatusBadge,
+} from '@/components/ui';
 import {
   useGetIngestBatchStatusQuery,
   useRetryIngestBatchMutation,
@@ -13,11 +21,8 @@ import {
   isIngestRunning,
   shouldPollIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
-import {
-  formatIngestRunStatusDisplay,
-  ingestRunStatusBadgeClassName,
-  ingestRunStatusTone,
-} from '@/features/ingest/utils/ingestRunHistoryUtils';
+import { getIngestRunStatusBadgeProps } from '@/features/ingest/utils/ingestRunStatusBadge';
+import { ingestRunStatusTone } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 import { extractIngestBatchFailureTooltipMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
 
@@ -99,7 +104,6 @@ export const IngestRunStatusPanel = ({
 
   const ingestionInProgress = isIngestInProgress(batchId, statusData?.status);
   const ingestionSucceeded = canCompleteIngestFlow(statusData?.status);
-  const batchStatusTone = ingestRunStatusTone(statusData?.status);
   const batchFailureMessage =
     extractIngestBatchFailureTooltipMessage(statusData);
   const sources = statusData?.sources ?? [];
@@ -151,20 +155,16 @@ export const IngestRunStatusPanel = ({
 
   return (
     <Card variant="elevated" className="space-y-4 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-semibold text-spice-text-primary">
-              Ingestion status
-            </div>
+      <SectionHeader
+        title="Ingestion status"
+        variant="h2"
+        subtitle={progressLabel}
+        titleAccessory={
+          <>
             {statusData?.status ? (
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ingestRunStatusBadgeClassName(
-                  batchStatusTone,
-                )}`}
-              >
-                {formatIngestRunStatusDisplay(statusData.status)}
-              </span>
+              <StatusBadge
+                {...getIngestRunStatusBadgeProps(statusData.status)}
+              />
             ) : null}
             {batchFailureMessage ? (
               <Tooltip
@@ -173,23 +173,21 @@ export const IngestRunStatusPanel = ({
               />
             ) : null}
             {isFetching && statusData ? (
-              <span className="text-[10px] text-spice-text-muted">
+              <span className="text-xs font-normal text-spice-text-muted">
                 Updating…
               </span>
             ) : null}
-          </div>
-          <div className="mt-1 text-xs text-spice-text-muted">
-            {progressLabel}
-          </div>
-        </div>
-
-        {retryAction || (!ingestionSucceeded && successAction) ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {retryAction}
-            {!ingestionSucceeded ? successAction : null}
-          </div>
-        ) : null}
-      </div>
+          </>
+        }
+        action={
+          retryAction || (!ingestionSucceeded && successAction) ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {retryAction}
+              {!ingestionSucceeded ? successAction : null}
+            </div>
+          ) : undefined
+        }
+      />
 
       {error ? (
         <div className="space-y-2">
@@ -218,9 +216,7 @@ export const IngestRunStatusPanel = ({
 
       {statusData ? (
         <div className="space-y-3">
-          <div className="text-sm font-semibold text-spice-text-primary">
-            Documents
-          </div>
+          <CardTitle as="h3">Documents</CardTitle>
           {sources.length ? (
             sources.map((source) => (
               <IngestDocumentProgressCard

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { BookIcon, EyeIcon, UsersIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import { TablePagination } from '@/components/common/TablePagination';
-import { StatCard } from '@/components/ui';
+import { StatCard, typographyClasses } from '@/components/ui';
 import { WidgetSubheading } from '@/features/admin-dashboard/components/document-usage/DocumentUsageChrome';
 import type { DocumentUsageEventRow } from '@/features/admin-dashboard/types/dashboard.types';
 import {
@@ -72,7 +72,7 @@ export const DocumentUsageDetailView = ({
         const name =
           row.user_name ?? t('adminDashboard.documentUsage.unknownUser');
         return (
-          <span className="font-medium text-spice-text-primary">{name}</span>
+          <span className={typographyClasses.tableCellPrimary}>{name}</span>
         );
       },
     },

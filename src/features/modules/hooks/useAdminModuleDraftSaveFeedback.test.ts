@@ -1,14 +1,19 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { AdminModuleDraftValidationError } from '@/features/modules/utils/validateAdminModuleDraftContent';
+
+function renderSaveFeedbackHook(formatError: (error: unknown) => string) {
+  return renderHook(() => useAdminModuleDraftSaveFeedback(formatError), {
+    wrapper: SnackbarProvider,
+  });
+}
 
 describe('useAdminModuleDraftSaveFeedback', () => {
   it('surfaces draft validation issues for the dialog', () => {
     const formatError = vi.fn(() => 'formatted');
-    const { result } = renderHook(() =>
-      useAdminModuleDraftSaveFeedback(formatError),
-    );
+    const { result } = renderSaveFeedbackHook(formatError);
 
     act(() => {
       result.current.captureSaveError(
@@ -25,16 +30,13 @@ describe('useAdminModuleDraftSaveFeedback', () => {
     });
 
     expect(result.current.draftValidationOpen).toBe(true);
-    expect(result.current.actionError).toBe('');
     expect(result.current.draftIssues).toHaveLength(1);
     expect(formatError).not.toHaveBeenCalled();
   });
 
-  it('surfaces non-validation errors as banner text', () => {
+  it('surfaces non-validation errors in a snackbar', () => {
     const formatError = vi.fn(() => 'Save failed');
-    const { result } = renderHook(() =>
-      useAdminModuleDraftSaveFeedback(formatError),
-    );
+    const { result } = renderSaveFeedbackHook(formatError);
 
     act(() => {
       result.current.captureSaveError(new Error('boom'));
@@ -42,14 +44,12 @@ describe('useAdminModuleDraftSaveFeedback', () => {
 
     expect(result.current.draftValidationOpen).toBe(false);
     expect(result.current.draftIssues).toEqual([]);
-    expect(result.current.actionError).toBe('Save failed');
     expect(formatError).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Save failed');
   });
 
   it('clears dialog issues on close and clear', () => {
-    const { result } = renderHook(() =>
-      useAdminModuleDraftSaveFeedback(() => 'x'),
-    );
+    const { result } = renderSaveFeedbackHook(() => 'x');
 
     act(() => {
       result.current.captureSaveError(
@@ -77,6 +77,6 @@ describe('useAdminModuleDraftSaveFeedback', () => {
     act(() => {
       result.current.clearSaveFeedback();
     });
-    expect(result.current.actionError).toBe('');
+    expect(result.current.draftIssues).toEqual([]);
   });
 });

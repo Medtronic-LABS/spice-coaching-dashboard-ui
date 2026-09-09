@@ -44,7 +44,7 @@ export function InfoIcon({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-spice-text-medium/75 bg-white text-[10px] font-bold leading-none text-black',
+        'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-spice-text-medium/75 bg-white text-xs font-bold leading-none text-black',
         className,
       )}
       aria-hidden="true"

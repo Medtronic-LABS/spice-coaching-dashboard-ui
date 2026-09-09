@@ -7,31 +7,36 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import {
-  Banner,
   Button,
   Card,
   ConfirmDialog,
+  FormLabel,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
   Modal,
+  ModalTitle,
   QuotedDisplayLabel,
   SearchInput,
   Select,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   Tabs,
   Tooltip,
   TruncatedText,
+  typographyClasses,
+  useSnackbar,
 } from '@/components/ui';
 import { Table } from '@/components/common/Table';
+import { PageTitle } from '@/components/common/PageTitle';
 import { TablePagination } from '@/components/common/TablePagination';
 import {
   SettingsFilterDrawer,
   SettingsFilterTriggerButton,
 } from '@/components/common/SettingsFilterDrawer';
 import type { ColumnDef } from '@/components/common/Table/Table.types';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   FIELD_LIMITS,
   TABLE_CELL_LABEL_MAX_LENGTH,
@@ -39,7 +44,6 @@ import {
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
 import { truncateDisplayText } from '@/utils/truncateDisplayText';
-import { getCurrentRole } from '@/constants/role';
 import {
   useCreateModuleMutation,
   useDeactivateModuleMutation,
@@ -67,7 +71,7 @@ import {
 } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { isAssignablePublishedModule } from '@/features/modules/utils/isAssignablePublishedModule';
 import { DiscardedTabTable } from '@/features/modules/components/DiscardedTabTable';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 import { useModuleListFilters } from '@/features/modules/hooks/useModuleListFilters';
 import type {
   ModuleLibraryItem,
@@ -161,10 +165,9 @@ const MODULE_LIBRARY_ACTION_SLOT_CLASS: Record<
 
 function getModuleLibraryActionSlots(
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): ModuleLibraryActionSlot[] {
   if (tab === 'published') {
-    return isProgramManager ? ['assign', 'deactivate'] : ['assign'];
+    return ['assign', 'deactivate'];
   }
   if (tab === 'drafts') {
     return ['review', 'publish'];
@@ -186,7 +189,7 @@ function ModuleLibraryActionSlot({
     >
       {children ?? (
         <span
-          className="inline-flex h-full w-full items-center justify-center text-xs text-spice-text-medium"
+          className="inline-flex h-full w-full items-center justify-center text-spice-text-medium"
           aria-hidden="true"
         >
           —
@@ -222,9 +225,12 @@ function createEmptyCreateForm(): CreateModuleFormState {
   };
 }
 
-const moduleBadge = (status: ModuleStatus) => {
-  return <ModuleStatusBadge status={status} />;
-};
+const moduleBadge = (status: ModuleStatus) => (
+  <StatusBadge
+    {...getModuleStatusBadgeProps(status)}
+    className={TABLE_STATUS_BADGE_CLASSNAME}
+  />
+);
 
 function isNeedsReviewStatus(status?: string): boolean {
   const norm = (status || '').trim().toLowerCase();
@@ -238,9 +244,7 @@ function isNeedsReviewStatus(status?: string): boolean {
 }
 
 export const ModuleLibraryPage = () => {
-  const role = getCurrentRole();
-  const isProgramManager = role === 'programManager';
-  const { t } = useTranslation();
+  const snackbar = useSnackbar();
   const navigate = useNavigate();
   const location = useLocation();
   const [query, setQuery] = useState('');
@@ -256,7 +260,7 @@ export const ModuleLibraryPage = () => {
     setTab,
     setFilters,
     resolveExternalViewSearch,
-  } = useModuleListFilters(isProgramManager);
+  } = useModuleListFilters();
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(0);
   const {
@@ -286,7 +290,6 @@ export const ModuleLibraryPage = () => {
     id: string;
     title: string;
   } | null>(null);
-  const [deactivateError, setDeactivateError] = useState('');
   const [assignmentOpen, setAssignmentOpen] = useState(false);
   const [assignmentModule, setAssignmentModule] = useState<{
     id: string;
@@ -312,7 +315,6 @@ export const ModuleLibraryPage = () => {
   const [publishingModuleId, setPublishingModuleId] = useState<string | null>(
     null,
   );
-  const [publishError, setPublishError] = useState('');
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [publishSuccessSummary, setPublishSuccessSummary] =
     useState<ModulePublishedSuccessSummary | null>(null);
@@ -336,29 +338,12 @@ export const ModuleLibraryPage = () => {
   };
 
   const handleViewModule = (moduleId: string) => {
-    navigate(
-      paths.adminModuleReviewDetails.replace(
-        ':moduleId',
-        encodeURIComponent(moduleId),
-      ),
-    );
+    navigate(adminModuleReviewPaths.details(moduleId));
   };
 
-  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
-  const dateParams = buildModuleListTypedDateParams(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
-  const filtersActive = hasActiveModuleFilters(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
+  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(activeFilters, tab);
+  const dateParams = buildModuleListTypedDateParams(activeFilters, tab);
+  const filtersActive = hasActiveModuleFilters(activeFilters, tab);
   const [sortBy, setSortBy] = useState<string | undefined>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -377,6 +362,8 @@ export const ModuleLibraryPage = () => {
     currentData: currentModulesPage,
     refetch,
     isFetching: isFetchingModules,
+    isError: modulesQueryError,
+    error: modulesFetchError,
     isUninitialized: modulesQueryUninitialized,
   } = useFetchModulesQuery(
     {
@@ -411,6 +398,15 @@ export const ModuleLibraryPage = () => {
       // Query may be skipped or unsubscribed after navigation.
     }
   }, [dateRangeInvalid, modulesQueryUninitialized, refetch]);
+
+  const modulesTableQueryError =
+    modulesQueryError && !isFetchingModules
+      ? {
+          queryError: modulesFetchError,
+          queryErrorTitle: 'Failed to load modules',
+          onRetryQuery: refreshModuleList,
+        }
+      : {};
 
   const handleOpenFiltersDrawer = () => {
     setDraftFilters(activeFilters);
@@ -643,31 +639,20 @@ export const ModuleLibraryPage = () => {
     return rows;
   }, [modulesForDisplay]);
 
-  const dateColumns = useMemo(
-    () => getModuleListingDateColumns(tab, isProgramManager),
-    [isProgramManager, tab],
-  );
+  const dateColumns = useMemo(() => getModuleListingDateColumns(tab), [tab]);
 
-  const actorColumns = useMemo(
-    () => getModuleListingActorColumns(tab, isProgramManager),
-    [isProgramManager, tab],
-  );
+  const actorColumns = useMemo(() => getModuleListingActorColumns(tab), [tab]);
 
-  const tableCaption = isProgramManager
-    ? tab === 'published'
+  const tableCaption =
+    tab === 'published'
       ? 'Published modules'
       : tab === 'drafts'
         ? 'Draft modules'
         : tab === 'deactivated'
           ? 'Deactivated modules'
-          : 'All modules'
-    : 'Published modules';
+          : 'All modules';
 
-  const emptyMessage = getModuleListEmptyMessage(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
+  const emptyMessage = getModuleListEmptyMessage(activeFilters, tab);
 
   const hasNextPage = tableHasNextPage(page, totalPages);
   const hasPrevPage = tableHasPrevPage(page);
@@ -708,17 +693,20 @@ export const ModuleLibraryPage = () => {
                       setExpandedReviewModuleId(row.id);
                       setTab('needs_review');
                     }}
-                    className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline"
+                    className={cn(
+                      typographyClasses.tableCellPrimary,
+                      'block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline',
+                    )}
                   >
                     {displayTitle}
                   </button>
                 ) : (
                   <Link
-                    to={paths.adminModuleReviewDetails.replace(
-                      ':moduleId',
-                      encodeURIComponent(row.id),
+                    to={adminModuleReviewPaths.details(row.id)}
+                    className={cn(
+                      typographyClasses.tableCellPrimary,
+                      'block truncate break-all font-semibold text-spice-brand-primary hover:underline',
                     )}
-                    className="block truncate break-all font-semibold text-spice-brand-primary hover:underline"
                   >
                     {displayTitle}
                   </Link>
@@ -732,7 +720,7 @@ export const ModuleLibraryPage = () => {
         key: 'lessons',
         header: 'Content',
         render: (row) => (
-          <div className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap">
             <span>
               {row.lessons === 1 ? '1 lesson' : `${row.lessons} lessons`}
             </span>
@@ -746,7 +734,7 @@ export const ModuleLibraryPage = () => {
                   : `${row.questions} questions`}
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-xs font-semibold text-spice-text-muted ring-1 ring-spice-border">
                 No quiz
               </span>
             )}
@@ -792,10 +780,7 @@ export const ModuleLibraryPage = () => {
         header: 'Actions',
         className: 'text-left whitespace-nowrap',
         render: (row) => {
-          const actionSlots = getModuleLibraryActionSlots(
-            tab,
-            isProgramManager,
-          );
+          const actionSlots = getModuleLibraryActionSlots(tab);
           const reserveActionSlots = actionSlots.length > 0;
           const actionButtonClass = reserveActionSlots
             ? 'h-8 w-full px-3 text-xs'
@@ -815,9 +800,7 @@ export const ModuleLibraryPage = () => {
             ) : null;
 
           const reviewButton =
-            isProgramManager &&
-            row.status !== 'published' &&
-            row.status !== 'deactivated' ? (
+            row.status !== 'published' && row.status !== 'deactivated' ? (
               <Button
                 className={actionButtonClass}
                 onClick={() => {
@@ -825,12 +808,7 @@ export const ModuleLibraryPage = () => {
                     setExpandedReviewModuleId(row.id);
                     setTab('needs_review');
                   } else {
-                    navigate(
-                      paths.adminModuleReviewDetails.replace(
-                        ':moduleId',
-                        encodeURIComponent(row.id),
-                      ),
-                    );
+                    navigate(adminModuleReviewPaths.details(row.id));
                   }
                 }}
               >
@@ -840,14 +818,13 @@ export const ModuleLibraryPage = () => {
 
           const isPublishingRow = isPublishing && publishingModuleId === row.id;
           const publishButton =
-            isProgramManager && row.status === 'draft' ? (
+            row.status === 'draft' ? (
               <Button
                 variant="primary"
                 className={actionButtonClass}
                 disabled={isPublishingRow}
                 onClick={async () => {
                   if (isPublishing) return;
-                  setPublishError('');
                   setPublishingModuleId(row.id);
                   try {
                     await publishModule({ moduleId: row.id }).unwrap();
@@ -859,9 +836,10 @@ export const ModuleLibraryPage = () => {
                       estimateMinutes: row.estimatedMinutes,
                     });
                     setPublishSuccessOpen(true);
+                    snackbar.showSuccess('Module published successfully.');
                     refreshModuleList();
                   } catch (error) {
-                    setPublishError(
+                    snackbar.showError(
                       formatRtkQueryError(error) ||
                         'Failed to publish module. Please try again.',
                     );
@@ -876,7 +854,7 @@ export const ModuleLibraryPage = () => {
             ) : null;
 
           const deactivateButton =
-            isProgramManager && row.status === 'published' ? (
+            row.status === 'published' ? (
               <Button
                 variant="secondary"
                 className={cn(
@@ -884,7 +862,6 @@ export const ModuleLibraryPage = () => {
                   'text-spice-semantic-error hover:bg-spice-semantic-errorBg',
                 )}
                 onClick={() => {
-                  setDeactivateError('');
                   setDeactivateModuleData({
                     id: row.id,
                     title: row.title,
@@ -899,7 +876,7 @@ export const ModuleLibraryPage = () => {
           const isReactivatingRow =
             isReactivating && reactivatingModuleId === row.id;
           const activateButton =
-            isProgramManager && row.status === 'deactivated' ? (
+            row.status === 'deactivated' ? (
               <Button
                 variant="primary"
                 className={actionButtonClass}
@@ -961,7 +938,6 @@ export const ModuleLibraryPage = () => {
     [
       actorColumns,
       dateColumns,
-      isProgramManager,
       isPublishing,
       isReactivating,
       navigate,
@@ -1000,7 +976,6 @@ export const ModuleLibraryPage = () => {
                 : 'Publishing module…'
         }
       />
-      {publishError ? <Banner tone="critical">{publishError}</Banner> : null}
       {createOpen ? (
         <Modal
           open={createOpen}
@@ -1017,34 +992,20 @@ export const ModuleLibraryPage = () => {
             className="w-full space-y-4 border-spice-border p-6 pr-12 shadow-lg sm:p-7 sm:pr-14"
           >
             <div>
-              <h2
-                id="create-module-title"
-                className="text-xl font-semibold text-spice-text-primary"
-              >
-                Create module
-              </h2>
+              <ModalTitle id="create-module-title">Create module</ModalTitle>
               <p className="mt-1 text-xs text-spice-text-muted">
                 Creates a draft module in the admin module library.
               </p>
             </div>
 
             {createError ? (
-              <Banner tone="critical">{createError}</Banner>
+              <p className="text-xs text-spice-semantic-error">{createError}</p>
             ) : null}
 
             <div className="space-y-4">
               <div className="grid gap-3">
                 <label className="block w-full space-y-1">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Title (BN)
-                    <span
-                      className="text-spice-semantic-error"
-                      aria-hidden="true"
-                    >
-                      {' '}
-                      *
-                    </span>
-                  </span>
+                  <FormLabel required>Title (BN)</FormLabel>
                   <LimitedTextInput
                     id="create-module-title-bn"
                     value={createForm.title_bn}
@@ -1060,9 +1021,7 @@ export const ModuleLibraryPage = () => {
                   />
                 </label>
                 <label className="block w-full space-y-1">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Description (BN)
-                  </span>
+                  <FormLabel>Description (BN)</FormLabel>
                   <LimitedTextarea
                     id="create-module-description-bn"
                     value={createForm.description_bn}
@@ -1097,14 +1056,14 @@ export const ModuleLibraryPage = () => {
                   }
                 />
                 <label className="block space-y-1 self-start">
-                  <span className="flex min-h-5 items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+                  <FormLabel className="flex min-h-5 items-center gap-1.5">
                     Content domain type
                     <Tooltip
                       label="About Content domain type"
                       content={CONTENT_DOMAIN_TYPE_TOOLTIP}
                       placement="top"
                     />
-                  </span>
+                  </FormLabel>
                   <Select
                     className="w-full"
                     options={INGEST_CONTENT_DOMAIN_OPTIONS}
@@ -1120,9 +1079,7 @@ export const ModuleLibraryPage = () => {
                   />
                 </label>
                 <label className="block space-y-1 self-start">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Estimated minutes
-                  </span>
+                  <FormLabel>Estimated minutes</FormLabel>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -1164,9 +1121,7 @@ export const ModuleLibraryPage = () => {
                   ) : null}
                 </label>
                 <label className="block space-y-1 self-start">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Difficulty level
-                  </span>
+                  <FormLabel>Difficulty level</FormLabel>
                   <select
                     className={cn(CREATE_MODULE_INPUT_CLASS, 'select-arrow')}
                     value={createForm.difficulty_level}
@@ -1203,7 +1158,6 @@ export const ModuleLibraryPage = () => {
             <div className="flex justify-end gap-2 border-t border-spice-border pt-4">
               <Button
                 variant="secondary"
-                className="h-9 text-xs"
                 disabled={isCreating}
                 onClick={() => {
                   setCreateError('');
@@ -1213,101 +1167,97 @@ export const ModuleLibraryPage = () => {
                 Cancel
               </Button>
               <Button
-                className="h-9 text-xs"
                 disabled={
                   isCreating ||
                   !createForm.title_bn.trim() ||
                   !createForm.domain.trim() ||
                   estimatedMinutesError !== null
                 }
-                onClick={async () => {
-                  setCreateError('');
-                  if (estimatedMinutesError) {
-                    setCreateError(estimatedMinutesError);
-                    return;
-                  }
-                  const domainRaw = createForm.domain.trim();
-                  if (!domainRaw) {
-                    setCreateError('Domain is required.');
-                    return;
-                  }
-                  if (domainRaw.length > FIELD_LIMITS.taxonomy) {
-                    setCreateError(
-                      fieldLimitExceededMessage(
-                        'Domain',
-                        FIELD_LIMITS.taxonomy,
-                      ),
-                    );
-                    return;
-                  }
-                  const titleBn = createForm.title_bn.trim();
-                  if (titleBn.length > FIELD_LIMITS.moduleTitle) {
-                    setCreateError(
-                      fieldLimitExceededMessage(
-                        'Title',
-                        FIELD_LIMITS.moduleTitle,
-                      ),
-                    );
-                    return;
-                  }
-                  const descriptionBn = createForm.description_bn.trim();
-                  if (descriptionBn.length > FIELD_LIMITS.description) {
-                    setCreateError(
-                      fieldLimitExceededMessage(
-                        'Description',
-                        FIELD_LIMITS.description,
-                      ),
-                    );
-                    return;
-                  }
-                  try {
-                    const domain = normalizeModuleTaxonomyLabel(domainRaw);
-                    const created = await createModule({
-                      title: {
-                        bn: titleBn,
-                      },
-                      ...(descriptionBn
-                        ? {
-                            description: {
-                              bn: descriptionBn,
-                            },
-                          }
-                        : {}),
-                      domain,
-                      sub_domain: null,
-                      content_domain: createForm.content_domain,
-                      module_type: createForm.module_type,
-                      estimated_minutes: Math.min(
-                        MAX_ESTIMATED_MINUTES,
-                        Math.max(
-                          1,
-                          Number.isFinite(createForm.estimated_minutes)
-                            ? createForm.estimated_minutes
-                            : 1,
+                onClick={() => {
+                  void (async () => {
+                    setCreateError('');
+                    if (estimatedMinutesError) {
+                      setCreateError(estimatedMinutesError);
+                      return;
+                    }
+                    const domainRaw = createForm.domain.trim();
+                    if (!domainRaw) {
+                      setCreateError('Domain is required.');
+                      return;
+                    }
+                    if (domainRaw.length > FIELD_LIMITS.taxonomy) {
+                      setCreateError(
+                        fieldLimitExceededMessage(
+                          'Domain',
+                          FIELD_LIMITS.taxonomy,
                         ),
-                      ),
+                      );
+                      return;
+                    }
+                    const titleBn = createForm.title_bn.trim();
+                    if (titleBn.length > FIELD_LIMITS.moduleTitle) {
+                      setCreateError(
+                        fieldLimitExceededMessage(
+                          'Title',
+                          FIELD_LIMITS.moduleTitle,
+                        ),
+                      );
+                      return;
+                    }
+                    const descriptionBn = createForm.description_bn.trim();
+                    if (descriptionBn.length > FIELD_LIMITS.description) {
+                      setCreateError(
+                        fieldLimitExceededMessage(
+                          'Description',
+                          FIELD_LIMITS.description,
+                        ),
+                      );
+                      return;
+                    }
+                    try {
+                      const domain = normalizeModuleTaxonomyLabel(domainRaw);
+                      const created = await createModule({
+                        title: {
+                          bn: titleBn,
+                        },
+                        ...(descriptionBn
+                          ? {
+                              description: {
+                                bn: descriptionBn,
+                              },
+                            }
+                          : {}),
+                        domain,
+                        sub_domain: null,
+                        content_domain: createForm.content_domain,
+                        module_type: createForm.module_type,
+                        estimated_minutes: Math.min(
+                          MAX_ESTIMATED_MINUTES,
+                          Math.max(
+                            1,
+                            Number.isFinite(createForm.estimated_minutes)
+                              ? createForm.estimated_minutes
+                              : 1,
+                          ),
+                        ),
 
-                      difficulty_level: createForm.difficulty_level,
-                      chatbot_faqs_only: createForm.chatbot_faqs_only,
-                      module_json: {
-                        cards: [createEmptyAdminModuleCard()],
-                        quiz: [createEmptyAdminModuleQuizItem(1)],
-                      },
-                    }).unwrap();
-                    setCreateOpen(false);
-                    void refetchDomainOptions();
-                    setCreateForm(createEmptyCreateForm());
-                    navigate(
-                      paths.adminModuleReviewDetails.replace(
-                        ':moduleId',
-                        encodeURIComponent(created.id),
-                      ),
-                    );
-                  } catch {
-                    setCreateError(
-                      'Failed to create module. Please try again.',
-                    );
-                  }
+                        difficulty_level: createForm.difficulty_level,
+                        chatbot_faqs_only: createForm.chatbot_faqs_only,
+                        module_json: {
+                          cards: [createEmptyAdminModuleCard()],
+                          quiz: [createEmptyAdminModuleQuizItem(1)],
+                        },
+                      }).unwrap();
+                      setCreateOpen(false);
+                      void refetchDomainOptions();
+                      setCreateForm(createEmptyCreateForm());
+                      navigate(adminModuleReviewPaths.details(created.id));
+                    } catch {
+                      snackbar.showError(
+                        'Failed to create module. Please try again.',
+                      );
+                    }
+                  })();
                 }}
               >
                 {isCreating ? 'Creating…' : 'Create draft'}
@@ -1336,39 +1286,33 @@ export const ModuleLibraryPage = () => {
           isConfirming={isDeactivating}
           disabled={isDeactivating}
           onClose={() => {
-            setDeactivateError('');
             setDeactivateConfirmOpen(false);
             setDeactivateModuleData(null);
           }}
           onConfirm={() => {
             void (async () => {
-              setDeactivateError('');
               try {
                 await deactivateModule({
                   moduleId: deactivateModuleData.id,
                 }).unwrap();
                 setDeactivateConfirmOpen(false);
                 setDeactivateModuleData(null);
+                snackbar.showSuccess('Module deactivated successfully.');
                 refreshModuleList();
-              } catch {
-                setDeactivateError(
-                  'Failed to deactivate module. Please try again.',
+              } catch (error) {
+                snackbar.showError(
+                  formatRtkQueryError(error) ||
+                    'Failed to deactivate module. Please try again.',
                 );
               }
             })();
           }}
-        >
-          {deactivateError ? (
-            <Banner tone="critical">{deactivateError}</Banner>
-          ) : null}
-        </ConfirmDialog>
+        />
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold leading-[34px] text-spice-text-primary">
-            {isProgramManager ? 'Module Library' : t('moduleLibrary.title')}
-          </h1>
+          <PageTitle title="Module Library" />
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <div className="w-full sm:w-72">
@@ -1379,55 +1323,46 @@ export const ModuleLibraryPage = () => {
               className="h-[35px] rounded-lg pl-10 pr-4 text-base placeholder:text-spice-text-onSurfaceVariant"
             />
           </div>
-          {isProgramManager ? (
-            <>
-              <Button
-                onClick={() => {
-                  setCreateError('');
-                  setCreateForm(createEmptyCreateForm());
-                  setCreateOpen(true);
-                }}
-              >
-                Create Module
-              </Button>
-            </>
-          ) : null}
+          <Button
+            onClick={() => {
+              setCreateError('');
+              setCreateForm(createEmptyCreateForm());
+              setCreateOpen(true);
+            }}
+          >
+            Create Module
+          </Button>
         </div>
       </div>
 
       <Card variant="elevated" className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          {isProgramManager ? (
-            <Tabs
-              variant="moduleLibrary"
-              items={[
-                { label: 'Drafts', value: 'drafts' },
-                { label: 'Published', value: 'published' },
-                {
-                  label: (
-                    <span className="inline-flex items-center gap-1.5">
-                      Needs Review
-                      <Tooltip
-                        as="span"
-                        label="Needs Review Keep New, Discard New, and Merge information"
-                        content={NEEDS_REVIEW_TOOLTIP_CONTENT}
-                        placement="bottom"
-                      />
-                    </span>
-                  ),
-                  value: 'needs_review',
-                },
-                { label: 'Deactivated', value: 'deactivated' },
-                { label: 'Discarded', value: 'discarded' },
-                { label: 'All', value: 'all' },
-              ]}
-              value={tab}
-              onChange={handleTabChange}
-              className="w-fit px-[10px]"
-            />
-          ) : (
-            <div />
-          )}
+          <Tabs
+            items={[
+              { label: 'Drafts', value: 'drafts' },
+              { label: 'Published', value: 'published' },
+              {
+                label: (
+                  <span className="inline-flex items-center gap-1.5">
+                    Needs Review
+                    <Tooltip
+                      as="span"
+                      label="Needs Review Keep New, Discard New, and Merge information"
+                      content={NEEDS_REVIEW_TOOLTIP_CONTENT}
+                      placement="bottom"
+                    />
+                  </span>
+                ),
+                value: 'needs_review',
+              },
+              { label: 'Deactivated', value: 'deactivated' },
+              { label: 'Discarded', value: 'discarded' },
+              { label: 'All', value: 'all' },
+            ]}
+            value={tab}
+            onChange={handleTabChange}
+            className="w-fit min-w-0"
+          />
           <SettingsFilterTriggerButton
             active={filtersActive}
             expanded={filtersDrawerOpen}
@@ -1452,7 +1387,6 @@ export const ModuleLibraryPage = () => {
           <ModuleLibraryFilters
             filters={draftFilters}
             tab={tab}
-            isProgramManager={isProgramManager}
             domains={domainOptions}
             sourceDocumentOptions={documentFilterOptions}
             sourceDocumentId={draftFilters.sourceDocumentId}
@@ -1482,6 +1416,7 @@ export const ModuleLibraryPage = () => {
             onSort={handleSort}
             initialExpandedId={expandedReviewModuleId}
             emptyMessage={emptyMessage}
+            {...modulesTableQueryError}
           />
         ) : tab === 'discarded' ? (
           <DiscardedTabTable
@@ -1491,18 +1426,21 @@ export const ModuleLibraryPage = () => {
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}
+            {...modulesTableQueryError}
           />
         ) : (
           <Table<ModuleLibraryItem>
-            density="comfortable"
             data={isFetchingModules ? [] : filtered}
             columns={columns}
             keyExtractor={(r) => r.id}
             caption={tableCaption}
-            emptyMessage={isFetchingModules ? 'Loading modules…' : emptyMessage}
+            isLoading={isFetchingModules}
+            loadingMessage="Loading modules…"
+            emptyMessage={emptyMessage}
             sortBy={sortBy}
             sortDir={sortDir}
             onSort={handleSort}
+            {...modulesTableQueryError}
           />
         )}
 

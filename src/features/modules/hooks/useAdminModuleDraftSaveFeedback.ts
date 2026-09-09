@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useSnackbar } from '@/components/ui/Snackbar/SnackbarProvider';
 import {
   isAdminModuleDraftValidationError,
   type AdminModuleDraftIssue,
@@ -7,11 +8,10 @@ import {
 export function useAdminModuleDraftSaveFeedback(
   formatError: (error: unknown) => string,
 ) {
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const [draftIssues, setDraftIssues] = useState<AdminModuleDraftIssue[]>([]);
 
   const clearSaveFeedback = useCallback(() => {
-    setActionError('');
     setDraftIssues([]);
   }, []);
 
@@ -19,13 +19,12 @@ export function useAdminModuleDraftSaveFeedback(
     (error: unknown) => {
       if (isAdminModuleDraftValidationError(error)) {
         setDraftIssues(error.issues);
-        setActionError('');
         return;
       }
       setDraftIssues([]);
-      setActionError(formatError(error));
+      snackbar.showError(formatError(error));
     },
-    [formatError],
+    [formatError, snackbar],
   );
 
   const closeDraftValidation = useCallback(() => {
@@ -33,7 +32,6 @@ export function useAdminModuleDraftSaveFeedback(
   }, []);
 
   return {
-    actionError,
     draftIssues,
     draftValidationOpen: draftIssues.length > 0,
     clearSaveFeedback,

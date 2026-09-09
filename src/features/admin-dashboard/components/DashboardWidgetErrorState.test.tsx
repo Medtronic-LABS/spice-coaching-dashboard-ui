@@ -31,4 +31,23 @@ describe('DashboardWidgetErrorState', () => {
       screen.getByText('Try again to reload this section.'),
     ).toBeInTheDocument();
   });
+
+  it('renders catalog-backed copy when an API error is provided', () => {
+    render(
+      <DashboardWidgetErrorState
+        error={{
+          status: 503,
+          data: { detail: { code: 'service_unavailable' } },
+        }}
+        onRetry={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Service Unavailable' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('HTTP 503 · service_unavailable'),
+    ).toBeInTheDocument();
+  });
 });

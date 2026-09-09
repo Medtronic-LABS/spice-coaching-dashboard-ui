@@ -1,18 +1,27 @@
 import { useMemo } from 'react';
 import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Button, TruncatedText } from '@/components/ui';
+import {
+  Button,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
+  TruncatedText,
+  typographyClasses,
+} from '@/components/ui';
 import {
   TABLE_CELL_LABEL_MAX_LENGTH,
   TABLE_TITLE_COLUMN_CLASS,
 } from '@/constants/fieldLimits';
 import type { AdminModulesListItem } from '@/features/modules/api/adminModulesApi';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 import {
   actorNameFromMetadata,
   formatHierarchyActorName,
 } from '@/features/modules/types/hierarchyActor';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
 
 interface DiscardedTabTableProps {
   modules: AdminModulesListItem[];
@@ -21,6 +30,9 @@ interface DiscardedTabTableProps {
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
+  queryError?: unknown;
+  queryErrorTitle?: string;
+  onRetryQuery?: () => void;
 }
 
 interface DiscardedTableRow {
@@ -65,10 +77,14 @@ function getDiscardedAt(item: AdminModulesListItem): string {
 
 export const DiscardedTabTable = ({
   modules,
+  isLoading = false,
   onView,
   sortBy,
   sortDir,
   onSort,
+  queryError,
+  queryErrorTitle,
+  onRetryQuery,
 }: DiscardedTabTableProps) => {
   const data = useMemo<DiscardedTableRow[]>(() => {
     return (modules ?? []).map((m) => ({
@@ -97,7 +113,7 @@ export const DiscardedTabTable = ({
               text={row.title}
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
-              className="font-medium text-spice-text-primary"
+              className={typographyClasses.tableCellPrimary}
             />
           </div>
         ),
@@ -106,34 +122,38 @@ export const DiscardedTabTable = ({
         key: 'status',
         header: 'Status',
         sortable: false,
-        render: (row) => <ModuleStatusBadge status={row.status} />,
+        render: (row) => (
+          <StatusBadge
+            {...getModuleStatusBadgeProps(row.status)}
+            className={TABLE_STATUS_BADGE_CLASSNAME}
+          />
+        ),
       },
       {
         key: 'previousStatus',
         header: 'Previous Status',
         sortable: false,
-        render: (row) => <ModuleStatusBadge status={row.previousStatus} />,
+        render: (row) => (
+          <StatusBadge
+            {...getModuleStatusBadgeProps(row.previousStatus)}
+            className={TABLE_STATUS_BADGE_CLASSNAME}
+          />
+        ),
       },
       {
         key: 'discardedBy',
         header: 'Discarded By',
         sortable: false,
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {row.discardedBy}
-          </span>
-        ),
+        render: (row) => <span>{row.discardedBy}</span>,
       },
       {
         key: 'discardedAt',
         header: 'Discarded At',
         sortable: true,
         sortKey: 'updated_at',
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {row.discardedAt}
-          </span>
-        ),
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        render: (row) => <span>{row.discardedAt}</span>,
       },
       {
         key: 'id',
@@ -161,10 +181,15 @@ export const DiscardedTabTable = ({
       data={data}
       columns={columns}
       keyExtractor={(r) => r.id}
+      isLoading={isLoading}
+      loadingMessage="Loading discarded modules…"
       emptyMessage="No discarded modules found."
       sortBy={sortBy}
       sortDir={sortDir}
       onSort={onSort}
+      queryError={queryError}
+      queryErrorTitle={queryErrorTitle}
+      onRetryQuery={onRetryQuery}
     />
   );
 };

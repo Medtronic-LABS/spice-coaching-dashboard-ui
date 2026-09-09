@@ -1,5 +1,11 @@
 import { EyeIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
-import { Button, Card, TruncatedText } from '@/components/ui';
+import {
+  Button,
+  Card,
+  CardTitle,
+  FieldGroupLabel,
+  TruncatedText,
+} from '@/components/ui';
 import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
 import { getPublishCardDescription } from '@/features/modules/utils/getPublishCardDescription';
 
@@ -43,7 +49,6 @@ export interface ModuleReviewPublishViewProps {
   isPublishing: boolean;
   /** When true, disables the secondary save action on the publish card. */
   isSaving?: boolean;
-  publishError?: string;
   isAlreadyPublished?: boolean;
   editActionLabel?: string;
   /** Shown when there are unsaved edits. */
@@ -78,13 +83,11 @@ const EditLinkButton = ({
 );
 
 const SectionLabel = ({ children }: { children: string }) => (
-  <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-    {children}
-  </div>
+  <FieldGroupLabel>{children}</FieldGroupLabel>
 );
 
 const MediaTag = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-medium text-spice-text-medium ring-1 ring-spice-border">
+  <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-xs font-medium text-spice-text-medium ring-1 ring-spice-border">
     {label}
   </span>
 );
@@ -113,7 +116,6 @@ export const ModuleReviewPublishView = ({
   onSave,
   isPublishing,
   isSaving = false,
-  publishError,
   isAlreadyPublished = false,
   editActionLabel = 'Edit',
   unsavedChangesMessage,
@@ -268,9 +270,7 @@ export const ModuleReviewPublishView = ({
 
         <div className="space-y-4">
           <Card variant="elevated" className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-spice-text-primary">
-              Module Summary
-            </h3>
+            <CardTitle as="h3">Module Summary</CardTitle>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
                 <dt className="text-spice-text-muted">Lessons</dt>
@@ -303,9 +303,7 @@ export const ModuleReviewPublishView = ({
 
           {sourceFileName ? (
             <Card variant="elevated" className="space-y-2 p-4">
-              <h3 className="text-sm font-semibold text-spice-text-primary">
-                Source document
-              </h3>
+              <CardTitle as="h3">Source document</CardTitle>
               <div className="flex items-center gap-3 rounded-lg bg-spice-bg-tint px-3 py-3 ring-1 ring-spice-border">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-lg ring-1 ring-spice-border">
                   📄
@@ -347,11 +345,6 @@ export const ModuleReviewPublishView = ({
             <p className="mt-1 text-xs leading-relaxed text-white/90">
               {publishCardDescription}
             </p>
-            {publishError ? (
-              <div className="mt-3 rounded-lg bg-white/15 px-3 py-2 text-xs text-white">
-                {publishError}
-              </div>
-            ) : null}
             <div className="mt-4 space-y-2">
               {readonly || isAlreadyPublished ? (
                 <>

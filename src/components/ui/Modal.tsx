@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseIcon } from '@/assets/icon';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import { cn } from '@/utils';
 
 export interface ModalProps {
@@ -32,7 +33,7 @@ export const Modal = ({
   describedBy,
   onClose,
   showCloseButton,
-  zIndexClassName = 'z-[300]',
+  zIndexClassName = OVERLAY_Z_INDEX.modal,
   contentClassName,
 }: ModalProps) => {
   const shouldShowClose =

@@ -111,7 +111,7 @@ function FilterField({
     <div className="block space-y-1.5">
       <label
         htmlFor={htmlFor}
-        className="text-[10px] font-semibold uppercase tracking-wide text-spice-text-muted"
+        className="text-xs font-semibold uppercase tracking-wide text-spice-text-muted"
       >
         {label}
       </label>
@@ -236,6 +236,8 @@ export const DashboardFilterBar = ({
 
   const handleClearAllFilters = () => {
     setDraftGeography(EMPTY_DASHBOARD_GEOGRAPHY);
+    onGeographyChange(EMPTY_DASHBOARD_GEOGRAPHY);
+    setFiltersOpen(false);
   };
 
   const maxSelectableDate = todayDateInputValue();

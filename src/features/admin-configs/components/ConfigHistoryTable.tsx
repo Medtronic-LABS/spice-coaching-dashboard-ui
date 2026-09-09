@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Table, type ColumnDef } from '@/components/common/Table';
+import { SectionQueryErrorState } from '@/components/common/SectionQueryErrorState';
 import { TablePagination } from '@/components/common/TablePagination';
-import { Button, Card, ErrorState, Loader } from '@/components/ui';
+import { Card, SectionHeader } from '@/components/ui';
 import {
   useFetchConfigChangesQuery,
   type ConfigThresholdChangeItem,
@@ -16,7 +17,10 @@ import {
   tablePageOffset,
   tablePaginationRange,
 } from '@/utils/tablePagination';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
 
 type ConfigHistoryRow = {
   id: string;
@@ -51,11 +55,12 @@ export const ConfigHistoryTable = ({
     resetPage();
   }, [refreshNonce, configKey, resetPage]);
 
-  const { data, isLoading, isError, refetch } = useFetchConfigChangesQuery({
-    key: configKey,
-    limit: pageSize,
-    offset: tablePageOffset(page, pageSize),
-  });
+  const { data, isLoading, isError, error, refetch } =
+    useFetchConfigChangesQuery({
+      key: configKey,
+      limit: pageSize,
+      offset: tablePageOffset(page, pageSize),
+    });
 
   const totalChanges = data?.total_changes ?? 0;
   const totalPages = data?.total_pages ?? 0;
@@ -75,8 +80,8 @@ export const ConfigHistoryTable = ({
       {
         key: 'updatedAtLabel',
         header: 'Last Updated Date & Time',
-        headerClassName: 'whitespace-nowrap',
-        className: 'whitespace-nowrap',
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => row.updatedAtLabel,
       },
       {
@@ -102,39 +107,28 @@ export const ConfigHistoryTable = ({
   );
 
   return (
-    <Card variant="elevated" className="space-y-4 p-4">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-spice-text-primary">
-          Configuration History
-        </h2>
-        <p className="text-sm text-spice-text-muted">
-          Audit trail of Quiz Reattempt Validity updates.
-        </p>
-      </div>
+    <Card variant="elevated" className="space-y-4">
+      <SectionHeader
+        title="Configuration History"
+        subtitle="Audit trail of Quiz Reattempt Validity updates."
+      />
 
       {isError ? (
-        <ErrorState
-          title="Unable to load configuration history"
-          action={
-            <Button variant="secondary" onClick={() => void refetch()}>
-              Retry
-            </Button>
-          }
+        <SectionQueryErrorState
+          error={error}
+          errorTitle="Unable to load configuration history"
+          onRetry={() => void refetch()}
         />
       ) : null}
-
-      <Loader open={isLoading} label="Loading configuration history…" />
 
       <Table<ConfigHistoryRow>
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.id}
         caption="Configuration history"
-        emptyMessage={
-          isLoading
-            ? 'Loading configuration history…'
-            : 'No configuration changes yet.'
-        }
+        isLoading={isLoading}
+        loadingMessage="Loading configuration history…"
+        emptyMessage="No configuration changes yet."
       />
 
       <TablePagination

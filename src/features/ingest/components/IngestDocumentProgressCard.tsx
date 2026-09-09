@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { ChevronIcon } from '@/assets/icon';
 import { ProgressBar } from '@/components/common/ProgressBar';
-import { Button, TruncatedText } from '@/components/ui';
+import { Button, StatusBadge, TruncatedText } from '@/components/ui';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { AdminV3IngestBatchSourceStatus } from '@/features/ingest/api/adminIngestApi';
 import { useFetchIngestionRunByIdQuery } from '@/features/ingest/api/adminIngestionRunsApi';
@@ -16,11 +16,7 @@ import {
   hasSimilarityDetectedInSource,
 } from '@/features/ingest/utils/ingestSourceProgress';
 import { extractFirstIngestFailureTooltipMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
-import {
-  formatIngestRunStatusDisplay,
-  ingestRunStatusBadgeClassName,
-  ingestRunStatusTone,
-} from '@/features/ingest/utils/ingestRunHistoryUtils';
+import { getIngestRunStatusBadgeProps } from '@/features/ingest/utils/ingestRunStatusBadge';
 import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { cn } from '@/utils';
 
@@ -44,7 +40,6 @@ export const IngestDocumentProgressCard = ({
   const headingId = `${reactId}-heading`;
   const nodes = getVisibleIngestBatchNodes(source.nodes ?? []);
   const processingStatus = formatIngestDocumentProgressStatus(source.status);
-  const documentStatusTone = ingestRunStatusTone(source.status);
   const isCompleted = processingStatus === 'Completed';
   const showIndeterminateLoader =
     processingStatus === 'Queued' || processingStatus === 'Running';
@@ -117,13 +112,7 @@ export const IngestDocumentProgressCard = ({
               />
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ingestRunStatusBadgeClassName(
-                  documentStatusTone,
-                )}`}
-              >
-                {formatIngestRunStatusDisplay(source.status)}
-              </span>
+              <StatusBadge {...getIngestRunStatusBadgeProps(source.status)} />
               {failureTooltipMessage ? (
                 <Tooltip
                   label={failureTooltipMessage}

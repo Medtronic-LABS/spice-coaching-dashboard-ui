@@ -66,7 +66,7 @@ function computePanelStyle(trigger: HTMLElement): CSSProperties {
 /**
  * Multi-select module filter with draft selection.
  * Checkboxes update a draft; Apply commits to the parent (one API refetch).
- * Clear empties the applied filter immediately.
+ * Clear applies an empty selection the same way, then closes.
  *
  * Panel is portaled to `document.body` so it is not clipped by
  * `DashboardWidgetShell`'s `overflow-hidden` when the widget is short.

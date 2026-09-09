@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export const DEFAULT_FEEDBACK_DISMISS_MS = 10_000;
+export const DEFAULT_FEEDBACK_DISMISS_MS = 5_000;
 
 /** Clears transient feedback (banners/toasts) after a delay. */
 export function useAutoDismissFeedback<T>(

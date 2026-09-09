@@ -42,37 +42,32 @@ describe('moduleListFilters', () => {
       publishedTo: '2026-05-31',
       deactivatedFrom: '2026-06-01',
     };
-    expect(buildModuleListTypedDateParams(filters, 'drafts', true)).toEqual({
+    expect(buildModuleListTypedDateParams(filters, 'drafts')).toEqual({
       created_from: '2026-04-01T00:00:00.000Z',
       created_to: '2026-04-30T23:59:59.999Z',
     });
-    expect(buildModuleListTypedDateParams(filters, 'published', true)).toEqual({
+    expect(buildModuleListTypedDateParams(filters, 'published')).toEqual({
       created_from: '2026-04-01T00:00:00.000Z',
       created_to: '2026-04-30T23:59:59.999Z',
       published_from: '2026-05-01T00:00:00.000Z',
       published_to: '2026-05-31T23:59:59.999Z',
     });
     expect(
-      buildModuleListTypedDateParams(filters, 'deactivated', true)
-        .deactivated_from,
+      buildModuleListTypedDateParams(filters, 'deactivated').deactivated_from,
     ).toBe('2026-06-01T00:00:00.000Z');
   });
 
   it('returns available date types by tab', () => {
-    expect(getAvailableDateFilterTypes('drafts', true)).toEqual(['created']);
-    expect(getAvailableDateFilterTypes('published', true)).toEqual([
+    expect(getAvailableDateFilterTypes('drafts')).toEqual(['created']);
+    expect(getAvailableDateFilterTypes('published')).toEqual([
       'created',
       'published',
     ]);
-    expect(getAvailableDateFilterTypes('all', true)).toEqual([
+    expect(getAvailableDateFilterTypes('all')).toEqual([
       'created',
       'published',
       'activated',
       'deactivated',
-    ]);
-    expect(getAvailableDateFilterTypes('published', false)).toEqual([
-      'created',
-      'published',
     ]);
   });
 
@@ -106,10 +101,10 @@ describe('moduleListFilters', () => {
       publishedFrom: '2026-05-01',
       publishedTo: '2026-04-01',
     };
-    expect(hasActiveModuleFilters(filters, 'drafts', true)).toBe(false);
-    expect(isAnyVisibleDateRangeInvalid(filters, 'drafts', true)).toBe(false);
-    expect(hasActiveModuleFilters(filters, 'published', true)).toBe(true);
-    expect(isAnyVisibleDateRangeInvalid(filters, 'published', true)).toBe(true);
+    expect(hasActiveModuleFilters(filters, 'drafts')).toBe(false);
+    expect(isAnyVisibleDateRangeInvalid(filters, 'drafts')).toBe(false);
+    expect(hasActiveModuleFilters(filters, 'published')).toBe(true);
+    expect(isAnyVisibleDateRangeInvalid(filters, 'published')).toBe(true);
   });
 
   it('detects active filters', () => {
@@ -130,19 +125,18 @@ describe('moduleListFilters', () => {
   });
 
   it('maps tabs to lifecycle status', () => {
-    expect(tabToLifecycleStatus('published', true)).toBe('published');
-    expect(tabToLifecycleStatus('drafts', true)).toBe('draft');
-    expect(tabToLifecycleStatus('deactivated', true)).toBe('deactivated');
-    expect(tabToLifecycleStatus('all', true)).toBeUndefined();
-    expect(tabToLifecycleStatus('all', false)).toBe('published');
+    expect(tabToLifecycleStatus('published')).toBe('published');
+    expect(tabToLifecycleStatus('drafts')).toBe('draft');
+    expect(tabToLifecycleStatus('deactivated')).toBe('deactivated');
+    expect(tabToLifecycleStatus('all')).toBeUndefined();
   });
 
   it('parses typed URL keys and migrates legacy from/to once', () => {
     const legacy = new URLSearchParams(
       'tab=published&domain=rmnch&from=2026-01-01',
     );
-    expect(parseModuleLibraryTab(legacy.get('tab'), true)).toBe('published');
-    expect(parseFiltersFromSearchParams(legacy, 'published', true)).toEqual({
+    expect(parseModuleLibraryTab(legacy.get('tab'))).toBe('published');
+    expect(parseFiltersFromSearchParams(legacy, 'published')).toEqual({
       ...EMPTY_MODULE_LIBRARY_FILTERS,
       domain: 'rmnch',
       publishedFrom: '2026-01-01',
@@ -153,17 +147,16 @@ describe('moduleListFilters', () => {
       domain: 'rmnch',
       publishedFrom: '2026-01-01',
     };
-    expect(
-      buildModuleListSearchParams('published', typed, true).toString(),
-    ).toBe('tab=published&domain=rmnch&published_from=2026-01-01');
+    expect(buildModuleListSearchParams('published', typed).toString()).toBe(
+      'tab=published&domain=rmnch&published_from=2026-01-01',
+    );
   });
 
   it('round-trips the source document filter through the doc param', () => {
-    const params = buildModuleListSearchParams(
-      'drafts',
-      { ...EMPTY_MODULE_LIBRARY_FILTERS, sourceDocumentId: 'doc-123' },
-      true,
-    );
+    const params = buildModuleListSearchParams('drafts', {
+      ...EMPTY_MODULE_LIBRARY_FILTERS,
+      sourceDocumentId: 'doc-123',
+    });
     expect(params.get('doc')).toBe('doc-123');
     expect(parseFiltersFromSearchParams(params).sourceDocumentId).toBe(
       'doc-123',
@@ -174,39 +167,33 @@ describe('moduleListFilters', () => {
     const params = buildModuleListSearchParams(
       'all',
       EMPTY_MODULE_LIBRARY_FILTERS,
-      true,
     );
     expect(params.get('tab')).toBe('all');
-    expect(parseModuleLibraryTab(params.get('tab'), true)).toBe('all');
+    expect(parseModuleLibraryTab(params.get('tab'))).toBe('all');
   });
 
   it('returns tab-aware date columns', () => {
-    expect(getModuleListingDateColumns('drafts', true)).toEqual([
+    expect(getModuleListingDateColumns('drafts')).toEqual([
       'created',
       'updated',
     ]);
-    expect(getModuleListingDateColumns('published', true)).toEqual([
+    expect(getModuleListingDateColumns('published')).toEqual([
       'created',
       'updated',
       'published',
     ]);
-    expect(getModuleListingDateColumns('deactivated', true)).toEqual([
+    expect(getModuleListingDateColumns('deactivated')).toEqual([
       'created',
       'updated',
       'activated',
       'deactivated',
     ]);
-    expect(getModuleListingDateColumns('all', true)).toEqual([
+    expect(getModuleListingDateColumns('all')).toEqual([
       'created',
       'updated',
       'published',
       'activated',
       'deactivated',
-    ]);
-    expect(getModuleListingDateColumns('published', false)).toEqual([
-      'created',
-      'updated',
-      'published',
     ]);
   });
 
@@ -256,22 +243,17 @@ describe('moduleListFilters', () => {
   });
 
   it('labels actor columns by tab', () => {
-    expect(getModuleListingActorColumns('drafts', true)).toEqual([
-      'generatedBy',
-    ]);
-    expect(getModuleListingActorColumns('published', true)).toEqual([
-      'publishedBy',
-    ]);
-    expect(getModuleListingActorColumns('deactivated', true)).toEqual([
+    expect(getModuleListingActorColumns('drafts')).toEqual(['generatedBy']);
+    expect(getModuleListingActorColumns('published')).toEqual(['publishedBy']);
+    expect(getModuleListingActorColumns('deactivated')).toEqual([
       'deactivatedBy',
     ]);
-    expect(getModuleListingActorColumns('all', true)).toEqual([
+    expect(getModuleListingActorColumns('all')).toEqual([
       'generatedBy',
       'publishedBy',
       'activatedBy',
       'deactivatedBy',
     ]);
-    expect(getModuleListingActorColumns('published', false)).toEqual([]);
   });
 
   it('labels actor columns', () => {
@@ -308,11 +290,10 @@ describe('moduleListFilters', () => {
       getModuleListEmptyMessage(
         { ...EMPTY_MODULE_LIBRARY_FILTERS, domain: 'ncd' },
         'published',
-        true,
       ),
     ).toBe('No modules match for the selected filters.');
     expect(
-      getModuleListEmptyMessage(EMPTY_MODULE_LIBRARY_FILTERS, 'drafts', true),
+      getModuleListEmptyMessage(EMPTY_MODULE_LIBRARY_FILTERS, 'drafts'),
     ).toBe('No draft modules yet.');
   });
 });

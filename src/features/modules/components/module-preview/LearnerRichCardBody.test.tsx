@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { LearnerRichCardBody } from '@/features/modules/components/module-preview/LearnerRichCardBody';
-import type { RichBlock } from '@/features/modules/types/richText.types';
+import type { RichBlock } from '@/components/ui/rich-text/types/richText.types';
 
 vi.mock('@/features/modules/hooks/usePresignedFileUrl', () => ({
   usePresignedFileUrl: () => ({

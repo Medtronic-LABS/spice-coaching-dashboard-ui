@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ChevronIcon } from '@/assets/icon';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { cn } from '@/utils';
 
 export interface DocumentSelectionCollapsibleProps {
@@ -49,10 +50,7 @@ export const DocumentSelectionCollapsible = ({
           disabled={disabled}
           onClick={() => onOpenChange(!open)}
         >
-          <div
-            id={headingId}
-            className="text-sm font-semibold text-spice-text-primary"
-          >
+          <div id={headingId} className={typographyClasses.sectionTitle}>
             {title}
           </div>
           {!open && collapsedSummary ? (

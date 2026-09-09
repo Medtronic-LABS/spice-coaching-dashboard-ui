@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
-import { setCurrentRole, type AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import {
@@ -57,9 +57,7 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   };
 });
 
-function renderQuizStep(role: AppRole = 'programManager') {
-  setCurrentRole(role);
-
+function renderQuizStep() {
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -70,22 +68,20 @@ function renderQuizStep(role: AppRole = 'programManager') {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewQuiz}
-              element={<AdminModuleQuizStep />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter initialEntries={[adminModuleReviewPaths.quiz('mod-1')]}>
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewQuiz}
+                element={<AdminModuleQuizStep />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };
@@ -96,28 +92,18 @@ describe('AdminModuleQuizStep reorder', () => {
     mockModule = createMockModule();
   });
 
-  it('shows drag handles for program manager', () => {
-    setCurrentRole('programManager');
+  it('shows drag handles for draft modules', () => {
     renderQuizStep();
 
     expect(
       screen.getAllByRole('button', { name: 'Drag to reorder' }),
     ).toHaveLength(3);
   });
-
-  it('hides reorder controls for supervisor read-only role', () => {
-    renderQuizStep('supervisor');
-
-    expect(
-      screen.queryByRole('button', { name: 'Drag to reorder' }),
-    ).not.toBeInTheDocument();
-  });
 });
 
 describe('AdminModuleQuizStep editor UI', () => {
   beforeEach(() => {
     mockModule = createMockModule();
-    setCurrentRole('programManager');
   });
 
   it('shows question labels, correct-answer badge, and bottom add-question CTA', () => {
@@ -225,8 +211,12 @@ describe('AdminModuleQuizStep editor UI', () => {
     ).toBeTruthy();
   });
 
-  it('hides edit actions in read-only mode', () => {
-    renderQuizStep('supervisor');
+  it('hides edit actions for published modules', () => {
+    mockModule = {
+      ...createMockModule(),
+      lifecycle_status: 'published',
+    };
+    renderQuizStep();
 
     expect(
       screen.queryByRole('button', { name: /add question/i }),

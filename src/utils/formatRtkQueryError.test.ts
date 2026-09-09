@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getApiErrorCatalogEntry } from '@/constants/apiErrorCatalog';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 describe('formatRtkQueryError', () => {
@@ -25,9 +26,9 @@ describe('formatRtkQueryError', () => {
     ).toBe('bad request');
   });
 
-  it('falls back to status when no message', () => {
+  it('falls back to catalog description when no message', () => {
     expect(formatRtkQueryError({ status: 500, data: {} })).toBe(
-      'Request failed (500)',
+      getApiErrorCatalogEntry('internal_error')?.description,
     );
   });
 });

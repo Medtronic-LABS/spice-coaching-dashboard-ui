@@ -1,11 +1,17 @@
 import { type ReactNode } from 'react';
-import { Button, Combobox, Select, Tabs } from '@/components/ui';
+import {
+  Button,
+  Combobox,
+  CardTitle,
+  FieldGroupLabel,
+  FormLabel,
+  Select,
+} from '@/components/ui';
 import type {
   SettingsFilterCheckboxGroupField,
   SettingsFilterDateRangeField,
   SettingsFilterField,
   SettingsFilterSection,
-  SettingsFilterSegmentedField,
 } from '@/components/common/settingsFilter.types';
 import {
   SPICE_CHECKBOX_CLASSNAME,
@@ -33,20 +39,15 @@ const FilterField = ({
   children,
 }: FilterFieldProps) => (
   <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
-    <label
-      htmlFor={htmlFor}
-      className="text-xs font-semibold tracking-wide text-spice-text-medium"
-    >
+    <FormLabel htmlFor={htmlFor} size="compact">
       {label}
-    </label>
+    </FormLabel>
     {children}
   </div>
 );
 
 const SectionLabel = ({ children }: { children: ReactNode }) => (
-  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-spice-text-muted">
-    {children}
-  </p>
+  <FieldGroupLabel>{children}</FieldGroupLabel>
 );
 
 function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
@@ -58,9 +59,7 @@ function renderCheckboxGroup(field: SettingsFilterCheckboxGroupField) {
         field.className,
       )}
     >
-      <p className="text-sm font-semibold text-spice-text-primary">
-        {field.label}
-      </p>
+      <CardTitle as="p">{field.label}</CardTitle>
       {field.description ? (
         <p className="text-sm text-spice-text-medium">{field.description}</p>
       ) : null}
@@ -110,9 +109,7 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
         field.className,
       )}
     >
-      <p className="text-sm font-semibold text-spice-text-primary">
-        {field.label}
-      </p>
+      <CardTitle as="p">{field.label}</CardTitle>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FilterField label="From" htmlFor={field.from.id}>
           <input
@@ -149,24 +146,6 @@ function renderDateRange(field: SettingsFilterDateRangeField) {
         </p>
       ) : null}
     </div>
-  );
-}
-
-function renderSegmented(field: SettingsFilterSegmentedField) {
-  return (
-    <FilterField
-      label={field.label}
-      htmlFor={field.id}
-      className={field.className}
-    >
-      <Tabs
-        idBase={field.id}
-        items={field.options}
-        value={field.value}
-        onChange={field.onChange}
-        className="w-fit"
-      />
-    </FilterField>
   );
 }
 
@@ -216,56 +195,11 @@ function renderField(field: SettingsFilterField) {
     );
   }
 
-  if (field.type === 'segmented') {
-    return <div key={field.id}>{renderSegmented(field)}</div>;
-  }
-
   if (field.type === 'checkbox-group') {
     return <div key={field.id}>{renderCheckboxGroup(field)}</div>;
   }
 
   return <div key={field.id}>{renderDateRange(field)}</div>;
-}
-
-/** Group consecutive segmented fields into shared rows to save vertical space. */
-function renderSectionFields(fields: SettingsFilterField[]) {
-  const nodes: ReactNode[] = [];
-  let index = 0;
-
-  while (index < fields.length) {
-    const field = fields[index];
-    if (field.type !== 'segmented') {
-      nodes.push(renderField(field));
-      index += 1;
-      continue;
-    }
-
-    const segmentedGroup: SettingsFilterSegmentedField[] = [];
-    while (index < fields.length && fields[index].type === 'segmented') {
-      segmentedGroup.push(fields[index] as SettingsFilterSegmentedField);
-      index += 1;
-    }
-
-    if (segmentedGroup.length === 1) {
-      nodes.push(renderField(segmentedGroup[0]));
-      continue;
-    }
-
-    nodes.push(
-      <div
-        key={segmentedGroup.map((item) => item.id).join('-')}
-        className="grid grid-cols-2 gap-3"
-      >
-        {segmentedGroup.map((item) => (
-          <div key={item.id} className="min-w-0">
-            {renderSegmented(item)}
-          </div>
-        ))}
-      </div>,
-    );
-  }
-
-  return nodes;
 }
 
 interface SettingsFilterRendererProps {
@@ -296,21 +230,17 @@ export const SettingsFilterRenderer = ({
                 section.fieldsClassName,
               )}
             >
-              {renderSectionFields(section.fields)}
+              {section.fields.map((field) => renderField(field))}
             </div>
           </section>
         ))}
       </div>
 
       <div className="flex shrink-0 items-center gap-3 border-t border-spice-border bg-spice-bg-surface/95 px-5 py-4 backdrop-blur-sm">
-        <Button variant="ghost" className="h-9 text-xs" onClick={onClearAll}>
+        <Button variant="ghost" onClick={onClearAll}>
           Clear All
         </Button>
-        <Button
-          className="ml-auto h-9 text-xs"
-          onClick={onApply}
-          disabled={applyDisabled}
-        >
+        <Button className="ml-auto" onClick={onApply} disabled={applyDisabled}>
           Apply
         </Button>
       </div>

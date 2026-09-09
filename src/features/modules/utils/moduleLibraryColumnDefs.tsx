@@ -7,6 +7,7 @@ import {
   type ModuleListingActorColumn,
   type ModuleListingDateColumn,
 } from '@/features/modules/utils/moduleListFilters';
+import { DISPLAY_DATETIME_TABLE_COLUMN_CLASS } from '@/utils/formatDisplayDateTime';
 
 export function listingDateColumnDef(
   column: ModuleListingDateColumn,
@@ -36,19 +37,18 @@ export function listingDateColumnDef(
     header: moduleListingDateColumnHeader(column),
     sortable: true,
     sortKey,
-    render: (row) => (
-      <span className="text-xs text-spice-text-medium">
-        {column === 'published'
-          ? (row.publishedAt ?? '—')
-          : column === 'updated'
-            ? (row.lastUpdatedAt ?? '—')
-            : column === 'activated'
-              ? (row.activatedAt ?? '—')
-              : column === 'deactivated'
-                ? (row.deactivatedAt ?? '—')
-                : row.createdAt}
-      </span>
-    ),
+    className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+    headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+    render: (row) =>
+      column === 'published'
+        ? (row.publishedAt ?? '—')
+        : column === 'updated'
+          ? (row.lastUpdatedAt ?? '—')
+          : column === 'activated'
+            ? (row.activatedAt ?? '—')
+            : column === 'deactivated'
+              ? (row.deactivatedAt ?? '—')
+              : row.createdAt,
   };
 }
 
@@ -70,11 +70,7 @@ export function listingActorColumnDef(
             : column === 'deactivatedBy'
               ? row.deactivatedBy
               : row.generatedBy;
-      return (
-        <span className="text-xs text-spice-text-medium">
-          {formatHierarchyActorName(value)}
-        </span>
-      );
+      return formatHierarchyActorName(value);
     },
   };
 }

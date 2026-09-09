@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageTitle } from '@/components/common/PageTitle';
 import { Banner, Button } from '@/components/ui';
-import { buildPath, paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { DashboardFilterBar } from '@/features/admin-dashboard/components/DashboardFilterBar';
 import { DashboardKpiRow } from '@/features/admin-dashboard/components/DashboardKpiRow';
 import { DocumentUsageSection } from '@/features/admin-dashboard/components/DocumentUsageSection';
@@ -13,7 +13,6 @@ import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
 import { TrainingModulesSection } from '@/features/admin-dashboard/components/TrainingModulesSection';
 import { useDashboardFilters } from '@/features/admin-dashboard/hooks/useDashboardFilters';
-import { canPerformDashboardAdminActions } from '@/features/admin-dashboard/utils/dashboardRoles';
 import { ModuleAssignmentDialog } from '@/features/modules/components/AssignmentDialog';
 import { buildOpenCreateModuleNavigationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
@@ -26,7 +25,7 @@ const DashboardPageHeader = ({
 }) => (
   <div className="relative z-40 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
     <div className="min-w-0 shrink-0">
-      <PageTitle title={title} className="text-2xl xl:text-[30px]" />
+      <PageTitle title={title} />
     </div>
     <div className="min-w-0 w-full xl:w-auto">{children}</div>
   </div>
@@ -35,7 +34,6 @@ const DashboardPageHeader = ({
 export const AdminDashboardPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const showAdminActions = canPerformDashboardAdminActions();
   const {
     filters,
     queryDateRange,
@@ -62,7 +60,7 @@ export const AdminDashboardPage = () => {
   const createLabel = t('adminDashboard.moduleDemand.actions.create');
 
   const handlePublish = (moduleId: string) => {
-    navigate(buildPath(paths.adminModuleReviewPublish, { moduleId }));
+    navigate(adminModuleReviewPaths.publish(moduleId));
   };
 
   const handleCreate = (topic: string) => {
@@ -134,7 +132,7 @@ export const AdminDashboardPage = () => {
             fromDate={fromDate}
             toDate={toDate}
             geography={geography}
-            showActions={showAdminActions}
+            showActions
             assignLabel={assignLabel}
             onAssign={(moduleId, title) =>
               setAssignmentTarget({ moduleId, title })
@@ -144,7 +142,7 @@ export const AdminDashboardPage = () => {
             fromDate={fromDate}
             toDate={toDate}
             geography={geography}
-            showActions={showAdminActions}
+            showActions
             publishLabel={publishLabel}
             createLabel={createLabel}
             onPublish={handlePublish}

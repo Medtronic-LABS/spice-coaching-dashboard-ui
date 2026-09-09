@@ -1,4 +1,6 @@
 import { Fragment } from 'react';
+import { TableQueryErrorState } from '@/components/common/TableQueryErrorState';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { cn } from '@/utils';
 import type { TableProps } from './Table.types';
 
@@ -6,9 +8,8 @@ export type { ColumnDef, TableProps } from './Table.types';
 
 const DENSITY_STYLES = {
   compact: {
-    table: 'text-sm text-spice-text-medium',
-    thead:
-      'bg-spice-bg-tint text-xs uppercase tracking-wider text-spice-text-medium',
+    table: typographyClasses.tableCell,
+    thead: `bg-spice-bg-tint ${typographyClasses.tableHeader}`,
     th: 'px-3 py-1.5 font-medium tracking-wider sm:px-6 sm:py-2',
     td: 'px-3 py-1.5 sm:px-6 sm:py-2',
   },
@@ -35,14 +36,22 @@ export function Table<T extends object>({
   renderExpandedRow,
   getRowClassName,
   density = 'compact',
+  isLoading = false,
+  loadingMessage = 'Loading…',
+  queryError,
+  queryErrorTitle,
+  onRetryQuery,
   ...tableProps
 }: TableProps<T>) {
   const styles = DENSITY_STYLES[density];
+  const showQueryError = queryError != null;
+  const showLoading = isLoading && data.length === 0 && !showQueryError;
+  const bodyMessage = showLoading ? loadingMessage : emptyMessage;
 
   return (
     <div
       className={cn(
-        'w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
+        'spice-thin-scroll w-full overflow-x-auto rounded-lg border border-spice-border bg-spice-bg-surface',
         containerClassName,
       )}
     >
@@ -151,7 +160,17 @@ export function Table<T extends object>({
           </tr>
         </thead>
         <tbody className="divide-y divide-spice-border bg-spice-bg-surface">
-          {data.length > 0 ? (
+          {showQueryError ? (
+            <tr>
+              <td colSpan={columns.length} className="p-0">
+                <TableQueryErrorState
+                  error={queryError}
+                  errorTitle={queryErrorTitle}
+                  onRetry={onRetryQuery}
+                />
+              </td>
+            </tr>
+          ) : data.length > 0 ? (
             data.map((row) => {
               const rowKey = keyExtractor(row);
               const expandedContent = renderExpandedRow?.(row);
@@ -195,8 +214,10 @@ export function Table<T extends object>({
               <td
                 colSpan={columns.length}
                 className="px-3 py-8 text-center text-spice-text-muted sm:px-6"
+                role={showLoading ? 'status' : undefined}
+                aria-live={showLoading ? 'polite' : undefined}
               >
-                {emptyMessage}
+                {bodyMessage}
               </td>
             </tr>
           )}

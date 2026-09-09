@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import type { AppRole } from '@/constants/role';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import {
   adminModuleReviewReducer,
@@ -16,16 +16,6 @@ import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimated
 import { baseAdminModuleDetail } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
 import { baseApi } from '@/store/apis/base';
 import { AdminModuleDetailsStep } from './AdminModuleDetailsStep';
-
-const roleState = vi.hoisted(() => ({ role: 'programManager' as AppRole }));
-
-vi.mock('@/constants/role', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/constants/role')>();
-  return {
-    ...actual,
-    getCurrentRole: () => roleState.role,
-  };
-});
 
 let mockModule = baseAdminModuleDetail({
   card_count: 2,
@@ -76,26 +66,26 @@ function renderDetailsStep() {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewDetails}
-              element={<AdminModuleDetailsStep />}
-            />
-            <Route
-              path={paths.adminModuleReviewLessons}
-              element={<div data-testid="lessons-step" />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[adminModuleReviewPaths.details('mod-1')]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewDetails}
+                element={<AdminModuleDetailsStep />}
+              />
+              <Route
+                path={paths.adminModuleReviewLessons}
+                element={<div data-testid="lessons-step" />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };
@@ -103,7 +93,6 @@ function renderDetailsStep() {
 
 describe('AdminModuleDetailsStep', () => {
   beforeEach(() => {
-    roleState.role = 'programManager';
     mockModule = baseAdminModuleDetail({
       card_count: 2,
       quality_flags: { flags: ['needs_review'] },
@@ -186,7 +175,7 @@ describe('AdminModuleDetailsStep', () => {
   });
 
   it.each(['published', 'deactivated'] as const)(
-    'keeps %s modules read-only for program managers on a direct URL',
+    'keeps %s modules read-only on a direct URL',
     (lifecycleStatus) => {
       mockModule = {
         ...mockModule,
