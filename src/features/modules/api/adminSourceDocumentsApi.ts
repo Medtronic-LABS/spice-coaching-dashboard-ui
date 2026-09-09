@@ -1,4 +1,4 @@
-import type { KnowledgeLibraryItem } from '@/features/modules/types/knowledgeLibrary.types';
+import type { KnowledgeLibraryItem } from '@/features/knowledge-library/types/knowledgeLibrary.types';
 import {
   normalizeHierarchyActorRef,
   type HierarchyActorRef,

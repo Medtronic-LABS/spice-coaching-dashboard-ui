@@ -7,11 +7,15 @@ import {
   Banner,
   Button,
   FileDropzone,
+  FormHelperText,
   SearchInput,
+  SectionHeader,
   StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   TruncatedText,
+  typographyClasses,
+  useSnackbar,
 } from '@/components/ui';
-import type { StatusBadgeProps } from '@/components/ui/StatusBadge';
 import { paths } from '@/constants/routes';
 import {
   TABLE_CELL_LABEL_MAX_LENGTH,
@@ -41,10 +45,10 @@ import {
 } from '@/features/ingest/constants/ingestAcceptedFileTypes';
 import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
 import type { SelectedIngestDocument } from '@/features/ingest/types/documentSelection.types';
-import { formatIngestRunStatusDisplay } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { readRecentIngestDocuments } from '@/features/ingest/utils/recentIngestDocumentsStorage';
 import { isIngestSucceeded } from '@/features/ingest/utils/ingestStatus';
 import { useFetchSourceDocumentsQuery } from '@/features/modules/api/adminSourceDocumentsApi';
+import { getKnowledgeDocumentStatusBadgeProps } from '@/features/knowledge-library/utils/knowledgeDocumentStatusBadge';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import type { ModuleLibraryLocationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -55,7 +59,10 @@ import {
   tablePageOffset,
   tablePaginationRange,
 } from '@/utils/tablePagination';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 type DocumentSelectionRow = {
@@ -89,27 +96,6 @@ export interface DocumentSelectionPanelProps {
   batchSources?: AdminV3IngestBatchSourceStatus[];
   /** Existing sources kept during an active ingest batch (session-backed). */
   keptExistingSourceIds?: readonly string[];
-}
-
-function documentStatusBadge(
-  status: string,
-): Pick<StatusBadgeProps, 'status' | 'label'> {
-  const normalized = status.trim().toLowerCase();
-  const label = formatIngestRunStatusDisplay(status);
-  switch (normalized) {
-    case 'ingested':
-    case 'succeeded':
-      return { status: 'success', label };
-    case 'ingesting':
-    case 'uploaded':
-      return { status: 'info', label };
-    case 'failed':
-      return { status: 'critical', label };
-    case 'retired':
-      return { status: 'warning', label };
-    default:
-      return { status: 'neutral', label };
-  }
 }
 
 function titleFromFilename(filename: string): string {
@@ -228,13 +214,19 @@ export const DocumentSelectionPanel = ({
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState('');
-  const [uploadError, setUploadError] = useState('');
   const [uploadComplete, setUploadComplete] = useState(false);
+  const snackbar = useSnackbar();
 
   const clearPendingUpload = useCallback(() => {
     setPendingFiles([]);
     setFileError('');
     setUploadComplete(true);
+  }, []);
+
+  const resetPendingDraft = useCallback(() => {
+    setPendingFiles([]);
+    setFileError('');
+    setUploadComplete(false);
   }, []);
 
   useEffect(() => {
@@ -254,6 +246,7 @@ export const DocumentSelectionPanel = ({
 
   const {
     data: catalog,
+    isLoading,
     isFetching,
     isError,
     error,
@@ -386,7 +379,6 @@ export const DocumentSelectionPanel = ({
 
   const handlePendingFilesChange = (next: File[]) => {
     setUploadComplete(false);
-    setUploadError('');
     setPendingFiles(next);
   };
 
@@ -404,7 +396,6 @@ export const DocumentSelectionPanel = ({
 
   const runUpload = useCallback(async () => {
     if (!pendingFiles.length || disabled || isUploading) return;
-    setUploadError('');
     setUploadComplete(false);
 
     try {
@@ -418,7 +409,7 @@ export const DocumentSelectionPanel = ({
         clearPendingUpload();
       }
     } catch (err) {
-      setUploadError(formatRtkQueryError(err));
+      snackbar.showError(formatRtkQueryError(err));
       setUploadComplete(false);
     }
   }, [
@@ -427,6 +418,7 @@ export const DocumentSelectionPanel = ({
     disabled,
     isUploading,
     pendingFiles,
+    snackbar,
     uploadFiles,
   ]);
 
@@ -479,13 +471,13 @@ export const DocumentSelectionPanel = ({
               text={row.title}
               maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
               focusable
-              className="font-medium text-spice-text-primary"
+              className={typographyClasses.tableCellPrimary}
             />
             {row.originalFilename && row.originalFilename !== row.title ? (
               <div className="mt-0.5 min-w-0">
                 <TruncatedText
                   text={row.originalFilename}
-                  className="text-[11px] text-spice-text-muted"
+                  className={typographyClasses.tableCellSecondary}
                 />
               </div>
             ) : null}
@@ -497,9 +489,7 @@ export const DocumentSelectionPanel = ({
         header: 'Type',
         sortable: false,
         render: (row) => (
-          <span className="text-xs uppercase text-spice-text-medium">
-            {row.sourceType || '—'}
-          </span>
+          <span className="uppercase">{row.sourceType || '—'}</span>
         ),
       },
       {
@@ -507,18 +497,22 @@ export const DocumentSelectionPanel = ({
         header: 'Status',
         sortable: true,
         sortKey: 'status',
-        render: (row) => {
-          const badge = documentStatusBadge(row.status || 'uploaded');
-          return <StatusBadge status={badge.status} label={badge.label} />;
-        },
+        render: (row) => (
+          <StatusBadge
+            {...getKnowledgeDocumentStatusBadgeProps(row.status || 'uploaded')}
+            className={TABLE_STATUS_BADGE_CLASSNAME}
+          />
+        ),
       },
       {
         key: 'uploadedAt',
         header: 'Uploaded',
         sortable: true,
         sortKey: 'uploaded_date',
+        className: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+        headerClassName: DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
         render: (row) => (
-          <span className="whitespace-nowrap text-xs text-spice-text-medium">
+          <span className="whitespace-nowrap">
             {formatDisplayDateTime(row.uploadedAt)}
           </span>
         ),
@@ -529,11 +523,7 @@ export const DocumentSelectionPanel = ({
         sortable: false,
         className: 'whitespace-nowrap',
         headerClassName: 'whitespace-nowrap',
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {formatHierarchyActorName(row.uploadedBy)}
-          </span>
-        ),
+        render: (row) => formatHierarchyActorName(row.uploadedBy),
       },
       {
         key: 'ingestedBy',
@@ -541,11 +531,7 @@ export const DocumentSelectionPanel = ({
         sortable: false,
         className: 'whitespace-nowrap',
         headerClassName: 'whitespace-nowrap',
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {formatHierarchyActorName(row.ingestedBy)}
-          </span>
-        ),
+        render: (row) => formatHierarchyActorName(row.ingestedBy),
       },
       {
         key: 'actions',
@@ -574,7 +560,11 @@ export const DocumentSelectionPanel = ({
                   View modules
                 </Button>
               ) : (
-                <StatusBadge status="neutral" label="Not ingested" />
+                <StatusBadge
+                  status="neutral"
+                  label="Not ingested"
+                  className={TABLE_STATUS_BADGE_CLASSNAME}
+                />
               )}
             </div>
           );
@@ -606,28 +596,7 @@ export const DocumentSelectionPanel = ({
 
   return (
     <div className="space-y-4">
-      {isError ? (
-        <Banner tone="critical">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>Unable to load documents. {formatRtkQueryError(error)}</span>
-            <Button
-              variant="secondary"
-              className="h-8 text-xs"
-              onClick={() => {
-                void refetch();
-              }}
-            >
-              Retry
-            </Button>
-          </div>
-        </Banner>
-      ) : null}
-
       <div className="space-y-3">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          Upload
-        </div>
-
         <FileDropzone
           files={pendingFiles}
           onChange={handlePendingFilesChange}
@@ -654,12 +623,11 @@ export const DocumentSelectionPanel = ({
           }}
         />
 
-        {fileError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {fileError}
-          </div>
-        ) : null}
-        {uploadError ? <Banner tone="critical">{uploadError}</Banner> : null}
+        {fileError ? <Banner tone="critical">{fileError}</Banner> : null}
+
+        <FormHelperText>
+          {INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100 MB
+        </FormHelperText>
 
         <IngestUploadProgress
           active={isUploading}
@@ -667,23 +635,15 @@ export const DocumentSelectionPanel = ({
           label="Uploading document…"
         />
 
-        <p className="text-xs text-spice-text-muted">
-          {INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100 MB
-        </p>
-
-        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <div className="w-full sm:w-64 lg:w-72">
-            <SearchInput
-              value={searchQuery}
-              onChange={onSearchQueryChange}
-              placeholder="Search by file name..."
-              aria-label="Search knowledge documents"
-              disabled={disabled}
-              className="h-9"
-            />
-          </div>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
-            className="h-9 shrink-0 text-xs"
+            variant="ghost"
+            disabled={uploadFieldsDisabled}
+            onClick={resetPendingDraft}
+          >
+            Reset
+          </Button>
+          <Button
             disabled={!canUpload}
             onClick={() => {
               void runUpload();
@@ -695,24 +655,42 @@ export const DocumentSelectionPanel = ({
       </div>
 
       <div className="space-y-2">
-        <div className="text-sm font-semibold text-spice-text-primary">
-          Available documents
-        </div>
+        <SectionHeader
+          title="Available documents"
+          variant="h2"
+          action={
+            <div className="w-full sm:w-64 lg:w-72">
+              <SearchInput
+                value={searchQuery}
+                onChange={onSearchQueryChange}
+                placeholder="Search by file name..."
+                aria-label="Search available documents"
+                disabled={disabled}
+                className="h-9"
+              />
+            </div>
+          }
+        />
         <Table<DocumentSelectionRow>
           data={catalogRows}
           columns={availableColumns}
           keyExtractor={(row) => row.id}
           caption="Documents available to select for ingestion"
+          isLoading={isLoading}
+          loadingMessage="Loading documents…"
           emptyMessage={
-            isFetching
-              ? 'Loading documents…'
-              : searchQ
-                ? 'No documents match your search.'
-                : 'No documents available. Upload files above to get started.'
+            searchQ
+              ? 'No documents match your search.'
+              : 'No documents available. Upload files above to get started.'
           }
           sortBy={sortBy}
           sortDir={sortDir}
           onSort={handleSort}
+          queryError={isError && !isFetching ? error : undefined}
+          queryErrorTitle="Unable to load documents"
+          onRetryQuery={() => {
+            void refetch();
+          }}
         />
 
         <TablePagination
@@ -742,9 +720,10 @@ export const DocumentSelectionPanel = ({
 
       {selectedDocuments.length > 0 ? (
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-spice-text-primary">
-            Selected for ingestion ({selectedDocuments.length})
-          </div>
+          <SectionHeader
+            title={`Selected for ingestion (${selectedDocuments.length})`}
+            variant="h2"
+          />
           <Table<DocumentSelectionRow>
             data={selectedRows}
             columns={selectedColumns}

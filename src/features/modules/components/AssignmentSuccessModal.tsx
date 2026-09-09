@@ -5,10 +5,13 @@ import {
   Badge,
   Button,
   Card,
+  FieldGroupLabel,
   Loader,
   Modal,
+  ModalTitle,
   TruncatedText,
 } from '@/components/ui';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import {
   MODULE_ASSIGNMENT_DURATION_KEY,
   useFetchConfigByKeyQuery,
@@ -266,12 +269,13 @@ export const AssignmentSuccessCard = ({
           <Badge className="mt-3 bg-spice-bg-surface text-spice-brand-primary ring-1 ring-spice-border">
             {t('moduleLibrary.assigned.badge')}
           </Badge>
-          <h1
+          <ModalTitle
+            as="h1"
             id="assignment-success-title"
-            className="mt-2 text-lg font-semibold text-spice-text-primary sm:text-xl"
+            className="mt-2 sm:text-xl"
           >
             {copy.title}
-          </h1>
+          </ModalTitle>
           <p className="mt-1 text-sm text-spice-text-muted">{copy.subtitle}</p>
         </div>
 
@@ -285,9 +289,7 @@ export const AssignmentSuccessCard = ({
               }
             >
               <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
-                <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                  {copy.entityLabel}
-                </div>
+                <FieldGroupLabel>{copy.entityLabel}</FieldGroupLabel>
                 <div className="mt-1 min-w-0 text-sm font-semibold text-spice-text-primary">
                   <TruncatedText
                     text={entityName}
@@ -300,9 +302,9 @@ export const AssignmentSuccessCard = ({
               </div>
               {isModuleAssignment ? (
                 <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
-                  <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
+                  <FieldGroupLabel>
                     {t('moduleLibrary.assigned.summary.quizReattemptAllowed')}
-                  </div>
+                  </FieldGroupLabel>
                   <div className="mt-1 text-sm font-semibold text-spice-text-primary">
                     {quizReattemptUntilLabel}
                   </div>
@@ -315,20 +317,18 @@ export const AssignmentSuccessCard = ({
 
             <div className="rounded-xl bg-spice-bg-tint p-3 ring-1 ring-spice-border/70">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-                  {assignedUsersLabel}
-                </div>
+                <FieldGroupLabel>{assignedUsersLabel}</FieldGroupLabel>
                 <div className="flex items-center gap-2">
                   {entityId && !showAllAssigned ? (
                     <button
                       type="button"
                       onClick={() => setShowAllAssigned(true)}
-                      className="rounded-full bg-spice-bg-surface px-2.5 py-1 text-[10px] font-semibold text-spice-brand-primary ring-1 ring-spice-border transition hover:bg-spice-bg-tint"
+                      className="rounded-full bg-spice-bg-surface px-2.5 py-1 text-xs font-semibold text-spice-brand-primary ring-1 ring-spice-border transition hover:bg-spice-bg-tint"
                     >
                       {t('moduleLibrary.assigned.summary.showAll')}
                     </button>
                   ) : null}
-                  <div className="text-[10px] font-semibold text-spice-text-muted">
+                  <div className="text-xs font-semibold text-spice-text-muted">
                     {assignedCount}
                   </div>
                 </div>
@@ -341,10 +341,10 @@ export const AssignmentSuccessCard = ({
             {removedUsers.length > 0 ? (
               <div className="rounded-xl bg-spice-semantic-errorBg/40 p-3 ring-1 ring-spice-border/70">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
+                  <FieldGroupLabel>
                     {t('moduleLibrary.assigned.summary.revoked')}
-                  </div>
-                  <div className="text-[10px] font-semibold text-spice-text-muted">
+                  </FieldGroupLabel>
+                  <div className="text-xs font-semibold text-spice-text-muted">
                     {countAssignedUsers(removedUsers)}
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export const AssignmentSuccessModal = ({
       labelledBy="assignment-success-title"
       contentClassName="max-w-xl"
       onClose={onClose}
-      zIndexClassName="z-[320]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalTop}
     >
       <AssignmentSuccessCard
         state={state}

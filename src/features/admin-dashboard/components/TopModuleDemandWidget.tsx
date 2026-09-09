@@ -1,8 +1,12 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronIcon } from '@/assets/icon';
-import { ProgressBar } from '@/components/common/ProgressBar';
-import { Button, EmptyState, TruncatedText } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  TruncatedText,
+  typographyClasses,
+} from '@/components/ui';
 import { DashboardListSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
@@ -23,6 +27,7 @@ interface TopModuleDemandWidgetProps {
   rows: TopModuleDemandRow[];
   showLoading: boolean;
   showError: boolean;
+  error?: unknown;
   onRetry: () => void;
   showActions: boolean;
   emptyTitle?: string;
@@ -42,6 +47,7 @@ export const TopModuleDemandWidget = ({
   rows,
   showLoading,
   showError,
+  error,
   onRetry,
   showActions,
   emptyTitle,
@@ -54,14 +60,10 @@ export const TopModuleDemandWidget = ({
 }: TopModuleDemandWidgetProps) => {
   const { t } = useTranslation();
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const maxCount = useMemo(
-    () => Math.max(...rows.map((row) => row.searchCount), 1),
-    [rows],
-  );
 
   const gridClass = showActions
-    ? 'grid-cols-[minmax(0,1fr)_5rem_6rem_5.25rem]'
-    : 'grid-cols-[minmax(0,1fr)_5rem_6rem]';
+    ? 'grid-cols-[minmax(0,1fr)_8rem_8.5rem]'
+    : 'grid-cols-[minmax(0,1fr)_8rem]';
 
   return (
     <DashboardWidgetShell
@@ -73,7 +75,7 @@ export const TopModuleDemandWidget = ({
       {showLoading ? (
         <DashboardListSkeleton rows={5} />
       ) : showError ? (
-        <DashboardWidgetErrorState onRetry={onRetry} />
+        <DashboardWidgetErrorState error={error} onRetry={onRetry} />
       ) : rows.length === 0 ? (
         <EmptyState
           title={emptyTitle ?? t('adminDashboard.moduleDemand.emptyTitle')}
@@ -87,17 +89,16 @@ export const TopModuleDemandWidget = ({
           <div
             className={cn(
               'mb-2 grid items-center gap-2 border-b border-spice-border/60 pb-2',
-              'text-[11px] font-bold uppercase tracking-wide text-spice-palette-purple',
+              'text-xs font-bold uppercase tracking-wide text-spice-palette-purple',
               gridClass,
             )}
           >
             <span className="text-left">{titleColumnLabel}</span>
-            <span className="hidden sm:block" aria-hidden />
-            <span className="text-left">
+            <span className="whitespace-nowrap text-center">
               {t('adminDashboard.moduleDemand.columns.searchCount')}
             </span>
             {showActions ? (
-              <span className="text-left">
+              <span className="whitespace-nowrap text-left">
                 {t('adminDashboard.moduleDemand.columns.action')}
               </span>
             ) : null}
@@ -105,7 +106,6 @@ export const TopModuleDemandWidget = ({
 
           <ol className="min-h-0 flex-1 divide-y divide-spice-border/60 overflow-y-auto overflow-x-hidden pr-1">
             {rows.map((row) => {
-              const barValue = (row.searchCount / maxCount) * 100;
               const isExpanded = expandedRowId === row.id;
 
               return (
@@ -113,7 +113,10 @@ export const TopModuleDemandWidget = ({
                   <div className={cn('grid items-center gap-2', gridClass)}>
                     <button
                       type="button"
-                      className="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left text-sm font-medium text-spice-text-primary hover:text-spice-brand-primary"
+                      className={cn(
+                        typographyClasses.tableCellPrimary,
+                        'flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-left hover:text-spice-brand-primary',
+                      )}
                       aria-expanded={isExpanded}
                       onClick={() =>
                         setExpandedRowId((current) =>
@@ -133,22 +136,15 @@ export const TopModuleDemandWidget = ({
                         />
                       </span>
                     </button>
-                    <div className="hidden min-w-0 sm:block">
-                      <ProgressBar
-                        value={barValue}
-                        className="h-2"
-                        barClassName="bg-spice-palette-purple"
-                      />
-                    </div>
-                    <span className="text-center text-sm font-semibold tabular-nums text-spice-palette-purple">
+                    <span className="whitespace-nowrap text-center text-sm font-semibold tabular-nums text-spice-palette-purple">
                       {row.searchCount}
                     </span>
                     {showActions ? (
-                      <div className="flex w-full justify-stretch">
+                      <div className="flex justify-stretch">
                         {row.actionLabel && row.onAction ? (
                           <Button
                             variant="secondary"
-                            className="h-7 w-full px-0.5 py-0 text-[10px] leading-none"
+                            className="h-7 w-full whitespace-nowrap px-2 py-0 text-xs leading-none"
                             onClick={(event) => {
                               event.stopPropagation();
                               row.onAction?.();
@@ -161,13 +157,6 @@ export const TopModuleDemandWidget = ({
                         )}
                       </div>
                     ) : null}
-                  </div>
-                  <div className="mt-2 pl-5 sm:hidden">
-                    <ProgressBar
-                      value={barValue}
-                      className="h-2"
-                      barClassName="bg-spice-palette-purple"
-                    />
                   </div>
                   {isExpanded ? (
                     <div className="mt-3 rounded-lg border border-spice-border/70 bg-spice-bg-tint/40 p-3">

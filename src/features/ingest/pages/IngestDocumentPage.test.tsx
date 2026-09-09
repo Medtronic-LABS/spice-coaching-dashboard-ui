@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import type {
   AdminV3IngestAcceptedResponse,
   AdminV3IngestBatchStatusResponse,
@@ -96,6 +97,18 @@ const mocks = vi.hoisted(() => {
       conflicts: [],
     },
     onAcceptedRef: { current: null as IngestAcceptedCallback | null },
+    onUploadedRef: {
+      current: null as
+        | ((
+            response: unknown,
+            context: {
+              isReupload: boolean;
+              overriddenFilenames: string[];
+              duplicateConflicts: unknown[];
+            },
+          ) => void)
+        | null,
+    },
     panelStatus: { current: null as AdminV3IngestBatchStatusResponse | null },
     sourceDocuments,
     useFetchSourceDocumentsQuery: vi.fn(() => ({
@@ -143,9 +156,17 @@ vi.mock(
 vi.mock('@/features/ingest/hooks/useIngestWithDuplicateHandling', () => ({
   useIngestWithDuplicateHandling: (options: {
     onAccepted?: IngestAcceptedCallback;
-    onUploaded?: (response: unknown) => void;
+    onUploaded?: (
+      response: unknown,
+      context: {
+        isReupload: boolean;
+        overriddenFilenames: string[];
+        duplicateConflicts: unknown[];
+      },
+    ) => void;
   }) => {
     mocks.onAcceptedRef.current = options.onAccepted ?? null;
+    mocks.onUploadedRef.current = options.onUploaded ?? null;
     return {
       uploadFiles: mocks.uploadFiles,
       startIngest: mocks.startIngest,
@@ -186,9 +207,11 @@ vi.mock('@/features/ingest/components/IngestRunStatusPanel', async () => {
 
 function renderPage() {
   return render(
-    <MemoryRouter>
-      <IngestDocumentPage />
-    </MemoryRouter>,
+    <SnackbarProvider>
+      <MemoryRouter>
+        <IngestDocumentPage />
+      </MemoryRouter>
+    </SnackbarProvider>,
   );
 }
 
@@ -545,6 +568,51 @@ describe('IngestDocumentPage', () => {
         }),
       );
     });
+  });
+
+  it('shows success snackbar when duplicate confirm re-uploads with context', () => {
+    renderPage();
+
+    act(() => {
+      mocks.onUploadedRef.current?.(
+        {
+          status: 'uploaded',
+          sources: [
+            {
+              source_document_id: 'doc-new',
+              title: 'Hypertension Guide',
+              source_type: 'pdf',
+              stored_path: '/docs/hypertension-new.pdf',
+              status: 'uploaded',
+            },
+          ],
+          skipped_duplicates: [],
+        },
+        {
+          isReupload: true,
+          overriddenFilenames: ['hypertension.pdf'],
+          duplicateConflicts: [
+            {
+              filename: 'hypertension.pdf',
+              title: 'Hypertension Guide',
+              existing_source_documents: [
+                {
+                  source_document_id: 'doc-1',
+                  title: 'Hypertension Guide',
+                  source_type: 'pdf',
+                  stored_path: '/docs/hypertension.pdf',
+                  status: 'uploaded',
+                },
+              ],
+            },
+          ],
+        },
+      );
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Document uploaded successfully.',
+    );
   });
 
   it('loads terminal batch status immediately after refresh without the start delay', async () => {

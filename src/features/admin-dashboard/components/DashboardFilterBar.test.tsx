@@ -281,7 +281,7 @@ describe('DashboardFilterBar', () => {
     ).toHaveValue('All upazilas');
   });
 
-  it('clears draft geography when Clear all filters is clicked', async () => {
+  it('clears and applies geography when Clear all filters is clicked', async () => {
     const user = userEvent.setup();
     const onGeographyChange = vi.fn();
     renderFilterBar({ onGeographyChange });
@@ -293,17 +293,9 @@ describe('DashboardFilterBar', () => {
       within(panel).getByRole('button', { name: 'Clear all filters' }),
     );
 
-    expect(
-      within(panel).getByRole('combobox', { name: 'Division' }),
-    ).toHaveValue('All divisions');
-    expect(
-      within(panel).getByRole('combobox', { name: 'District' }),
-    ).toHaveValue('All districts');
-    expect(
-      within(panel).getByRole('combobox', { name: 'Upazila' }),
-    ).toHaveValue('All upazilas');
-
-    await user.click(within(panel).getByRole('button', { name: 'Apply' }));
     expect(onGeographyChange).toHaveBeenCalledWith(EMPTY_DASHBOARD_GEOGRAPHY);
+    expect(
+      screen.queryByRole('dialog', { name: 'Dashboard filters' }),
+    ).not.toBeInTheDocument();
   });
 });

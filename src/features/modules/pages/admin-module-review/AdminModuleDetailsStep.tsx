@@ -2,17 +2,18 @@ import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
+  FormLabel,
   ImagePicker,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
+  SectionHeader,
   Select,
   TruncatedText,
 } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   FIELD_LIMITS,
   fieldLimitExceededMessage,
@@ -136,7 +137,6 @@ export const AdminModuleDetailsStep = () => {
   );
   const { registerEditorContext } = useModulePreview();
   const {
-    actionError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -223,7 +223,6 @@ export const AdminModuleDetailsStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}
@@ -232,15 +231,10 @@ export const AdminModuleDetailsStep = () => {
       />
 
       <Card variant="elevated" className="space-y-4 p-4">
-        <div>
-          <div className="text-lg font-semibold text-spice-text-primary">
-            Module details
-          </div>
-          <div className="mt-1 text-xs text-spice-text-muted">
-            {formatModuleDomainLabel(working.domain)} · {working.module_type} ·
-            v{working.version} · {working.lifecycle_status}
-          </div>
-        </div>
+        <SectionHeader
+          title="Module details"
+          subtitle={`${formatModuleDomainLabel(working.domain)} · ${working.module_type} · v${working.version} · ${working.lifecycle_status}`}
+        />
 
         <div className="flex flex-col md:flex-row gap-4 items-stretch">
           <div className="flex-1 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border text-xs min-h-[180px]">
@@ -261,7 +255,7 @@ export const AdminModuleDetailsStep = () => {
                     onChange={(domain) => dispatch(updateDetails({ domain }))}
                   />
                   {domainError ? (
-                    <p className="mt-1 text-[11px] text-spice-semantic-error">
+                    <p className="mt-1 text-xs text-spice-semantic-error">
                       {domainError}
                     </p>
                   ) : null}
@@ -356,7 +350,7 @@ export const AdminModuleDetailsStep = () => {
                     />
                   </SummaryFitControl>
                   {estimatedMinutesError ? (
-                    <p className="mt-1 max-w-[13.5rem] text-[11px] text-spice-semantic-error">
+                    <p className="mt-1 max-w-[13.5rem] text-xs text-spice-semantic-error">
                       {estimatedMinutesError}
                     </p>
                   ) : null}
@@ -394,7 +388,7 @@ export const AdminModuleDetailsStep = () => {
 
           <div className="w-full md:w-[300px] h-[250px] flex-shrink-0 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border">
             <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                 Thumbnail
               </div>
 
@@ -409,7 +403,7 @@ export const AdminModuleDetailsStep = () => {
                     />
                   </div>
                 ) : (
-                  <div className="flex h-[180px] w-full items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-[10px] text-spice-text-muted">
+                  <div className="flex h-[180px] w-full items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-xs text-spice-text-muted">
                     No thumbnail
                   </div>
                 )
@@ -432,7 +426,7 @@ export const AdminModuleDetailsStep = () => {
             </div>
 
             {uploadError ? (
-              <div className="mt-1 text-[10px] text-spice-semantic-error">
+              <div className="mt-1 text-xs text-spice-semantic-error">
                 {uploadError}
               </div>
             ) : null}
@@ -448,7 +442,7 @@ export const AdminModuleDetailsStep = () => {
               {qualityFlagLabels.map((flag) => (
                 <span
                   key={flag}
-                  className="rounded-full bg-spice-bg-tint px-2 py-1 text-[11px] font-semibold text-spice-text-medium ring-1 ring-spice-border"
+                  className="rounded-full bg-spice-bg-tint px-2 py-1 text-xs font-semibold text-spice-text-medium ring-1 ring-spice-border"
                 >
                   {flag}
                 </span>
@@ -459,7 +453,7 @@ export const AdminModuleDetailsStep = () => {
 
         <div className="grid gap-3">
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">Title (BN)</span>
+            <FormLabel>Title (BN)</FormLabel>
             <LimitedTextInput
               id="admin-module-title-bn"
               value={
@@ -483,9 +477,7 @@ export const AdminModuleDetailsStep = () => {
 
         <div className="grid gap-3">
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
-              Description (BN)
-            </span>
+            <FormLabel>Description (BN)</FormLabel>
             <LimitedTextarea
               id="admin-module-description-bn"
               value={
@@ -558,12 +550,7 @@ export const AdminModuleDetailsStep = () => {
             disabled={busy || metadataInvalid}
             onClick={() => {
               if (metadataInvalid) return;
-              navigate(
-                paths.adminModuleReviewLessons.replace(
-                  ':moduleId',
-                  encodeURIComponent(working.id),
-                ),
-              );
+              navigate(adminModuleReviewPaths.lessons(working.id));
             }}
           >
             Continue to Lessons

@@ -10,6 +10,21 @@ function readEnv(name: keyof ImportMetaEnv): string | undefined {
 /** App URL prefix from `VITE_ROUTE_PREFIX` (default `/ai-coaching`). */
 export const ROUTE_PREFIX = normalizeRoutePrefix(readEnv('VITE_ROUTE_PREFIX'));
 
+/**
+ * Path segments without the app prefix. Change a segment here to rename
+ * that area of the SPA without hunting through call sites.
+ */
+export const routeSegments = {
+  moduleLibrary: 'module-library',
+  knowledge: 'knowledge',
+  ingest: 'ingest',
+  badges: 'badge-management',
+  dashboard: 'dashboard',
+  configs: 'configs',
+  modulesNew: 'modules/new',
+  unauthorized: 'unauthorized',
+} as const;
+
 function withRoutePrefix(path: string): string {
   if (path === '/') return `${ROUTE_PREFIX}/`;
   const normalized = path.startsWith('/') ? path : `/${path}`;
@@ -27,36 +42,65 @@ export function buildPath(
   );
 }
 
+const moduleLibraryRoot = `/${routeSegments.moduleLibrary}`;
+const ingestRoot = `/${routeSegments.ingest}`;
+const knowledgeRoot = `/${routeSegments.knowledge}`;
+const modulesNewRoot = `/${routeSegments.modulesNew}`;
+
 export const paths = {
   home: withRoutePrefix('/'),
-  moduleLibrary: withRoutePrefix('/module-library'),
-  moduleAssigned: withRoutePrefix('/module-library/assigned'),
-  badgeManagement: withRoutePrefix('/badge-management'),
-  ingestDocument: withRoutePrefix('/module-library/ingest'),
-  ingestHistory: withRoutePrefix('/module-library/ingest-history'),
-  videoUpload: withRoutePrefix('/module-library/ingest-video'),
-  uploadKnowledge: withRoutePrefix('/module-library/upload-knowledge'),
-  adminModuleReview: withRoutePrefix('/module-library/review/:moduleId'),
+  moduleLibrary: withRoutePrefix(moduleLibraryRoot),
+  moduleAssigned: withRoutePrefix(`${moduleLibraryRoot}/assigned`),
+  badgeManagement: withRoutePrefix(`/${routeSegments.badges}`),
+  ingestDocument: withRoutePrefix(ingestRoot),
+  ingestHistory: withRoutePrefix(`${ingestRoot}/history`),
+  videoUpload: withRoutePrefix(`${ingestRoot}/video`),
+  uploadKnowledge: withRoutePrefix(knowledgeRoot),
+  adminModuleReview: withRoutePrefix(`${moduleLibraryRoot}/review/:moduleId`),
   adminModuleReviewDetails: withRoutePrefix(
-    '/module-library/review/:moduleId/details',
+    `${moduleLibraryRoot}/review/:moduleId/details`,
   ),
   adminModuleReviewLessons: withRoutePrefix(
-    '/module-library/review/:moduleId/lessons',
+    `${moduleLibraryRoot}/review/:moduleId/lessons`,
   ),
   adminModuleReviewQuiz: withRoutePrefix(
-    '/module-library/review/:moduleId/quiz',
+    `${moduleLibraryRoot}/review/:moduleId/quiz`,
   ),
   adminModuleReviewPublish: withRoutePrefix(
-    '/module-library/review/:moduleId/review',
+    `${moduleLibraryRoot}/review/:moduleId/review`,
   ),
-  moduleCreate: withRoutePrefix('/modules/new'),
-  moduleLessons: withRoutePrefix('/modules/new/lessons'),
-  moduleQuiz: withRoutePrefix('/modules/new/quiz'),
-  moduleReview: withRoutePrefix('/modules/new/review'),
-  modulePublished: withRoutePrefix('/modules/new/published'),
+  moduleCreate: withRoutePrefix(modulesNewRoot),
+  moduleLessons: withRoutePrefix(`${modulesNewRoot}/lessons`),
+  moduleQuiz: withRoutePrefix(`${modulesNewRoot}/quiz`),
+  moduleReview: withRoutePrefix(`${modulesNewRoot}/review`),
+  modulePublished: withRoutePrefix(`${modulesNewRoot}/published`),
   /** Admin analytics dashboard (default landing route). */
-  adminDashboard: withRoutePrefix('/dashboard'),
-  configs: withRoutePrefix('/configs'),
-  login: withRoutePrefix('/login'),
-  unauthorized: withRoutePrefix('/unauthorized'),
+  adminDashboard: withRoutePrefix(`/${routeSegments.dashboard}`),
+  configs: withRoutePrefix(`/${routeSegments.configs}`),
+  unauthorized: withRoutePrefix(`/${routeSegments.unauthorized}`),
 } as const;
+
+/**
+ * Former URLs kept only for redirect compatibility. Prefer `paths` for all
+ * navigation and route matching.
+ */
+export const legacyPaths = {
+  uploadKnowledge: withRoutePrefix(`${moduleLibraryRoot}/upload-knowledge`),
+  ingestDocument: withRoutePrefix(`${moduleLibraryRoot}/ingest`),
+  videoUpload: withRoutePrefix(`${moduleLibraryRoot}/ingest-video`),
+  ingestHistory: withRoutePrefix(`${moduleLibraryRoot}/ingest-history`),
+  adminDashboard: withRoutePrefix('/admin-dashboard'),
+} as const;
+
+/** Typed builders for admin module review step URLs. */
+export const adminModuleReviewPaths = {
+  root: (moduleId: string) => buildPath(paths.adminModuleReview, { moduleId }),
+  details: (moduleId: string) =>
+    buildPath(paths.adminModuleReviewDetails, { moduleId }),
+  lessons: (moduleId: string) =>
+    buildPath(paths.adminModuleReviewLessons, { moduleId }),
+  quiz: (moduleId: string) =>
+    buildPath(paths.adminModuleReviewQuiz, { moduleId }),
+  publish: (moduleId: string) =>
+    buildPath(paths.adminModuleReviewPublish, { moduleId }),
+};

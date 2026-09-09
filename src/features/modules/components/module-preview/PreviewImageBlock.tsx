@@ -1,4 +1,4 @@
-import type { RichImageBlock } from '@/features/modules/types/richText.types';
+import type { RichImageBlock } from '@/components/ui/rich-text/types/richText.types';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 
 export interface PreviewImageBlockProps {

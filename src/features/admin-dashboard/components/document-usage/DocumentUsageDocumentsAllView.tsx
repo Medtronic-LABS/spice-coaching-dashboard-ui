@@ -17,6 +17,7 @@ interface DocumentUsageDocumentsAllViewProps {
   /** When true, keep search mounted and only skeleton the table region. */
   isTableLoading?: boolean;
   isTableError?: boolean;
+  tableError?: unknown;
   onRetry: () => void;
   documentRows: DocumentTableRow[];
   documentColumns: Array<ColumnDef<DocumentTableRow>>;
@@ -39,6 +40,7 @@ export const DocumentUsageDocumentsAllView = ({
   onDocumentSearchChange,
   isTableLoading = false,
   isTableError = false,
+  tableError,
   onRetry,
   documentRows,
   documentColumns,
@@ -71,7 +73,7 @@ export const DocumentUsageDocumentsAllView = ({
       {isTableLoading ? (
         <DashboardListSkeleton rows={8} />
       ) : isTableError ? (
-        <DashboardWidgetErrorState onRetry={onRetry} />
+        <DashboardWidgetErrorState error={tableError} onRetry={onRetry} />
       ) : (
         <>
           <Table<DocumentTableRow>

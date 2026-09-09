@@ -72,7 +72,7 @@ function ModuleStatusRow({ module }: { module: TeamMemberModuleActivity }) {
       </span>
       <span
         className={cn(
-          'shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+          'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
           completed
             ? 'bg-spice-palette-greenLt text-spice-palette-green'
             : 'bg-spice-palette-blueLt text-spice-palette-blue',
@@ -179,7 +179,7 @@ export const SkDetailDrawer = ({
                 >
                   {modules.completed}/{modules.total}
                 </p>
-                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                   {t('adminDashboard.skDrawer.modulesLabel')}
                 </p>
               </div>
@@ -187,7 +187,7 @@ export const SkDetailDrawer = ({
                 <p className="text-lg font-bold tabular-nums text-spice-palette-purple">
                   {member.chatbot_query_count}
                 </p>
-                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
                   {t('adminDashboard.skDrawer.queriesLabel')}
                 </p>
               </div>
@@ -256,6 +256,7 @@ export const SkDetailDrawer = ({
                 <div className="py-3">
                   <DashboardWidgetErrorState
                     compact
+                    error={questionsQuery.error}
                     onRetry={() => void questionsQuery.refetch()}
                   />
                 </div>

@@ -9,19 +9,6 @@
       "description": "আপনি Spice SSO-এর মাধ্যমে আসেননি বলে এই ড্যাশবোর্ডে আপনার অ্যাক্সেস নেই।",
       "instruction": "অনুগ্রহ করে Spice-এ সাইন ইন করুন, তারপর ড্যাশবোর্ড খুলতে এখানে ফিরে আসুন।",
       "continueToSpice": "Spice লগইনে যান"
-    },
-    "signIn": {
-      "welcome": "স্বাগতম",
-      "title": "আপনার অ্যাকাউন্টে লগইন করুন",
-      "usernameLabel": "ইমেইল, ইউজারনেম বা মোবাইল নম্বর",
-      "passwordLabel": "পাসওয়ার্ড",
-      "submitButton": "লগইন",
-      "submitting": "লগইন হচ্ছে...",
-      "errorEmailRequired": "অনুগ্রহ করে ইমেইল দিন",
-      "errorPasswordRequired": "অনুগ্রহ করে পাসওয়ার্ড দিন",
-      "errorRequiredFields": "অনুগ্রহ করে ইউজারনেম এবং পাসওয়ার্ড উভয়ই দিন।",
-      "errorMissingAuthCookie": "সাইন ইন সফল হয়েছে কিন্তু কোনো অথ কুকি ফেরত আসেনি। আবার চেষ্টা করুন।",
-      "errorMessage": "অবৈধ পরিচয়পত্র বা লগইন ব্যর্থ। আবার চেষ্টা করুন।"
     }
   },
   "common": {
@@ -33,6 +20,11 @@
     "noData": "কোনো ডেটা নেই।",
     "somethingWentWrong": "কিছু ভুল হয়েছে",
     "somethingWentWrongDescription": "কিছু ভুল হয়েছে।",
+    "genericApiErrorDescription": "কিছু ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    "pageLoadErrorSupport": "আমরা ডেটা পুনরুদ্ধার করতে পারিনি। অনুগ্রহ করে আপনার সংযোগ পরীক্ষা করুন বা পৃষ্ঠাটি রিফ্রেশ করুন।",
+    "tableQueryErrorSupport": "এই ডেটা লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    "goToDashboard": "ড্যাশবোর্ডে যান",
+    "or": "অথবা",
     "notFound": {
       "code": "404",
       "title": "পৃষ্ঠা পাওয়া যায়নি",
@@ -186,7 +178,7 @@
       "finishedModulesTooltip": "নির্বাচিত সময়ে সব নির্ধারিত মডিউল সম্পন্ন করা SK।",
       "chatbotEngaged": "চ্যাটবট এনগেজড",
       "chatbotEngagedTooltip": "নির্বাচিত সময়ে AI চ্যাটবটে অন্তত একটি বার্তা পাঠানো SK।",
-      "totalModules": "প্রকাশিত প্রশিক্ষণ মডিউল",
+      "totalModules": "প্রশিক্ষণ মডিউল",
       "totalModulesTooltip": "ক্যাটালগে প্রকাশিত প্রশিক্ষণ মডিউলের মোট সংখ্যা"
     },
     "filters": {
@@ -386,7 +378,8 @@
       "detailDescription": "এই মডিউল বা টপিকের সাথে যুক্ত প্রশ্ন এবং অনুরোধ।",
       "occurrences": "{{count}} ঘটনা",
       "usersHeading": "যারা এই প্রশ্ন করেছেন",
-      "userCount": "{{count}} জন",
+      "userCount_one": "{{count}} জন",
+      "userCount_other": "{{count}} জন",
       "interaction": {
         "chatbotServed": "চ্যাটবটে সরবরাহ",
         "assignmentRequested": "অ্যাসাইনমেন্টের জন্য অনুরোধ"

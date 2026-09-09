@@ -1,11 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { paths } from '@/constants/routes';
 import { NotFoundPage } from '@/routes/NotFoundPage';
 
 describe('NotFoundPage', () => {
-  it('renders a 404 message and navigation links', () => {
+  it('renders a 404 message and navigation actions', () => {
     render(
       <MemoryRouter>
         <NotFoundPage />
@@ -20,8 +19,12 @@ describe('NotFoundPage', () => {
         /the page you requested does not exist or may have moved/i,
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText('HTTP 404 · not_found')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /back to dashboard/i }),
-    ).toHaveAttribute('href', paths.adminDashboard);
+      screen.getByRole('button', { name: /back to dashboard/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /go to home/i }),
+    ).toBeInTheDocument();
   });
 });

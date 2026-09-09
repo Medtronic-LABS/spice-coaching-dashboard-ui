@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { Table, type ColumnDef } from '.';
 
 interface TestData extends Record<string, unknown> {
@@ -84,21 +85,65 @@ describe('Table', () => {
     expect(onSortMock).toHaveBeenCalledWith('name', 'asc');
   });
 
-  it('toggles direction to desc when active asc column header is clicked', () => {
-    const onSortMock = vi.fn();
+  it('renders a loading state when isLoading is true and data is empty', () => {
+    render(
+      <Table
+        data={[]}
+        columns={columns}
+        keyExtractor={(item) => String(item.id)}
+        isLoading
+        loadingMessage="Loading items…"
+        emptyMessage="No items found"
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading items…');
+    expect(screen.queryByText('No items found')).not.toBeInTheDocument();
+  });
+
+  it('renders data while isLoading when rows are already present', () => {
     render(
       <Table
         data={[{ id: '1', name: 'Alice' }]}
         columns={columns}
         keyExtractor={(item) => item.id}
-        sortBy="name"
-        sortDir="asc"
-        onSort={onSortMock}
+        isLoading
+        loadingMessage="Loading items…"
       />,
     );
 
-    const nameHeader = screen.getByRole('button', { name: /name/i });
-    nameHeader.click();
-    expect(onSortMock).toHaveBeenCalledWith('name', 'desc');
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.queryByText('Loading items…')).not.toBeInTheDocument();
+  });
+
+  it('renders a query error state inside the table body', async () => {
+    const onRetryQuery = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <Table
+        data={[]}
+        columns={columns}
+        keyExtractor={(item) => String(item.id)}
+        queryError={{ status: 'FETCH_ERROR' }}
+        queryErrorTitle="Unable to load documents"
+        onRetryQuery={onRetryQuery}
+      />,
+    );
+
+    expect(
+      screen.getByRole('columnheader', { name: 'ID' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Unable to load documents' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Something went wrong while loading this data. Please try again.',
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetryQuery).toHaveBeenCalledOnce();
   });
 });

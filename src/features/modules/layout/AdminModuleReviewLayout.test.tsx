@@ -4,8 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import type { AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
 import {
   adminModuleReviewReducer,
@@ -13,16 +12,6 @@ import {
 } from '@/features/modules/store/adminModuleReviewSlice';
 import { baseAdminModuleDetail } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
 import { baseApi } from '@/store/apis/base';
-
-const roleState = vi.hoisted(() => ({ role: 'programManager' as AppRole }));
-
-vi.mock('@/constants/role', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/constants/role')>();
-  return {
-    ...actual,
-    getCurrentRole: () => roleState.role,
-  };
-});
 
 vi.mock('@/features/modules/hooks/useAdminModuleDetailQuery', () => ({
   useAdminModuleDetailQuery: () => ({
@@ -45,7 +34,13 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   };
 });
 
-function renderLayout(initialPath: string, options?: { moduleTitle?: string }) {
+function renderLayout(
+  initialPath: string,
+  options?: {
+    moduleTitle?: string;
+    lifecycleStatus?: 'draft' | 'published' | 'deactivated';
+  },
+) {
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -55,12 +50,17 @@ function renderLayout(initialPath: string, options?: { moduleTitle?: string }) {
       getDefaultMiddleware().concat(baseApi.middleware),
   });
 
-  if (options?.moduleTitle) {
+  if (options?.moduleTitle || options?.lifecycleStatus) {
     store.dispatch(
       hydrateFromServer({
         moduleId: 'mod-1',
         data: baseAdminModuleDetail({
-          title: { bn: options.moduleTitle },
+          ...(options.moduleTitle
+            ? { title: { bn: options.moduleTitle } }
+            : {}),
+          ...(options.lifecycleStatus
+            ? { lifecycle_status: options.lifecycleStatus }
+            : {}),
         }),
       }),
     );
@@ -93,12 +93,8 @@ function renderLayout(initialPath: string, options?: { moduleTitle?: string }) {
 }
 
 describe('AdminModuleReviewLayout', () => {
-  beforeEach(() => {
-    roleState.role = 'programManager';
-  });
-
   it('highlights the active review step from the current route', () => {
-    renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
+    renderLayout(adminModuleReviewPaths.details('mod-1'));
 
     expect(screen.getByRole('button', { name: /module details/i })).toHaveClass(
       'bg-spice-brand-pm',
@@ -106,9 +102,10 @@ describe('AdminModuleReviewLayout', () => {
     expect(screen.getByTestId('details-outlet')).toBeInTheDocument();
   });
 
-  it('shows read-only badge for supervisors', () => {
-    roleState.role = 'supervisor';
-    renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
+  it('shows read-only badge for published modules', () => {
+    renderLayout(adminModuleReviewPaths.details('mod-1'), {
+      lifecycleStatus: 'published',
+    });
 
     expect(screen.getByText('Read-only review')).toBeInTheDocument();
     expect(
@@ -118,14 +115,14 @@ describe('AdminModuleReviewLayout', () => {
 
   it('navigates between review steps', async () => {
     const user = userEvent.setup();
-    renderLayout(paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'));
+    renderLayout(adminModuleReviewPaths.details('mod-1'));
 
     await user.click(screen.getByRole('button', { name: /lessons/i }));
     expect(screen.getByTestId('lessons-outlet')).toBeInTheDocument();
   });
 
   it('renders breadcrumb for the current review step', () => {
-    renderLayout(paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'), {
+    renderLayout(adminModuleReviewPaths.lessons('mod-1'), {
       moduleTitle: 'Hypertension basics',
     });
 
@@ -139,9 +136,6 @@ describe('AdminModuleReviewLayout', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Hypertension basics' }),
-    ).toHaveAttribute(
-      'href',
-      paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-    );
+    ).toHaveAttribute('href', adminModuleReviewPaths.details('mod-1'));
   });
 });

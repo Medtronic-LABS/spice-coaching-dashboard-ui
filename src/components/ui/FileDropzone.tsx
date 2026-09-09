@@ -1,5 +1,7 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { Button } from '@/components/ui/Button';
+import { FormLabel } from '@/components/ui/FormLabel';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { TruncatedText } from '@/components/ui/TruncatedText';
 import { cn } from '@/utils';
 
@@ -21,6 +23,12 @@ export interface FileDropzoneProps {
   showFileList?: boolean;
   /** Show the circular plus icon. Defaults to true. */
   showIcon?: boolean;
+  /** Field label shown above the dropzone when `fieldTitle` is set. */
+  fieldTitle?: string;
+  /** When true, shows a required asterisk on `fieldTitle`. */
+  titleRequired?: boolean;
+  /** Optional info tooltip next to `fieldTitle`. */
+  titleTooltip?: string;
   /** Primary label when no files are staged. */
   title: string;
   /** Primary label when at least one file is staged (e.g. Add more / Replace). */
@@ -94,6 +102,9 @@ export const FileDropzone = ({
   enableDragDrop = true,
   showFileList = false,
   showIcon = true,
+  fieldTitle,
+  titleRequired = false,
+  titleTooltip,
   title,
   titleWhenSelected,
   subtitle,
@@ -171,8 +182,20 @@ export const FileDropzone = ({
       'cursor-pointer border-spice-brand-primary bg-spice-bg-surface';
   }
 
+  const resolvedFieldTitle =
+    fieldTitle ?? (titleRequired || titleTooltip ? title : undefined);
+
   return (
     <div className={cn('space-y-2', className)}>
+      {resolvedFieldTitle ? (
+        <div className="flex items-center gap-1.5">
+          <FormLabel required={titleRequired}>{resolvedFieldTitle}</FormLabel>
+          {titleTooltip ? (
+            <Tooltip label={resolvedFieldTitle} content={titleTooltip} />
+          ) : null}
+        </div>
+      ) : null}
+
       {showFileList && files.length ? (
         <ul className="max-h-[11.5rem] space-y-2 overflow-y-auto pr-1">
           {files.map((file, index) => (
@@ -191,13 +214,14 @@ export const FileDropzone = ({
                   text={file.name}
                   className="text-sm font-medium text-spice-text-primary"
                 />
-                <div className="mt-0.5 text-[11px] text-spice-text-muted">
+                <div className="mt-0.5 text-xs text-spice-text-muted">
                   {Math.round(file.size / 1024)} KB
                 </div>
               </div>
               <Button
                 variant="ghost"
-                className="h-8 shrink-0 px-2 text-[11px] text-spice-semantic-error hover:bg-spice-semantic-errorBg"
+                size="sm"
+                className="shrink-0 px-2 text-spice-semantic-error hover:bg-spice-semantic-errorBg"
                 disabled={disabled}
                 onClick={() => removeAt(index)}
               >
@@ -218,6 +242,7 @@ export const FileDropzone = ({
             tabIndex={-1}
             className="sr-only"
             disabled={dropzoneDisabled}
+            aria-label={ariaLabel ?? primaryLabel}
             onFocus={(event) => {
               // Windows Chrome scrolls scrollable ancestors to reveal
               // focused sr-only inputs after the native file dialog closes.
@@ -235,7 +260,7 @@ export const FileDropzone = ({
             disabled={dropzoneDisabled}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              'flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-3 text-center transition-colors',
+              'flex w-full flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed px-3 py-2 text-center transition-colors',
               dropzoneStateClasses,
             )}
             onDragOver={(event: DragEvent<HTMLButtonElement>) => {
@@ -252,17 +277,15 @@ export const FileDropzone = ({
             }}
           >
             {showIcon ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-spice-text-muted">
                 <PlusIcon />
               </span>
             ) : null}
-            <span className="text-xs font-semibold text-spice-text-primary">
+            <span className="text-sm font-semibold text-spice-text-primary">
               {primaryLabel}
             </span>
             {showSubtitle ? (
-              <span className="text-[11px] text-spice-text-muted">
-                {subtitle}
-              </span>
+              <span className="text-xs text-spice-text-muted">{subtitle}</span>
             ) : null}
           </button>
         </div>

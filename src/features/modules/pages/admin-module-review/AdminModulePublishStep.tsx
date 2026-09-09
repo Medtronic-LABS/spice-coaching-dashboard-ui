@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Banner, Button, Card, Loader } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import {
+  Button,
+  Card,
+  FieldGroupLabel,
+  Loader,
+  useSnackbar,
+} from '@/components/ui';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
@@ -47,8 +53,8 @@ export const AdminModulePublishStep = () => {
   } = useAdminModuleReviewEditor(moduleId);
   const [publishModule, { isLoading: isPublishing }] =
     usePublishModuleMutation();
+  const snackbar = useSnackbar();
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
-  const [publishError, setPublishError] = useState('');
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
   const isReadonly = useAdminModuleReviewReadonly();
   const {
@@ -58,7 +64,6 @@ export const AdminModulePublishStep = () => {
   } = useModulePreview();
   const { validateBeforeProceed } = useQuizExplanationReview(moduleId);
   const {
-    actionError: saveError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -96,7 +101,7 @@ export const AdminModulePublishStep = () => {
   }, [navigate]);
 
   const modulePath = (suffix: string) =>
-    `${paths.adminModuleReview.replace(':moduleId', encodeURIComponent(moduleId))}${suffix}`;
+    `${adminModuleReviewPaths.root(moduleId)}${suffix}`;
 
   const moduleDisplayTitle = working
     ? resolveDisplayText(working.title)
@@ -154,7 +159,6 @@ export const AdminModulePublishStep = () => {
           onRedirect={goToModuleLibrary}
         />
       ) : null}
-      {saveError ? <Banner tone="critical">{saveError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}
@@ -195,7 +199,6 @@ export const AdminModulePublishStep = () => {
           }
           isAlreadyPublished={isAlreadyPublished}
           isPublishing={isPublishing}
-          publishError={publishError}
           isSaving={isSaving}
           readonly={isReadonly}
           unsavedChangesMessage={
@@ -233,7 +236,6 @@ export const AdminModulePublishStep = () => {
           onPublish={() =>
             validateBeforeProceed(async () => {
               if (isReadonly) return;
-              setPublishError('');
               clearSaveFeedback();
               try {
                 const moduleIdForPublish = isDirty
@@ -249,7 +251,7 @@ export const AdminModulePublishStep = () => {
                   captureSaveError(err);
                   return;
                 }
-                setPublishError(formatError(err));
+                snackbar.showApiError(err);
               }
             })
           }
@@ -264,9 +266,7 @@ export const AdminModulePublishStep = () => {
       </div>
       {working.quality_flags?.flags?.length ? (
         <Card variant="bordered" className="space-y-2 p-4">
-          <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-            Quality flags
-          </div>
+          <FieldGroupLabel>Quality flags</FieldGroupLabel>
           <ul className="list-inside list-disc text-xs text-spice-text-medium">
             {working.quality_flags.flags.map((flag) => (
               <li key={flag}>{flag}</li>

@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui';
 import { useFetchModuleDemandSummaryQuery } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
+import { buildDashboardListFilterKey } from '@/features/admin-dashboard/hooks/useDashboardListPagination';
 import type {
   DashboardGeographyFilters,
   ModuleDemandPatternItem,
@@ -128,7 +130,12 @@ export const ModuleDemandSummaryWidget = ({
     }),
     { skip },
   );
+  const filterKey = buildDashboardListFilterKey(fromDate, toDate, geography);
   const ui = resolveDashboardQueryUiState(query);
+  const argChangeLoading = useDashboardArgChangeLoading(
+    filterKey,
+    query.isFetching,
+  );
   const summary =
     query.currentData ?? normalizeModuleDemandSummaryResponse(undefined);
   const emptyFallback = t('adminDashboard.moduleDemand.summaryEmptyFallback', {
@@ -143,12 +150,13 @@ export const ModuleDemandSummaryWidget = ({
       )}
     >
       <div className="flex items-start gap-3">
-        {ui.showLoading ? (
+        {ui.showLoading || argChangeLoading ? (
           <SummarySkeleton />
         ) : ui.showError ? (
           <div className="min-w-0 flex-1">
             <DashboardWidgetErrorState
               compact
+              error={query.error}
               onRetry={() => void query.refetch()}
             />
           </div>

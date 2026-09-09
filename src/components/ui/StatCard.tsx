@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { typographyClasses } from '@/components/ui/typographyClasses';
 import { cn } from '@/utils';
 
 /**
  * StatCard
  * KPI card for displaying a metric value and optional numeric change.
  *
- * Accent styling mirrors Needs Review module cards (`border-l-4`),
- * but uses a top accent (`border-t-4`) for dashboard metrics.
- * Label and value sit on one bottom row (label left, value bottom-right).
+ * Layout: icon + label header; value anchored bottom-right (optional /outOf).
+ * Accent styling uses a top border (`border-t-4`) for dashboard metrics.
  *
  * Usage:
  * <StatCard label="Completion Rate" value="68%" change={5} />
@@ -23,11 +23,11 @@ export type StatCardTone =
   | 'purple';
 
 export interface StatCardProps {
-  /** Optional icon shown above the label. */
+  /** Optional icon shown beside the label. */
   icon?: ReactNode;
-  /** Metric label shown on the bottom row (left of the value). */
+  /** Metric label shown in the header row (right of the icon). */
   label: string;
-  /** Primary metric value shown on the bottom row (right of the label). */
+  /** Primary metric value shown bottom-right. */
   value: string | number;
   /** Optional denominator for fraction display (`value/outOf`). */
   outOf?: string | number;
@@ -130,7 +130,7 @@ export const StatCard = ({
             label={tooltipLabel ?? label}
             content={tooltip}
             placement="bottom"
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-[11px] font-bold leading-none text-spice-text-muted transition-colors hover:border-spice-brand-primary hover:text-spice-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/30"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-spice-border bg-spice-bg-surface text-xs font-bold leading-none text-spice-text-muted transition-colors hover:border-spice-brand-primary hover:text-spice-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/30"
           >
             <span aria-hidden="true">i</span>
           </Tooltip>
@@ -145,59 +145,64 @@ export const StatCard = ({
             </span>
           ) : null}
           {badgeLabel ? (
-            <span className="rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
+            <span className="rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-xs font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
               {badgeLabel}
             </span>
           ) : null}
         </div>
       ) : null}
 
-      {icon ? (
-        <div
-          className={cn(
-            'mb-3 flex h-8 w-8 items-center justify-center rounded-full',
-            toneStyles?.iconBg ?? 'bg-spice-bg-tint',
-            toneStyles?.iconFg ?? 'text-spice-text-muted',
-          )}
-        >
-          {icon}
-        </div>
-      ) : null}
+      <div
+        className={cn(
+          'flex items-start gap-3',
+          tooltip || hasChange || badgeLabel ? 'pr-5' : null,
+        )}
+      >
+        {icon ? (
+          <div
+            className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full [&_svg]:h-5 [&_svg]:w-5',
+              toneStyles?.iconBg ?? 'bg-spice-bg-tint',
+              toneStyles?.iconFg ?? 'text-spice-text-muted',
+            )}
+          >
+            {icon}
+          </div>
+        ) : null}
 
-      <div className="mt-auto flex items-end justify-between gap-3">
         <p
           className={cn(
-            'min-w-0 text-[11px] font-bold uppercase tracking-[0.06em] text-spice-text-muted',
+            'min-w-0 flex-1 break-words pt-1 leading-snug',
+            typographyClasses.kpiLabel,
             labelClassName,
           )}
         >
           {label}
         </p>
-
-        <p
-          className={cn(
-            'text-[30px] font-extrabold leading-none tracking-tight text-spice-text-primary',
-            allowValueWrap ? 'min-w-0 text-right' : 'shrink-0',
-            !hasOutOf && (valueClassName ?? toneStyles?.value),
-          )}
-        >
-          {hasOutOf ? (
-            <>
-              <span className={cn(valueClassName ?? toneStyles?.value)}>
-                {displayValue}
-              </span>
-              <span className="text-[15px] font-semibold tracking-normal text-spice-text-muted">
-                /{outOf}
-              </span>
-            </>
-          ) : (
-            displayValue
-          )}
-        </p>
       </div>
 
+      <p
+        className={cn(
+          'mt-auto pt-1 text-right',
+          typographyClasses.kpiValue,
+          allowValueWrap ? 'min-w-0' : 'shrink-0',
+          !hasOutOf && (valueClassName ?? toneStyles?.value),
+        )}
+      >
+        {hasOutOf ? (
+          <>
+            <span className={cn(valueClassName ?? toneStyles?.value)}>
+              {displayValue}
+            </span>
+            <span className={typographyClasses.kpiOutOf}>{`/${outOf}`}</span>
+          </>
+        ) : (
+          displayValue
+        )}
+      </p>
+
       {supportingText ? (
-        <p className="mt-1.5 text-[11px] font-medium text-spice-text-muted">
+        <p className="mt-2 text-xs font-medium text-spice-text-muted">
           {supportingText}
         </p>
       ) : null}
@@ -210,7 +215,7 @@ export const StatCard = ({
             </span>
           ) : null}
           {badgeLabel ? (
-            <span className="rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-[10px] font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
+            <span className="rounded-full bg-spice-semantic-errorBg px-2 py-0.5 text-xs font-semibold text-spice-semantic-error ring-1 ring-spice-semantic-error/25">
               {badgeLabel}
             </span>
           ) : null}

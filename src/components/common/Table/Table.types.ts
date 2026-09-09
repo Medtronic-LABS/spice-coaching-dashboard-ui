@@ -33,4 +33,11 @@ export type TableProps<T extends object> = Omit<
   getRowClassName?: (row: T) => string | undefined;
   /** `compact` keeps dashboard tables dense; `comfortable` matches module library. */
   density?: 'compact' | 'comfortable';
+  /** When true and `data` is empty, shows `loadingMessage` instead of `emptyMessage`. */
+  isLoading?: boolean;
+  loadingMessage?: React.ReactNode;
+  /** When set, replaces table body rows with a centered query error state. */
+  queryError?: unknown;
+  queryErrorTitle?: string;
+  onRetryQuery?: () => void;
 };

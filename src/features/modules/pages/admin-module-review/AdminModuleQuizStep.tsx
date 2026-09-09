@@ -7,23 +7,25 @@ import {
   SaveDraftIcon,
 } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   EmptyState,
+  FieldGroupLabel,
+  FormLabel,
   LimitedTextarea,
   LimitedTextInput,
   Loader,
+  ModalTitle,
   TruncatedText,
 } from '@/components/ui';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import type { AdminModuleQuizItem } from '@/features/modules/api/adminModulesApi';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
 import {
   ReorderableList,
   ReorderDragHandle,
-} from '@/features/modules/components/ReorderableList';
+} from '@/components/shared/ReorderableList';
 import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
@@ -89,7 +91,6 @@ export const AdminModuleQuizStep = () => {
     useQuizExplanationReview(moduleId);
   const pendingReviewSet = useMemo(() => new Set(pendingIds), [pendingIds]);
   const {
-    actionError,
     draftIssues,
     draftValidationOpen,
     clearSaveFeedback,
@@ -227,7 +228,6 @@ export const AdminModuleQuizStep = () => {
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
       <AdminModuleDraftValidationDialog
         open={draftValidationOpen}
         issues={draftIssues}
@@ -238,9 +238,9 @@ export const AdminModuleQuizStep = () => {
       <Card variant="elevated" className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-lg font-semibold text-spice-text-primary">
+            <ModalTitle as="h2">
               {isReadonly ? 'Quiz questions' : 'Build quiz questions'}
-            </div>
+            </ModalTitle>
             <div className="mt-1 min-w-0 text-xs text-spice-text-muted">
               <div className="flex min-w-0 items-center gap-1">
                 <span className="shrink-0">
@@ -301,9 +301,9 @@ export const AdminModuleQuizStep = () => {
                                 dragHandleProps={controls.dragHandleProps}
                               />
                             ) : null}
-                            <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
+                            <FieldGroupLabel>
                               QUESTION {index + 1}
-                            </div>
+                            </FieldGroupLabel>
                           </div>
                           <div className="flex items-center gap-2">
                             {!isReadonly ? (
@@ -338,9 +338,7 @@ export const AdminModuleQuizStep = () => {
                         </div>
 
                         <label className="block space-y-1">
-                          <span className="text-xs font-semibold text-spice-text-primary">
-                            Question
-                          </span>
+                          <FormLabel>Question</FormLabel>
                           <LimitedTextInput
                             id={`quiz-question-${m.id}`}
                             data-quiz-field="question"
@@ -374,11 +372,9 @@ export const AdminModuleQuizStep = () => {
 
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-spice-text-primary">
-                              Answer options
-                            </span>
+                            <FormLabel>Answer options</FormLabel>
                             {!isReadonly ? (
-                              <span className="text-[11px] text-spice-text-muted">
+                              <span className="text-xs text-spice-text-muted">
                                 Select the correct answer
                               </span>
                             ) : null}
@@ -431,7 +427,7 @@ export const AdminModuleQuizStep = () => {
                                   placeholder={`Option ${optionIndex + 1}`}
                                 />
                                 {isCorrect ? (
-                                  <span className="shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
+                                  <span className="shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold tracking-wide text-white">
                                     CORRECT ANSWER
                                   </span>
                                 ) : null}
@@ -493,9 +489,9 @@ export const AdminModuleQuizStep = () => {
                         ) : null}
 
                         <div className="space-y-2">
-                          <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
+                          <FieldGroupLabel>
                             Explanation shown for wrong answers
-                          </div>
+                          </FieldGroupLabel>
                           <LimitedTextarea
                             id={`quiz-explanation-${m.id}`}
                             data-quiz-explanation-id={m.id}
@@ -602,12 +598,7 @@ export const AdminModuleQuizStep = () => {
                   const moduleIdForNav = isDirty
                     ? (await save()).id
                     : working.id;
-                  navigate(
-                    paths.adminModuleReviewPublish.replace(
-                      ':moduleId',
-                      encodeURIComponent(moduleIdForNav),
-                    ),
-                  );
+                  navigate(adminModuleReviewPaths.publish(moduleIdForNav));
                 } catch (err) {
                   captureSaveError(err);
                 }

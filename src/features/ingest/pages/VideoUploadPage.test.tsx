@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  screen,
-  waitFor,
-  within,
-  fireEvent,
-  act,
-} from '@testing-library/react';
+import { screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIELD_LIMITS } from '@/constants/fieldLimits';
@@ -361,17 +355,6 @@ describe('VideoUploadPage', () => {
     window.sessionStorage.clear();
   });
 
-  it('blurs the hidden file input on focus to avoid Windows Chrome scroll jump', () => {
-    renderPage();
-
-    const input = screen.getByLabelText(/upload video/i, {
-      selector: 'input',
-    }) as HTMLInputElement;
-    input.focus();
-    fireEvent.focus(input);
-    expect(document.activeElement).not.toBe(input);
-  });
-
   it('caps staged video titles at the document title limit', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -394,6 +377,29 @@ describe('VideoUploadPage', () => {
     expect(
       screen.getByLabelText(/^description/i, { selector: 'textarea' }),
     ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
+  });
+
+  it('clears staged videos when Reset is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'new-video.mp4', { type: 'video/mp4' });
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      video,
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: `Remove ${video.name}` }),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(
+      screen.queryByRole('button', { name: `Remove ${video.name}` }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^upload$/i })).toBeDisabled();
   });
 
   it('does not show upload success when skip upload reuses an existing video', async () => {
@@ -447,9 +453,9 @@ describe('VideoUploadPage', () => {
 
     await stageAndApiUpload(user, video);
 
-    expect(
-      screen.getByText('Video uploaded successfully.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Video uploaded successfully.',
+    );
     expect(mocks.uploadFiles).toHaveBeenCalledWith(
       expect.objectContaining({
         files: [video],
@@ -611,9 +617,9 @@ describe('VideoUploadPage', () => {
 
     await user.click(screen.getByRole('button', { name: /upload 2 videos/i }));
     await waitFor(() =>
-      expect(
-        screen.getByText('Videos uploaded successfully.'),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Videos uploaded successfully.',
+      ),
     );
   });
 

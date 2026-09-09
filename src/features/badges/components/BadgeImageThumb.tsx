@@ -20,7 +20,7 @@ function NoBadgeFallback({
   return (
     <span
       className={cn(
-        'inline-flex h-10 w-10 items-center justify-center text-center text-[10px] leading-tight text-spice-text-muted',
+        'inline-flex h-10 w-10 items-center justify-center text-center text-xs leading-tight text-spice-text-muted',
         className,
       )}
       title={title}

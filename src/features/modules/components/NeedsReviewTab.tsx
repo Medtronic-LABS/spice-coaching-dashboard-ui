@@ -3,12 +3,14 @@ import { ChevronIcon, EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
 import {
   Button,
-  Card,
   ConfirmDialog,
-  ErrorState,
   QuotedDisplayLabel,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   Tooltip,
   TruncatedText,
+  typographyClasses,
+  useSnackbar,
 } from '@/components/ui';
 import {
   TABLE_CELL_LABEL_MAX_LENGTH,
@@ -21,18 +23,21 @@ import {
   type AdminModuleDetailResponse,
   type AdminModulesListItem,
 } from '@/features/modules/api/adminModulesApi';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
 import {
   actorNameFromMetadata,
   formatHierarchyActorName,
 } from '@/features/modules/types/hierarchyActor';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 import { truncateDisplayText } from '@/utils/truncateDisplayText';
 
 interface NeedsReviewTabProps {
   modules: AdminModulesListItem[];
   isLoading?: boolean;
-  error?: unknown;
   onMerge: (moduleId: string) => Promise<void>;
   onDiscardNew: (moduleId: string) => Promise<void>;
   /** Wired when the keep-new API is available. */
@@ -43,6 +48,9 @@ interface NeedsReviewTabProps {
   onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
   initialExpandedId?: string | null;
   emptyMessage?: string;
+  queryError?: unknown;
+  queryErrorTitle?: string;
+  onRetryQuery?: () => void;
 }
 
 type NeedsReviewTableRow = {
@@ -64,11 +72,11 @@ export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
   <div className="max-w-sm space-y-3.5 p-3.5 text-xs">
     <div className="border-b border-spice-border/60 pb-3">
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-semantic-infoBg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-info">
+        <span className="inline-flex items-center rounded-md bg-spice-semantic-infoBg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-semantic-info">
           Keep New
         </span>
       </div>
-      <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
+      <p className="pl-3 text-xs leading-relaxed text-spice-text-medium">
         Moves the new module to{' '}
         <strong className="text-spice-text-primary">Drafts</strong> with no
         impact on the existing module. The merge preview is discarded.
@@ -76,22 +84,22 @@ export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
     </div>
     <div className="border-b border-spice-border/60 pb-3">
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-text-muted ring-1 ring-spice-border/50">
+        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-text-muted ring-1 ring-spice-border/50">
           Discard New
         </span>
       </div>
-      <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
+      <p className="pl-3 text-xs leading-relaxed text-spice-text-medium">
         Discards the new module and merge preview. The existing module remains
         unchanged.
       </p>
     </div>
     <div>
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-semantic-warningBg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-warning">
+        <span className="inline-flex items-center rounded-md bg-spice-semantic-warningBg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-semantic-warning">
           Merge
         </span>
       </div>
-      <p className="pl-3 text-[11px] leading-relaxed text-spice-text-medium">
+      <p className="pl-3 text-xs leading-relaxed text-spice-text-medium">
         Moves the merged module to{' '}
         <strong className="text-spice-text-primary">Drafts</strong> and discards
         the existing and new modules. All assignments, learner progress, quiz
@@ -261,7 +269,7 @@ function ModuleCardPanel({
       className={`min-w-0 max-w-full rounded-xl border border-spice-border border-l-4 ${borderLeftColor} bg-spice-bg-surface overflow-hidden shadow-sm`}
     >
       <div className="flex items-center justify-between gap-2 border-b border-spice-border bg-spice-bg-tint/40 px-3 py-2">
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-spice-text-muted">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-spice-text-muted">
           <span className="truncate">{headerLabel}</span>
           <Tooltip
             label={headerInfo.label}
@@ -271,7 +279,7 @@ function ModuleCardPanel({
         </span>
         {badgeText ? (
           <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${badgeStyle}`}
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold tracking-wide uppercase ${badgeStyle}`}
           >
             {badgeText}
           </span>
@@ -355,7 +363,7 @@ function ComparisonModulePanel({
             {formatModuleTitle(target)}
           </h4>
           {target.category ? (
-            <span className="mt-1 inline-block max-w-full truncate rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] font-medium text-spice-text-muted">
+            <span className="mt-1 inline-block max-w-full truncate rounded bg-spice-bg-tint/60 px-2 py-0.5 text-xs font-medium text-spice-text-muted">
               {target.category}
             </span>
           ) : null}
@@ -372,15 +380,22 @@ function ComparisonModulePanel({
 
       <div className="grid grid-cols-1 gap-2 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-2.5 text-xs sm:grid-cols-2">
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Status
           </span>
           <div className="mt-1">
-            {targetStatus ? <ModuleStatusBadge status={targetStatus} /> : '—'}
+            {targetStatus ? (
+              <StatusBadge
+                {...getModuleStatusBadgeProps(targetStatus)}
+                className={TABLE_STATUS_BADGE_CLASSNAME}
+              />
+            ) : (
+              '—'
+            )}
           </div>
         </div>
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Lessons / Quizzes
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
@@ -388,7 +403,7 @@ function ComparisonModulePanel({
           </span>
         </div>
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Duration
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
@@ -396,7 +411,7 @@ function ComparisonModulePanel({
           </span>
         </div>
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Created On
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
@@ -404,7 +419,7 @@ function ComparisonModulePanel({
           </span>
         </div>
         <div className="border-t border-spice-border/40 pt-2 sm:col-span-2">
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             {isPublished ? 'Published By' : 'Created By'}
           </span>
           <span className="mt-0.5 block truncate font-medium text-spice-text-medium">
@@ -419,7 +434,6 @@ function ComparisonModulePanel({
 export const NeedsReviewTab = ({
   modules,
   isLoading,
-  error,
   onMerge,
   onDiscardNew,
   onKeepNew,
@@ -429,12 +443,15 @@ export const NeedsReviewTab = ({
   onSort,
   initialExpandedId,
   emptyMessage,
+  queryError,
+  queryErrorTitle = 'Failed to load review pending modules',
+  onRetryQuery,
 }: NeedsReviewTabProps) => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<
     'keep_new' | 'discard_new' | 'merge' | null
   >(null);
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     if (initialExpandedId) {
@@ -481,10 +498,11 @@ export const NeedsReviewTab = ({
 
   const handleMergeClick = async (moduleId: string) => {
     try {
-      setActionError('');
       setSubmittingId(moduleId);
       setActionType('merge');
       await onMerge(moduleId);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -494,10 +512,11 @@ export const NeedsReviewTab = ({
   const handleKeepNewClick = async (moduleId: string) => {
     if (!onKeepNew) return;
     try {
-      setActionError('');
       setSubmittingId(moduleId);
       setActionType('keep_new');
       await onKeepNew(moduleId);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -505,7 +524,6 @@ export const NeedsReviewTab = ({
   };
 
   const handleDiscardNewClick = (moduleId: string) => {
-    setActionError('');
     setDiscardTargetId(moduleId);
   };
 
@@ -517,6 +535,8 @@ export const NeedsReviewTab = ({
       setActionType('discard_new');
       await onDiscardNew(moduleId);
       setDiscardTargetId(null);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
@@ -600,7 +620,10 @@ export const NeedsReviewTab = ({
               <button
                 type="button"
                 onClick={() => toggleExpand(row.id)}
-                className="block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
+                className={cn(
+                  typographyClasses.tableCellPrimary,
+                  'block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none',
+                )}
               >
                 {displayTitle}
               </button>
@@ -613,12 +636,11 @@ export const NeedsReviewTab = ({
       key: 'content',
       header: 'Content',
       headerClassName: 'px-4 py-2 sm:px-4',
-      className:
-        'px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap sm:px-4 sm:py-3.5',
+      className: 'px-4 py-3.5 whitespace-nowrap sm:px-4 sm:py-3.5',
       render: (row) => {
         const primary = row.raw;
         return (
-          <div className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap">
             <span>
               {primary.card_count === 1
                 ? '1 lesson'
@@ -634,7 +656,7 @@ export const NeedsReviewTab = ({
                   : `${primary.quiz_count} questions`}
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-[10px] font-semibold text-spice-text-muted ring-1 ring-spice-border">
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-xs font-semibold text-spice-text-muted ring-1 ring-spice-border">
                 No quiz
               </span>
             )}
@@ -653,23 +675,27 @@ export const NeedsReviewTab = ({
       header: 'Status',
       headerClassName: 'px-4 py-2 sm:px-4',
       className: 'px-4 py-3.5 whitespace-nowrap sm:px-4 sm:py-3.5',
-      render: () => <ModuleStatusBadge status="review_pending" />,
+      render: () => (
+        <StatusBadge
+          {...getModuleStatusBadgeProps('review_pending')}
+          className={TABLE_STATUS_BADGE_CLASSNAME}
+        />
+      ),
     },
     {
       key: 'createdAt',
       header: 'Created At',
       sortable: true,
       sortKey: 'created_at',
-      headerClassName: 'px-4 py-2 sm:px-4',
-      className:
-        'px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap sm:px-4 sm:py-3.5',
+      headerClassName: `px-4 py-2 sm:px-4 ${DISPLAY_DATETIME_TABLE_COLUMN_CLASS}`,
+      className: `px-4 py-3.5 sm:px-4 sm:py-3.5 ${DISPLAY_DATETIME_TABLE_COLUMN_CLASS}`,
       render: (row) => (
         <>
           <div className="font-medium text-spice-text-primary">
             {row.createdAt}
           </div>
           {row.createdBy !== '—' ? (
-            <div className="text-[11px] text-spice-text-muted mt-0.5">
+            <div className={`mt-0.5 ${typographyClasses.tableCellSecondary}`}>
               By {row.createdBy}
             </div>
           ) : null}
@@ -720,36 +746,21 @@ export const NeedsReviewTab = ({
     },
   ];
 
-  if (error) {
-    return <ErrorState title="Failed to load review pending modules." />;
-  }
-
-  if (isLoading) {
-    return (
-      <Card
-        variant="bordered"
-        className="p-12 text-center text-sm text-spice-text-muted rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
-      >
-        Loading review modules…
-      </Card>
-    );
-  }
-
   return (
     <>
-      {actionError ? (
-        <div className="mb-3">
-          <ErrorState title={actionError} />
-        </div>
-      ) : null}
       <Table
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.id}
+        isLoading={isLoading}
+        loadingMessage="Loading review modules…"
         emptyMessage={emptyMessage ?? 'No modules requiring review.'}
         sortBy={sortBy}
         sortDir={sortDir}
         onSort={onSort}
+        queryError={queryError}
+        queryErrorTitle={queryErrorTitle}
+        onRetryQuery={onRetryQuery}
         containerClassName="rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
         getRowClassName={(row) =>
           expandedIds.has(row.id)

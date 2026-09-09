@@ -6,10 +6,11 @@ import { TablePagination } from '@/components/common/TablePagination';
 import {
   Button,
   Card,
-  ErrorState,
-  Loader,
   SearchInput,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
   TruncatedText,
+  typographyClasses,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useFetchIngestionRunsQuery } from '@/features/ingest/api/adminIngestionRunsApi';
@@ -17,12 +18,10 @@ import type { ModuleLibraryLocationState } from '@/features/modules/types/module
 import {
   formatIngestRunDurationDisplay,
   formatIngestRunGeneratedCountParts,
-  formatIngestRunStatusDisplay,
   formatIngestRunTimestamp,
-  ingestRunStatusBadgeClassName,
-  ingestRunStatusTone,
   shouldPollIngestionRunList,
 } from '@/features/ingest/utils/ingestRunHistoryUtils';
+import { getIngestRunStatusBadgeProps } from '@/features/ingest/utils/ingestRunStatusBadge';
 import { hasGeneratedIngestModules } from '@/features/ingest/utils/ingestStatus';
 import { formatHierarchyActorName } from '@/features/modules/types/hierarchyActor';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -35,8 +34,11 @@ import {
   tablePageOffset,
   tablePaginationRange,
 } from '@/utils/tablePagination';
-import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
 
 const RUN_HISTORY_POLL_INTERVAL_MS = 30000;
 const RUN_HISTORY_SEARCH_DEBOUNCE_MS = 300;
@@ -48,8 +50,7 @@ type IngestRunHistoryRow = {
   generatedModuleLabel: string;
   generatedCardLabel: string;
   generatedQuizLabel: string;
-  statusLabel: string;
-  statusTone: ReturnType<typeof ingestRunStatusTone>;
+  status: string;
   durationLabel: string;
   ingestedAt: string;
   ingestedBy: string | null;
@@ -107,6 +108,7 @@ export const IngestRunHistoryTable = () => {
     data: runList,
     isLoading,
     isFetching,
+    isError,
     error,
     refetch,
     fulfilledTimeStamp,
@@ -137,8 +139,7 @@ export const IngestRunHistoryTable = () => {
         generatedModuleLabel: counts.modules,
         generatedCardLabel: counts.cards,
         generatedQuizLabel: counts.quizzes,
-        statusLabel: formatIngestRunStatusDisplay(run.status),
-        statusTone: ingestRunStatusTone(run.status),
+        status: run.status,
         durationLabel: formatIngestRunDurationDisplay(
           run.started_at,
           run.completed_at,
@@ -193,7 +194,10 @@ export const IngestRunHistoryTable = () => {
             <TruncatedText
               text={row.fileName ?? '—'}
               focusable
-              className="font-semibold text-spice-text-primary"
+              className={cn(
+                typographyClasses.tableCellPrimary,
+                'font-semibold',
+              )}
             />
           </div>
         ),
@@ -203,7 +207,7 @@ export const IngestRunHistoryTable = () => {
         header: 'Modules / cards / quizzes',
         sortable: false,
         render: (row) => (
-          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap text-xs text-spice-text-medium">
+          <div className="inline-grid w-max grid-cols-[4.75rem_auto_5.5rem_auto_3.25rem] items-center gap-x-1 whitespace-nowrap">
             <span>{row.generatedModuleLabel}</span>
             <span className="text-spice-text-muted" aria-hidden="true">
               |
@@ -217,18 +221,17 @@ export const IngestRunHistoryTable = () => {
         ),
       },
       {
-        key: 'statusLabel',
+        key: 'status',
         header: 'Status',
         sortable: true,
         sortKey: 'status',
         headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
-          <span
-            className={`inline-flex min-w-[8.5rem] justify-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${ingestRunStatusBadgeClassName(row.statusTone)}`}
-          >
-            {row.statusLabel}
-          </span>
+          <StatusBadge
+            {...getIngestRunStatusBadgeProps(row.status)}
+            className={TABLE_STATUS_BADGE_CLASSNAME}
+          />
         ),
       },
       {
@@ -237,11 +240,7 @@ export const IngestRunHistoryTable = () => {
         sortable: false,
         headerClassName: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
         className: 'w-[1%] whitespace-nowrap px-3 sm:px-4',
-        render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {row.durationLabel}
-          </span>
-        ),
+        render: (row) => <span>{row.durationLabel}</span>,
       },
       {
         key: 'ingestedBy',
@@ -250,9 +249,7 @@ export const IngestRunHistoryTable = () => {
         headerClassName: 'whitespace-nowrap px-3 sm:px-4',
         className: 'whitespace-nowrap px-3 sm:px-4',
         render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {formatHierarchyActorName(row.ingestedBy)}
-          </span>
+          <span>{formatHierarchyActorName(row.ingestedBy)}</span>
         ),
       },
       {
@@ -260,12 +257,10 @@ export const IngestRunHistoryTable = () => {
         header: 'Ingested Date',
         sortable: true,
         sortKey: 'started_at',
-        headerClassName: 'whitespace-nowrap px-3 sm:px-4',
-        className: 'whitespace-nowrap px-3 sm:px-4',
+        headerClassName: `${DISPLAY_DATETIME_TABLE_COLUMN_CLASS} px-3 sm:px-4`,
+        className: `${DISPLAY_DATETIME_TABLE_COLUMN_CLASS} px-3 sm:px-4`,
         render: (row) => (
-          <span className="text-xs text-spice-text-medium">
-            {formatIngestRunTimestamp(row.ingestedAt)}
-          </span>
+          <span>{formatIngestRunTimestamp(row.ingestedAt)}</span>
         ),
       },
       {
@@ -298,11 +293,9 @@ export const IngestRunHistoryTable = () => {
     [openGeneratedModules],
   );
 
-  const emptyMessage = isLoading
-    ? 'Loading run history…'
-    : searchQ
-      ? 'No ingestion runs match your search.'
-      : 'No ingestion history available. Upload your first document to generate learning modules.';
+  const emptyMessage = searchQ
+    ? 'No ingestion runs match your search.'
+    : 'No ingestion history available. Upload your first document to generate learning modules.';
 
   return (
     <Card variant="elevated" className="space-y-4 p-4">
@@ -319,7 +312,7 @@ export const IngestRunHistoryTable = () => {
           </div>
           <Button
             variant="secondary"
-            className="h-8 w-8 px-0"
+            size="iconSm"
             aria-label="Refresh"
             title="Refresh"
             onClick={() => {
@@ -329,41 +322,28 @@ export const IngestRunHistoryTable = () => {
             <RefreshIcon className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-spice-text-muted">
+        <div className="flex items-center gap-2 text-xs text-spice-text-muted">
           <span>Last updated {lastUpdatedLabel}</span>
           {isFetching && !isLoading ? <span>Updating…</span> : null}
         </div>
       </div>
-
-      {error ? (
-        <ErrorState
-          title="Unable to load run history"
-          description={formatRtkQueryError(error)}
-          action={
-            <Button
-              variant="secondary"
-              className="h-8 text-xs"
-              onClick={() => {
-                refetch();
-              }}
-            >
-              Retry
-            </Button>
-          }
-        />
-      ) : null}
-
-      <Loader open={isLoading} label="Loading run history…" />
 
       <Table<IngestRunHistoryRow>
         data={rows}
         columns={columns}
         keyExtractor={(row) => row.id}
         caption="Ingestion run history"
+        isLoading={isLoading}
+        loadingMessage="Loading run history…"
         emptyMessage={emptyMessage}
         sortBy={sortBy}
         sortDir={sortDir}
         onSort={handleSort}
+        queryError={isError && !isFetching ? error : undefined}
+        queryErrorTitle="Unable to load ingestion history"
+        onRetryQuery={() => {
+          void refetch();
+        }}
       />
 
       <TablePagination

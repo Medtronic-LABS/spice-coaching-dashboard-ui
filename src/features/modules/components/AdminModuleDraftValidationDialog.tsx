@@ -1,5 +1,6 @@
-import { Button, Card } from '@/components/ui';
+import { Button, Card, FieldGroupLabel, ModalTitle } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import {
   groupAdminModuleDraftIssues,
@@ -31,19 +32,16 @@ export function AdminModuleDraftValidationDialog({
       labelledBy="admin-module-draft-validation-title"
       describedBy="admin-module-draft-validation-description"
       contentClassName="max-w-lg"
-      zIndexClassName="z-[310]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalRaised}
     >
       <Card
         variant="elevated"
         className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:p-6 sm:pr-14"
       >
         <div className="space-y-2">
-          <h2
-            id="admin-module-draft-validation-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
+          <ModalTitle id="admin-module-draft-validation-title">
             Can&apos;t save yet
-          </h2>
+          </ModalTitle>
           <p
             id="admin-module-draft-validation-description"
             className="text-sm text-spice-text-muted"
@@ -55,9 +53,7 @@ export function AdminModuleDraftValidationDialog({
         <div className="max-h-72 space-y-4 overflow-y-auto rounded-lg border border-spice-border bg-spice-bg-tint/40 p-3">
           {kindGroups.map((kindGroup) => (
             <section key={kindGroup.kind} className="space-y-2">
-              <h3 className="text-xs font-semibold tracking-wider text-spice-text-muted uppercase">
-                {kindGroup.title}
-              </h3>
+              <FieldGroupLabel as="h3">{kindGroup.title}</FieldGroupLabel>
               <div className="space-y-3">
                 {kindGroup.items.map((item) => (
                   <div

@@ -544,6 +544,15 @@ describe('TeamHierarchySection', () => {
     await user.click(screen.getByRole('button', { name: 'Apply Aug 1' }));
 
     await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'View POs' }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(metricText('3 Queries'))).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'View POs' }));
+
+    await waitFor(() => {
       expect(screen.getByText(metricText('0 Queries'))).toBeInTheDocument();
     });
     expect(screen.queryByText(metricText('3 Queries'))).not.toBeInTheDocument();

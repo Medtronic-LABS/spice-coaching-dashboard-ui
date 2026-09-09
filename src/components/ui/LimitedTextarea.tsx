@@ -47,7 +47,7 @@ export const LimitedTextarea = ({
         <div
           id={id ? `${id}-counter` : undefined}
           className={cn(
-            'text-right text-[11px] tabular-nums',
+            'text-right text-xs tabular-nums',
             nearLimit
               ? 'font-medium text-spice-semantic-warning'
               : 'text-spice-text-muted',

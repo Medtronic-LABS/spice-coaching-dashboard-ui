@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
-  Banner,
   Card,
+  FormLabel,
   LimitedTextInput,
   LimitedTextarea,
   Loader,
   Modal,
   ModalActionBar,
+  ModalTitle,
+  useSnackbar,
 } from '@/components/ui';
 import {
   FIELD_LIMITS,
@@ -26,7 +28,6 @@ import {
   isAcceptedVideoThumbnailFile,
 } from '@/features/ingest/utils/videoThumbnail';
 import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
-import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 interface VideoMetadataEditDialogProps {
   open: boolean;
@@ -48,7 +49,7 @@ export const VideoMetadataEditDialog = ({
     string | null
   >(null);
   const [fieldError, setFieldError] = useState('');
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [updateMetadata, { isLoading: isSavingMetadata }] =
@@ -73,7 +74,6 @@ export const VideoMetadataEditDialog = ({
     setThumbnailFile(null);
     setLocalThumbnailPreviewUrl(null);
     setFieldError('');
-    setActionError('');
   }, [open, document]);
 
   useEffect(() => {
@@ -131,7 +131,6 @@ export const VideoMetadataEditDialog = ({
     }
 
     setFieldError('');
-    setActionError('');
 
     try {
       let latest = document;
@@ -159,7 +158,7 @@ export const VideoMetadataEditDialog = ({
       onSaved(latest);
       onClose();
     } catch (error) {
-      setActionError(formatRtkQueryError(error));
+      snackbar.showApiError(error);
     }
   };
 
@@ -175,20 +174,18 @@ export const VideoMetadataEditDialog = ({
         variant="elevated"
         className="w-full space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
       >
-        <h2
-          id="video-metadata-edit-title"
-          className="text-lg font-semibold text-spice-text-primary"
-        >
+        <ModalTitle id="video-metadata-edit-title">
           Edit video details
-        </h2>
+        </ModalTitle>
 
-        {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
-        {fieldError ? <Banner tone="critical">{fieldError}</Banner> : null}
+        {fieldError ? (
+          <p className="text-xs text-spice-semantic-error" role="alert">
+            {fieldError}
+          </p>
+        ) : null}
 
         <label className="block space-y-1.5">
-          <span className="text-xs font-semibold text-spice-text-primary">
-            Title <span className="text-spice-semantic-error">*</span>
-          </span>
+          <FormLabel required>Title</FormLabel>
           <LimitedTextInput
             id="video-metadata-title"
             value={title}
@@ -203,9 +200,7 @@ export const VideoMetadataEditDialog = ({
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-xs font-semibold text-spice-text-primary">
-            Description
-          </span>
+          <FormLabel>Description</FormLabel>
           <LimitedTextarea
             id="video-metadata-description"
             value={description}
@@ -219,9 +214,7 @@ export const VideoMetadataEditDialog = ({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-spice-text-primary">
-              Thumbnail
-            </span>
+            <FormLabel>Thumbnail</FormLabel>
             <button
               type="button"
               disabled={isSaving}
@@ -250,7 +243,7 @@ export const VideoMetadataEditDialog = ({
               </svg>
             </button>
           </div>
-          <p className="text-[10px] leading-snug text-spice-text-muted">
+          <p className="text-xs leading-snug text-spice-text-muted">
             {THUMBNAIL_ACCEPT_SIZE_HINT}
           </p>
           <input
@@ -274,7 +267,7 @@ export const VideoMetadataEditDialog = ({
               className="flex min-h-[140px] w-full animate-pulse items-center justify-center rounded-lg border border-spice-border bg-spice-bg-tint"
               aria-label="Loading thumbnail"
             >
-              <span className="text-[11px] font-medium text-spice-text-muted">
+              <span className="text-xs font-medium text-spice-text-muted">
                 Loading thumbnail…
               </span>
             </div>
@@ -285,7 +278,7 @@ export const VideoMetadataEditDialog = ({
               onClick={() => fileInputRef.current?.click()}
               className="flex min-h-[140px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-center transition-colors hover:bg-spice-bg-surface disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="text-[11px] font-medium text-spice-text-muted">
+              <span className="text-xs font-medium text-spice-text-muted">
                 Add thumbnail
               </span>
             </button>

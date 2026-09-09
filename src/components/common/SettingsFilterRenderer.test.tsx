@@ -6,43 +6,6 @@ import type { SettingsFilterSection } from '@/components/common/settingsFilter.t
 import { todayDateInputValue } from '@/utils/dateInput';
 
 describe('SettingsFilterRenderer', () => {
-  it('renders segmented options and forwards selection', async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-
-    render(
-      <SettingsFilterRenderer
-        sections={[
-          {
-            id: 'general',
-            label: 'General',
-            fields: [
-              {
-                type: 'segmented',
-                id: 'assigned',
-                label: 'Assigned',
-                value: 'all',
-                options: [
-                  { label: 'All', value: 'all' },
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' },
-                ],
-                onChange,
-              },
-            ],
-          },
-        ]}
-        onClearAll={vi.fn()}
-        onApply={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByText('Assigned')).toBeVisible();
-    expect(screen.getByText('Assigned').closest('div.pl-4')).not.toBeNull();
-    await user.click(screen.getByRole('tab', { name: 'Yes' }));
-    expect(onChange).toHaveBeenCalledWith('yes');
-  });
-
   it('renders checkbox options and forwards Apply / Clear All', async () => {
     const user = userEvent.setup();
     const onApply = vi.fn();

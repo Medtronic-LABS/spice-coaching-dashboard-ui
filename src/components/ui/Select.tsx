@@ -291,7 +291,7 @@ export const Select = ({
             : undefined
         }
         className={cn(
-          'relative flex h-10 w-full items-center truncate rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 pr-10 text-left text-[13px] text-spice-text-primary',
+          'relative flex h-10 w-full items-center truncate rounded-lg border border-spice-border-mid bg-spice-bg-surface px-3 pr-10 text-left text-sm text-spice-text-primary',
           SPICE_INPUT_FOCUS_CLASSNAME,
           disabled && 'cursor-not-allowed opacity-60',
           triggerClassName,

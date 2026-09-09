@@ -1,12 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner, Button, Card, Loader } from '@/components/ui';
+import {
+  Button,
+  Card,
+  FieldGroupLabel,
+  Loader,
+  ModalTitle,
+  useSnackbar,
+} from '@/components/ui';
+import { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
+import type { RichBlock } from '@/components/ui/rich-text/types/richText.types';
 import { paths } from '@/constants/routes';
+import {
+  storedFileAttrsFromUpload,
+  useUploadAdminFileMutation,
+} from '@/features/modules/api/adminFilesApi';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
-import { RichTextEditor } from '@/features/modules/components/RichTextEditor';
 import { useModuleEditor } from '@/features/modules/hooks/useModuleEditor';
 import { setModuleLessons } from '@/features/modules/store/moduleEditSlice';
-import type { RichBlock } from '@/features/modules/types/richText.types';
 import { useAppDispatch } from '@/store/hooks';
 
 export const ModuleLessonsPage = () => {
@@ -14,9 +25,18 @@ export const ModuleLessonsPage = () => {
   const dispatch = useAppDispatch();
   const { working, isLoading, saveContent, isSavingContent, formatError } =
     useModuleEditor();
+  const snackbar = useSnackbar();
   const [selectedLessonId, setSelectedLessonId] = useState('');
-  const [actionError, setActionError] = useState('');
+  const [uploadAdminFile] = useUploadAdminFileMutation();
   const isReadOnly = Boolean(working?.isReadOnly);
+
+  const uploadMediaFile = useCallback(
+    async (file: File) =>
+      storedFileAttrsFromUpload(
+        await uploadAdminFile({ file, prefix: 'media' }).unwrap(),
+      ),
+    [uploadAdminFile],
+  );
 
   const selectedLesson = working?.lessons.find(
     (lesson) => lesson.id === selectedLessonId,
@@ -43,9 +63,7 @@ export const ModuleLessonsPage = () => {
   if (working?.generationStatus !== 'generated') {
     return (
       <Card variant="elevated" className="space-y-3">
-        <div className="text-lg font-semibold text-spice-text-primary">
-          No generated module content yet
-        </div>
+        <ModalTitle as="h2">No generated module content yet</ModalTitle>
         <p className="text-sm text-spice-text-medium">
           Upload a document and generate module content before editing lessons.
         </p>
@@ -68,9 +86,7 @@ export const ModuleLessonsPage = () => {
       <ModuleFlowStepper currentStep="lessons" isGenerated />
       <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
         <Card variant="elevated" className="space-y-2">
-          <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-            Module
-          </div>
+          <FieldGroupLabel>Module</FieldGroupLabel>
           <div className="text-sm font-semibold text-spice-text-primary">
             {working.title}
           </div>
@@ -87,7 +103,7 @@ export const ModuleLessonsPage = () => {
                 }`}
               >
                 {lesson.title}
-                <div className="text-[11px] text-spice-text-muted">
+                <div className="text-xs text-spice-text-muted">
                   Lesson {lesson.order}
                 </div>
               </button>
@@ -96,13 +112,13 @@ export const ModuleLessonsPage = () => {
         </Card>
 
         <Card variant="elevated" className="space-y-4">
-          {actionError ? <Banner tone="critical">{actionError}</Banner> : null}
           <div className="text-4xl font-semibold text-spice-text-primary">
             Lesson Content
           </div>
           <RichTextEditor
             value={lessonContent}
             onChange={updateLessonContent}
+            onUploadMediaFile={uploadMediaFile}
             minHeightClassName="min-h-[320px]"
             readOnly={isReadOnly}
           />
@@ -112,11 +128,10 @@ export const ModuleLessonsPage = () => {
                 variant="secondary"
                 disabled={isSavingContent || isReadOnly}
                 onClick={async () => {
-                  setActionError('');
                   try {
                     await saveContent();
                   } catch (err) {
-                    setActionError(formatError(err));
+                    snackbar.showError(formatError(err));
                   }
                 }}
               >

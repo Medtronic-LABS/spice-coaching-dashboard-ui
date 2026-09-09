@@ -1,4 +1,4 @@
-import type { RichBlock } from '@/features/modules/types/richText.types';
+import type { RichBlock } from '@/components/ui/rich-text/types/richText.types';
 
 /** Locale code (ISO 639-1 / short BCP-47) → localized text. */
 export type LocalizedString = Record<string, string>;

@@ -10,19 +10,21 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { RefreshIcon } from '@/assets/icon';
 import {
-  Banner,
   Button,
   Card,
   Combobox,
   CircularSpinner,
+  FormLabel,
   InfiniteScrollContainer,
   Loader,
   Modal,
   ModalActionBar,
+  ModalTitle,
   SearchInput,
   Select,
   Tabs,
   TruncatedText,
+  useSnackbar,
 } from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
@@ -135,7 +137,8 @@ function GeoCatalogRefreshButton({
   return (
     <Button
       variant="secondary"
-      className="h-9 w-9 shrink-0 px-0"
+      size="iconMd"
+      className="shrink-0"
       onClick={onRefresh}
       aria-label={label}
       title={label}
@@ -163,9 +166,7 @@ function GeoFilterField({
 }: GeoFilterFieldProps) {
   return (
     <div className="min-w-0 space-y-1.5">
-      <span className="block text-xs font-semibold leading-5 text-spice-text-primary">
-        {label}
-      </span>
+      <FormLabel className="block leading-5">{label}</FormLabel>
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">{children}</div>
         {showRefresh ? (
@@ -266,7 +267,8 @@ function UserSelectionList({
             <p className="text-sm text-spice-text-muted">{errorMessage}</p>
             <Button
               variant="secondary"
-              className="h-8 gap-1.5 px-3 text-xs"
+              size="sm"
+              className="gap-1.5"
               onClick={onRetry}
               disabled={isFetching}
             >
@@ -334,6 +336,7 @@ export const AssignmentDialog = ({
   target,
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
+  const snackbar = useSnackbar();
   const noun = entityNoun(target);
   const [successState, setSuccessState] =
     useState<AssignmentSuccessLocationState | null>(null);
@@ -404,7 +407,6 @@ export const AssignmentDialog = ({
   const [geoKnownUsers, setGeoKnownUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersOffset, setUsersOffset] = useState(0);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const divisionsRequestSeqRef = useRef(0);
   const districtsRequestSeqRef = useRef(0);
@@ -738,20 +740,29 @@ export const AssignmentDialog = ({
     if (nextTab === activeTab) return;
     resetGeographyFilters();
     setActiveTab(nextTab);
-    setErrorMsg('');
     void loadDivisionsPage(0, false);
     if (nextTab === 'user') {
       void loadDistrictsPage(0, false);
     }
   };
 
-  useEffect(() => {
-    if (!open) return;
+  const targetId = target.id;
+  const targetKind = target.kind;
+
+  const loadUsersPageRef = useRef(loadUsersPage);
+  loadUsersPageRef.current = loadUsersPage;
+  const resetGeographyFiltersRef = useRef(resetGeographyFilters);
+  resetGeographyFiltersRef.current = resetGeographyFilters;
+  const triggerModuleAssignedUsersRef = useRef(triggerModuleAssignedUsers);
+  triggerModuleAssignedUsersRef.current = triggerModuleAssignedUsers;
+  const triggerDocumentAssignedUsersRef = useRef(triggerDocumentAssignedUsers);
+  triggerDocumentAssignedUsersRef.current = triggerDocumentAssignedUsers;
+
+  const initializeAssignmentSession = useCallback(() => {
     setActiveTab('user');
     setUserLevelMode('po_sk');
-    resetGeographyFilters();
+    resetGeographyFiltersRef.current();
     setUserSearchQuery('');
-    setErrorMsg('');
     setLoadedUsers([]);
     setPoChildUsers([]);
     setUsersTotal(0);
@@ -767,26 +778,29 @@ export const AssignmentDialog = ({
       setGeoKnownUsers(users);
     };
 
-    if (target.kind === 'module') {
-      void triggerModuleAssignedUsers(target.id).then((result) => {
+    if (targetKind === 'module') {
+      void triggerModuleAssignedUsersRef.current(targetId).then((result) => {
         if ('data' in result && result.data) {
           applyAssignedUsers(result.data);
         }
       });
     } else {
-      void triggerDocumentAssignedUsers(target.id).then((result) => {
+      void triggerDocumentAssignedUsersRef.current(targetId).then((result) => {
         if ('data' in result && result.data) {
           applyAssignedUsers(result.data);
         }
       });
     }
-  }, [
-    open,
-    resetGeographyFilters,
-    target,
-    triggerDocumentAssignedUsers,
-    triggerModuleAssignedUsers,
-  ]);
+
+    // Always reload the hierarchy list. "Assign to more" keeps `open` true, so the
+    // usersListQueryKey effect may not re-run on its own.
+    void loadUsersPageRef.current(0, false);
+  }, [targetId, targetKind]);
+
+  useEffect(() => {
+    if (!open) return;
+    initializeAssignmentSession();
+  }, [initializeAssignmentSession, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -1034,15 +1048,13 @@ export const AssignmentDialog = ({
   };
 
   const handleAssign = async () => {
-    setErrorMsg('');
-
     try {
       const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
       const addedIds = nextIds.filter((id) => !baselineSet.has(id));
       const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
 
       if (addedIds.length === 0 && removedIds.length === 0) {
-        setErrorMsg(
+        snackbar.showError(
           activeTab === 'geographical'
             ? 'Please select at least one geography or change assignments.'
             : 'Please select at least one user or change assignments.',
@@ -1093,7 +1105,7 @@ export const AssignmentDialog = ({
         err && typeof err === 'object' && 'data' in err
           ? (err as { data?: { detail?: string } }).data?.detail
           : undefined;
-      setErrorMsg(
+      snackbar.showError(
         detail || `An error occurred while creating ${noun} assignment.`,
       );
     }
@@ -1110,7 +1122,10 @@ export const AssignmentDialog = ({
           setSuccessState(null);
           onClose();
         }}
-        onAssignMore={() => setSuccessState(null)}
+        onAssignMore={() => {
+          setSuccessState(null);
+          initializeAssignmentSession();
+        }}
       />
     );
   }
@@ -1245,12 +1260,9 @@ export const AssignmentDialog = ({
         className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:p-6 sm:pr-14"
       >
         <div className="min-w-0 pr-10">
-          <h2
-            id="assignment-dialog-title"
-            className="text-lg font-semibold text-spice-text-primary sm:text-xl"
-          >
+          <ModalTitle id="assignment-dialog-title" className="sm:text-xl">
             Assign {noun}
-          </h2>
+          </ModalTitle>
           <p className="mt-1 min-w-0">
             <TruncatedText
               text={target.title}
@@ -1258,8 +1270,6 @@ export const AssignmentDialog = ({
             />
           </p>
         </div>
-
-        {errorMsg ? <Banner tone="critical">{errorMsg}</Banner> : null}
 
         <Tabs
           items={ASSIGNMENT_TABS}
@@ -1271,15 +1281,12 @@ export const AssignmentDialog = ({
           {activeTab === 'user' ? (
             <>
               <label className="flex items-center gap-3">
-                <span className="shrink-0 text-xs font-semibold text-spice-text-primary">
-                  Role
-                </span>
+                <FormLabel className="shrink-0">Role</FormLabel>
                 <Select
                   options={USER_LEVEL_MODE_OPTIONS}
                   value={userLevelMode}
                   onChange={(value) => {
                     setUserLevelMode(value as AssignmentUserLevelMode);
-                    setErrorMsg('');
                   }}
                   className="min-w-0 flex-1"
                   triggerClassName="rounded-lg"
@@ -1361,9 +1368,7 @@ export const AssignmentDialog = ({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  Search users
-                </span>
+                <FormLabel>Search users</FormLabel>
                 <SearchInput
                   value={userSearchQuery}
                   onChange={setUserSearchQuery}

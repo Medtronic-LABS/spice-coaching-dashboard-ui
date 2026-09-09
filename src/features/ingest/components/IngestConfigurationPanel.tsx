@@ -1,4 +1,10 @@
-import { LimitedTextarea, Select, Tooltip } from '@/components/ui';
+import {
+  FormLabel,
+  LimitedTextarea,
+  SectionHeader,
+  Select,
+  Tooltip,
+} from '@/components/ui';
 import type {
   IngestAssessmentMode,
   IngestContentDomain,
@@ -85,15 +91,13 @@ export const IngestConfigurationPanel = ({
       />
 
       <div className="relative z-10 space-y-4">
-        <h2 className="text-sm font-semibold text-spice-text-primary sm:text-base">
-          Configuration
-        </h2>
+        <SectionHeader title="Configuration" variant="h2" />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
           <label className="block min-w-0 space-y-1">
-            <span className="flex min-h-5 items-center text-xs font-semibold text-spice-text-primary">
+            <FormLabel className="flex min-h-5 items-center">
               Module content
-            </span>
+            </FormLabel>
             <Select
               className="w-full"
               options={INGEST_ASSESSMENT_MODE_OPTIONS}
@@ -104,14 +108,14 @@ export const IngestConfigurationPanel = ({
           </label>
 
           <label className="block min-w-0 space-y-1">
-            <span className="flex min-h-5 items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+            <FormLabel className="flex min-h-5 items-center gap-1.5">
               Content domain type
               <Tooltip
                 label="About Content domain type"
                 content={CONTENT_DOMAIN_TYPE_TOOLTIP}
                 placement="top"
               />
-            </span>
+            </FormLabel>
             <Select
               className="w-full"
               options={INGEST_CONTENT_DOMAIN_OPTIONS}
@@ -124,12 +128,12 @@ export const IngestConfigurationPanel = ({
           </label>
 
           <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
+            <FormLabel>
               Learning Material per Module{' '}
               <span className="font-normal text-spice-text-muted/65">
                 (Optional)
               </span>
-            </span>
+            </FormLabel>
             <input
               type="text"
               inputMode="numeric"
@@ -149,12 +153,12 @@ export const IngestConfigurationPanel = ({
             />
             {cardsPerModule !== '' &&
             !isIngestModuleCountInRange(cardsPerModule) ? (
-              <span className="text-[11px] text-spice-semantic-error">
+              <span className="text-xs text-spice-semantic-error">
                 Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
                 {INGEST_MODULE_COUNT_MAX}.
               </span>
             ) : (
-              <span className="text-[11px] text-spice-text-muted">
+              <span className="text-xs text-spice-text-muted">
                 {INGEST_MODULE_COUNT_RANGE_LABEL}
               </span>
             )}
@@ -162,12 +166,12 @@ export const IngestConfigurationPanel = ({
 
           {showQuizzesPerModule ? (
             <label className="block min-w-0 space-y-1">
-              <span className="text-xs font-semibold text-spice-text-primary">
+              <FormLabel>
                 Quizzes per Module{' '}
                 <span className="font-normal text-spice-text-muted/65">
                   (Optional)
                 </span>
-              </span>
+              </FormLabel>
               <input
                 type="text"
                 inputMode="numeric"
@@ -187,12 +191,12 @@ export const IngestConfigurationPanel = ({
               />
               {quizzesPerModule !== '' &&
               !isIngestModuleCountInRange(quizzesPerModule) ? (
-                <span className="text-[11px] text-spice-semantic-error">
+                <span className="text-xs text-spice-semantic-error">
                   Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
                   {INGEST_MODULE_COUNT_MAX}.
                 </span>
               ) : (
-                <span className="text-[11px] text-spice-text-muted">
+                <span className="text-xs text-spice-text-muted">
                   {INGEST_MODULE_COUNT_RANGE_LABEL}
                 </span>
               )}
@@ -201,12 +205,12 @@ export const IngestConfigurationPanel = ({
         </div>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold text-spice-text-primary">
+          <FormLabel>
             Ingestion instructions{' '}
             <span className="font-normal text-spice-text-muted/65">
               (Optional)
             </span>
-          </span>
+          </FormLabel>
           <LimitedTextarea
             id="ingest-ingestion-instructions"
             value={ingestionInstructions}
@@ -222,12 +226,12 @@ export const IngestConfigurationPanel = ({
             )}
           />
           {!instructionsValid ? (
-            <span className="text-[11px] text-spice-semantic-error">
+            <span className="text-xs text-spice-semantic-error">
               Enter at most {INGESTION_INSTRUCTIONS_MAX_LINES} lines (
               {instructionsLineCount} used).
             </span>
           ) : (
-            <span className="text-[11px] text-spice-text-muted">
+            <span className="text-xs text-spice-text-muted">
               {INGESTION_INSTRUCTIONS_LIMIT_LABEL}
             </span>
           )}

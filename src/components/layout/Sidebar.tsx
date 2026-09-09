@@ -42,7 +42,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
     : t('layout.header.userInitials');
   const roleLabel = authSession?.role ?? t('layout.sidebar.userFallback');
   const sectionTitleClassName =
-    'px-4 pt-2 text-[11px] font-semibold uppercase leading-[13px] text-spice-palette-violet first:pt-0';
+    'px-4 pt-2 text-xs font-semibold uppercase leading-[13px] text-spice-palette-violet first:pt-0';
   const linkClassName = ({ isActive }: { isActive: boolean }) =>
     cn(
       'group flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-3 text-sm transition',
@@ -96,6 +96,46 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
             {t('layout.sidebar.sections.learning')}
           </div>
           <NavLink
+            className={linkClassName}
+            to={paths.videoUpload}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <VideoIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.videoUpload')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.uploadKnowledge}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <KnowledgeIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.uploadKnowledge')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.ingestDocument}
+            end
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <ClipboardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.ingestDocument')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
             className={({ isActive }) =>
               linkClassName({
                 isActive: isActive || isModuleLibraryNavActive,
@@ -119,58 +159,6 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
           </NavLink>
           <NavLink
             className={linkClassName}
-            to={paths.badgeManagement}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <AwardIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.badgeManagement')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
-            to={paths.ingestDocument}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <ClipboardIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.ingestDocument')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
-            to={paths.uploadKnowledge}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <KnowledgeIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.uploadKnowledge')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
-            to={paths.videoUpload}
-            draggable={false}
-            onClick={onMobileClose}
-          >
-            {({ isActive }) => (
-              <>
-                <VideoIcon className={iconClassName({ isActive })} />
-                {t('layout.sidebar.nav.videoUpload')}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            className={linkClassName}
             to={paths.ingestHistory}
             draggable={false}
             onClick={onMobileClose}
@@ -179,6 +167,19 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
               <>
                 <HistoryIcon className={iconClassName({ isActive })} />
                 {t('layout.sidebar.nav.ingestHistory')}
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            className={linkClassName}
+            to={paths.badgeManagement}
+            draggable={false}
+            onClick={onMobileClose}
+          >
+            {({ isActive }) => (
+              <>
+                <AwardIcon className={iconClassName({ isActive })} />
+                {t('layout.sidebar.nav.badgeManagement')}
               </>
             )}
           </NavLink>
@@ -209,7 +210,7 @@ export const Sidebar = ({ isMobileOpen, onMobileClose }: SidebarProps) => {
               <div className="truncate text-sm font-semibold leading-[17px] text-spice-text-sidebarName">
                 {displayName}
               </div>
-              <div className="truncate text-[11px] font-medium leading-[13px] text-spice-palette-violet">
+              <div className="truncate text-xs font-medium leading-[13px] text-spice-palette-violet">
                 {roleLabel}
               </div>
             </div>

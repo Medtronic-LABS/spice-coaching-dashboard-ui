@@ -1,4 +1,4 @@
-import type { RichVideoBlock } from '@/features/modules/types/richText.types';
+import type { RichVideoBlock } from '@/components/ui/rich-text/types/richText.types';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 
 export interface PreviewVideoBlockProps {
