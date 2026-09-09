@@ -13,6 +13,8 @@ import {
 } from '@/features/admin-dashboard/api/dashboardApi';
 import { DashboardKpiSkeleton } from '@/features/admin-dashboard/components/DashboardSkeletons';
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
+import { buildDashboardListFilterKey } from '@/features/admin-dashboard/hooks/useDashboardListPagination';
 import type { DashboardGeographyFilters } from '@/features/admin-dashboard/types/dashboard.types';
 import {
   buildPublishedModuleCompletionsQueryArgs,
@@ -46,10 +48,19 @@ export const DashboardKpiRow = ({
     buildPublishedModuleCompletionsQueryArgs(fromDate, toDate, geography),
   );
 
+  const filterKey = buildDashboardListFilterKey(fromDate, toDate, geography);
   const teamUi = resolveDashboardQueryUiState(teamQuery);
   const modulesUi = resolveDashboardQueryUiState(modulesQuery);
+  const teamArgLoading = useDashboardArgChangeLoading(
+    filterKey,
+    teamQuery.isFetching,
+  );
+  const modulesArgLoading = useDashboardArgChangeLoading(
+    filterKey,
+    modulesQuery.isFetching,
+  );
 
-  if (teamUi.showLoading) {
+  if (teamUi.showLoading || teamArgLoading || modulesArgLoading) {
     return <DashboardKpiSkeleton />;
   }
 

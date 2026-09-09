@@ -19,6 +19,8 @@ import { DashboardWidgetShell } from '@/features/admin-dashboard/components/Dash
 import { DocumentUsageDetailView } from '@/features/admin-dashboard/components/document-usage/DocumentUsageDetailView';
 import { DocumentUsageDocumentsAllView } from '@/features/admin-dashboard/components/document-usage/DocumentUsageDocumentsAllView';
 import { DocumentUsageOverview } from '@/features/admin-dashboard/components/document-usage/DocumentUsageOverview';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
+import { buildDashboardListFilterKey } from '@/features/admin-dashboard/hooks/useDashboardListPagination';
 import { useTablePageInput } from '@/hooks/useTablePageInput';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type {
@@ -152,6 +154,12 @@ export const DocumentUsageSection = ({
   const { refetch } = query;
   const data = query.currentData;
   const { showLoading, showError } = resolveDashboardQueryUiState(query);
+  const filterKey = buildDashboardListFilterKey(fromDate, toDate, geography);
+  const argChangeLoading = useDashboardArgChangeLoading(
+    filterKey,
+    query.isFetching,
+  );
+  const showContentLoading = showLoading || argChangeLoading;
 
   const detailQueryArgs = useMemo(
     () =>
@@ -365,7 +373,7 @@ export const DocumentUsageSection = ({
             <DocumentUsageDocumentsAllView
               documentSearch={documentSearch}
               onDocumentSearchChange={setDocumentSearch}
-              isTableLoading={showLoading}
+              isTableLoading={showContentLoading}
               isTableError={showError}
               tableError={query.error}
               onRetry={() => void refetch()}
@@ -389,7 +397,7 @@ export const DocumentUsageSection = ({
               }
               onNextPage={() => setDocumentsPage((current) => current + 1)}
             />
-          ) : showLoading ? (
+          ) : showContentLoading ? (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: 3 }, (_, index) => (

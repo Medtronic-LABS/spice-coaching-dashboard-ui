@@ -15,6 +15,7 @@ import { DashboardTableSkeleton } from '@/features/admin-dashboard/components/Da
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 import { TrainingModulesModuleFilter } from '@/features/admin-dashboard/components/TrainingModulesModuleFilter';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
 import {
   buildDashboardListFilterKey,
   useAccumulatedFilterPages,
@@ -99,8 +100,10 @@ export const TrainingModulesSection = ({
     (query.currentData?.offset ?? offset) + TRAINING_MODULES_PAGE_LIMIT <
     totalModules;
   const isLoadingMore = offset > 0 && isFetching;
+  const argChangeLoading = useDashboardArgChangeLoading(filterKey, isFetching);
   const showListLoading =
-    offset === 0 && (showLoading || (isFetching && modules.length === 0));
+    offset === 0 &&
+    (showLoading || argChangeLoading || (isFetching && modules.length === 0));
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || isFetching) return;
@@ -161,9 +164,9 @@ export const TrainingModulesSection = ({
       {
         key: 'completed',
         header: t('adminDashboard.trainingModules.columns.completed'),
-        className: 'w-32 whitespace-nowrap',
-        headerClassName: 'w-32 whitespace-nowrap',
-        colClassName: 'w-32',
+        className: 'w-36 whitespace-nowrap',
+        headerClassName: 'w-36 whitespace-nowrap sm:px-3',
+        colClassName: 'w-36',
         render: (row) => {
           const total = row.assigned_sk_count ?? row.total_descendant_sk_count;
           const completed = row.completed_sk_count;

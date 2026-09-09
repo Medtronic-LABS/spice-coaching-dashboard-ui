@@ -414,4 +414,57 @@ describe('TrainingModulesSection', () => {
     });
     expect(screen.queryByText('8')).not.toBeInTheDocument();
   });
+
+  it('shows a skeleton when Clear all refetches a cached geography result', async () => {
+    const user = userEvent.setup();
+    const highCompletion = buildPublishedModuleCompletionItem(0, {
+      completed_sk_count: 8,
+      assigned_sk_count: 10,
+    });
+    const filteredGeography = {
+      ...EMPTY_DASHBOARD_GEOGRAPHY,
+      divisionId: '1',
+    };
+
+    useFetchPublishedModuleCompletionsQuery.mockImplementation(
+      (args: { division_id?: number }) => {
+        if (args.division_id == null) {
+          return {
+            ...idlePublishedModulesQuery([highCompletion]),
+            isFetching: true,
+          };
+        }
+        return idlePublishedModulesQuery([highCompletion]);
+      },
+    );
+
+    function GeographyHarness() {
+      const [geography, setGeography] = useState(filteredGeography);
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setGeography(EMPTY_DASHBOARD_GEOGRAPHY)}
+          >
+            Clear all
+          </button>
+          <TrainingModulesSection
+            fromDate="2026-08-21"
+            toDate="2026-08-21"
+            geography={geography}
+          />
+        </>
+      );
+    }
+
+    renderWithProviders(<GeographyHarness />);
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText('8')).not.toBeInTheDocument();
+  });
 });

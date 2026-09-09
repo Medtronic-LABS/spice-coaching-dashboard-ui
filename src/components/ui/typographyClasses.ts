@@ -27,8 +27,8 @@ export const typographyClasses = {
   /** Secondary line under primary text in the same table cell (e.g. filename under title). */
   tableCellSecondary: 'text-xs text-spice-text-muted',
   kpiLabel:
-    'text-[18px] font-semibold uppercase tracking-wider leading-snug text-spice-text-muted',
-  kpiValue: 'text-[38px] font-semibold leading-tight text-spice-text-primary',
-  kpiOutOf: 'text-[28px] font-medium text-spice-text-muted',
+    'text-[16px] font-semibold uppercase tracking-wider leading-snug text-spice-text-muted',
+  kpiValue: 'text-[36px] font-semibold leading-tight text-spice-text-primary',
+  kpiOutOf: 'text-[26px] font-medium text-spice-text-muted',
   microBadge: 'text-xs font-semibold',
 } as const;

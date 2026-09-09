@@ -17,6 +17,7 @@ import {
 import { DashboardWidgetErrorState } from '@/features/admin-dashboard/components/DashboardWidgetErrorState';
 import { DashboardWidgetShell } from '@/features/admin-dashboard/components/DashboardWidgetShell';
 import { SkDetailDrawer } from '@/features/admin-dashboard/components/SkDetailDrawer';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
 import {
   buildDashboardListFilterKey,
   useAccumulatedFilterPages,
@@ -489,8 +490,10 @@ export const TeamHierarchySection = ({
     (query.currentData?.offset ?? offset) + TEAM_HIERARCHY_PAGE_LIMIT <
     totalMembers;
   const isLoadingMore = offset > 0 && isFetching;
+  const argChangeLoading = useDashboardArgChangeLoading(filterKey, isFetching);
   const showListLoading =
-    offset === 0 && (showLoading || (isFetching && members.length === 0));
+    offset === 0 &&
+    (showLoading || argChangeLoading || (isFetching && members.length === 0));
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || isFetching) return;

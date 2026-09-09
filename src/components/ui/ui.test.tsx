@@ -337,7 +337,7 @@ describe('ui components', () => {
     );
 
     expect(screen.getByText('Finished modules')).toHaveClass(
-      'text-[18px]',
+      'text-[16px]',
       'font-semibold',
       'uppercase',
       'tracking-wider',
@@ -345,14 +345,14 @@ describe('ui components', () => {
     );
     const valueParagraph = screen.getByText('127').closest('p');
     expect(valueParagraph).toHaveClass(
-      'text-[38px]',
+      'text-[36px]',
       'font-semibold',
       'leading-tight',
       'text-right',
     );
     expect(screen.getByText('127')).toHaveClass('text-spice-palette-purple');
     expect(screen.getByText('/155')).toHaveClass(
-      'text-[28px]',
+      'text-[26px]',
       'font-medium',
       'text-spice-text-muted',
     );

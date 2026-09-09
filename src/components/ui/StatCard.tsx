@@ -155,7 +155,7 @@ export const StatCard = ({
       <div
         className={cn(
           'flex items-start gap-3',
-          tooltip || hasChange || badgeLabel ? 'pr-7' : null,
+          tooltip || hasChange || badgeLabel ? 'pr-5' : null,
         )}
       >
         {icon ? (

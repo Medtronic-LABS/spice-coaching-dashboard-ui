@@ -12,6 +12,7 @@ import type {
   ModuleCreationSuggestionListItem,
 } from '@/features/admin-dashboard/types/dashboard.types';
 import { SuggestedModuleInlineEvidence } from '@/features/admin-dashboard/components/ModuleDemandInlineEvidence';
+import { useDashboardArgChangeLoading } from '@/features/admin-dashboard/hooks/useDashboardArgChangeLoading';
 import {
   buildModuleDemandFilterKey,
   useAccumulatedModuleDemandPages,
@@ -149,9 +150,14 @@ export const TopSuggestedModulesWidget = ({
   const hasMore =
     (pageData?.offset ?? offset) + TOP_MODULE_DEMAND_LIMIT < totalItems;
   const isLoadingMore = offset > 0 && query.isFetching;
+  const argChangeLoading = useDashboardArgChangeLoading(
+    filterKey,
+    query.isFetching,
+  );
   const showLoading =
     offset === 0 &&
     (ui.showLoading ||
+      argChangeLoading ||
       (query.isFetching && accumulatedSuggestions.length === 0));
 
   const handleSeeMore = useCallback(() => {

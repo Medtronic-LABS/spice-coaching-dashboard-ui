@@ -236,6 +236,8 @@ export const DashboardFilterBar = ({
 
   const handleClearAllFilters = () => {
     setDraftGeography(EMPTY_DASHBOARD_GEOGRAPHY);
+    onGeographyChange(EMPTY_DASHBOARD_GEOGRAPHY);
+    setFiltersOpen(false);
   };
 
   const maxSelectableDate = todayDateInputValue();
