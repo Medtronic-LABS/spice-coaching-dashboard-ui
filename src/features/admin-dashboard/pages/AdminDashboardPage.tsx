@@ -13,7 +13,6 @@ import { TopSearchedModulesWidget } from '@/features/admin-dashboard/components/
 import { TopSuggestedModulesWidget } from '@/features/admin-dashboard/components/TopSuggestedModulesWidget';
 import { TrainingModulesSection } from '@/features/admin-dashboard/components/TrainingModulesSection';
 import { useDashboardFilters } from '@/features/admin-dashboard/hooks/useDashboardFilters';
-import { canPerformDashboardAdminActions } from '@/features/admin-dashboard/utils/dashboardRoles';
 import { ModuleAssignmentDialog } from '@/features/modules/components/AssignmentDialog';
 import { buildOpenCreateModuleNavigationState } from '@/features/modules/types/moduleLibraryNavigation.types';
 
@@ -35,7 +34,6 @@ const DashboardPageHeader = ({
 export const AdminDashboardPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const showAdminActions = canPerformDashboardAdminActions();
   const {
     filters,
     queryDateRange,
@@ -134,7 +132,7 @@ export const AdminDashboardPage = () => {
             fromDate={fromDate}
             toDate={toDate}
             geography={geography}
-            showActions={showAdminActions}
+            showActions
             assignLabel={assignLabel}
             onAssign={(moduleId, title) =>
               setAssignmentTarget({ moduleId, title })
@@ -144,7 +142,7 @@ export const AdminDashboardPage = () => {
             fromDate={fromDate}
             toDate={toDate}
             geography={geography}
-            showActions={showAdminActions}
+            showActions
             publishLabel={publishLabel}
             createLabel={createLabel}
             onPublish={handlePublish}

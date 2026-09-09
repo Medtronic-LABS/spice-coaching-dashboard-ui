@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import { setCurrentRole } from '@/constants/role';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -81,7 +80,6 @@ function renderPanel(isDirty = false) {
 
 describe('ModulePreviewPanel', () => {
   beforeEach(() => {
-    setCurrentRole('programManager');
     vi.restoreAllMocks();
   });
 

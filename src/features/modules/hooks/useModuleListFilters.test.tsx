@@ -19,7 +19,7 @@ describe('useModuleListFilters', () => {
   });
 
   it('reads filters from URL search params', () => {
-    const { result } = renderHook(() => useModuleListFilters(true), {
+    const { result } = renderHook(() => useModuleListFilters(), {
       wrapper: createWrapper(
         `${paths.moduleLibrary}?tab=published&domain=Hypertension`,
       ),
@@ -33,7 +33,7 @@ describe('useModuleListFilters', () => {
   });
 
   it('keeps the same filters when switching tabs', () => {
-    const { result } = renderHook(() => useModuleListFilters(true), {
+    const { result } = renderHook(() => useModuleListFilters(), {
       wrapper: createWrapper(paths.moduleLibrary),
     });
 
@@ -79,7 +79,7 @@ describe('useModuleListFilters', () => {
       }),
     );
 
-    const { result } = renderHook(() => useModuleListFilters(true), {
+    const { result } = renderHook(() => useModuleListFilters(), {
       wrapper: createWrapper(paths.moduleLibrary),
     });
 
@@ -101,7 +101,7 @@ describe('useModuleListFilters', () => {
         },
       }),
     );
-    const { result } = renderHook(() => useModuleListFilters(true), {
+    const { result } = renderHook(() => useModuleListFilters(), {
       wrapper: createWrapper(
         `${paths.moduleLibrary}?tab=published&domain=Hypertension&from=2026-01-01`,
       ),
@@ -117,7 +117,7 @@ describe('useModuleListFilters', () => {
   });
 
   it('clears filters from URL', () => {
-    const { result } = renderHook(() => useModuleListFilters(true), {
+    const { result } = renderHook(() => useModuleListFilters(), {
       wrapper: createWrapper(
         `${paths.moduleLibrary}?tab=published&domain=Hypertension`,
       ),
@@ -131,7 +131,7 @@ describe('useModuleListFilters', () => {
   });
 
   it('keeps typed date values across tabs in URL state', () => {
-    const { result } = renderHook(() => useModuleListFilters(true), {
+    const { result } = renderHook(() => useModuleListFilters(), {
       wrapper: createWrapper(`${paths.moduleLibrary}?tab=published`),
     });
 

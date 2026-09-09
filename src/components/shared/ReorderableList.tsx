@@ -38,7 +38,7 @@ export interface ReorderableListProps<T> {
     controls: ReorderableItemControls,
   ) => ReactNode;
   disabled?: boolean;
-  /** When true, reordering is disabled and drag handles are hidden (e.g. supervisor read-only). */
+  /** When true, reordering is disabled and drag handles are hidden. */
   readOnly?: boolean;
   /** `plain` omits the outer row chrome when the child supplies its own card border. */
   rowVariant?: ReorderableListRowVariant;

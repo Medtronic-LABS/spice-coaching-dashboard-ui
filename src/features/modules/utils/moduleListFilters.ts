@@ -96,21 +96,14 @@ export function moduleDateFilterTypeLabel(type: ModuleDateFilterType): string {
 
 export function getAvailableDateFilterTypes(
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): ModuleDateFilterType[] {
-  if (!isProgramManager) {
-    return ['created', 'published'];
-  }
   if (tab === 'drafts') return ['created'];
   if (tab === 'published') return ['created', 'published'];
   return ['created', 'published', 'activated', 'deactivated'];
 }
 
-function primaryDateTypeForTab(
-  tab: ModuleLibraryTab,
-  isProgramManager: boolean,
-): ModuleDateFilterType {
-  if (!isProgramManager || tab === 'published') return 'published';
+function primaryDateTypeForTab(tab: ModuleLibraryTab): ModuleDateFilterType {
+  if (tab === 'published') return 'published';
   if (tab === 'drafts') return 'created';
   if (tab === 'deactivated') return 'deactivated';
   return 'published';
@@ -119,9 +112,8 @@ function primaryDateTypeForTab(
 export function isAnyVisibleDateRangeInvalid(
   filters: ModuleLibraryFilters,
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): boolean {
-  return getAvailableDateFilterTypes(tab, isProgramManager).some((type) => {
+  return getAvailableDateFilterTypes(tab).some((type) => {
     const keys = DATE_TYPE_URL_KEYS[type];
     return isDateRangeInvalid(
       String(filters[keys.from]),
@@ -133,10 +125,9 @@ export function isAnyVisibleDateRangeInvalid(
 export function buildModuleListTypedDateParams(
   filters: ModuleLibraryFilters,
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): Record<string, string> {
   const result: Record<string, string> = {};
-  for (const type of getAvailableDateFilterTypes(tab, isProgramManager)) {
+  for (const type of getAvailableDateFilterTypes(tab)) {
     const fieldKeys = DATE_TYPE_URL_KEYS[type];
     const apiKeys = DATE_TYPE_API_KEYS[type];
     const fromValue = String(filters[fieldKeys.from]).trim();
@@ -154,9 +145,8 @@ export function buildModuleListTypedDateParams(
 function hasVisibleDateFilters(
   filters: ModuleLibraryFilters,
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): boolean {
-  return getAvailableDateFilterTypes(tab, isProgramManager).some((type) => {
+  return getAvailableDateFilterTypes(tab).some((type) => {
     const keys = DATE_TYPE_URL_KEYS[type];
     return Boolean(filters[keys.from] || filters[keys.to]);
   });
@@ -165,11 +155,10 @@ function hasVisibleDateFilters(
 export function hasActiveModuleFilters(
   filters: ModuleLibraryFilters,
   tab?: ModuleLibraryTab,
-  isProgramManager?: boolean,
 ): boolean {
   if (filters.domain || filters.sourceDocumentId) return true;
-  if (tab !== undefined && isProgramManager !== undefined) {
-    return hasVisibleDateFilters(filters, tab, isProgramManager);
+  if (tab !== undefined) {
+    return hasVisibleDateFilters(filters, tab);
   }
   return Boolean(
     filters.createdFrom ||
@@ -197,9 +186,7 @@ export function resolveDomainForOptions(
 
 export function tabToLifecycleStatus(
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): AdminModuleLifecycleStatus | undefined {
-  if (!isProgramManager) return 'published';
   if (tab === 'published') return 'published';
   if (tab === 'drafts') return 'draft';
   if (tab === 'needs_review') return 'review_pending';
@@ -208,11 +195,7 @@ export function tabToLifecycleStatus(
   return undefined;
 }
 
-export function parseModuleLibraryTab(
-  value: string | null,
-  isProgramManager: boolean,
-): ModuleLibraryTab {
-  if (!isProgramManager) return 'published';
+export function parseModuleLibraryTab(value: string | null): ModuleLibraryTab {
   if (
     value === 'published' ||
     value === 'drafts' ||
@@ -229,7 +212,6 @@ export function parseModuleLibraryTab(
 export function parseFiltersFromSearchParams(
   params: URLSearchParams,
   tab: ModuleLibraryTab = 'drafts',
-  isProgramManager = true,
 ): ModuleLibraryFilters {
   const filters: ModuleLibraryFilters = {
     domain: params.get('domain') ?? '',
@@ -247,7 +229,7 @@ export function parseFiltersFromSearchParams(
   const legacyFrom = params.get('from') ?? '';
   const legacyTo = params.get('to') ?? '';
   if (legacyFrom || legacyTo) {
-    const primary = primaryDateTypeForTab(tab, isProgramManager);
+    const primary = primaryDateTypeForTab(tab);
     const keys = DATE_TYPE_URL_KEYS[primary];
     if (!filters[keys.from] && legacyFrom) {
       filters[keys.from] = legacyFrom;
@@ -263,12 +245,9 @@ export function parseFiltersFromSearchParams(
 export function buildModuleListSearchParams(
   tab: ModuleLibraryTab,
   filters: ModuleLibraryFilters,
-  isProgramManager: boolean,
 ): URLSearchParams {
   const params = new URLSearchParams();
-  if (isProgramManager) {
-    params.set('tab', tab);
-  }
+  params.set('tab', tab);
   if (filters.domain) params.set('domain', filters.domain);
   if (filters.sourceDocumentId) params.set('doc', filters.sourceDocumentId);
 
@@ -316,11 +295,7 @@ export type ModuleListingActorColumn =
 
 export function getModuleListingDateColumns(
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): ModuleListingDateColumn[] {
-  if (!isProgramManager) {
-    return ['created', 'updated', 'published'];
-  }
   if (tab === 'drafts') {
     return ['created', 'updated'];
   }
@@ -330,15 +305,13 @@ export function getModuleListingDateColumns(
   if (tab === 'all') {
     return ['created', 'updated', 'published', 'activated', 'deactivated'];
   }
-  // published (+ other PM tabs that share published dates)
+  // published (+ other tabs that share published dates)
   return ['created', 'updated', 'published'];
 }
 
 export function getModuleListingActorColumns(
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): ModuleListingActorColumn[] {
-  if (!isProgramManager) return [];
   if (tab === 'drafts') return ['generatedBy'];
   if (tab === 'published') return ['publishedBy'];
   if (tab === 'deactivated') return ['deactivatedBy'];
@@ -388,13 +361,9 @@ export function getModuleDeactivatedAt(
 export function getModuleListEmptyMessage(
   activeFilters: ModuleLibraryFilters,
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): string {
-  if (hasActiveModuleFilters(activeFilters, tab, isProgramManager)) {
+  if (hasActiveModuleFilters(activeFilters, tab)) {
     return 'No modules match for the selected filters.';
-  }
-  if (!isProgramManager) {
-    return 'No published modules yet.';
   }
   if (tab === 'drafts') return 'No draft modules yet.';
   if (tab === 'published') return 'No published modules yet.';

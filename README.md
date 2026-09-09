@@ -100,7 +100,7 @@ docs/                 # Specs (e.g. UI component system)
 4. **Named exports only** — default exports discouraged (ESLint warns on app code).
 5. **Co-located tests** — `*.test.tsx` next to the module they cover.
 6. **Suite access gate** — entry requires coaching suite access from the Spice profile or login flow.
-7. **Capability roles** — Spice/login roles map to `supervisor` vs `programManager` via `getCurrentRole()` (`src/constants/role.ts`). This affects read-only vs edit UX in module library and admin module review (e.g. supervisors cannot reorder quiz cards). It is **not** route-level RBAC; all authenticated users can reach the same routes.
+7. **Shared suite UI** — all coaching-suite users see the same dashboard capabilities; module review is read-only when the module is not a draft. Backend authorization still applies on API calls.
 8. **Routes** — define path segments and `paths` only in `src/constants/routes.ts`. Navigate / link / match with `paths`, `buildPath`, or `adminModuleReviewPaths` — never hardcode SPA URL strings. Legacy URLs under `/module-library/...` redirect to the feature paths (`/knowledge`, `/ingest`, …).
 
 ## Code standards
@@ -140,7 +140,7 @@ These rules are not a substitute for lint/typecheck/tests; they describe **how**
 
 App entry is gated by **coaching suite access** on the Spice user profile (`hasCoachingSuiteAccess`) or the dashboard login flow. Users without it are redirected to Spice Web or `/unauthorized`.
 
-**Capability roles:** Spice/login role strings are mapped to `supervisor` or `programManager` for UI behavior (see `src/constants/role.ts`). Supervisors get read-only module-review controls; program managers get full edit/reorder actions. Sidebar shows the raw Spice role label; routes are not role-gated on the client — backend authorization still applies on API calls.
+All authenticated coaching-suite users share the **same dashboard UI** (module library tabs, review/edit on drafts, assign/publish actions). Sidebar may still show the raw Spice role label for identity; the client does not map Spice roles onto separate capability modes. Backend authorization still applies on API calls.
 
 ## Documentation
 

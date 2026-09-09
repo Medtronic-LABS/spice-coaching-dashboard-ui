@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
@@ -45,7 +44,6 @@ import {
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
 import { truncateDisplayText } from '@/utils/truncateDisplayText';
-import { getCurrentRole } from '@/constants/role';
 import {
   useCreateModuleMutation,
   useDeactivateModuleMutation,
@@ -167,10 +165,9 @@ const MODULE_LIBRARY_ACTION_SLOT_CLASS: Record<
 
 function getModuleLibraryActionSlots(
   tab: ModuleLibraryTab,
-  isProgramManager: boolean,
 ): ModuleLibraryActionSlot[] {
   if (tab === 'published') {
-    return isProgramManager ? ['assign', 'deactivate'] : ['assign'];
+    return ['assign', 'deactivate'];
   }
   if (tab === 'drafts') {
     return ['review', 'publish'];
@@ -248,9 +245,6 @@ function isNeedsReviewStatus(status?: string): boolean {
 
 export const ModuleLibraryPage = () => {
   const snackbar = useSnackbar();
-  const role = getCurrentRole();
-  const isProgramManager = role === 'programManager';
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [query, setQuery] = useState('');
@@ -266,7 +260,7 @@ export const ModuleLibraryPage = () => {
     setTab,
     setFilters,
     resolveExternalViewSearch,
-  } = useModuleListFilters(isProgramManager);
+  } = useModuleListFilters();
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [paginationTotalPages, setPaginationTotalPages] = useState(0);
   const {
@@ -347,21 +341,9 @@ export const ModuleLibraryPage = () => {
     navigate(adminModuleReviewPaths.details(moduleId));
   };
 
-  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
-  const dateParams = buildModuleListTypedDateParams(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
-  const filtersActive = hasActiveModuleFilters(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
+  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(activeFilters, tab);
+  const dateParams = buildModuleListTypedDateParams(activeFilters, tab);
+  const filtersActive = hasActiveModuleFilters(activeFilters, tab);
   const [sortBy, setSortBy] = useState<string | undefined>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -657,31 +639,20 @@ export const ModuleLibraryPage = () => {
     return rows;
   }, [modulesForDisplay]);
 
-  const dateColumns = useMemo(
-    () => getModuleListingDateColumns(tab, isProgramManager),
-    [isProgramManager, tab],
-  );
+  const dateColumns = useMemo(() => getModuleListingDateColumns(tab), [tab]);
 
-  const actorColumns = useMemo(
-    () => getModuleListingActorColumns(tab, isProgramManager),
-    [isProgramManager, tab],
-  );
+  const actorColumns = useMemo(() => getModuleListingActorColumns(tab), [tab]);
 
-  const tableCaption = isProgramManager
-    ? tab === 'published'
+  const tableCaption =
+    tab === 'published'
       ? 'Published modules'
       : tab === 'drafts'
         ? 'Draft modules'
         : tab === 'deactivated'
           ? 'Deactivated modules'
-          : 'All modules'
-    : 'Published modules';
+          : 'All modules';
 
-  const emptyMessage = getModuleListEmptyMessage(
-    activeFilters,
-    tab,
-    isProgramManager,
-  );
+  const emptyMessage = getModuleListEmptyMessage(activeFilters, tab);
 
   const hasNextPage = tableHasNextPage(page, totalPages);
   const hasPrevPage = tableHasPrevPage(page);
@@ -809,10 +780,7 @@ export const ModuleLibraryPage = () => {
         header: 'Actions',
         className: 'text-left whitespace-nowrap',
         render: (row) => {
-          const actionSlots = getModuleLibraryActionSlots(
-            tab,
-            isProgramManager,
-          );
+          const actionSlots = getModuleLibraryActionSlots(tab);
           const reserveActionSlots = actionSlots.length > 0;
           const actionButtonClass = reserveActionSlots
             ? 'h-8 w-full px-3 text-xs'
@@ -832,9 +800,7 @@ export const ModuleLibraryPage = () => {
             ) : null;
 
           const reviewButton =
-            isProgramManager &&
-            row.status !== 'published' &&
-            row.status !== 'deactivated' ? (
+            row.status !== 'published' && row.status !== 'deactivated' ? (
               <Button
                 className={actionButtonClass}
                 onClick={() => {
@@ -852,7 +818,7 @@ export const ModuleLibraryPage = () => {
 
           const isPublishingRow = isPublishing && publishingModuleId === row.id;
           const publishButton =
-            isProgramManager && row.status === 'draft' ? (
+            row.status === 'draft' ? (
               <Button
                 variant="primary"
                 className={actionButtonClass}
@@ -888,7 +854,7 @@ export const ModuleLibraryPage = () => {
             ) : null;
 
           const deactivateButton =
-            isProgramManager && row.status === 'published' ? (
+            row.status === 'published' ? (
               <Button
                 variant="secondary"
                 className={cn(
@@ -910,7 +876,7 @@ export const ModuleLibraryPage = () => {
           const isReactivatingRow =
             isReactivating && reactivatingModuleId === row.id;
           const activateButton =
-            isProgramManager && row.status === 'deactivated' ? (
+            row.status === 'deactivated' ? (
               <Button
                 variant="primary"
                 className={actionButtonClass}
@@ -972,7 +938,6 @@ export const ModuleLibraryPage = () => {
     [
       actorColumns,
       dateColumns,
-      isProgramManager,
       isPublishing,
       isReactivating,
       navigate,
@@ -1347,11 +1312,7 @@ export const ModuleLibraryPage = () => {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <PageTitle
-            title={
-              isProgramManager ? 'Module Library' : t('moduleLibrary.title')
-            }
-          />
+          <PageTitle title="Module Library" />
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <div className="w-full sm:w-72">
@@ -1362,54 +1323,46 @@ export const ModuleLibraryPage = () => {
               className="h-[35px] rounded-lg pl-10 pr-4 text-base placeholder:text-spice-text-onSurfaceVariant"
             />
           </div>
-          {isProgramManager ? (
-            <>
-              <Button
-                onClick={() => {
-                  setCreateError('');
-                  setCreateForm(createEmptyCreateForm());
-                  setCreateOpen(true);
-                }}
-              >
-                Create Module
-              </Button>
-            </>
-          ) : null}
+          <Button
+            onClick={() => {
+              setCreateError('');
+              setCreateForm(createEmptyCreateForm());
+              setCreateOpen(true);
+            }}
+          >
+            Create Module
+          </Button>
         </div>
       </div>
 
       <Card variant="elevated" className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          {isProgramManager ? (
-            <Tabs
-              items={[
-                { label: 'Drafts', value: 'drafts' },
-                { label: 'Published', value: 'published' },
-                {
-                  label: (
-                    <span className="inline-flex items-center gap-1.5">
-                      Needs Review
-                      <Tooltip
-                        as="span"
-                        label="Needs Review Keep New, Discard New, and Merge information"
-                        content={NEEDS_REVIEW_TOOLTIP_CONTENT}
-                        placement="bottom"
-                      />
-                    </span>
-                  ),
-                  value: 'needs_review',
-                },
-                { label: 'Deactivated', value: 'deactivated' },
-                { label: 'Discarded', value: 'discarded' },
-                { label: 'All', value: 'all' },
-              ]}
-              value={tab}
-              onChange={handleTabChange}
-              className="w-fit min-w-0"
-            />
-          ) : (
-            <div />
-          )}
+          <Tabs
+            items={[
+              { label: 'Drafts', value: 'drafts' },
+              { label: 'Published', value: 'published' },
+              {
+                label: (
+                  <span className="inline-flex items-center gap-1.5">
+                    Needs Review
+                    <Tooltip
+                      as="span"
+                      label="Needs Review Keep New, Discard New, and Merge information"
+                      content={NEEDS_REVIEW_TOOLTIP_CONTENT}
+                      placement="bottom"
+                    />
+                  </span>
+                ),
+                value: 'needs_review',
+              },
+              { label: 'Deactivated', value: 'deactivated' },
+              { label: 'Discarded', value: 'discarded' },
+              { label: 'All', value: 'all' },
+            ]}
+            value={tab}
+            onChange={handleTabChange}
+            className="w-fit min-w-0"
+          />
           <SettingsFilterTriggerButton
             active={filtersActive}
             expanded={filtersDrawerOpen}
@@ -1434,7 +1387,6 @@ export const ModuleLibraryPage = () => {
           <ModuleLibraryFilters
             filters={draftFilters}
             tab={tab}
-            isProgramManager={isProgramManager}
             domains={domainOptions}
             sourceDocumentOptions={documentFilterOptions}
             sourceDocumentId={draftFilters.sourceDocumentId}

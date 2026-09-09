@@ -7,9 +7,6 @@ import { MAX_ESTIMATED_MINUTES_DIGITS } from '@/features/modules/utils/estimated
 import { testModuleLibrary } from '@/test-utils/fixtures/moduleFixtures';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleLibraryPage } from './ModuleLibraryPage';
-import type { AppRole } from '@/constants/role';
-
-const roleState = vi.hoisted(() => ({ role: 'supervisor' as AppRole }));
 
 function snapshotModuleStatuses() {
   return testModuleLibrary.modules.map((module) => ({
@@ -17,14 +14,6 @@ function snapshotModuleStatuses() {
     status: module.status,
   }));
 }
-
-vi.mock('@/constants/role', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/constants/role')>();
-  return {
-    ...actual,
-    getCurrentRole: () => roleState.role,
-  };
-});
 
 const initialModuleStatuses = snapshotModuleStatuses();
 
@@ -123,57 +112,15 @@ async function selectDomain(
 
 describe('ModuleLibraryPage', () => {
   beforeEach(() => {
-    roleState.role = 'supervisor';
     resetMockModuleStatuses();
     window.localStorage.clear();
   });
 
-  it('shows filter button for supervisor without tabs', async () => {
+  it('hides Assign for chatbot FAQ-only published modules', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
-    expect(
-      await screen.findByRole('button', { name: /open filters/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('tab', { name: /drafts/i }),
-    ).not.toBeInTheDocument();
-
-    await openFiltersDrawer(user);
-    expect(await getDomainSelect()).toBeInTheDocument();
-    expect(screen.getByLabelText(/created date from/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/created date to/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/published date from/i)).toBeInTheDocument();
-  });
-
-  it('shows linked published titles and Assign without Review for supervisors', async () => {
-    renderModuleLibraryPage();
-
-    const assignButtons = await screen.findAllByRole('button', {
-      name: /^assign$/i,
-    });
-    expect(assignButtons.length).toBeGreaterThan(0);
-    const publishedTitle = screen.getByRole('link', {
-      name: 'SPICE App — Visit Submission',
-    });
-    expect(publishedTitle).toBeInTheDocument();
-    expect(publishedTitle.parentElement?.parentElement).not.toHaveAttribute(
-      'tabIndex',
-    );
-    expect(
-      screen.queryByRole('button', { name: /^review$/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^edit$/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('tab', { name: /drafts/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /all/i })).not.toBeInTheDocument();
-  });
-
-  it('hides Assign for chatbot FAQ-only published modules', async () => {
-    renderModuleLibraryPage();
+    await user.click(await screen.findByRole('tab', { name: /published/i }));
 
     const faqRow = await getModuleRow('Hypertension Chatbot FAQs');
     expect(
@@ -181,16 +128,22 @@ describe('ModuleLibraryPage', () => {
         name: /^assign$/i,
       }),
     ).not.toBeInTheDocument();
-    expect(getActionSlots(faqRow)).toEqual(['assign']);
+    expect(getActionSlots(faqRow)).toEqual(['assign', 'deactivate']);
     expect(
       within(getActionSlot(faqRow, 'assign')).getByText('—'),
     ).toBeInTheDocument();
+    expect(
+      within(getActionSlot(faqRow, 'deactivate')).getByRole('button', {
+        name: /^deactivate$/i,
+      }),
+    ).toBeInTheDocument();
   });
 
-  it('opens a published module from its title for supervisors', async () => {
+  it('opens a published module from its title', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
+    await user.click(await screen.findByRole('tab', { name: /published/i }));
     await user.click(
       await screen.findByRole('link', {
         name: 'SPICE App — Visit Submission',
@@ -199,10 +152,11 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByTestId('module-review')).toBeInTheDocument();
   });
 
-  it('navigates to assign flow for supervisor', async () => {
+  it('navigates to assign flow from the published tab', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
+    await user.click(await screen.findByRole('tab', { name: /published/i }));
     const assignButtons = await screen.findAllByRole('button', {
       name: /^assign$/i,
     });
@@ -212,16 +166,14 @@ describe('ModuleLibraryPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('defaults program manager to the drafts tab', async () => {
-    roleState.role = 'programManager';
+  it('defaults to the drafts tab', async () => {
     renderModuleLibraryPage();
 
     const draftsTab = await screen.findByRole('tab', { name: /drafts/i });
     expect(draftsTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('opens a draft module from its title for program manager', async () => {
-    roleState.role = 'programManager';
+  it('opens a draft module from its title', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -234,8 +186,7 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByTestId('module-review')).toBeInTheDocument();
   });
 
-  it('orders program manager tabs as Drafts, Published, Needs Review, Deactivated, Discarded, All', async () => {
-    roleState.role = 'programManager';
+  it('orders tabs as Drafts, Published, Needs Review, Deactivated, Discarded, All', async () => {
     renderModuleLibraryPage();
 
     const tabs = await screen.findAllByRole('tab');
@@ -250,7 +201,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('opens drafts with the selected source document from navigation state', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     window.localStorage.setItem(
       'adminModuleLibraryView',
@@ -291,8 +241,7 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByLabelText(/created date to/i)).toHaveValue('');
   });
 
-  it('populates the source document filter from the backend catalog for program manager', async () => {
-    roleState.role = 'programManager';
+  it('populates the source document filter from the backend catalog', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -314,7 +263,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('searches source documents server-side as the user types', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -339,8 +287,7 @@ describe('ModuleLibraryPage', () => {
     });
   });
 
-  it('shows linked published titles and Assign without Review for program manager', async () => {
-    roleState.role = 'programManager';
+  it('shows linked published titles and Assign without Review on the published tab', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -357,8 +304,7 @@ describe('ModuleLibraryPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('opens a deactivated module from its title for program manager', async () => {
-    roleState.role = 'programManager';
+  it('opens a deactivated module from its title', async () => {
     testModuleLibrary.modules[0].status = 'deactivated';
     const user = userEvent.setup();
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=deactivated`);
@@ -372,8 +318,7 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByTestId('module-review')).toBeInTheDocument();
   });
 
-  it('shows Review on drafts tab for program manager', async () => {
-    roleState.role = 'programManager';
+  it('shows Review on the drafts tab', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -387,8 +332,7 @@ describe('ModuleLibraryPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows tab-specific date and actor columns for program manager', async () => {
-    roleState.role = 'programManager';
+  it('shows tab-specific date and actor columns', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -485,8 +429,7 @@ describe('ModuleLibraryPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('filters modules by domain for program manager', async () => {
-    roleState.role = 'programManager';
+  it('filters modules by domain', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -505,7 +448,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows filtered empty state when no modules match', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -520,7 +462,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('applies typed date filters to the URL and shows the active filter tooltip', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -565,7 +506,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows activated and deactivated date filters on the deactivated tab', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -581,7 +521,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('clears active filters', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -600,7 +539,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('persists domain selection across tabs', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -618,7 +556,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('keeps a domain that only exists on another lifecycle status when switching tabs', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -637,7 +574,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('restores a domain from the URL on any tab using unscoped domain options', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage(
       `${paths.moduleLibrary}?tab=deactivated&domain=Referral`,
@@ -650,7 +586,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('restores filters from URL search params', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage(
       `${paths.moduleLibrary}?tab=published&domain=Hypertension`,
@@ -673,7 +608,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows date range validation error for invalid ranges', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -696,7 +630,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows validation error for partial date ranges', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -711,7 +644,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows contextual date filters by tab and discards draft on close', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -734,8 +666,7 @@ describe('ModuleLibraryPage', () => {
     expect(screen.getByLabelText(/published date from/i)).toBeInTheDocument();
   });
 
-  it('shows Deactivate button on published tab for program manager', async () => {
-    roleState.role = 'programManager';
+  it('shows Deactivate button on the published tab', async () => {
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -747,7 +678,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('keeps published-tab action slots aligned when Assign is hidden', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -782,7 +712,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows confirmation modal when deactivating a module and completes deactivation', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -813,7 +742,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows Activate button on deactivated tab and completes activation', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -849,7 +777,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('keeps create draft disabled until title (BN) and domain are provided', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -890,7 +817,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows domain field without sub-domain in the create module dialog', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -915,7 +841,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows validation error when estimated minutes exceed 60', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -941,7 +866,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('blocks a third digit in estimated minutes', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -967,7 +891,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('shows required error when estimated minutes is 0', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -993,7 +916,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('creates a draft module with a normalized domain and null sub-domain', async () => {
-    roleState.role = 'programManager';
     const user = userEvent.setup();
     renderModuleLibraryPage();
 
@@ -1020,7 +942,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('packs all-tab actions without reserved empty slots', async () => {
-    roleState.role = 'programManager';
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=all`);
 
     const publishedRow = await getModuleRow('SPICE App — Visit Submission');
@@ -1055,7 +976,6 @@ describe('ModuleLibraryPage', () => {
   });
 
   it('switches to needs review tab with expanded accordion when Resolve is clicked for a review_pending module from all tab', async () => {
-    roleState.role = 'programManager';
     testModuleLibrary.modules[6].status = 'review_pending';
     const user = userEvent.setup();
     renderModuleLibraryPage(`${paths.moduleLibrary}?tab=all`);

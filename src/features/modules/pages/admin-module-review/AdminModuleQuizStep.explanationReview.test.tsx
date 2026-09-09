@@ -5,7 +5,6 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import { setCurrentRole } from '@/constants/role';
 import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import type { AdminModuleDetailResponse } from '@/features/modules/api/adminModulesApi';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
@@ -106,8 +105,6 @@ function ExplanationReviewDialogHost() {
 }
 
 function renderQuizStep() {
-  setCurrentRole('programManager');
-
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,

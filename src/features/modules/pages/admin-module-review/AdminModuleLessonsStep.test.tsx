@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import { setCurrentRole, type AppRole } from '@/constants/role';
 import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import {
   baseAdminModuleDetail,
@@ -59,9 +58,7 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   };
 });
 
-function renderLessonsStep(role: AppRole = 'programManager') {
-  setCurrentRole(role);
-
+function renderLessonsStep() {
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -94,27 +91,17 @@ function renderLessonsStep(role: AppRole = 'programManager') {
 }
 
 describe('AdminModuleLessonsStep reorder', () => {
-  it('shows drag handles for program manager', () => {
-    setCurrentRole('programManager');
+  it('shows drag handles for draft modules', () => {
     renderLessonsStep();
 
     expect(
       screen.getAllByRole('button', { name: 'Drag to reorder' }),
     ).toHaveLength(3);
   });
-
-  it('hides reorder controls for supervisor read-only role', () => {
-    renderLessonsStep('supervisor');
-
-    expect(
-      screen.queryByRole('button', { name: 'Drag to reorder' }),
-    ).not.toBeInTheDocument();
-  });
 });
 
 describe('AdminModuleLessonsStep actions', () => {
   it('shows Save draft, Continue to Quiz, and Delete as icon-only', () => {
-    setCurrentRole('programManager');
     renderLessonsStep();
 
     expect(
@@ -129,7 +116,6 @@ describe('AdminModuleLessonsStep actions', () => {
   });
 
   it('orders Reset card before Delete card', () => {
-    setCurrentRole('programManager');
     renderLessonsStep();
 
     const reset = screen.getByRole('button', { name: /reset card/i });
@@ -137,19 +123,5 @@ describe('AdminModuleLessonsStep actions', () => {
     expect(
       reset.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-  });
-
-  it('hides card mutation actions for supervisor', () => {
-    renderLessonsStep('supervisor');
-
-    expect(
-      screen.queryByRole('button', { name: /add card/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Delete card' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /save draft/i }),
-    ).not.toBeInTheDocument();
   });
 });

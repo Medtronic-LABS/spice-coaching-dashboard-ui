@@ -5,7 +5,6 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
-import type { AppRole } from '@/constants/role';
 import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
@@ -40,8 +39,6 @@ function createMockModule() {
 
 let mockModule = createMockModule();
 
-const roleState = vi.hoisted(() => ({ role: 'programManager' as AppRole }));
-
 vi.mock('react-router-dom', async () => {
   const actual =
     await vi.importActual<typeof import('react-router-dom')>(
@@ -50,14 +47,6 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock('@/constants/role', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/constants/role')>();
-  return {
-    ...actual,
-    getCurrentRole: () => roleState.role,
   };
 });
 
@@ -128,7 +117,6 @@ function renderPublishStep() {
 
 describe('AdminModulePublishStep', () => {
   beforeEach(() => {
-    roleState.role = 'programManager';
     mockModule = createMockModule();
     mockNavigate.mockClear();
     publishModule.mockClear();

@@ -3,10 +3,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { adminModuleReviewPaths, paths } from '@/constants/routes';
-import { setCurrentRole } from '@/constants/role';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -84,8 +83,6 @@ function PreviewHarness() {
 }
 
 function renderQuizPreview() {
-  setCurrentRole('programManager');
-
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -116,10 +113,6 @@ function renderQuizPreview() {
 }
 
 describe('AdminModuleQuizStep preview integration', () => {
-  beforeEach(() => {
-    setCurrentRole('programManager');
-  });
-
   it('opens preview at the focused quiz question', async () => {
     const user = userEvent.setup();
     renderQuizPreview();
