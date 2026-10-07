@@ -4,9 +4,9 @@ name: Coaching Dashboard UI CI and GHCR Push
 # updates the image tag in deploy-scripts.
 #
 # Environments: dev, training, brac-prod (GitHub Settings -> Environments).
-#   - Push to leapwell-main builds "dev".
+#   - Push to develop builds "dev".
 #   - Push to training builds "training".
-#   - Push to brac-prod builds "brac-prod".
+#   - Push to leapwell-main builds "brac-prod".
 #   - Run manually (workflow_dispatch) to pick any of the three.
 #
 # Per-environment variables (set on each GitHub Environment):
@@ -23,9 +23,9 @@ name: Coaching Dashboard UI CI and GHCR Push
 on:
   push:
     branches:
-      - leapwell-main
+      - develop
       - training
-      - brac-prod
+      - leapwell-main
   workflow_dispatch:
     inputs:
       environment:
@@ -42,18 +42,18 @@ permissions:
   packages: write
 
 concurrency:
-  group: dashboard-ui-${{ inputs.environment || (github.ref_name == 'leapwell-main' && 'dev') || github.ref_name }}
+  group: dashboard-ui-${{ inputs.environment || (github.ref_name == 'develop' && 'dev') || (github.ref_name == 'leapwell-main' && 'brac-prod') || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment || (github.ref_name == 'leapwell-main' && 'dev') || github.ref_name }}
+    environment: ${{ inputs.environment || (github.ref_name == 'develop' && 'dev') || (github.ref_name == 'leapwell-main' && 'brac-prod') || github.ref_name }}
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: spice-coaching-dashboard-ui
       GHCR_IMAGE: ghcr.io/${{ vars.GHCR_ORG }}/spice-coaching-dashboard-ui
-      ENV_NAME: ${{ inputs.environment || (github.ref_name == 'leapwell-main' && 'dev') || github.ref_name }}
+      ENV_NAME: ${{ inputs.environment || (github.ref_name == 'develop' && 'dev') || (github.ref_name == 'leapwell-main' && 'brac-prod') || github.ref_name }}
       DEPLOY_REPO: bitbucket.org/MDTLabs/deploy-scripts.git
       DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH }}
       DASHBOARD_MANIFEST: ${{ vars.DASHBOARD_MANIFEST }}
