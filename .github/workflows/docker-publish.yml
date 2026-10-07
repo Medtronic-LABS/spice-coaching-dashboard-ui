@@ -1,0 +1,183 @@
+name: Coaching Dashboard UI CI and GHCR Push
+
+# Builds the dashboard image for one environment, pushes it to GHCR and
+# updates the image tag in deploy-scripts.
+#
+# Environments: dev, training, brac-prod (GitHub Settings -> Environments).
+#   - Push to leapwell-main builds "dev".
+#   - Run manually (workflow_dispatch) to pick dev, training or brac-prod.
+#
+# Per-environment variables (set on each GitHub Environment):
+#   Required : VITE_API_BASE_URL, VITE_ROUTE_PREFIX,
+#              DEPLOY_BRANCH, DASHBOARD_MANIFEST
+#   Optional : VITE_DEPLOYMENT_PRIMARY_LOCALE, VITE_SPICE_API_BASE_URL,
+#              VITE_SPICE_WEB_LOGIN_URL, VITE_COACHING_SUITE_ACCESS,
+#              VITE_SPICE_ADMIN_API_URL, VITE_SPICE_USER_API_URL,
+#              VITE_DEV_AUTH_BYPASS
+# Shared (repo level is fine): variable GHCR_ORG
+#                              secrets GHCR_USERNAME, GHCR_TOKEN,
+#                                      CI_BOT_USER, CI_BOT_TOKEN
+
+on:
+  push:
+    branches:
+      - leapwell-main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to build and update
+        type: choice
+        options:
+          - dev
+          - training
+          - brac-prod
+        default: dev
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: dashboard-ui-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: spice-coaching-dashboard-ui
+      GHCR_IMAGE: ghcr.io/${{ vars.GHCR_ORG }}/spice-coaching-dashboard-ui
+      ENV_NAME: ${{ inputs.environment || 'dev' }}
+      DEPLOY_REPO: bitbucket.org/MDTLabs/deploy-scripts.git
+      DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH }}
+      DASHBOARD_MANIFEST: ${{ vars.DASHBOARD_MANIFEST }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate pipeline settings
+        env:
+          CI_BOT_USER: ${{ secrets.CI_BOT_USER }}
+          CI_BOT_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_ORG: ${{ vars.GHCR_ORG }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_ROUTE_PREFIX: ${{ vars.VITE_ROUTE_PREFIX }}
+        run: |
+          missing=""
+          for name in GHCR_ORG GHCR_USERNAME GHCR_TOKEN CI_BOT_USER CI_BOT_TOKEN \
+                      VITE_API_BASE_URL VITE_ROUTE_PREFIX DEPLOY_BRANCH DASHBOARD_MANIFEST; do
+            if [ -z "${!name:-}" ]; then
+              missing="${missing} ${name}"
+            fi
+          done
+          if [ -n "${missing}" ]; then
+            echo "::error::Missing for environment '${ENV_NAME}':${missing}"
+            exit 1
+          fi
+          echo "Environment: ${ENV_NAME}"
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${ENV_NAME}-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      # Vite reads this file during `npm run build` inside the image.
+      # (.dockerignore allows .env.production through.)
+      - name: Write .env.production
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_ROUTE_PREFIX: ${{ vars.VITE_ROUTE_PREFIX }}
+          VITE_DEPLOYMENT_PRIMARY_LOCALE: ${{ vars.VITE_DEPLOYMENT_PRIMARY_LOCALE }}
+          VITE_SPICE_API_BASE_URL: ${{ vars.VITE_SPICE_API_BASE_URL }}
+          VITE_SPICE_WEB_LOGIN_URL: ${{ vars.VITE_SPICE_WEB_LOGIN_URL }}
+          VITE_COACHING_SUITE_ACCESS: ${{ vars.VITE_COACHING_SUITE_ACCESS }}
+          VITE_SPICE_ADMIN_API_URL: ${{ vars.VITE_SPICE_ADMIN_API_URL }}
+          VITE_SPICE_USER_API_URL: ${{ vars.VITE_SPICE_USER_API_URL }}
+          VITE_DEV_AUTH_BYPASS: ${{ vars.VITE_DEV_AUTH_BYPASS }}
+        run: |
+          : > .env.production
+          for name in VITE_API_BASE_URL VITE_ROUTE_PREFIX VITE_DEPLOYMENT_PRIMARY_LOCALE \
+                      VITE_SPICE_API_BASE_URL VITE_SPICE_WEB_LOGIN_URL VITE_COACHING_SUITE_ACCESS \
+                      VITE_SPICE_ADMIN_API_URL VITE_SPICE_USER_API_URL VITE_DEV_AUTH_BYPASS; do
+            if [ -n "${!name:-}" ]; then
+              printf '%s=%s\n' "${name}" "${!name}" >> .env.production
+            fi
+          done
+          # Print names only, not values.
+          cut -d= -f1 .env.production
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      # The Dockerfile sets these 4 itself (they win over .env.production),
+      # so they are also passed as build args. Empty values keep the Dockerfile default.
+      - name: Build and push container image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.GHCR_IMAGE }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}
+            VITE_ROUTE_PREFIX=${{ vars.VITE_ROUTE_PREFIX }}
+            VITE_COACHING_SUITE_ACCESS=${{ vars.VITE_COACHING_SUITE_ACCESS || 'coaching' }}
+            VITE_DEV_AUTH_BYPASS=${{ vars.VITE_DEV_AUTH_BYPASS || 'false' }}
+          cache-from: type=gha,scope=${{ env.IMAGE_NAME }}-${{ env.ENV_NAME }}
+          cache-to: type=gha,mode=max,scope=${{ env.IMAGE_NAME }}-${{ env.ENV_NAME }}
+          provenance: false
+
+      - name: Update image tag in deploy-scripts
+        env:
+          CI_BOT_USER: ${{ secrets.CI_BOT_USER }}
+          CI_BOT_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          REMOTE="https://${CI_BOT_USER}:${CI_BOT_TOKEN}@${DEPLOY_REPO}"
+          NEW_IMAGE="${GHCR_IMAGE}:${IMAGE_TAG}"
+
+          git clone --depth 1 -b "${DEPLOY_BRANCH}" "${REMOTE}" deploy-scripts
+          cd deploy-scripts
+
+          if [ ! -f "${DASHBOARD_MANIFEST}" ]; then
+            echo "::error::Missing deploy manifest: ${DASHBOARD_MANIFEST}"
+            exit 1
+          fi
+
+          # Only touch the dashboard image line, not other containers in the file.
+          sed -i "s|^\([[:space:]]*image:[[:space:]]*\).*${IMAGE_NAME}.*|\1${NEW_IMAGE}|" "${DASHBOARD_MANIFEST}"
+
+          if ! grep -q "image: ${NEW_IMAGE}\$" "${DASHBOARD_MANIFEST}"; then
+            echo "::error::No '${IMAGE_NAME}' image line found in ${DASHBOARD_MANIFEST}"
+            exit 1
+          fi
+          grep -n "image:" "${DASHBOARD_MANIFEST}"
+
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@bitbucket.org"
+          git add "${DASHBOARD_MANIFEST}"
+
+          if git diff --cached --quiet; then
+            echo "Image tag already up to date. Nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "ci(${ENV_NAME}): update ${IMAGE_NAME} image to ${IMAGE_TAG}"
+          for attempt in 1 2 3; do
+            if git push origin "${DEPLOY_BRANCH}"; then
+              echo "Updated ${DASHBOARD_MANIFEST} to ${NEW_IMAGE}"
+              exit 0
+            fi
+            git pull --rebase origin "${DEPLOY_BRANCH}"
+          done
+          echo "::error::Could not push the image tag update"
+          exit 1
