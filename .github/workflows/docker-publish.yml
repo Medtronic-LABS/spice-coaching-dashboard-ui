@@ -5,7 +5,9 @@ name: Coaching Dashboard UI CI and GHCR Push
 #
 # Environments: dev, training, brac-prod (GitHub Settings -> Environments).
 #   - Push to leapwell-main builds "dev".
-#   - Run manually (workflow_dispatch) to pick dev, training or brac-prod.
+#   - Push to training builds "training".
+#   - Push to brac-prod builds "brac-prod".
+#   - Run manually (workflow_dispatch) to pick any of the three.
 #
 # Per-environment variables (set on each GitHub Environment):
 #   Required : VITE_API_BASE_URL, VITE_ROUTE_PREFIX,
@@ -22,6 +24,8 @@ on:
   push:
     branches:
       - leapwell-main
+      - training
+      - brac-prod
   workflow_dispatch:
     inputs:
       environment:
@@ -38,18 +42,18 @@ permissions:
   packages: write
 
 concurrency:
-  group: dashboard-ui-${{ inputs.environment || 'dev' }}
+  group: dashboard-ui-${{ inputs.environment || (github.ref_name == 'leapwell-main' && 'dev') || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment || 'dev' }}
+    environment: ${{ inputs.environment || (github.ref_name == 'leapwell-main' && 'dev') || github.ref_name }}
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: spice-coaching-dashboard-ui
       GHCR_IMAGE: ghcr.io/${{ vars.GHCR_ORG }}/spice-coaching-dashboard-ui
-      ENV_NAME: ${{ inputs.environment || 'dev' }}
+      ENV_NAME: ${{ inputs.environment || (github.ref_name == 'leapwell-main' && 'dev') || github.ref_name }}
       DEPLOY_REPO: bitbucket.org/MDTLabs/deploy-scripts.git
       DEPLOY_BRANCH: ${{ vars.DEPLOY_BRANCH }}
       DASHBOARD_MANIFEST: ${{ vars.DASHBOARD_MANIFEST }}
