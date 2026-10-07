@@ -21,7 +21,7 @@ name: Coaching Dashboard UI CI and GHCR Push
 on:
   push:
     branches:
-      - leapwell-main
+      - training
   workflow_dispatch:
     inputs:
       environment:
