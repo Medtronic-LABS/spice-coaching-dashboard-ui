@@ -13,3 +13,4 @@ docker-compose*.yml
 .vscode
 .idea
 *.log
+!.env.production
