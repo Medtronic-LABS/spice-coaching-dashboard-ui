@@ -1,7 +1,7 @@
 name: Coaching Dashboard UI CI and GHCR Push
 
 # Builds the dashboard image for one environment, pushes it to GHCR and
-# updates the image tag in deploy-scripts.
+# updates the image tag in deploy-scripts...
 #
 # Environments: dev, training, brac-prod (GitHub Settings -> Environments).
 #   - Push to develop builds "dev".
