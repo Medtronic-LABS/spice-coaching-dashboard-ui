@@ -1,16 +1,12 @@
-import { Button } from '@/components/ui/Button';
-import { Loader } from '@/components/ui/Loader';
+import { useEffect, useRef } from 'react';
+import { Button, EmptyState, Loader, useSnackbar } from '@/components/ui';
 import { ModulePreviewNavigator } from '@/features/modules/components/module-preview/ModulePreviewNavigator';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
 import { selectAdminModuleWorking } from '@/features/modules/store/adminModuleReviewSlice';
 import { useAppSelector } from '@/store/hooks';
 
-export interface ModulePreviewPanelProps {
-  onClose?: () => void;
-}
-
-export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
+export const ModulePreviewPanel = () => {
   const {
     snapshot,
     position,
@@ -19,15 +15,21 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
     isStale,
     syncPreview,
     setPosition,
-    closePreview,
   } = useModulePreview();
+  const snackbar = useSnackbar();
+  const lastSyncErrorRef = useRef('');
   const working = useAppSelector(selectAdminModuleWorking);
   const isReadonly = useAdminModuleReviewReadonly();
 
-  const handleClose = () => {
-    closePreview();
-    onClose?.();
-  };
+  useEffect(() => {
+    if (!syncError) {
+      lastSyncErrorRef.current = '';
+      return;
+    }
+    if (syncError === lastSyncErrorRef.current) return;
+    lastSyncErrorRef.current = syncError;
+    snackbar.showError(syncError);
+  }, [snackbar, syncError]);
 
   const isEmpty =
     snapshot !== null &&
@@ -36,7 +38,7 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-spice-border px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-spice-border px-4 py-3 pr-12">
         <div className="min-w-0">
           <h2
             id="module-preview-modal-title"
@@ -58,27 +60,16 @@ export const ModulePreviewPanel = ({ onClose }: ModulePreviewPanelProps) => {
               {isSyncing ? 'Syncing…' : 'Sync preview'}
             </Button>
           ) : null}
-          {onClose ? (
-            <Button variant="ghost" onClick={handleClose}>
-              Close
-            </Button>
-          ) : null}
         </div>
       </div>
-
-      {syncError ? (
-        <div className="mx-4 mt-3 shrink-0 rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {syncError}
-        </div>
-      ) : null}
 
       <div className="relative flex h-0 min-h-0 flex-1 flex-col overflow-hidden px-4 py-2">
         {snapshot ? (
           isEmpty ? (
-            <div className="rounded-lg border border-dashed border-spice-border px-4 py-8 text-center text-sm text-spice-text-muted">
-              No cards or quiz questions to preview. Add content, then sync
-              preview.
-            </div>
+            <EmptyState
+              title="No cards or quiz questions to preview"
+              description="Add content, then sync preview."
+            />
           ) : (
             <ModulePreviewNavigator
               snapshot={snapshot}

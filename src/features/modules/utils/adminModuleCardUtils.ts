@@ -1,4 +1,26 @@
+import { DEPLOYMENT_PRIMARY_LOCALE } from '@/config/deploymentLocale';
 import type { AdminModuleCard } from '@/features/modules/types/adminModule.types';
+import { normalizeCardBody } from '@/features/modules/utils/cardBody';
+
+function newCardId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `card-${Date.now()}`;
+}
+
+/** Blank card used when creating a module or adding a card in review. */
+export function createEmptyAdminModuleCard(
+  id: string = newCardId(),
+): AdminModuleCard {
+  return {
+    id,
+    title: {},
+    body: { [DEPLOYMENT_PRIMARY_LOCALE]: normalizeCardBody('') },
+    previous_practice: {},
+    current_practice: {},
+  };
+}
 
 export function reorderCards<T>(
   cards: T[],

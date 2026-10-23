@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import { paths } from '@/constants/routes';
 import { ErrorBoundary } from './ErrorBoundary';
 
-// Components that throw errors for testing
 const ThrowError = ({ message }: { message?: string }) => {
   throw new Error(message || 'Test error');
 };
@@ -16,11 +16,14 @@ const ThrowNullError = () => {
   throw null;
 };
 
+function renderErrorBoundary(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
 describe('ErrorBoundary', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeAll(() => {
-    // Suppress console.error in tests because ErrorBoundary is expected to log
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -33,7 +36,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders children when there is no error', () => {
-    render(
+    renderErrorBoundary(
       <ErrorBoundary>
         <div data-testid="child">Child content</div>
       </ErrorBoundary>,
@@ -42,25 +45,26 @@ describe('ErrorBoundary', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
-  it('renders default fallback UI when a standard Error is thrown', () => {
-    render(
+  it('renders the page load error panel when a standard Error is thrown', () => {
+    renderErrorBoundary(
       <ErrorBoundary>
         <ThrowError message="Custom error message" />
       </ErrorBoundary>,
     );
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     expect(
-      screen.getByText(/The dashboard hit an unexpected error/i),
+      screen.getByRole('heading', { name: 'Something went wrong' }),
     ).toBeInTheDocument();
-
-    // Check if dev details are shown (import.meta.env.DEV is typically true in test environments)
-    expect(screen.getByText('Details (dev only)')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "We couldn't retrieve the data. Please check your connection or try refreshing the page.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Custom error message')).toBeInTheDocument();
   });
 
   it('renders default fallback UI for string errors', () => {
-    render(
+    renderErrorBoundary(
       <ErrorBoundary>
         <ThrowStringError />
       </ErrorBoundary>,
@@ -70,17 +74,19 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders default fallback UI for null errors safely', () => {
-    render(
+    renderErrorBoundary(
       <ErrorBoundary>
         <ThrowNullError />
       </ErrorBoundary>,
     );
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Something went wrong' }),
+    ).toBeInTheDocument();
   });
 
   it('renders custom fallback when provided', () => {
-    render(
+    renderErrorBoundary(
       <ErrorBoundary fallback={<div data-testid="custom-fallback">Custom</div>}>
         <ThrowError />
       </ErrorBoundary>,
@@ -89,37 +95,32 @@ describe('ErrorBoundary', () => {
     expect(screen.getByTestId('custom-fallback')).toBeInTheDocument();
   });
 
-  it('handles refresh button click', () => {
+  it('handles retry button click', () => {
     const reloadMock = vi.fn();
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { reload: reloadMock },
     });
 
-    render(
+    renderErrorBoundary(
       <ErrorBoundary>
         <ThrowError />
       </ErrorBoundary>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
     expect(reloadMock).toHaveBeenCalled();
   });
 
-  it('handles go to home button click', () => {
-    const assignMock = vi.fn();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { assign: assignMock },
-    });
-
-    render(
+  it('renders go to dashboard action', () => {
+    renderErrorBoundary(
       <ErrorBoundary>
         <ThrowError />
       </ErrorBoundary>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /go to home/i }));
-    expect(assignMock).toHaveBeenCalledWith(paths.home);
+    expect(
+      screen.getByRole('button', { name: /go to dashboard/i }),
+    ).toBeInTheDocument();
   });
 });

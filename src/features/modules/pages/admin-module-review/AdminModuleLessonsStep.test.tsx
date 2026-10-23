@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { setCurrentRole, type AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import {
   baseAdminModuleDetail,
   emptyCard,
@@ -33,7 +33,7 @@ const mockModule = baseAdminModuleDetail({
   },
 });
 
-vi.mock('@/features/modules/components/RichTextEditor', () => ({
+vi.mock('@/components/ui/rich-text/RichTextEditor', () => ({
   RichTextEditor: () => <div data-testid="rich-text-editor" />,
 }));
 
@@ -58,9 +58,7 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   };
 });
 
-function renderLessonsStep(role: AppRole = 'programManager') {
-  setCurrentRole(role);
-
+function renderLessonsStep() {
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -71,42 +69,59 @@ function renderLessonsStep(role: AppRole = 'programManager') {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewLessons}
-              element={<AdminModuleLessonsStep />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[adminModuleReviewPaths.lessons('mod-1')]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewLessons}
+                element={<AdminModuleLessonsStep />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };
 }
 
 describe('AdminModuleLessonsStep reorder', () => {
-  it('shows drag handles for program manager', () => {
-    setCurrentRole('programManager');
+  it('shows drag handles for draft modules', () => {
     renderLessonsStep();
 
     expect(
       screen.getAllByRole('button', { name: 'Drag to reorder' }),
     ).toHaveLength(3);
   });
+});
 
-  it('hides reorder controls for supervisor read-only role', () => {
-    renderLessonsStep('supervisor');
+describe('AdminModuleLessonsStep actions', () => {
+  it('shows Save draft, Continue to Quiz, and Delete as icon-only', () => {
+    renderLessonsStep();
 
     expect(
-      screen.queryByRole('button', { name: 'Drag to reorder' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: /save draft/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /continue to quiz/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Delete card' }),
+    ).toBeInTheDocument();
+  });
+
+  it('orders Reset card before Delete card', () => {
+    renderLessonsStep();
+
+    const reset = screen.getByRole('button', { name: /reset card/i });
+    const remove = screen.getByRole('button', { name: 'Delete card' });
+    expect(
+      reset.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

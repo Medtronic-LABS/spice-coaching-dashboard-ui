@@ -1,5 +1,8 @@
 import { type InputHTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SearchIcon } from '@/assets/icon';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
 
 /**
@@ -21,28 +24,12 @@ export interface SearchInputProps extends Omit<
   onChange: (value: string) => void;
 }
 
-const SearchIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    data-testid="search-input-icon"
-  >
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </svg>
-);
-
 export const SearchInput = ({
   value,
   onChange,
   placeholder,
   className,
+  maxLength = FIELD_LIMITS.searchQuery,
   ...props
 }: SearchInputProps) => {
   const { t } = useTranslation();
@@ -52,18 +39,23 @@ export const SearchInput = ({
 
   return (
     <div className="relative w-full min-w-0 sm:min-w-56">
-      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-spice-text-muted" />
+      <SearchIcon
+        data-testid="search-input-icon"
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-spice-brand-primary"
+      />
       <input
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={resolvedPlaceholder}
         {...props}
+        maxLength={maxLength}
         aria-label={
           ariaLabel ?? (ariaLabelledBy ? undefined : t('ui.search.ariaLabel'))
         }
         className={cn(
-          'h-10 w-full min-w-0 rounded-md border border-spice-border-mid bg-spice-bg-surface py-2 pl-9 pr-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25',
+          'h-10 w-full min-w-0 rounded-lg border border-spice-border-mid bg-spice-bg-surface py-2 pl-9 pr-3 text-sm text-spice-text-primary caret-spice-palette-purple',
+          SPICE_INPUT_FOCUS_CLASSNAME,
           className,
         )}
       />

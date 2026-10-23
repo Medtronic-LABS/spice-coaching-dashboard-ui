@@ -1,60 +1,25 @@
 import { useId, type ReactNode } from 'react';
+import { CloseIcon, FiltersSlidersIcon } from '@/assets/icon';
 import { Drawer, Tooltip } from '@/components/ui';
 import { cn } from '@/utils';
-
-const FiltersSlidersIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 4H14" />
-    <path d="M10 4H3" />
-    <path d="M21 12H12" />
-    <path d="M8 12H3" />
-    <path d="M21 20H16" />
-    <path d="M12 20H3" />
-    <path d="M14 2v4" />
-    <path d="M8 10v4" />
-    <path d="M16 18v4" />
-  </svg>
-);
-
-const CloseIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.25"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M18 6 6 18" />
-    <path d="m6 6 12 12" />
-  </svg>
-);
 
 interface SettingsFilterTriggerButtonProps {
   active: boolean;
   expanded: boolean;
   onClick: () => void;
-  ariaLabel?: string;
+  /** Accessible name for the filter trigger control (required). */
+  ariaLabel: string;
   tooltip?: string;
+  disabled?: boolean;
 }
 
 export const SettingsFilterTriggerButton = ({
   active,
   expanded,
   onClick,
-  ariaLabel = 'Open filters',
+  ariaLabel,
   tooltip,
+  disabled = false,
 }: SettingsFilterTriggerButtonProps) => {
   const tooltipId = useId();
 
@@ -65,10 +30,12 @@ export const SettingsFilterTriggerButton = ({
         aria-label={ariaLabel}
         aria-expanded={expanded}
         aria-describedby={tooltip ? tooltipId : undefined}
+        disabled={disabled}
         onClick={onClick}
         className={cn(
           'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-spice-border-mid bg-spice-bg-surface text-spice-text-primary shadow-sm',
           'transition hover:bg-spice-bg-tint hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spice-brand-primary/30',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-spice-bg-surface disabled:hover:shadow-sm',
           active &&
             'border-spice-brand-primary/35 ring-1 ring-spice-brand-primary/20',
         )}

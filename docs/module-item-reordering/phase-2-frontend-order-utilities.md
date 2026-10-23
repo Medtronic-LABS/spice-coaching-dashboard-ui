@@ -119,7 +119,7 @@ Test cases:
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/utils/adminModuleCardUtils.test.ts
 npm run test -- src/features/module-library/utils/adminModuleQuizUtils.test.ts
 npm run test -- src/features/module-library/utils/prepareModuleJsonForSave.test.ts

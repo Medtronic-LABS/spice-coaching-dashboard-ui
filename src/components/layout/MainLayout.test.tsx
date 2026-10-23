@@ -19,8 +19,14 @@ describe('MainLayout', () => {
     );
 
     // Verify Header and Sidebar content exists
-    expect(screen.getByText('SPICE • AI COACHING')).toBeInTheDocument();
     expect(screen.getByText('AI Coaching')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'UHIS' })).toHaveAttribute(
+      'draggable',
+      'false',
+    );
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).toHaveAttribute('draggable', 'false');
+    }
     expect(screen.getByTestId('outlet-content')).toBeInTheDocument();
   });
 });

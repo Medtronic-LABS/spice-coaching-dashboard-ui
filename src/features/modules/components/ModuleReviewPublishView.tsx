@@ -1,4 +1,13 @@
-import { Button, Card } from '@/components/ui';
+import { EyeIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
+import {
+  Button,
+  Card,
+  CardTitle,
+  FieldGroupLabel,
+  TruncatedText,
+} from '@/components/ui';
+import { TABLE_CELL_LABEL_MAX_LENGTH } from '@/constants/fieldLimits';
+import { getPublishCardDescription } from '@/features/modules/utils/getPublishCardDescription';
 
 export interface ModuleReviewPublishLessonRow {
   id: string;
@@ -15,6 +24,7 @@ export interface ModuleReviewPublishQuizRow {
 export interface ModuleReviewPublishViewProps {
   title: string;
   topic: string;
+  contentDomainType?: string;
   description: string;
   lessons: ModuleReviewPublishLessonRow[];
   quizQuestions: ModuleReviewPublishQuizRow[];
@@ -24,19 +34,21 @@ export interface ModuleReviewPublishViewProps {
   estimateMinutes: number;
   sourceFileName?: string;
   sourceFileSizeLabel?: string;
+  onPreviewSource?: () => void;
   onEditDetails: () => void;
   onEditLessons: () => void;
   onEditQuiz: () => void;
   onPublish: () => void;
   /** Navigates to CHW assignment when the module is already published. */
   onAssign?: () => void;
+  /** When true, assignment is unavailable (e.g. chatbot FAQ-only modules). */
+  assignDisabled?: boolean;
   /** Returns to the module library when the module is already published. */
   onBackToLibrary?: () => void;
   onSave?: () => void;
   isPublishing: boolean;
   /** When true, disables the secondary save action on the publish card. */
   isSaving?: boolean;
-  publishError?: string;
   isAlreadyPublished?: boolean;
   editActionLabel?: string;
   /** Shown when there are unsaved edits. */
@@ -50,30 +62,32 @@ export interface ModuleReviewPublishViewProps {
 const EditLinkButton = ({
   label,
   onClick,
-  showIcon = true,
+  icon = 'edit',
 }: {
   label: string;
   onClick: () => void;
-  showIcon?: boolean;
+  icon?: 'edit' | 'view';
 }) => (
   <button
     type="button"
     onClick={onClick}
     className="inline-flex items-center gap-1 text-xs font-semibold text-spice-brand-primary hover:underline"
   >
-    {showIcon && <span aria-hidden="true">✎</span>}
+    {icon === 'view' ? (
+      <EyeIcon className="h-3.5 w-3.5" />
+    ) : (
+      <PencilIcon className="h-3.5 w-3.5" />
+    )}
     {label}
   </button>
 );
 
 const SectionLabel = ({ children }: { children: string }) => (
-  <div className="text-[10px] font-semibold tracking-wider text-spice-text-muted">
-    {children}
-  </div>
+  <FieldGroupLabel>{children}</FieldGroupLabel>
 );
 
 const MediaTag = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-medium text-spice-text-medium ring-1 ring-spice-border">
+  <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-xs font-medium text-spice-text-medium ring-1 ring-spice-border">
     {label}
   </span>
 );
@@ -81,6 +95,7 @@ const MediaTag = ({ label }: { label: string }) => (
 export const ModuleReviewPublishView = ({
   title,
   topic,
+  contentDomainType,
   description,
   lessons,
   quizQuestions,
@@ -90,16 +105,17 @@ export const ModuleReviewPublishView = ({
   estimateMinutes,
   sourceFileName,
   sourceFileSizeLabel,
+  onPreviewSource,
   onEditDetails,
   onEditLessons,
   onEditQuiz,
   onPublish,
   onAssign,
+  assignDisabled = false,
   onBackToLibrary,
   onSave,
   isPublishing,
   isSaving = false,
-  publishError,
   isAlreadyPublished = false,
   editActionLabel = 'Edit',
   unsavedChangesMessage,
@@ -109,6 +125,12 @@ export const ModuleReviewPublishView = ({
   const sectionActionLabel = readonly ? 'View' : editActionLabel;
   const lessonLabel = lessonCount === 1 ? '1 lesson' : `${lessonCount} lessons`;
   const quizLabel = quizCount === 1 ? '1 question' : `${quizCount} questions`;
+  const showAssignAction = Boolean(onAssign) && !assignDisabled;
+  const publishCardDescription = getPublishCardDescription({
+    readonly,
+    isAlreadyPublished,
+    assignDisabled,
+  });
 
   return (
     <div className="space-y-4">
@@ -127,22 +149,33 @@ export const ModuleReviewPublishView = ({
               <EditLinkButton
                 label={sectionActionLabel}
                 onClick={onEditDetails}
-                showIcon={!readonly}
+                icon={readonly ? 'view' : 'edit'}
               />
             </div>
             <div className="space-y-3">
               <div>
                 <SectionLabel>TITLE</SectionLabel>
-                <div className="mt-1 text-sm font-semibold text-spice-text-primary">
-                  {title}
+                <div className="mt-1 min-w-0 text-sm font-semibold text-spice-text-primary">
+                  <TruncatedText
+                    text={title}
+                    className="font-semibold text-spice-text-primary"
+                  />
                 </div>
               </div>
               <div>
-                <SectionLabel>TOPIC</SectionLabel>
+                <SectionLabel>DOMAIN</SectionLabel>
                 <div className="mt-1 text-sm text-spice-text-primary">
                   {topic}
                 </div>
               </div>
+              {contentDomainType ? (
+                <div>
+                  <SectionLabel>DOMAIN TYPE</SectionLabel>
+                  <div className="mt-1 text-sm text-spice-text-primary">
+                    {contentDomainType}
+                  </div>
+                </div>
+              ) : null}
               {description ? (
                 <p className="text-sm leading-relaxed text-spice-text-medium">
                   {description}
@@ -164,7 +197,7 @@ export const ModuleReviewPublishView = ({
               <EditLinkButton
                 label={sectionActionLabel}
                 onClick={onEditLessons}
-                showIcon={!readonly}
+                icon={readonly ? 'view' : 'edit'}
               />
             </div>
             <ol className="space-y-2">
@@ -173,12 +206,15 @@ export const ModuleReviewPublishView = ({
                   key={lesson.id}
                   className="flex items-center justify-between gap-3 rounded-lg bg-spice-bg-tint px-3 py-2.5"
                 >
-                  <span className="text-sm text-spice-text-primary">
-                    <span className="font-medium text-spice-text-muted">
-                      {index + 1}.{' '}
+                  <div className="flex min-w-0 flex-1 items-baseline gap-1 text-sm text-spice-text-primary">
+                    <span className="shrink-0 font-medium text-spice-text-muted">
+                      {index + 1}.
                     </span>
-                    {lesson.title}
-                  </span>
+                    <TruncatedText
+                      text={lesson.title}
+                      maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+                    />
+                  </div>
                   {lesson.mediaTags && lesson.mediaTags.length > 0 ? (
                     <div className="flex shrink-0 flex-wrap justify-end gap-1">
                       {lesson.mediaTags.map((tag) => (
@@ -204,7 +240,7 @@ export const ModuleReviewPublishView = ({
               <EditLinkButton
                 label={sectionActionLabel}
                 onClick={onEditQuiz}
-                showIcon={!readonly}
+                icon={readonly ? 'view' : 'edit'}
               />
             </div>
             <ul className="space-y-2">
@@ -234,9 +270,7 @@ export const ModuleReviewPublishView = ({
 
         <div className="space-y-4">
           <Card variant="elevated" className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-spice-text-primary">
-              Module Summary
-            </h3>
+            <CardTitle as="h3">Module Summary</CardTitle>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
                 <dt className="text-spice-text-muted">Lessons</dt>
@@ -269,23 +303,33 @@ export const ModuleReviewPublishView = ({
 
           {sourceFileName ? (
             <Card variant="elevated" className="space-y-2 p-4">
-              <h3 className="text-sm font-semibold text-spice-text-primary">
-                Source Document
-              </h3>
+              <CardTitle as="h3">Source document</CardTitle>
               <div className="flex items-center gap-3 rounded-lg bg-spice-bg-tint px-3 py-3 ring-1 ring-spice-border">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-lg ring-1 ring-spice-border">
                   📄
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-spice-text-primary">
-                    {sourceFileName}
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <TruncatedText
+                    text={sourceFileName}
+                    className="text-sm font-semibold text-spice-text-primary"
+                  />
                   {sourceFileSizeLabel ? (
                     <div className="text-xs text-spice-text-muted">
                       {sourceFileSizeLabel}
                     </div>
                   ) : null}
                 </div>
+                {onPreviewSource ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-spice-bg-surface text-spice-text-medium ring-1 ring-spice-border transition-colors hover:text-spice-text-primary"
+                    aria-label="Preview source document"
+                    title="Preview"
+                    onClick={onPreviewSource}
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+                ) : null}
               </div>
             </Card>
           ) : null}
@@ -299,21 +343,12 @@ export const ModuleReviewPublishView = ({
                   : 'Ready to publish?'}
             </div>
             <p className="mt-1 text-xs leading-relaxed text-white/90">
-              {readonly
-                ? 'Review module content before assigning it to CHWs.'
-                : isAlreadyPublished
-                  ? 'This module is already published. Assign it to CHWs or return to the module library.'
-                  : 'This module will be added to the library. You can assign it to CHWs after publishing.'}
+              {publishCardDescription}
             </p>
-            {publishError ? (
-              <div className="mt-3 rounded-lg bg-white/15 px-3 py-2 text-xs text-white">
-                {publishError}
-              </div>
-            ) : null}
             <div className="mt-4 space-y-2">
               {readonly || isAlreadyPublished ? (
                 <>
-                  {onAssign ? (
+                  {showAssignAction ? (
                     <Button
                       variant="secondary"
                       className="h-10 w-full bg-white text-spice-brand-primary hover:bg-white/95"
@@ -345,11 +380,12 @@ export const ModuleReviewPublishView = ({
               {!readonly && onSave ? (
                 <Button
                   variant="ghost"
-                  className="h-10 w-full text-white ring-1 ring-white/40 hover:bg-white/10"
+                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 text-white ring-1 ring-white/40 hover:bg-white/10"
                   disabled={isPublishing || isSaving}
                   onClick={onSave}
                 >
-                  {isSaving ? 'Saving…' : 'Save'}
+                  <SaveDraftIcon className="h-4 w-4" />
+                  {isSaving ? 'Saving…' : 'Save draft'}
                 </Button>
               ) : null}
             </div>

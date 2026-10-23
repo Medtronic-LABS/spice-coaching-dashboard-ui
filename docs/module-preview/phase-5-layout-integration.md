@@ -154,7 +154,7 @@ Mock `useAdminModuleReviewEditor` + render layout with `MemoryRouter`.
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/layout/AdminModuleReviewLayout.preview.test.tsx
 npm run typecheck
 npm run dev

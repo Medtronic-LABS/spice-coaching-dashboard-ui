@@ -5,7 +5,14 @@ import { renderWithProviders } from '@/test-utils/render';
 import { Header } from './Header';
 
 vi.mock('@/features/auth/services/authSession', () => ({
-  getAuthSession: () => ({ role: 'SUPER_USER' }),
+  getAuthSession: () => ({
+    tenantId: '2',
+    userId: '1',
+    email: 'superuser@test.com',
+    firstName: 'Subhodeep',
+    lastName: 'User',
+    role: 'SUPER_USER',
+  }),
   getAuthDisplayName: () => 'Subhodeep User',
   getAuthInitials: () => 'SU',
 }));
@@ -18,20 +25,18 @@ const defaultHeaderProps = {
 describe('Header', () => {
   it('renders the UHIS logo and Coaching label in the header', () => {
     renderWithProviders(<Header {...defaultHeaderProps} />);
-    expect(screen.getByRole('img', { name: 'UHIS' })).toBeInTheDocument();
+    const logo = screen.getByRole('img', { name: 'UHIS' });
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute('draggable', 'false');
     expect(screen.getByText('AI Coaching')).toBeInTheDocument();
   });
 
-  it('renders the disabled profile control with user initials and hover name', () => {
+  it('renders a profile icon with user initials', () => {
     renderWithProviders(<Header {...defaultHeaderProps} />);
-    const profileButton = screen.getByRole('button', {
-      name: (accessibleName) =>
-        /subhodeep user user menu/i.test(accessibleName) ||
-        accessibleName.includes('সুভোদীপ'),
-    });
-    expect(profileButton).toBeDisabled();
-    expect(profileButton).toHaveAttribute('title', 'Subhodeep User');
-    expect(screen.getByText('SU')).toBeInTheDocument();
+    expect(screen.getByLabelText(/subhodeep user/i)).toHaveTextContent('SU');
+    expect(
+      screen.queryByRole('button', { name: /log out/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not render a language selector', () => {

@@ -175,7 +175,7 @@ In dev, temporarily throw in `generateModulePreviewSnapshot`:
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library
 npm run typecheck
 npm run lint

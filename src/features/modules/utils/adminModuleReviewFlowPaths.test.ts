@@ -1,18 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { isAdminModuleReviewFlowPath } from '@/features/modules/utils/adminModuleReviewFlowPaths';
 
 describe('isAdminModuleReviewFlowPath', () => {
   it('matches admin module review step routes', () => {
     expect(
-      isAdminModuleReviewFlowPath(
-        paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
-      ),
+      isAdminModuleReviewFlowPath(adminModuleReviewPaths.details('mod-1')),
     ).toBe(true);
     expect(
-      isAdminModuleReviewFlowPath(
-        paths.adminModuleReviewPublish.replace(':moduleId', 'mod-1'),
-      ),
+      isAdminModuleReviewFlowPath(adminModuleReviewPaths.publish('mod-1')),
     ).toBe(true);
   });
 

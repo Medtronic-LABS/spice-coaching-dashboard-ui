@@ -3,9 +3,9 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { paths } from '@/constants/routes';
-import { setCurrentRole } from '@/constants/role';
+import { describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { ModulePreviewPanel } from '@/features/modules/components/module-preview/ModulePreviewPanel';
 import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
@@ -36,7 +36,7 @@ const mockModule = baseAdminModuleDetail({
   },
 });
 
-vi.mock('@/features/modules/components/RichTextEditor', () => ({
+vi.mock('@/components/ui/rich-text/RichTextEditor', () => ({
   RichTextEditor: () => <div data-testid="rich-text-editor" />,
 }));
 
@@ -84,8 +84,6 @@ function PreviewHarness() {
 }
 
 function renderLessonsPreview() {
-  setCurrentRole('programManager');
-
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -96,30 +94,26 @@ function renderLessonsPreview() {
   });
 
   return render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewLessons}
-              element={<PreviewHarness />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter
+            initialEntries={[adminModuleReviewPaths.lessons('mod-1')]}
+          >
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewLessons}
+                element={<PreviewHarness />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 
 describe('AdminModuleLessonsStep preview integration', () => {
-  beforeEach(() => {
-    setCurrentRole('programManager');
-  });
-
   it('opens preview at the selected card', async () => {
     const user = userEvent.setup();
     renderLessonsPreview();

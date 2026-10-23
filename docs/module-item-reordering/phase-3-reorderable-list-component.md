@@ -94,7 +94,7 @@ Minimal tests:
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm install
 npm run typecheck
 npm run test -- src/features/module-library/components/ReorderableList.test.tsx

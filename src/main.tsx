@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { MantineProvider } from '@mantine/core';
 import { App } from '@/App';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import { store } from '@/store/store';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { normalizeAppPath } from '@/bootstrap/normalizeAppPath';
@@ -21,9 +22,11 @@ createRoot(document.getElementById('root') as HTMLElement).render(
     <ErrorBoundary>
       <Provider store={store}>
         <MantineProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <SnackbarProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </SnackbarProvider>
         </MantineProvider>
       </Provider>
     </ErrorBoundary>

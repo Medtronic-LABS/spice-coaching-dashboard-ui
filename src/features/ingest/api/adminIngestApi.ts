@@ -92,6 +92,8 @@ export interface AdminV3IngestBatchNode {
   started_at?: string | null;
   completed_at?: string | null;
   error?: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
   activity?: unknown;
   candidate_id?: string | null;
   chunk_id?: string | null;
@@ -114,7 +116,13 @@ export interface AdminV3IngestBatchSourceStatus {
   started_at: string | null;
   completed_at: string | null;
   error: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
   nodes: AdminV3IngestBatchNode[];
+  /** When provided by batch poll, prefer over node-derived counts. */
+  generated_module_count?: number;
+  /** Modules awaiting merge/skip review for this source document. */
+  review_pending_module_count?: number;
 }
 
 export type IngestMergeDecisionChoice = 'accept_merge' | 'force_create';
@@ -154,6 +162,8 @@ export interface AdminV3IngestBatchStatusResponse {
   created_at: string | null;
   completed_at: string | null;
   error: unknown;
+  error_code?: string | null;
+  error_message?: string | null;
   sources: AdminV3IngestBatchSourceStatus[];
   fusion?: unknown;
   retry_url?: string | null;
@@ -242,6 +252,7 @@ export const adminIngestApi = baseApi.injectEndpoints({
           body: form,
         };
       },
+      invalidatesTags: ['SourceDocuments'],
     }),
     startIngestBatch: builder.mutation<
       AdminV3IngestAcceptedResponse,
@@ -306,6 +317,31 @@ export const adminIngestApi = baseApi.injectEndpoints({
         },
       }),
     }),
+    retryIngestBatch: builder.mutation<
+      AdminV3IngestMergeDecisionResponse,
+      string
+    >({
+      query: (batchId) => ({
+        url: `/admin/ingest/batches/${encodeURIComponent(batchId)}/retry`,
+        method: 'POST',
+        responseHandler: async (response: Response) => {
+          const text = await response.text();
+          if (!text.trim()) {
+            return {
+              status: response.status === 202 ? 'accepted' : 'ok',
+            } satisfies AdminV3IngestMergeDecisionResponse;
+          }
+          try {
+            return JSON.parse(text) as AdminV3IngestMergeDecisionResponse;
+          } catch {
+            return {
+              status: 'ok',
+              detail: text,
+            } satisfies AdminV3IngestMergeDecisionResponse;
+          }
+        },
+      }),
+    }),
     getIngestStatusByDocument: builder.query<
       AdminV3IngestStatusResponse,
       string
@@ -332,6 +368,7 @@ export const {
   useStartIngestBatchMutation,
   useGetIngestBatchStatusQuery,
   useSubmitIngestMergeDecisionMutation,
+  useRetryIngestBatchMutation,
   useGetIngestStatusByDocumentQuery,
   useGetIngestStatusByRunIdQuery,
 } = adminIngestApi;

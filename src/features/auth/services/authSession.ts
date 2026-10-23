@@ -1,3 +1,4 @@
+import { redirectToSpiceWeb } from '@/features/auth/utils/redirectToSpiceWeb';
 import type { AuthUser } from '@/features/auth/types/auth.types';
 
 const AUTH_SESSION_STORAGE_KEY = 'authUser';
@@ -47,7 +48,8 @@ export function clearAuthSession(): void {
 
 export function logout(): void {
   clearAuthSession();
-  window.location.assign(window.location.pathname);
+  if (typeof window === 'undefined') return;
+  redirectToSpiceWeb();
 }
 
 export function getAuthDisplayName(user: AuthUser): string {

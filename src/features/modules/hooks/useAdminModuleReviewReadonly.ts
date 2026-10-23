@@ -1,12 +1,11 @@
-import { getCurrentRole } from '@/constants/role';
 import { selectAdminModuleWorking } from '@/features/modules/store/adminModuleReviewSlice';
 import { useAppSelector } from '@/store/hooks';
 
-/** Only program managers reviewing a draft may edit or publish. */
+/**
+ * Module review is editable only while the working copy is a draft.
+ * Published / deactivated (and missing) modules are read-only for everyone.
+ */
 export function useAdminModuleReviewReadonly(): boolean {
   const working = useAppSelector(selectAdminModuleWorking);
-  return (
-    getCurrentRole() !== 'programManager' ||
-    working?.lifecycle_status !== 'draft'
-  );
+  return working?.lifecycle_status !== 'draft';
 }

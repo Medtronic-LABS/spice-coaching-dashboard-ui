@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { setCurrentRole } from '@/constants/role';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
 import {
   DEPLOYMENT_PRIMARY_LOCALE,
   resolveDisplayText,
@@ -68,17 +68,18 @@ function renderPanel(isDirty = false) {
   }
 
   return render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <ModulePreviewPanel />
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <ModulePreviewPanel />
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 
 describe('ModulePreviewPanel', () => {
   beforeEach(() => {
-    setCurrentRole('programManager');
     vi.restoreAllMocks();
   });
 
