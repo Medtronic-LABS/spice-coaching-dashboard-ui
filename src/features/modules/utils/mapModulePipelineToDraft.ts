@@ -3,7 +3,7 @@ import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types
 import type {
   RichBlock,
   RichParagraphBlock,
-} from '@/features/modules/types/richText.types';
+} from '@/components/ui/rich-text/types/richText.types';
 
 function paragraphFromText(text: string): RichParagraphBlock {
   return {

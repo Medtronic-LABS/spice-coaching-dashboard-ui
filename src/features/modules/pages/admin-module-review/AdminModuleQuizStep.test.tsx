@@ -1,36 +1,40 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
-import { setCurrentRole, type AppRole } from '@/constants/role';
-import { paths } from '@/constants/routes';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
+import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
+import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import {
   baseAdminModuleDetail,
   baseQuizItem,
 } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
-import { ModulePreviewProvider } from '@/features/modules/context/ModulePreviewContext';
-import { adminModuleReviewReducer } from '@/features/modules/store/adminModuleReviewSlice';
 import { baseApi } from '@/store/apis/base';
 import { AdminModuleQuizStep } from './AdminModuleQuizStep';
 
-const mockModule = baseAdminModuleDetail({
-  lifecycle_status: 'draft',
-  clinically_reviewed: false,
-  quiz: [
+function createMockModule(
+  quiz = [
     baseQuizItem('q1', 'Question A', 1),
     baseQuizItem('q2', 'Question B', 2),
     baseQuizItem('q3', 'Question C', 3),
   ],
-  module_json: {
-    cards: [],
-    quiz: [
-      baseQuizItem('q1', 'Question A', 1),
-      baseQuizItem('q2', 'Question B', 2),
-      baseQuizItem('q3', 'Question C', 3),
-    ],
-  },
-});
+) {
+  return baseAdminModuleDetail({
+    lifecycle_status: 'draft',
+    clinically_reviewed: false,
+    quiz,
+    module_json: {
+      cards: [],
+      quiz,
+    },
+  });
+}
+
+let mockModule = createMockModule();
 
 vi.mock('@/features/modules/hooks/useAdminModuleDetailQuery', () => ({
   useAdminModuleDetailQuery: () => ({
@@ -53,9 +57,7 @@ vi.mock('@/features/modules/api/adminModulesApi', async (importOriginal) => {
   };
 });
 
-function renderQuizStep(role: AppRole = 'programManager') {
-  setCurrentRole(role);
-
+function renderQuizStep() {
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -66,42 +68,165 @@ function renderQuizStep(role: AppRole = 'programManager') {
   });
 
   const view = render(
-    <Provider store={store}>
-      <ModulePreviewProvider moduleId="mod-1">
-        <MemoryRouter
-          initialEntries={[
-            paths.adminModuleReviewQuiz.replace(':moduleId', 'mod-1'),
-          ]}
-        >
-          <Routes>
-            <Route
-              path={paths.adminModuleReviewQuiz}
-              element={<AdminModuleQuizStep />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </ModulePreviewProvider>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <ModulePreviewProvider moduleId="mod-1">
+          <MemoryRouter initialEntries={[adminModuleReviewPaths.quiz('mod-1')]}>
+            <Routes>
+              <Route
+                path={paths.adminModuleReviewQuiz}
+                element={<AdminModuleQuizStep />}
+              />
+            </Routes>
+          </MemoryRouter>
+        </ModulePreviewProvider>
+      </Provider>
+    </SnackbarProvider>,
   );
 
   return { store, ...view };
 }
 
 describe('AdminModuleQuizStep reorder', () => {
-  it('shows drag handles for program manager', () => {
-    setCurrentRole('programManager');
+  beforeEach(() => {
+    mockModule = createMockModule();
+  });
+
+  it('shows drag handles for draft modules', () => {
     renderQuizStep();
 
     expect(
       screen.getAllByRole('button', { name: 'Drag to reorder' }),
     ).toHaveLength(3);
   });
+});
 
-  it('hides reorder controls for supervisor read-only role', () => {
-    renderQuizStep('supervisor');
+describe('AdminModuleQuizStep editor UI', () => {
+  beforeEach(() => {
+    mockModule = createMockModule();
+  });
+
+  it('shows question labels, correct-answer badge, and bottom add-question CTA', () => {
+    renderQuizStep();
+
+    expect(screen.getAllByText('Question')).toHaveLength(3);
+    expect(screen.getAllByText('Answer options')).toHaveLength(3);
+    expect(screen.getAllByText('Select the correct answer')).toHaveLength(3);
+    expect(screen.getAllByText('CORRECT ANSWER')).toHaveLength(3);
+    expect(
+      screen.getByRole('button', { name: /add question/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /add option/i })).toHaveLength(
+      3,
+    );
+    expect(
+      screen.getByRole('button', { name: /save draft/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /continue to review/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('caps question, option, and explanation inputs', () => {
+    renderQuizStep();
 
     expect(
-      screen.queryByRole('button', { name: 'Drag to reorder' }),
+      screen.getAllByPlaceholderText('Type your question…')[0],
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.quizQuestion));
+    expect(screen.getAllByPlaceholderText('Option 1')[0]).toHaveAttribute(
+      'maxLength',
+      String(FIELD_LIMITS.quizOption),
+    );
+    expect(
+      screen.getAllByPlaceholderText('Write an explanation…')[0],
+    ).toHaveAttribute('maxLength', String(FIELD_LIMITS.description));
+  });
+
+  it('seeds a blank question with four empty options when the quiz is empty', () => {
+    mockModule = createMockModule([]);
+    const { store } = renderQuizStep();
+
+    expect(screen.queryByText('No quiz questions yet')).not.toBeInTheDocument();
+    expect(screen.getByText('QUESTION 1')).toBeInTheDocument();
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz).toHaveLength(1);
+    expect(quiz[0]?.options.bn).toEqual(['', '', '', '']);
+  });
+
+  it('adds a second question with four options from the default blank question', async () => {
+    const user = userEvent.setup();
+    mockModule = createMockModule([]);
+    const { store } = renderQuizStep();
+
+    await user.click(screen.getByRole('button', { name: /add question/i }));
+
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz).toHaveLength(2);
+    expect(quiz[1]?.options.bn).toEqual(['', '', '', '']);
+    expect(screen.getByText('QUESTION 2')).toBeInTheDocument();
+  });
+
+  it('duplicates a question immediately after the source', async () => {
+    const user = userEvent.setup();
+    const { store } = renderQuizStep();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Duplicate question 1' }),
+    );
+
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz).toHaveLength(4);
+    expect(quiz.map((item) => item.question.bn)).toEqual([
+      'Question A',
+      'Question A',
+      'Question B',
+      'Question C',
+    ]);
+    expect(quiz[1]?.id).not.toBe('q1');
+    expect(screen.getByText('QUESTION 4')).toBeInTheDocument();
+  });
+
+  it('removes a question and renumbers the remaining items', async () => {
+    const user = userEvent.setup();
+    const { store } = renderQuizStep();
+
+    await user.click(screen.getByRole('button', { name: 'Remove question 2' }));
+
+    const quiz = store.getState().adminModuleReview.working?.quiz ?? [];
+    expect(quiz.map((item) => item.id)).toEqual(['q1', 'q3']);
+    expect(quiz.map((item) => item.question_order)).toEqual([1, 2]);
+    expect(screen.queryByText('QUESTION 3')).not.toBeInTheDocument();
+    expect(screen.getByText('QUESTION 2')).toBeInTheDocument();
+  });
+
+  it('keeps Add question below the question list', () => {
+    renderQuizStep();
+
+    const addQuestion = screen.getByRole('button', { name: /add question/i });
+    const lastQuestion = screen.getByText('QUESTION 3').closest('div');
+    expect(lastQuestion).toBeTruthy();
+    expect(
+      addQuestion.compareDocumentPosition(lastQuestion!) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+  });
+
+  it('hides edit actions for published modules', () => {
+    mockModule = {
+      ...createMockModule(),
+      lifecycle_status: 'published',
+    };
+    renderQuizStep();
+
+    expect(
+      screen.queryByRole('button', { name: /add question/i }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /save draft/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /duplicate question/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Quiz questions')).toBeInTheDocument();
   });
 });

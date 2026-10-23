@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchSpiceUserProfile } from './fetchSpiceUserProfile';
+import {
+  fetchSpiceUserProfile,
+  isSpiceProfileUnauthorizedError,
+} from './fetchSpiceUserProfile';
 
 const profilePayload = {
   message: 'Got user.',
@@ -59,5 +62,27 @@ describe('fetchSpiceUserProfile', () => {
     await expect(fetchSpiceUserProfile()).rejects.toThrow(
       'User profile request failed (401).',
     );
+  });
+
+  it('treats only HTTP 401 as unauthorized for Spice redirect', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Unauthorized', { status: 401 }),
+    );
+
+    const error = await fetchSpiceUserProfile().catch(
+      (caught: unknown) => caught,
+    );
+    expect(isSpiceProfileUnauthorizedError(error)).toBe(true);
+  });
+
+  it('does not treat other profile HTTP failures as unauthorized', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Server error', { status: 500 }),
+    );
+
+    const error = await fetchSpiceUserProfile().catch(
+      (caught: unknown) => caught,
+    );
+    expect(isSpiceProfileUnauthorizedError(error)).toBe(false);
   });
 });

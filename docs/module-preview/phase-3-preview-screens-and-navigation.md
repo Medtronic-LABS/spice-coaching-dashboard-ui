@@ -185,7 +185,7 @@ A standalone component that accepts a fixture `ModulePreviewSnapshot` + initial 
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/components/module-preview/ModulePreviewNavigator.test.tsx
 npm run test -- src/features/module-library/components/module-preview/QuizQuestionPreviewScreen.test.tsx
 npm run typecheck

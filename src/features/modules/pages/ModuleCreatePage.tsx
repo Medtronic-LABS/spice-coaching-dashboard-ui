@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card, Loader } from '@/components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { PageTitle } from '@/components/common/PageTitle';
+import {
+  Banner,
+  Button,
+  Card,
+  FileDropzone,
+  Loader,
+  SectionHeader,
+  StatusBadge,
+  useSnackbar,
+} from '@/components/ui';
 import { paths } from '@/constants/routes';
 import { useGetIngestStatusByDocumentQuery } from '@/features/ingest/api/adminIngestApi';
 import { DuplicateIngestConfirmDialog } from '@/features/ingest/components/DuplicateIngestConfirmDialog';
@@ -22,6 +32,7 @@ import {
   isIngestSucceeded,
   shouldPollIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
+import { getIngestRunStatusBadgeProps } from '@/features/ingest/utils/ingestRunStatusBadge';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
 
 function redirectToModuleLibrary(): void {
@@ -29,10 +40,8 @@ function redirectToModuleLibrary(): void {
 }
 
 export const ModuleCreatePage = () => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
+  const snackbar = useSnackbar();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState('');
   const [sourceDocumentId, setSourceDocumentId] = useState(
     () => readActiveIngestSession()?.source_document_id ?? '',
   );
@@ -55,13 +64,13 @@ export const ModuleCreatePage = () => {
     onAccepted: (accepted) => {
       const first = accepted.sources?.[0]?.source_document_id ?? '';
       if (!first) {
-        setUploadError('Ingest accepted but no source ID was returned.');
+        snackbar.showError('Ingest accepted but no source ID was returned.');
         return;
       }
       persistIngestSession(first);
       setSelectedFile(null);
     },
-    onError: setUploadError,
+    onError: (message) => snackbar.showError(message),
   });
 
   const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(() =>
@@ -92,9 +101,10 @@ export const ModuleCreatePage = () => {
 
   useEffect(() => {
     if (!isIngestSucceeded(statusData?.status)) return;
+    snackbar.showSuccess('Ingestion succeeded. Redirecting to Module Library…');
     clearActiveIngestSession();
     redirectToModuleLibrary();
-  }, [statusData?.status]);
+  }, [snackbar, statusData?.status]);
 
   const ingestionInProgress = isIngestInProgress(
     sourceDocumentId,
@@ -135,15 +145,10 @@ export const ModuleCreatePage = () => {
       className="space-y-4"
       aria-busy={isUploading || ingestionInProgress}
     >
-      <h1 className="text-3xl font-semibold text-spice-brand-pm">
-        Create module
-      </h1>
-      <p className="text-sm text-spice-text-muted">
-        Upload a source document and track ingestion progress (stage-wise). When
-        the pipeline completes successfully, you’ll be redirected to the Module
-        Library to claim and review. If you leave this page while ingestion
-        runs, progress continues and status is restored when you return.
-      </p>
+      <PageTitle
+        title="Create module"
+        subtitle="Upload a source document and track ingestion progress (stage-wise). When the pipeline completes successfully, you’ll be redirected to the Module Library to claim and review. If you leave this page while ingestion runs, progress continues and status is restored when you return."
+      />
 
       {ingestionInProgress && sourceDocumentId ? (
         <div
@@ -160,51 +165,46 @@ export const ModuleCreatePage = () => {
       ) : null}
 
       <Card variant="elevated" className="space-y-4">
-        <div className="rounded-xl border border-dashed border-spice-border-mid bg-spice-bg-tint p-8 text-center">
-          <div className="text-sm font-semibold text-spice-text-primary">
-            Upload document
-          </div>
-          <p className="mt-1 text-xs text-spice-text-muted">
-            Accepted file types: {INGEST_ACCEPTED_FILE_TYPES_LABEL}
-          </p>
-          <div className="mt-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={INGEST_FILE_INPUT_ACCEPT}
-              className="hidden"
-              disabled={uploadFieldsDisabled}
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                event.target.value = '';
+        <SectionHeader
+          title="Upload document"
+          variant="h2"
+          subtitle={`Accepted file types: ${INGEST_ACCEPTED_FILE_TYPES_LABEL} · Max 100 MB`}
+        />
 
-                if (!file) {
-                  setSelectedFile(null);
-                  return;
-                }
+        <div className="space-y-3">
+          <FileDropzone
+            files={selectedFile ? [selectedFile] : []}
+            onChange={(next) => {
+              setSelectedFile(next[0] ?? null);
+            }}
+            accept={INGEST_FILE_INPUT_ACCEPT}
+            disabled={uploadFieldsDisabled}
+            showFileList
+            title="Select file"
+            titleWhenSelected="Replace file"
+            subtitle="Click to select or drag and drop"
+            ariaLabel="Upload document"
+            validateFile={(file) =>
+              isIngestAcceptedFile(file)
+                ? null
+                : formatIngestFileRejectionError([file])
+            }
+            onReject={(message) => snackbar.showError(message)}
+          />
 
-                if (!isIngestAcceptedFile(file)) {
-                  setSelectedFile(null);
-                  setUploadError(formatIngestFileRejectionError([file]));
-                  return;
-                }
-
-                setSelectedFile(file);
-                setUploadError('');
-              }}
-            />
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap">
             <Button
-              variant="secondary"
-              disabled={uploadFieldsDisabled}
-              onClick={() => fileInputRef.current?.click()}
+              variant="ghost"
+              disabled={uploadFieldsDisabled || !selectedFile}
+              onClick={() => {
+                setSelectedFile(null);
+              }}
             >
-              Browse Files
+              Reset
             </Button>
             <Button
-              className="ml-2"
               disabled={uploadFieldsDisabled || !selectedFile}
               onClick={async () => {
-                setUploadError('');
                 if (!selectedFile) return;
 
                 clearActiveIngestSession();
@@ -226,22 +226,11 @@ export const ModuleCreatePage = () => {
                   : 'Upload & start ingestion'}
             </Button>
           </div>
-          <div className="mt-4 text-xs text-spice-text-medium">
-            {selectedFile ? selectedFile.name : 'No file selected'}
-          </div>
         </div>
-
-        {uploadError ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {uploadError}
-          </div>
-        ) : null}
 
         {statusError ? (
           <div className="space-y-2">
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {formatRtkQueryError(statusError)}
-            </div>
+            <Banner tone="critical">{formatRtkQueryError(statusError)}</Banner>
             <Button
               variant="secondary"
               className="h-8 text-xs"
@@ -255,39 +244,30 @@ export const ModuleCreatePage = () => {
 
       {sourceDocumentId ? (
         <Card variant="elevated" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm font-semibold text-spice-text-primary">
-                  Ingestion status
-                </div>
+          <SectionHeader
+            title="Ingestion status"
+            variant="h2"
+            subtitle={progressLabel}
+            titleAccessory={
+              <>
                 {statusData?.status ? (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      isIngestRunning(statusData.status)
-                        ? 'bg-spice-brand-pm/15 text-spice-brand-pm'
-                        : ingestionSucceeded
-                          ? 'bg-spice-semantic-successBg text-spice-semantic-success'
-                          : 'bg-spice-bg-tint text-spice-text-muted'
-                    }`}
-                  >
-                    {statusData.status}
-                  </span>
+                  <StatusBadge
+                    {...getIngestRunStatusBadgeProps(statusData.status)}
+                  />
                 ) : null}
                 {isPolling && statusData ? (
-                  <span className="text-[10px] text-spice-text-muted">
+                  <span className="text-xs font-normal text-spice-text-muted">
                     Updating…
                   </span>
                 ) : null}
+              </>
+            }
+            action={
+              <div className="text-sm text-spice-text-muted">
+                Document: <span className="font-mono">{sourceDocumentId}</span>
               </div>
-              <div className="mt-1 text-xs text-spice-text-muted">
-                {progressLabel}
-              </div>
-            </div>
-            <div className="text-xs text-spice-text-muted">
-              Document: <span className="font-mono">{sourceDocumentId}</span>
-            </div>
-          </div>
+            }
+          />
 
           <Loader
             open={isUploading || (!statusData && isStatusLoading)}
@@ -313,12 +293,6 @@ export const ModuleCreatePage = () => {
                   <span className="text-spice-text-medium">{step.status}</span>
                 </div>
               ))}
-            </div>
-          ) : null}
-
-          {ingestionSucceeded ? (
-            <div className="rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success">
-              Ingestion succeeded. Redirecting to Module Library…
             </div>
           ) : null}
         </Card>

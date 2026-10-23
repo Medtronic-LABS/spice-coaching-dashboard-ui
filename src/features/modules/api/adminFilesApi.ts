@@ -1,5 +1,5 @@
 import { baseApi } from '@/store/apis/base';
-import type { RichStoredFileAttrs } from '@/features/modules/types/richText.types';
+import type { RichStoredFileAttrs } from '@/components/ui/rich-text/types/richText.types';
 import { normalizePresignedFileUrlResponse } from '@/features/modules/utils/presignedFileUrlResponse';
 
 export interface AdminFileUploadResponse {
@@ -59,6 +59,9 @@ export const adminFilesApi = baseApi.injectEndpoints({
       AdminFilePresignedUrlResponse,
       AdminFilePresignedUrlParams
     >({
+      // Avoid remount refetch (e.g. milestone modal) minting a new URL and
+      // flashing every thumb already showing this object.
+      refetchOnMountOrArgChange: false,
       query: ({
         object_name,
         expires_seconds = 600,

@@ -3,9 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { paths } from '@/constants/routes';
-import { setCurrentRole } from '@/constants/role';
+import { describe, expect, it, vi } from 'vitest';
+import { SnackbarProvider } from '@/components/ui/Snackbar/SnackbarProvider';
+import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { AdminModuleReviewLayout } from '@/features/modules/layout/AdminModuleReviewLayout';
 import {
   adminModuleReviewReducer,
@@ -61,11 +61,7 @@ function StepStub() {
   return <div data-testid="editor-step">Editor step</div>;
 }
 
-function renderLayout(
-  role: 'programManager' | 'supervisor' = 'programManager',
-) {
-  setCurrentRole(role);
-
+function renderLayout() {
   const store = configureStore({
     reducer: {
       [baseApi.reducerPath]: baseApi.reducer,
@@ -82,32 +78,27 @@ function renderLayout(
     }),
   );
 
-  const detailsPath = paths.adminModuleReviewDetails.replace(
-    ':moduleId',
-    'mod-1',
-  );
+  const detailsPath = adminModuleReviewPaths.details('mod-1');
 
   return render(
-    <Provider store={store}>
-      <MemoryRouter initialEntries={[detailsPath]}>
-        <Routes>
-          <Route
-            path={paths.adminModuleReview}
-            element={<AdminModuleReviewLayout />}
-          >
-            <Route path="details" element={<StepStub />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    </Provider>,
+    <SnackbarProvider>
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[detailsPath]}>
+          <Routes>
+            <Route
+              path={paths.adminModuleReview}
+              element={<AdminModuleReviewLayout />}
+            >
+              <Route path="details" element={<StepStub />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    </SnackbarProvider>,
   );
 }
 
 describe('AdminModuleReviewLayout preview integration', () => {
-  beforeEach(() => {
-    setCurrentRole('programManager');
-  });
-
   it('opens and closes preview from the layout toggle', async () => {
     const user = userEvent.setup();
     renderLayout();
@@ -144,24 +135,23 @@ describe('AdminModuleReviewLayout preview integration', () => {
 
     store.dispatch(setCards([emptyCard('c1', 'Updated Card')]));
 
-    const detailsPath = paths.adminModuleReviewDetails.replace(
-      ':moduleId',
-      'mod-1',
-    );
+    const detailsPath = adminModuleReviewPaths.details('mod-1');
 
     render(
-      <Provider store={store}>
-        <MemoryRouter initialEntries={[detailsPath]}>
-          <Routes>
-            <Route
-              path={paths.adminModuleReview}
-              element={<AdminModuleReviewLayout />}
-            >
-              <Route path="details" element={<StepStub />} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
-      </Provider>,
+      <SnackbarProvider>
+        <Provider store={store}>
+          <MemoryRouter initialEntries={[detailsPath]}>
+            <Routes>
+              <Route
+                path={paths.adminModuleReview}
+                element={<AdminModuleReviewLayout />}
+              >
+                <Route path="details" element={<StepStub />} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </Provider>
+      </SnackbarProvider>,
     );
 
     await user.click(screen.getByRole('button', { name: 'Preview' }));
@@ -171,9 +161,9 @@ describe('AdminModuleReviewLayout preview integration', () => {
     expect(screen.getByText('Updated Card')).toBeInTheDocument();
   });
 
-  it('hides Sync preview for supervisor read-only role', async () => {
+  it('hides Sync preview for published modules', async () => {
     const user = userEvent.setup();
-    renderLayout('supervisor');
+    renderLayout();
 
     await user.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByText('Module Preview')).toBeInTheDocument();

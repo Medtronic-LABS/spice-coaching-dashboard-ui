@@ -224,7 +224,7 @@ For tests, wrap provider around panel:
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/context/ModulePreviewContext.test.tsx
 npm run test -- src/features/module-library/components/module-preview/ModulePreviewPanel.test.tsx
 npm run typecheck

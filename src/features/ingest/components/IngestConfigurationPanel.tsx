@@ -1,4 +1,10 @@
-import { Select, Tooltip } from '@/components/ui';
+import {
+  FormLabel,
+  LimitedTextarea,
+  SectionHeader,
+  Select,
+  Tooltip,
+} from '@/components/ui';
 import type {
   IngestAssessmentMode,
   IngestContentDomain,
@@ -6,10 +12,17 @@ import type {
 import { CONTENT_DOMAIN_TYPE_TOOLTIP } from '@/features/ingest/constants/ingestConfigurationTooltips';
 import {
   INGEST_MODULE_COUNT_MAX,
+  INGEST_MODULE_COUNT_MAX_DIGITS,
   INGEST_MODULE_COUNT_MIN,
   INGEST_MODULE_COUNT_RANGE_LABEL,
+  INGESTION_INSTRUCTIONS_LIMIT_LABEL,
+  INGESTION_INSTRUCTIONS_MAX_LENGTH,
+  INGESTION_INSTRUCTIONS_MAX_LINES,
   type IngestModuleCountInput,
+  countIngestionInstructionLines,
   isIngestModuleCountInRange,
+  isIngestionInstructionsValid,
+  parseOptionalIngestModuleCountInput,
 } from '@/features/ingest/constants/ingestFormDefaults';
 import {
   INGEST_ASSESSMENT_MODE_OPTIONS,
@@ -34,8 +47,8 @@ export interface IngestConfigurationPanelProps {
   onAssessmentModeChange: (value: IngestAssessmentMode) => void;
   contentDomain: IngestContentDomain;
   onContentDomainChange: (value: IngestContentDomain) => void;
-  primaryLanguage: string;
-  onPrimaryLanguageChange: (value: string) => void;
+  primaryLanguage?: string;
+  onPrimaryLanguageChange?: (value: string) => void;
   cardsPerModule: IngestModuleCountInput;
   onCardsPerModuleChange: (value: IngestModuleCountInput) => void;
   quizzesPerModule: IngestModuleCountInput;
@@ -44,20 +57,6 @@ export interface IngestConfigurationPanelProps {
   onIngestionInstructionsChange: (value: string) => void;
   instructionsPlaceholder?: string;
   className?: string;
-}
-
-function parseOptionalModuleCount(
-  raw: string,
-  onChange: (value: IngestModuleCountInput) => void,
-) {
-  if (raw === '') {
-    onChange('');
-    return;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isNaN(parsed)) {
-    onChange(parsed);
-  }
 }
 
 export const IngestConfigurationPanel = ({
@@ -77,6 +76,20 @@ export const IngestConfigurationPanel = ({
   instructionsPlaceholder = DEFAULT_INSTRUCTIONS_PLACEHOLDER,
   className,
 }: IngestConfigurationPanelProps) => {
+  const instructionsLineCount = countIngestionInstructionLines(
+    ingestionInstructions,
+  );
+  const instructionsValid = isIngestionInstructionsValid(ingestionInstructions);
+  const showQuizzesPerModule = assessmentMode !== 'read_only';
+
+  const handleAssessmentModeChange = (value: string) => {
+    const mode = value as IngestAssessmentMode;
+    onAssessmentModeChange(mode);
+    if (mode === 'read_only') {
+      onQuizzesPerModuleChange('');
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -90,36 +103,33 @@ export const IngestConfigurationPanel = ({
       />
 
       <div className="relative z-10 space-y-4">
-        <div className="text-xs font-semibold tracking-wide text-spice-text-medium uppercase">
-          Configuration
-        </div>
+        <SectionHeader title="Configuration" variant="h2" />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
           <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
+            <FormLabel className="flex min-h-5 items-center">
               Module content
-            </span>
+            </FormLabel>
             <Select
-              className="w-full rounded-lg"
+              className="w-full"
               options={INGEST_ASSESSMENT_MODE_OPTIONS}
               value={assessmentMode}
               disabled={disabled}
-              onChange={(value) =>
-                onAssessmentModeChange(value as IngestAssessmentMode)
-              }
+              onChange={handleAssessmentModeChange}
             />
           </label>
 
           <label className="block min-w-0 space-y-1">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-spice-text-primary">
+            <FormLabel className="flex min-h-5 items-center gap-1.5">
               Content domain type
               <Tooltip
                 label="About Content domain type"
                 content={CONTENT_DOMAIN_TYPE_TOOLTIP}
+                placement="top"
               />
-            </span>
+            </FormLabel>
             <Select
-              className="w-full rounded-lg"
+              className="w-full"
               options={INGEST_CONTENT_DOMAIN_OPTIONS}
               value={contentDomain}
               disabled={disabled}
@@ -130,129 +140,159 @@ export const IngestConfigurationPanel = ({
           </label>
 
           <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold text-spice-text-primary">
+            <FormLabel>
               Learning Material per Module{' '}
               <span className="font-normal text-spice-text-muted/65">
                 (Optional)
               </span>
-            </span>
+            </FormLabel>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+              autoComplete="off"
               className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
               value={cardsPerModule}
               disabled={disabled}
+              aria-label="Learning material per module"
               onChange={(e) =>
-                parseOptionalModuleCount(e.target.value, onCardsPerModuleChange)
+                onCardsPerModuleChange(
+                  parseOptionalIngestModuleCountInput(e.target.value),
+                )
               }
               placeholder="e.g. 5"
             />
             {cardsPerModule !== '' &&
             !isIngestModuleCountInRange(cardsPerModule) ? (
-              <span className="text-[11px] text-spice-semantic-error">
+              <span className="text-xs text-spice-semantic-error">
                 Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
                 {INGEST_MODULE_COUNT_MAX}.
               </span>
             ) : (
-              <span className="text-[11px] text-spice-text-muted">
+              <span className="text-xs text-spice-text-muted">
                 {INGEST_MODULE_COUNT_RANGE_LABEL}
               </span>
             )}
           </label>
 
-          <label className="block min-w-0 space-y-1">
+          {showQuizzesPerModule ? (
+            <label className="block min-w-0 space-y-1">
+              <FormLabel>
+                Quizzes per Module{' '}
+                <span className="font-normal text-spice-text-muted/65">
+                  (Optional)
+                </span>
+              </FormLabel>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={INGEST_MODULE_COUNT_MAX_DIGITS}
+                autoComplete="off"
+                className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+                value={quizzesPerModule}
+                disabled={disabled}
+                aria-label="Quizzes per module"
+                onChange={(e) =>
+                  onQuizzesPerModuleChange(
+                    parseOptionalIngestModuleCountInput(e.target.value),
+                  )
+                }
+                placeholder="e.g. 5"
+              />
+              {quizzesPerModule !== '' &&
+              !isIngestModuleCountInRange(quizzesPerModule) ? (
+                <span className="text-xs text-spice-semantic-error">
+                  Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
+                  {INGEST_MODULE_COUNT_MAX}.
+                </span>
+              ) : (
+                <span className="text-xs text-spice-text-muted">
+                  {INGEST_MODULE_COUNT_RANGE_LABEL}
+                </span>
+              )}
+            </label>
+          ) : null}
+        </div>
+
+        {onPrimaryLanguageChange ? (
+          <div className="space-y-2">
             <span className="text-xs font-semibold text-spice-text-primary">
-              Quizzes per Module{' '}
-              <span className="font-normal text-spice-text-muted/65">
-                (Optional)
-              </span>
+              Document language
             </span>
-            <input
-              type="number"
-              inputMode="numeric"
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
-              value={quizzesPerModule}
-              disabled={disabled}
-              onChange={(e) =>
-                parseOptionalModuleCount(
-                  e.target.value,
-                  onQuizzesPerModuleChange,
-                )
-              }
-              placeholder="e.g. 5"
-            />
-            {quizzesPerModule !== '' &&
-            !isIngestModuleCountInRange(quizzesPerModule) ? (
-              <span className="text-[11px] text-spice-semantic-error">
-                Enter a number from {INGEST_MODULE_COUNT_MIN} to{' '}
-                {INGEST_MODULE_COUNT_MAX}.
-              </span>
-            ) : (
-              <span className="text-[11px] text-spice-text-muted">
-                {INGEST_MODULE_COUNT_RANGE_LABEL}
-              </span>
-            )}
-          </label>
-        </div>
-
-        <div className="space-y-2">
-          <span className="text-xs font-semibold text-spice-text-primary">
-            Document language
-          </span>
-          <div className="flex gap-4">
-            {LANGUAGE_CARDS.map(({ code, name, native }) => {
-              const selected = primaryLanguage === code;
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onPrimaryLanguageChange(code)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 focus-visible:outline-none',
-                    disabled && 'cursor-not-allowed opacity-50',
-                  )}
-                >
-                  <span
+            <div className="flex gap-4">
+              {LANGUAGE_CARDS.map(({ code, name, native }) => {
+                const selected = primaryLanguage === code;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onPrimaryLanguageChange(code)}
                     className={cn(
-                      'flex h-14 w-14 items-center justify-center rounded-full text-[15px] font-bold transition-all duration-150',
-                      selected
-                        ? 'bg-spice-brand-primary text-white ring-2 ring-spice-brand-primary ring-offset-2'
-                        : 'bg-spice-bg-tint text-spice-text-primary ring-2 ring-spice-border hover:ring-spice-border-mid',
+                      'flex flex-col items-center gap-1.5 focus-visible:outline-none',
+                      disabled && 'cursor-not-allowed opacity-50',
                     )}
                   >
-                    {native === name ? code.toUpperCase() : native.charAt(0)}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-[11px] font-semibold leading-tight',
-                      selected
-                        ? 'text-spice-brand-primary'
-                        : 'text-spice-text-muted',
-                    )}
-                  >
-                    {name}
-                  </span>
-                </button>
-              );
-            })}
+                    <span
+                      className={cn(
+                        'flex h-14 w-14 items-center justify-center rounded-full text-[15px] font-bold transition-all duration-150',
+                        selected
+                          ? 'bg-spice-brand-primary text-white ring-2 ring-spice-brand-primary ring-offset-2'
+                          : 'bg-spice-bg-tint text-spice-text-primary ring-2 ring-spice-border hover:ring-spice-border-mid',
+                      )}
+                    >
+                      {native === name ? code.toUpperCase() : native.charAt(0)}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[11px] font-semibold leading-tight',
+                        selected
+                          ? 'text-spice-brand-primary'
+                          : 'text-spice-text-muted',
+                      )}
+                    >
+                      {name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold text-spice-text-primary">
+          <FormLabel>
             Ingestion instructions{' '}
             <span className="font-normal text-spice-text-muted/65">
               (Optional)
             </span>
-          </span>
-          <textarea
-            className="min-h-[84px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm text-spice-text-primary placeholder:text-spice-text-muted"
+          </FormLabel>
+          <LimitedTextarea
+            id="ingest-ingestion-instructions"
             value={ingestionInstructions}
             disabled={disabled}
-            onChange={(e) => onIngestionInstructionsChange(e.target.value)}
+            maxLength={INGESTION_INSTRUCTIONS_MAX_LENGTH}
+            onChange={onIngestionInstructionsChange}
             placeholder={instructionsPlaceholder}
+            aria-invalid={!instructionsValid}
+            aria-label="Ingestion instructions"
+            textareaClassName={cn(
+              'min-h-[84px] placeholder:text-spice-text-muted',
+              !instructionsValid && 'border-spice-semantic-error',
+            )}
           />
+          {!instructionsValid ? (
+            <span className="text-xs text-spice-semantic-error">
+              Enter at most {INGESTION_INSTRUCTIONS_MAX_LINES} lines (
+              {instructionsLineCount} used).
+            </span>
+          ) : (
+            <span className="text-xs text-spice-text-muted">
+              {INGESTION_INSTRUCTIONS_LIMIT_LABEL}
+            </span>
+          )}
         </label>
       </div>
     </div>

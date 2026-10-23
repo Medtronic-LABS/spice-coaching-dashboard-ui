@@ -7,7 +7,12 @@ function readEnv(name: keyof ImportMetaEnv): string | undefined {
 
 const DEFAULT_COACHING_SUITE_ACCESS = 'coaching';
 
-/** Suite access key for the coaching dashboard (`VITE_COACHING_SUITE_ACCESS`). */
-export const COACHING_SUITE_ACCESS = (
-  readEnv('VITE_COACHING_SUITE_ACCESS') ?? DEFAULT_COACHING_SUITE_ACCESS
-).toLowerCase();
+/**
+ * Suite access key required for the coaching dashboard
+ * (`VITE_COACHING_SUITE_ACCESS`, case-insensitive; default `coaching`).
+ */
+export function getCoachingSuiteAccess(): string {
+  return (
+    readEnv('VITE_COACHING_SUITE_ACCESS') ?? DEFAULT_COACHING_SUITE_ACCESS
+  ).toLowerCase();
+}

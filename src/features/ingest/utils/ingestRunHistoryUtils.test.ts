@@ -6,7 +6,6 @@ import {
   formatIngestRunGeneratedCountParts,
   formatIngestRunStatusDisplay,
   formatIngestRunTimestamp,
-  ingestRunStatusBadgeClassName,
   ingestRunStatusTone,
   shouldPollIngestionRunList,
 } from './ingestRunHistoryUtils';
@@ -22,6 +21,7 @@ const baseRun: IngestionRunSummary = {
   generated_module_count: 0,
   generated_card_count: 0,
   generated_quiz_count: 0,
+  ingested_by: null,
 };
 
 describe('ingestRunHistoryUtils', () => {
@@ -155,30 +155,11 @@ describe('ingestRunHistoryUtils', () => {
     ).toBe('—');
   });
 
-  it('maps status tones and badge classes', () => {
+  it('maps status tones', () => {
     expect(ingestRunStatusTone('running')).toBe('processing');
     expect(ingestRunStatusTone('succeeded')).toBe('completed');
     expect(ingestRunStatusTone('partially_succeeded')).toBe('partial');
     expect(ingestRunStatusTone('failed')).toBe('failed');
     expect(ingestRunStatusTone('unknown_state')).toBe('neutral');
-
-    expect(ingestRunStatusBadgeClassName('processing')).toContain(
-      'text-spice-semantic-info',
-    );
-    expect(ingestRunStatusBadgeClassName('processing')).toContain(
-      'bg-spice-semantic-infoBg',
-    );
-    expect(ingestRunStatusBadgeClassName('completed')).toContain(
-      'text-spice-semantic-success',
-    );
-    expect(ingestRunStatusBadgeClassName('partial')).toContain(
-      'text-spice-semantic-warning',
-    );
-    expect(ingestRunStatusBadgeClassName('failed')).toContain(
-      'text-spice-semantic-error',
-    );
-    expect(ingestRunStatusBadgeClassName('neutral')).toContain(
-      'text-spice-text-muted',
-    );
   });
 });

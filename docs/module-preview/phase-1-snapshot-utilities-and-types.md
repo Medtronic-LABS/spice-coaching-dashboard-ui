@@ -207,7 +207,7 @@ Use fixtures inspired by `LessonCardsJsonParserTest` / `QuizJsonParserTest` (see
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/utils/generateModulePreviewSnapshot.test.ts
 npm run test -- src/features/module-library/utils/modulePreviewNavigation.test.ts
 npm run test -- src/features/module-library/utils/previewAnswerCardState.test.ts

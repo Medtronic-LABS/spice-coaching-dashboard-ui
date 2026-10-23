@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import { applyModuleVersionConflictReload } from '@/features/modules/utils/applyModuleVersionConflictReload';
 import {
   baseAdminModuleDetail,
@@ -21,7 +21,7 @@ describe('applyModuleVersionConflictReload', () => {
     const ok = await applyModuleVersionConflictReload({
       tipId: 'mod-tip',
       currentModuleId: 'mod-1',
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       navigate,
       refetchModule,
       onLoaded,
@@ -31,7 +31,7 @@ describe('applyModuleVersionConflictReload', () => {
     expect(refetchModule).toHaveBeenCalledWith('mod-tip');
     expect(onLoaded).toHaveBeenCalledWith(tip);
     expect(navigate).toHaveBeenCalledWith(
-      paths.adminModuleReviewDetails.replace(':moduleId', 'mod-tip'),
+      adminModuleReviewPaths.details('mod-tip'),
       { replace: true },
     );
   });
@@ -44,7 +44,7 @@ describe('applyModuleVersionConflictReload', () => {
     await applyModuleVersionConflictReload({
       tipId: 'mod-1',
       currentModuleId: 'mod-1',
-      pathname: paths.adminModuleReviewLessons.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.lessons('mod-1'),
       navigate,
       refetchModule: vi.fn().mockResolvedValue({ data: tip }),
       onLoaded,
@@ -61,7 +61,7 @@ describe('applyModuleVersionConflictReload', () => {
     const ok = await applyModuleVersionConflictReload({
       tipId: 'mod-tip',
       currentModuleId: 'mod-1',
-      pathname: paths.adminModuleReviewDetails.replace(':moduleId', 'mod-1'),
+      pathname: adminModuleReviewPaths.details('mod-1'),
       navigate,
       refetchModule: vi.fn().mockResolvedValue(undefined),
       onLoaded,

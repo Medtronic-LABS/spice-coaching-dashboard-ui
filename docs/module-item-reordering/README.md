@@ -81,7 +81,7 @@ flowchart LR
 ### Save / publish (unchanged contract)
 
 - **Save draft:** `PUT /admin/modules/{id}` with `module_json: { cards, quiz }`
-- **Publish:** Save if dirty → `POST /admin/modules/{id}/clinically-reviewed`
+- **Publish:** Save if dirty → `POST /admin/modules/{id}/publish`
 - **No new endpoints, no DB migrations**
 
 ---

@@ -2,38 +2,111 @@ export { Badge } from '@/components/ui/Badge';
 export { Banner } from '@/components/ui/Banner';
 export { Button } from '@/components/ui/Button';
 export { Card } from '@/components/ui/Card';
-export { Combobox } from '@/components/ui/Combobox';
+export { Combobox, COMBOBOX_LISTBOX_SELECTOR } from '@/components/ui/Combobox';
 export type { ComboboxOption, ComboboxProps } from '@/components/ui/Combobox';
+export { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+export type { ConfirmDialogProps } from '@/components/ui/ConfirmDialog';
 export { Divider } from '@/components/ui/Divider';
+export { FormHelperText } from '@/components/ui/FormHelperText';
+export type { FormHelperTextProps } from '@/components/ui/FormHelperText';
+export { FormLabel } from '@/components/ui/FormLabel';
+export type { FormLabelProps, FormLabelSize } from '@/components/ui/FormLabel';
+export {
+  CardTitle,
+  FieldGroupLabel,
+  ModalTitle,
+  PageSubtitle,
+} from '@/components/ui/Typography';
+export type {
+  CardTitleProps,
+  FieldGroupLabelProps,
+  ModalTitleProps,
+  PageSubtitleProps,
+} from '@/components/ui/Typography';
+export { typographyClasses } from '@/components/ui/typographyClasses';
 export { EmptyState } from '@/components/ui/EmptyState';
 export { ErrorState } from '@/components/ui/ErrorState';
+export { FileDropzone } from '@/components/ui/FileDropzone';
+export type { FileDropzoneProps } from '@/components/ui/FileDropzone';
 export { FilterBar } from '@/components/ui/FilterBar';
+export { ImagePicker } from '@/components/ui/ImagePicker';
+export type {
+  ImagePickerProps,
+  ImagePickerVariant,
+} from '@/components/ui/ImagePicker';
+export { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+export type { InfiniteScrollContainerProps } from '@/components/ui/InfiniteScrollContainer';
 export { InfoCard } from '@/components/ui/InfoCard';
 export { KeyValue } from '@/components/ui/KeyValue';
+export { LimitedTextInput } from '@/components/ui/LimitedTextInput';
+export type {
+  LimitedTextInputCounterPlacement,
+  LimitedTextInputProps,
+} from '@/components/ui/LimitedTextInput';
+export { LimitedTextarea } from '@/components/ui/LimitedTextarea';
+export type { LimitedTextareaProps } from '@/components/ui/LimitedTextarea';
 export { ListItem } from '@/components/ui/ListItem';
-export { Loader } from '@/components/ui/Loader';
-export type { LoaderProps } from '@/components/ui/Loader';
+export { CircularSpinner, Loader } from '@/components/ui/Loader';
+export type { CircularSpinnerProps, LoaderProps } from '@/components/ui/Loader';
 export { Drawer } from '@/components/ui/Drawer';
 export type { DrawerProps } from '@/components/ui/Drawer';
 export { Modal } from '@/components/ui/Modal';
 export type { ModalProps } from '@/components/ui/Modal';
+export { ModalActionBar } from '@/components/ui/ModalActionBar';
+export type { ModalActionBarProps } from '@/components/ui/ModalActionBar';
+export { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
+export type { OverlayZIndex } from '@/components/ui/overlayZIndex';
+export { QuotedDisplayLabel } from '@/components/ui/QuotedDisplayLabel';
+export type { QuotedDisplayLabelProps } from '@/components/ui/QuotedDisplayLabel';
 export { SearchInput } from '@/components/ui/SearchInput';
 export { SectionHeader } from '@/components/ui/SectionHeader';
 export { Select } from '@/components/ui/Select';
-export type { SelectOption } from '@/components/ui/Select';
+export type { SelectOption, SelectProps } from '@/components/ui/Select';
+export {
+  SnackbarProvider,
+  useSnackbar,
+} from '@/components/ui/Snackbar/SnackbarProvider';
+export type {
+  ShowSnackbarOptions,
+  SnackbarApi,
+  SnackbarItem,
+  SnackbarTone,
+} from '@/components/ui/Snackbar/snackbar.types';
 export { StatCard } from '@/components/ui/StatCard';
-export { StatusBadge } from '@/components/ui/StatusBadge';
+export {
+  StatusBadge,
+  STATUS_BADGE_CLASSNAME,
+  TABLE_STATUS_BADGE_CLASSNAME,
+} from '@/components/ui/StatusBadge';
+export type { StatusBadgeProps } from '@/components/ui/StatusBadge';
 export { InfoIcon, Tooltip } from '@/components/ui/Tooltip';
 export type { TooltipPlacement, TooltipProps } from '@/components/ui/Tooltip';
 export { TruncatedText } from '@/components/ui/TruncatedText';
 export { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
 export type { UnsavedChangesDialogProps } from '@/components/ui/UnsavedChangesDialog';
-export { SuccessModal } from '@/components/ui/SuccessModal';
-export type { SuccessModalProps } from '@/components/ui/SuccessModal';
-export { ModulePublishedSuccessModal } from '@/components/ui/ModulePublishedSuccessModal';
-export type {
-  ModulePublishedSuccessModalProps,
-  ModulePublishedSuccessSummary,
-} from '@/components/ui/ModulePublishedSuccessModal';
-export type { TabItem } from '@/components/ui/Tabs';
+export type { TabItem, TabsVariant } from '@/components/ui/Tabs';
 export { getTabsA11yIds, Tabs } from '@/components/ui/Tabs';
+export type { BadgeSize, BadgeVariant } from '@/components/ui/Badge';
+export type { ButtonSize } from '@/components/ui/Button';
+export { useWindowedList } from '@/components/ui/useWindowedList';
+export { RichTextEditor } from '@/components/ui/rich-text/RichTextEditor';
+export type { RichTextEditorProps } from '@/components/ui/rich-text/RichTextEditor';
+export type {
+  RichAudioBlock,
+  RichBlock,
+  RichImageBlock,
+  RichStoredFileAttrs,
+  RichTextLeaf,
+  RichTextMark,
+  RichVideoBlock,
+} from '@/components/ui/rich-text/types/richText.types';
+export {
+  blocksToHtml,
+  blocksToPlainText,
+  htmlToBlocks,
+} from '@/components/ui/rich-text/utils/richText';
+export {
+  blocksToTiptapDoc,
+  richBlocksEqual,
+  tiptapDocToBlocks,
+} from '@/components/ui/rich-text/utils/richTextDocument';

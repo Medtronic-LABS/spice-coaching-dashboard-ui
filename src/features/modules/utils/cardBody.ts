@@ -18,8 +18,8 @@ import type {
   RichParagraphBlock,
   RichTextLeaf,
   RichTextMark,
-} from '@/features/modules/types/richText.types';
-import { blocksToPlainText } from '@/features/modules/utils/richText';
+} from '@/components/ui/rich-text/types/richText.types';
+import { blocksToPlainText } from '@/components/ui/rich-text/utils/richText';
 import { hasStoredFileReference } from '@/features/modules/utils/uploadedFileUrl';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

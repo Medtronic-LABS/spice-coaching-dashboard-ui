@@ -1,8 +1,19 @@
 import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { paths, ROUTE_PREFIX } from '@/constants/routes';
+import { legacyPaths, paths, ROUTE_PREFIX } from '@/constants/routes';
+import { PreserveSearchRedirect } from '@/routes/PreserveSearchRedirect';
 
+const UnAuthorizedPage = lazy(() =>
+  import('@/features/auth/pages/UnAuthorizedPage').then((module) => ({
+    default: module.UnAuthorizedPage,
+  })),
+);
+const NotFoundPage = lazy(() =>
+  import('@/routes/NotFoundPage').then((module) => ({
+    default: module.NotFoundPage,
+  })),
+);
 const ModuleLibraryPage = lazy(() =>
   import('@/features/modules/pages/ModuleLibraryPage').then((module) => ({
     default: module.ModuleLibraryPage,
@@ -27,6 +38,13 @@ const VideoUploadPage = lazy(() =>
   import('@/features/ingest/pages/VideoUploadPage').then((module) => ({
     default: module.VideoUploadPage,
   })),
+);
+const KnowledgeLibraryPage = lazy(() =>
+  import('@/features/knowledge-library/pages/KnowledgeLibraryPage').then(
+    (module) => ({
+      default: module.KnowledgeLibraryPage,
+    }),
+  ),
 );
 const AdminModuleReviewLayout = lazy(() =>
   import('@/features/modules/layout/AdminModuleReviewLayout').then(
@@ -90,23 +108,63 @@ const ConfigsPage = lazy(() =>
     default: module.ConfigsPage,
   })),
 );
+const AdminDashboardPage = lazy(() =>
+  import('@/features/admin-dashboard/pages/AdminDashboardPage').then(
+    (module) => ({
+      default: module.AdminDashboardPage,
+    }),
+  ),
+);
+const BadgeManagementPage = lazy(() =>
+  import('@/features/badges/pages/BadgeManagementPage').then((module) => ({
+    default: module.BadgeManagementPage,
+  })),
+);
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route
         path={ROUTE_PREFIX}
-        element={<Navigate to={paths.moduleLibrary} replace />}
+        element={<Navigate to={paths.adminDashboard} replace />}
       />
+      <Route path={paths.unauthorized} element={<UnAuthorizedPage />} />
       <Route element={<MainLayout />}>
         <Route
           path={paths.home}
-          element={<Navigate to={paths.moduleLibrary} replace />}
+          element={<Navigate to={paths.adminDashboard} replace />}
+        />
+        <Route
+          path={legacyPaths.adminDashboard}
+          element={<PreserveSearchRedirect to={paths.adminDashboard} />}
+        />
+        {/* Legacy feature URLs previously nested under /module-library */}
+        <Route
+          path={legacyPaths.uploadKnowledge}
+          element={<PreserveSearchRedirect to={paths.uploadKnowledge} />}
+        />
+        <Route
+          path={legacyPaths.ingestDocument}
+          element={<PreserveSearchRedirect to={paths.ingestDocument} />}
+        />
+        <Route
+          path={legacyPaths.videoUpload}
+          element={<PreserveSearchRedirect to={paths.videoUpload} />}
+        />
+        <Route
+          path={legacyPaths.ingestHistory}
+          element={<PreserveSearchRedirect to={paths.ingestHistory} />}
         />
         <Route path={paths.moduleLibrary} element={<ModuleLibraryPage />} />
+        <Route path={paths.badgeManagement} element={<BadgeManagementPage />} />
         <Route path={paths.ingestDocument} element={<IngestDocumentPage />} />
+        <Route
+          path={paths.uploadKnowledge}
+          element={<KnowledgeLibraryPage />}
+        />
         <Route path={paths.videoUpload} element={<VideoUploadPage />} />
         <Route path={paths.ingestHistory} element={<IngestHistoryPage />} />
+        <Route path={paths.adminDashboard} element={<AdminDashboardPage />} />
         <Route
           path={paths.adminModuleReview}
           element={<AdminModuleReviewLayout />}
@@ -126,11 +184,9 @@ export const AppRoutes = () => {
           <Route path="published" element={<ModulePublishedPage />} />
         </Route>
         <Route path={paths.configs} element={<ConfigsPage />} />
-        <Route
-          path="*"
-          element={<Navigate to={paths.moduleLibrary} replace />}
-        />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

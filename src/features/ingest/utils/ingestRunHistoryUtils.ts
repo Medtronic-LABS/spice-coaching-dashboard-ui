@@ -40,23 +40,6 @@ export function ingestRunStatusTone(
   return 'neutral';
 }
 
-export function ingestRunStatusBadgeClassName(
-  tone: IngestRunStatusTone,
-): string {
-  switch (tone) {
-    case 'processing':
-      return 'bg-spice-semantic-infoBg text-spice-semantic-info';
-    case 'completed':
-      return 'bg-spice-semantic-successBg text-spice-semantic-success';
-    case 'partial':
-      return 'bg-spice-semantic-warningBg text-spice-semantic-warning';
-    case 'failed':
-      return 'bg-spice-semantic-errorBg text-spice-semantic-error';
-    default:
-      return 'bg-spice-bg-tint text-spice-text-muted';
-  }
-}
-
 /** Modules / cards / quizzes labels from the ingestion result reported by the API. */
 export function formatIngestRunGeneratedCountParts(run: IngestionRunSummary): {
   modules: string;

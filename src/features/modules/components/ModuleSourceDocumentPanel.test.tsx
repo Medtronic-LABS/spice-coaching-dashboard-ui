@@ -23,4 +23,23 @@ describe('ModuleSourceDocumentPanel', () => {
 
     expect(screen.getByRole('combobox')).toHaveClass('select-arrow');
   });
+
+  it('loads the PDF iframe with FitH preview params', () => {
+    render(
+      <ModuleSourceDocumentPanel
+        documents={[
+          {
+            source_document_id: 'document-1.pdf',
+            presigned_url: 'https://example.test/document-1.pdf',
+            presigned_expires_seconds: 300,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTitle('document-1.pdf')).toHaveAttribute(
+      'src',
+      'https://example.test/document-1.pdf#toolbar=1&navpanes=0&scrollbar=1&view=FitH',
+    );
+  });
 });

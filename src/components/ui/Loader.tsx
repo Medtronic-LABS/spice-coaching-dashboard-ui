@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
 export interface LoaderProps {
   /** When false, renders nothing. Defaults to true. */
@@ -7,10 +8,16 @@ export interface LoaderProps {
   label?: string;
 }
 
-function CircularSpinner() {
+export interface CircularSpinnerProps {
+  className?: string;
+}
+
+export function CircularSpinner({
+  className = 'h-14 w-14',
+}: CircularSpinnerProps) {
   return (
     <svg
-      className="h-14 w-14 animate-spin"
+      className={`animate-spin ${className}`}
       viewBox="0 0 56 56"
       fill="none"
       aria-hidden="true"
@@ -20,7 +27,7 @@ function CircularSpinner() {
         cy="28"
         r="22"
         strokeWidth="5"
-        className="stroke-white/20"
+        className="stroke-current opacity-20"
       />
       <circle
         cx="28"
@@ -45,7 +52,7 @@ export const Loader = ({ open = true, label }: LoaderProps) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-black/40"
+      className={`fixed inset-0 ${OVERLAY_Z_INDEX.loader} flex flex-col items-center justify-center gap-4 bg-black/40`}
       role="status"
       aria-live="polite"
       aria-label={resolvedLabel}

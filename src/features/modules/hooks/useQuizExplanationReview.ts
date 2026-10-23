@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { paths } from '@/constants/routes';
+import { adminModuleReviewPaths } from '@/constants/routes';
 import {
   acknowledgeExplanationReview,
   closeExplanationReviewDialog,
@@ -34,10 +34,7 @@ export function useQuizExplanationReview(moduleId: string) {
   const dialogOpen = useAppSelector(selectExplanationReviewDialogOpen);
   const shouldFocus = useAppSelector(selectShouldFocusPendingExplanation);
 
-  const quizPath = paths.adminModuleReviewQuiz.replace(
-    ':moduleId',
-    encodeURIComponent(moduleId),
-  );
+  const quizPath = adminModuleReviewPaths.quiz(moduleId);
   const isOnQuizStep = pathname.endsWith('/quiz');
 
   const focusFirstPendingExplanation = useCallback(() => {

@@ -7,7 +7,14 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
+import { ChevronIcon } from '@/assets/icon';
+import { InfiniteScrollContainer } from '@/components/ui/InfiniteScrollContainer';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
+import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
 import { cn } from '@/utils';
+
+/** Portaled / floating listbox nodes use this attribute for outside-click guards. */
+export const COMBOBOX_LISTBOX_SELECTOR = '[data-combobox-listbox]';
 
 /**
  * Combobox
@@ -15,6 +22,9 @@ import { cn } from '@/utils';
  * externally (e.g. server-side search). The parent owns both the selected
  * value and the search term; this component only renders the options it is
  * given, without any client-side filtering.
+ *
+ * Optional infinite-scroll props (`hasMore` / `onLoadMore`) load more pages
+ * as the user scrolls the open list.
  *
  * Usage:
  * <Combobox
@@ -56,6 +66,15 @@ export interface ComboboxProps {
   id?: string;
   className?: string;
   'aria-label'?: string;
+  /** When true, scrolling near the list bottom calls `onLoadMore`. */
+  hasMore?: boolean;
+  /** Load the next page of options (parent appends to `options`). */
+  onLoadMore?: () => void;
+  /** Disables load triggers while the next page is fetching. */
+  isLoadingMore?: boolean;
+  /** Shows a retry row when a page load failed. */
+  loadMoreError?: boolean;
+  onLoadMoreRetry?: () => void;
 }
 
 export const Combobox = ({
@@ -72,6 +91,11 @@ export const Combobox = ({
   id: idProp,
   className,
   'aria-label': ariaLabel,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
+  loadMoreError = false,
+  onLoadMoreRetry,
 }: ComboboxProps) => {
   const generatedId = useId();
   const inputId = idProp ?? generatedId;
@@ -167,41 +191,72 @@ export const Combobox = ({
 
   return (
     <div className={cn('relative', className)} onBlur={handleBlur}>
-      <input
-        ref={inputRef}
-        id={inputId}
-        type="text"
-        role="combobox"
-        autoComplete="off"
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        aria-controls={listboxId}
-        aria-autocomplete="list"
-        aria-activedescendant={
-          open && highlightedOption
-            ? `${inputId}-option-${highlightedIndex}`
-            : undefined
-        }
-        className="h-10 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface px-3 text-sm text-spice-text-primary outline-none focus:ring-2 focus:ring-spice-brand-primary/25"
-        value={open ? searchTerm : selectedLabel}
-        placeholder={open ? placeholder : selectedLabel || placeholder}
-        onFocus={() => setOpen(true)}
-        onClick={() => setOpen(true)}
-        onChange={(event) => {
-          if (!open) setOpen(true);
-          onSearchTermChange(event.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-      />
+      <div className="relative">
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="text"
+          role="combobox"
+          autoComplete="off"
+          aria-label={ariaLabel}
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            open && highlightedOption
+              ? `${inputId}-option-${highlightedIndex}`
+              : undefined
+          }
+          className={cn(
+            'h-10 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface py-2 pl-3 pr-10 text-sm text-spice-text-primary caret-spice-palette-purple',
+            SPICE_INPUT_FOCUS_CLASSNAME,
+          )}
+          value={open ? searchTerm : selectedLabel}
+          placeholder={open ? placeholder : selectedLabel || placeholder}
+          maxLength={FIELD_LIMITS.searchQuery}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          onChange={(event) => {
+            if (!open) setOpen(true);
+            onSearchTermChange(event.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+        />
+        <ChevronIcon
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-spice-text-muted"
+          expanded={open}
+          aria-hidden
+        />
+      </div>
       {open ? (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-spice-border-mid bg-spice-bg-surface shadow-lg">
-          <ul
-            id={listboxId}
-            role="listbox"
-            className="max-h-64 overflow-y-auto py-1"
-          >
-            {listContent}
-          </ul>
+        <div
+          data-combobox-listbox
+          className="absolute z-[70] mt-1 w-full rounded-lg border border-spice-border-mid bg-spice-bg-surface shadow-lg"
+        >
+          {onLoadMore ? (
+            <InfiniteScrollContainer
+              className="max-h-64 py-1"
+              hasMore={hasMore}
+              onLoadMore={onLoadMore}
+              loadedCount={options.length}
+              isLoadingMore={isLoadingMore}
+              error={loadMoreError}
+              onRetry={onLoadMoreRetry}
+              disabled={isLoading}
+            >
+              <ul id={listboxId} role="listbox">
+                {listContent}
+              </ul>
+            </InfiniteScrollContainer>
+          ) : (
+            <ul
+              id={listboxId}
+              role="listbox"
+              className="max-h-64 overflow-y-auto py-1"
+            >
+              {listContent}
+            </ul>
+          )}
           {hint ? (
             <p className="border-t border-spice-border-mid px-3 py-1.5 text-xs text-spice-text-muted">
               {hint}

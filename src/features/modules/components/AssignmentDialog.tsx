@@ -1,55 +1,107 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, Card, Loader, Modal, Select, Tabs } from '@/components/ui';
-import { paths } from '@/constants/routes';
 import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { RefreshIcon } from '@/assets/icon';
+import {
+  Button,
+  Card,
+  Combobox,
+  CircularSpinner,
+  FormLabel,
+  InfiniteScrollContainer,
+  Loader,
+  Modal,
+  ModalActionBar,
+  ModalTitle,
+  SearchInput,
+  Select,
+  Tabs,
+  TruncatedText,
+  useSnackbar,
+} from '@/components/ui';
+import { paths } from '@/constants/routes';
+import { SPICE_CHECKBOX_CLASSNAME } from '@/constants/formControls';
+import {
+  ASSIGNMENT_LIST_PAGE_SIZE,
+  ASSIGNMENT_USERS_PAGE_SIZE,
+  type AdminDistrict,
+  type AdminDivision,
+  type AdminUpazila,
   type AdminUser,
-  type AssignmentType,
-  type AssignmentUser,
-  getProgramOrganizers,
-  getSkUsers,
-  getUniqueDistricts,
-  getUniqueUpazilas,
+  type AssignmentSummaryType,
+  useLazyFetchAdminDistrictsPageQuery,
+  useLazyFetchAdminDivisionsPageQuery,
+  useLazyFetchAdminUpazilasPageQuery,
+  useLazyFetchHierarchyUsersPageQuery,
+  useLazyFetchModuleAssignedUsersQuery,
   useCreateAssignmentMutation,
-  useLazyFetchAdminUsersQuery,
-  useLazyFetchAssignmentsQuery,
-  useRevokeAssignmentMutation,
+  useReplaceModuleAssignedUsersMutation,
 } from '@/features/modules/api/adminAssignmentApi';
 import {
-  useCreateVideoAssignmentMutation,
-  useLazyFetchVideoAssignmentsQuery,
-  useRevokeVideoAssignmentMutation,
-} from '@/features/ingest/api/adminVideoAssignmentApi';
+  useLazyFetchDocumentAssignedUsersQuery,
+  useCreateDocumentAssignmentMutation,
+  useReplaceDocumentAssignedUsersMutation,
+} from '@/features/ingest/api/adminDocumentAssignmentApi';
+import { AssignmentGeoDistrictHierarchy } from '@/features/modules/components/AssignmentGeoDistrictHierarchy';
 import {
-  buildAssignedUserEntries,
-  buildGeographicalAssignedEntries,
+  buildFlatAssignedUserEntries,
   countAssignedUsers,
   type AssignedUserEntry,
 } from '@/features/modules/utils/assignmentDisplay';
+import { formatAssignmentUserLocation } from '@/features/modules/utils/mapHierarchyUsersToAdminUsers';
+import {
+  ALL_DIVISIONS_OPTION,
+  ALL_DISTRICTS_OPTION,
+  ALL_UPAZILAS_OPTION,
+  ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  buildAssignmentListUsers,
+  buildNamedEntityComboboxOptions,
+  buildReplaceAssignmentUserIds,
+  getUserLevelEmptyMessage,
+  hasAssignmentUserFilters,
+  hierarchyRoleForMode,
+  idsToAddWhenSelectingPo,
+  idsToRemoveWhenClearingPo,
+  mergeNamedEntityPages,
+  resolveNamedEntitySelection,
+  shouldShowGeoCatalogRefresh,
+  canRefreshUpazilaCatalog,
+  type AssignmentUserLevelMode,
+} from '@/features/modules/utils/assignmentDialogHelpers';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import {
+  buildAssignmentSuccessLocationState,
+  type AssignmentSuccessLocationState,
+} from '@/features/modules/types/assignmentSuccessNavigation.types';
+import { AssignmentSuccessModal } from '@/features/modules/components/AssignmentSuccessModal';
+import { cn } from '@/utils';
 
 type AssignmentTab = 'user' | 'geographical';
 
-type UserLevelMode = 'po_sk' | 'po' | 'sk';
-
-/** Shared shape used by module and video assignment helpers. */
-type AssignableRecord = {
-  id: string;
-  assignment_type: AssignmentType;
-  user_id: number | null;
-  user?: AssignmentUser | null;
-  upazila?: string | null;
-};
-
 export type AssignmentDialogTarget =
   | { kind: 'module'; id: string; title: string }
-  | { kind: 'video'; id: string; title: string };
+  | {
+      kind: 'sourceDocument';
+      id: string;
+      title: string;
+      noun: 'video' | 'document';
+    };
 
-const USER_LEVEL_MODE_OPTIONS: Array<{ label: string; value: UserLevelMode }> =
-  [
-    { label: 'PO and SK', value: 'po_sk' },
-    { label: 'PO', value: 'po' },
-    { label: 'SK', value: 'sk' },
-  ];
+const USER_LEVEL_MODE_OPTIONS: Array<{
+  label: string;
+  value: AssignmentUserLevelMode;
+}> = [
+  { label: 'PO and SK', value: 'po_sk' },
+  { label: 'PO only', value: 'po' },
+  { label: 'SK only', value: 'sk' },
+];
 
 const ASSIGNMENT_TABS: Array<{ label: string; value: AssignmentTab }> = [
   { label: 'Role Based', value: 'user' },
@@ -67,1322 +119,1319 @@ interface AssignmentDialogProps {
   open: boolean;
   onClose: () => void;
   target: AssignmentDialogTarget;
-  /** Called after a successful video assignment (modules navigate instead). */
-  onAssigned?: () => void;
 }
 
-interface FetchRetryButtonProps {
+interface GeoCatalogRefreshButtonProps {
+  onRefresh: () => void;
+  isRefreshing?: boolean;
+}
+
+/** Matches admin-dashboard widget refresh control styling. */
+function GeoCatalogRefreshButton({
+  onRefresh,
+  isRefreshing = false,
+}: GeoCatalogRefreshButtonProps) {
+  const { t } = useTranslation();
+  const label = t('common.refresh');
+
+  return (
+    <Button
+      variant="secondary"
+      size="iconMd"
+      className="shrink-0"
+      onClick={onRefresh}
+      aria-label={label}
+      title={label}
+      disabled={isRefreshing}
+    >
+      <RefreshIcon className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+    </Button>
+  );
+}
+
+interface GeoFilterFieldProps {
   label: string;
-  onRetry: () => void;
-  disabled?: boolean;
+  showRefresh: boolean;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+  children: ReactNode;
+}
+
+function GeoFilterField({
+  label,
+  showRefresh,
+  onRefresh,
+  isRefreshing,
+  children,
+}: GeoFilterFieldProps) {
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <FormLabel className="block leading-5">{label}</FormLabel>
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">{children}</div>
+        {showRefresh ? (
+          <GeoCatalogRefreshButton
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 interface UserAssignmentStatus {
   label: string;
   displayLabel: string;
   matchesCurrentMode: boolean;
-  isInherited?: boolean;
-  isDisabledInCurrentMode: boolean;
 }
 
-function isUserSelectableForAssignment(
-  status: UserAssignmentStatus | undefined,
-): boolean {
-  return !status?.isDisabledInCurrentMode;
-}
-
-function getAssignmentStatusClassName(status: UserAssignmentStatus): string {
-  const isCrossModeConflict =
-    status.isDisabledInCurrentMode &&
-    !status.matchesCurrentMode &&
-    !status.isInherited;
-
-  if (isCrossModeConflict) {
-    return 'text-xs font-semibold text-spice-semantic-warning';
-  }
-
-  if (status.matchesCurrentMode || status.isInherited) {
-    return 'text-xs font-semibold text-spice-brand-primary';
-  }
-
-  return 'text-xs text-spice-text-muted';
+function entityNoun(target: AssignmentDialogTarget): string {
+  if (target.kind === 'module') return 'module';
+  return target.noun;
 }
 
 interface UserSelectionListProps {
   title: string;
   users: AdminUser[];
-  selectedUserIds: number[];
+  desiredUserIds: number[];
   userAssignmentStatus: Map<number, UserAssignmentStatus>;
   isLoading: boolean;
   isError: boolean;
   isFetching: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
   onRetry: () => void;
   onSelectAll: () => void;
   onToggleUser: (userId: number) => void;
   emptyMessage: string;
-  otherAssignmentUsers: AdminUser[];
-}
-
-function FetchRetryButton({ label, onRetry, disabled }: FetchRetryButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onRetry}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-spice-text-muted transition-colors hover:bg-spice-bg-tint hover:text-spice-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <svg
-        className="h-4 w-4"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-        />
-      </svg>
-    </button>
-  );
+  errorMessage?: string;
 }
 
 function UserSelectionList({
   title,
   users,
-  selectedUserIds,
+  desiredUserIds,
   userAssignmentStatus,
   isLoading,
   isError,
   isFetching,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
   onRetry,
   onSelectAll,
   onToggleUser,
   emptyMessage,
+  errorMessage = 'Failed to load users. Please try again.',
 }: UserSelectionListProps) {
-  const selectableUsers = users.filter((user) =>
-    isUserSelectableForAssignment(userAssignmentStatus.get(user.id)),
-  );
-  const allSelectableSelected =
-    selectableUsers.length > 0 &&
-    selectableUsers.every((user) => selectedUserIds.includes(user.id));
+  const { t } = useTranslation();
+  const allSelected =
+    users.length > 0 && users.every((user) => desiredUserIds.includes(user.id));
 
   return (
-    <div className="space-y-2">
-      <div className="overflow-hidden rounded-lg border border-spice-border">
-        <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
-          <div className="flex items-center gap-1.5">
-            <span>{title}</span>
-            {isError ? (
-              <FetchRetryButton
-                label={`Retry loading ${title.toLowerCase()}`}
-                onRetry={onRetry}
-                disabled={isFetching}
-              />
-            ) : null}
+    <div className="overflow-hidden rounded-lg border border-spice-border">
+      <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
+        <span>{title}</span>
+        {users.length > 0 && !allSelected && !isError ? (
+          <button
+            type="button"
+            onClick={onSelectAll}
+            className="text-spice-brand-primary hover:underline"
+          >
+            Select all
+          </button>
+        ) : null}
+      </div>
+      <InfiniteScrollContainer
+        className="max-h-[20vh]"
+        hasMore={!isLoading && !isError && hasMore}
+        onLoadMore={onLoadMore}
+        loadedCount={users.length}
+        isLoadingMore={isLoadingMore}
+        disabled={isLoading || isError}
+      >
+        {isLoading ? (
+          <div
+            className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-sm text-spice-text-muted"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading users"
+          >
+            <CircularSpinner className="h-8 w-8 text-spice-brand-primary" />
+            <span>Loading users…</span>
           </div>
-          {selectableUsers.length > 0 ? (
-            <button
-              type="button"
-              onClick={onSelectAll}
-              className="text-spice-brand-primary hover:underline"
+        ) : isError ? (
+          <div className="flex flex-col items-center gap-3 px-4 py-6 text-center">
+            <p className="text-sm text-spice-text-muted">{errorMessage}</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5"
+              onClick={onRetry}
+              disabled={isFetching}
             >
-              {allSelectableSelected ? 'Deselect all' : 'Select all'}
-            </button>
-          ) : null}
-        </div>
-
-        <div className="max-h-[20vh] divide-y divide-spice-border overflow-y-auto">
-          {isLoading ? (
-            <div className="p-4 text-center text-sm text-spice-text-muted">
-              Loading users…
-            </div>
-          ) : isError ? (
-            <div className="p-4 text-center text-sm text-spice-text-muted">
-              Failed to load users.
-            </div>
-          ) : users.length === 0 ? (
-            <div className="p-4 text-center text-sm text-spice-text-muted">
-              {emptyMessage}
-            </div>
-          ) : (
-            users.map((user) => {
+              <RefreshIcon
+                className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')}
+                aria-hidden="true"
+              />
+              {t('adminDashboard.widgetError.retry')}
+            </Button>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="p-4 text-center text-sm text-spice-text-muted">
+            {emptyMessage}
+          </div>
+        ) : (
+          <div className="divide-y divide-spice-border">
+            {users.map((user) => {
               const status = userAssignmentStatus.get(user.id);
-              const isDisabled = Boolean(status?.isDisabledInCurrentMode);
-              const isChecked = selectedUserIds.includes(user.id);
-              const locationLabel = user.upazila
-                ? `${user.district} · ${user.upazila}`
-                : user.district;
+              const isChecked = desiredUserIds.includes(user.id);
+              const locationLabel = formatAssignmentUserLocation(user);
 
               return (
                 <label
                   key={user.id}
-                  className={`flex items-center justify-between px-3 py-2.5 ${
-                    isDisabled
-                      ? 'cursor-not-allowed bg-spice-bg-tint/40 opacity-70'
-                      : 'cursor-pointer hover:bg-spice-bg-tint/30'
-                  }`}
+                  className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 hover:bg-spice-bg-tint/30"
                 >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-spice-text-primary">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-spice-text-primary">
                       {user.name}
-                    </span>
-                    <span className="text-xs text-spice-text-muted">
-                      {user.role} · {locationLabel}
-                    </span>
+                    </div>
+                    <div className="truncate text-xs text-spice-text-muted">
+                      {locationLabel}
+                    </div>
                     {status ? (
-                      <span className={getAssignmentStatusClassName(status)}>
+                      <div
+                        className={
+                          status.matchesCurrentMode
+                            ? 'text-xs font-semibold text-spice-brand-primary'
+                            : 'text-xs text-spice-text-muted'
+                        }
+                      >
                         {status.displayLabel}
-                      </span>
+                      </div>
                     ) : null}
                   </div>
                   <input
                     type="checkbox"
                     checked={isChecked}
-                    disabled={isDisabled}
                     onChange={() => onToggleUser(user.id)}
-                    className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={SPICE_CHECKBOX_CLASSNAME}
                   />
                 </label>
               );
-            })
-          )}
-        </div>
-      </div>
+            })}
+          </div>
+        )}
+      </InfiniteScrollContainer>
     </div>
   );
-}
-
-function resolveAssignmentUserRole(
-  assignment: AssignableRecord,
-  users: AdminUser[],
-): AdminUser['role'] | null {
-  if (assignment.user?.role) {
-    return assignment.user.role;
-  }
-  return users.find((user) => user.id === assignment.user_id)?.role ?? null;
-}
-
-function getPoSkAssignedPoIds(assignments: AssignableRecord[]): number[] {
-  return assignments.flatMap((assignment) =>
-    assignment.assignment_type === 'po_sk' && assignment.user_id !== null
-      ? [assignment.user_id]
-      : [],
-  );
-}
-
-function getSkIdsCoveredByPoSk(
-  users: AdminUser[],
-  poSkPoIds: number[],
-): number[] {
-  if (poSkPoIds.length === 0) {
-    return [];
-  }
-
-  return users.flatMap((user) =>
-    user.role === 'SK' &&
-    user.parent_id !== null &&
-    poSkPoIds.includes(user.parent_id)
-      ? [user.id]
-      : [],
-  );
-}
-
-function getRevocableAssignmentIdsForUsers(
-  assignments: AssignableRecord[],
-  userIds: number[],
-  mode: UserLevelMode,
-  users: AdminUser[],
-): string[] {
-  const userIdSet = new Set(userIds);
-
-  return assignments.flatMap((assignment) => {
-    if (assignment.user_id === null || !userIdSet.has(assignment.user_id)) {
-      return [];
-    }
-
-    const role = resolveAssignmentUserRole(assignment, users);
-
-    switch (mode) {
-      case 'po_sk':
-        return assignment.assignment_type === 'po_sk' ? [assignment.id] : [];
-      case 'po':
-        return assignment.assignment_type === 'individual' && role === 'PO'
-          ? [assignment.id]
-          : [];
-      case 'sk':
-        return assignment.assignment_type === 'individual' && role === 'SK'
-          ? [assignment.id]
-          : [];
-      default: {
-        const exhaustiveCheck: never = mode;
-        return exhaustiveCheck;
-      }
-    }
-  });
-}
-
-function getRevocableGeographicalAssignmentIds(
-  assignments: AssignableRecord[],
-  upazilas: string[],
-): string[] {
-  const upazilaSet = new Set(upazilas);
-
-  return assignments.flatMap((assignment) =>
-    assignment.assignment_type === 'geographical' &&
-    assignment.upazila &&
-    upazilaSet.has(assignment.upazila)
-      ? [assignment.id]
-      : [],
-  );
-}
-
-function getAssignedUserIdsForMode(
-  assignments: AssignableRecord[],
-  mode: UserLevelMode,
-  users: AdminUser[],
-): number[] {
-  if (mode === 'sk') {
-    const directSkIds = assignments.flatMap((assignment) => {
-      if (assignment.user_id === null) {
-        return [];
-      }
-
-      const role = resolveAssignmentUserRole(assignment, users);
-      return assignment.assignment_type === 'individual' && role === 'SK'
-        ? [assignment.user_id]
-        : [];
-    });
-    const inheritedSkIds = getSkIdsCoveredByPoSk(
-      users,
-      getPoSkAssignedPoIds(assignments),
-    );
-
-    return Array.from(new Set([...directSkIds, ...inheritedSkIds]));
-  }
-
-  return assignments.flatMap((assignment) => {
-    if (assignment.user_id === null) {
-      return [];
-    }
-
-    const role = resolveAssignmentUserRole(assignment, users);
-
-    switch (mode) {
-      case 'po_sk':
-        return assignment.assignment_type === 'po_sk'
-          ? [assignment.user_id]
-          : [];
-      case 'po':
-        return assignment.assignment_type === 'individual' && role === 'PO'
-          ? [assignment.user_id]
-          : [];
-      default: {
-        const exhaustiveCheck: never = mode;
-        return exhaustiveCheck;
-      }
-    }
-  });
-}
-
-interface UserExistingAssignment {
-  label: string;
-  preselectInMode: (mode: UserLevelMode) => boolean;
-  disableInMode: (mode: UserLevelMode) => boolean;
-  isInherited?: boolean;
-}
-
-function getAssignmentDisplayLabel(
-  entry: UserExistingAssignment,
-  mode: UserLevelMode,
-): string {
-  if (entry.label === 'PO (Individual)' && mode === 'po_sk') {
-    return 'Already assigned as PO (Individual)';
-  }
-  return `Assigned as ${entry.label}`;
-}
-
-function buildUserAssignmentStatusMap(
-  assignments: AssignableRecord[],
-  users: AdminUser[],
-): Map<number, UserExistingAssignment> {
-  const map = new Map<number, UserExistingAssignment>();
-
-  const geographicalUpazilas = assignments.flatMap((assignment) =>
-    assignment.assignment_type === 'geographical' && assignment.upazila
-      ? [assignment.upazila]
-      : [],
-  );
-
-  for (const user of users) {
-    if (user.upazila && geographicalUpazilas.includes(user.upazila)) {
-      map.set(user.id, {
-        label: `Geographical (Upazila — ${user.upazila})`,
-        preselectInMode: () => false,
-        disableInMode: () => true,
-      });
-    }
-  }
-
-  for (const assignment of assignments) {
-    if (assignment.user_id === null) {
-      continue;
-    }
-
-    if (assignment.assignment_type === 'po_sk') {
-      map.set(assignment.user_id, {
-        label: 'PO and SK',
-        preselectInMode: (mode) => mode === 'po_sk',
-        disableInMode: (mode) => mode === 'po',
-      });
-      continue;
-    }
-
-    if (assignment.assignment_type === 'individual') {
-      const role = resolveAssignmentUserRole(assignment, users);
-      if (role === 'PO') {
-        map.set(assignment.user_id, {
-          label: 'PO (Individual)',
-          preselectInMode: (mode) => mode === 'po',
-          disableInMode: (mode) => mode !== 'po' && mode !== 'po_sk',
-        });
-      } else if (role === 'SK') {
-        map.set(assignment.user_id, {
-          label: 'SK (Individual)',
-          preselectInMode: (mode) => mode === 'sk',
-          disableInMode: (mode) => mode !== 'sk',
-        });
-      }
-    }
-  }
-
-  const poSkPoIds = getPoSkAssignedPoIds(assignments);
-  for (const user of users) {
-    if (user.role !== 'SK' || user.parent_id === null) {
-      continue;
-    }
-    if (!poSkPoIds.includes(user.parent_id) || map.has(user.id)) {
-      continue;
-    }
-
-    const parentPo = users.find((candidate) => candidate.id === user.parent_id);
-    const parentName = parentPo?.name ?? `PO #${user.parent_id}`;
-    map.set(user.id, {
-      label: `PO and SK (via ${parentName})`,
-      preselectInMode: (mode) => mode === 'sk',
-      disableInMode: (mode) => mode === 'sk',
-      isInherited: true,
-    });
-  }
-
-  return map;
-}
-
-function toUserAssignmentStatus(
-  map: Map<number, UserExistingAssignment>,
-  mode: UserLevelMode,
-): Map<number, UserAssignmentStatus> {
-  const result = new Map<number, UserAssignmentStatus>();
-  for (const [userId, entry] of map) {
-    const matchesCurrentMode = entry.preselectInMode(mode);
-    result.set(userId, {
-      label: entry.label,
-      displayLabel: getAssignmentDisplayLabel(entry, mode),
-      matchesCurrentMode,
-      isInherited: entry.isInherited,
-      isDisabledInCurrentMode:
-        entry.disableInMode(mode) || Boolean(entry.isInherited),
-    });
-  }
-  return result;
-}
-
-function getUserLevelAssignmentType(mode: UserLevelMode): AssignmentType {
-  return mode === 'po_sk' ? 'po_sk' : 'individual';
-}
-
-function filterUsersByLocation(
-  users: AdminUser[],
-  district: string,
-  upazila: string,
-): AdminUser[] {
-  return users.filter((user) => {
-    if (district && user.district !== district) {
-      return false;
-    }
-    if (upazila && user.upazila !== upazila) {
-      return false;
-    }
-    return true;
-  });
-}
-
-function getUsersForLevelMode(
-  mode: UserLevelMode,
-  allUsers: AdminUser[],
-): AdminUser[] {
-  switch (mode) {
-    case 'po_sk':
-    case 'po':
-      return getProgramOrganizers(allUsers);
-    case 'sk':
-      return getSkUsers(allUsers);
-    default: {
-      const exhaustiveCheck: never = mode;
-      return exhaustiveCheck;
-    }
-  }
-}
-
-function getSelectableUserIdsForMode(
-  mode: UserLevelMode,
-  users: AdminUser[],
-  assignments: AssignableRecord[],
-): number[] {
-  const roleUsers = getUsersForLevelMode(mode, users);
-  const statusMap = toUserAssignmentStatus(
-    buildUserAssignmentStatusMap(assignments, users),
-    mode,
-  );
-
-  return roleUsers
-    .filter((user) => isUserSelectableForAssignment(statusMap.get(user.id)))
-    .map((user) => user.id);
-}
-
-function entityNoun(kind: AssignmentDialogTarget['kind']): string {
-  return kind === 'module' ? 'module' : 'video';
-}
-
-function getUserLevelHint(
-  mode: UserLevelMode,
-  kind: AssignmentDialogTarget['kind'],
-): string {
-  const noun = entityNoun(kind);
-  switch (mode) {
-    case 'po_sk':
-      return `Assign this ${noun} to the selected PO and all SKs under them.`;
-    case 'po':
-      return `Assign this ${noun} to the selected PO only. No cascading assignment is applied.`;
-    case 'sk':
-      return `Assign this ${noun} to the selected SK only. All SKs are pre-selected by default.`;
-    default: {
-      const exhaustiveCheck: never = mode;
-      return exhaustiveCheck;
-    }
-  }
-}
-
-function getUserLevelEmptyMessage(mode: UserLevelMode): string {
-  switch (mode) {
-    case 'po_sk':
-    case 'po':
-      return 'No program organizers found.';
-    case 'sk':
-      return 'No SK users found.';
-    default: {
-      const exhaustiveCheck: never = mode;
-      return exhaustiveCheck;
-    }
-  }
 }
 
 export const AssignmentDialog = ({
   open,
   onClose,
   target,
-  onAssigned,
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
-  const noun = entityNoun(target.kind);
-  const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
-  const [userLevelMode, setUserLevelMode] = useState<UserLevelMode>('po_sk');
-
-  const [
-    triggerAdminUsers,
-    {
-      data: adminUsers,
-      isLoading: loadingUsers,
-      isError: usersError,
-      isFetching: fetchingUsers,
-    },
-  ] = useLazyFetchAdminUsersQuery();
-
-  const [triggerAssignments, { data: existingModuleAssignments }] =
-    useLazyFetchAssignmentsQuery();
-  const [createModuleAssignment, { isLoading: isAssigningModule }] =
-    useCreateAssignmentMutation();
-  const [revokeModuleAssignment, { isLoading: isRevokingModule }] =
-    useRevokeAssignmentMutation();
-
-  const [triggerVideoAssignments, { data: existingVideoAssignments }] =
-    useLazyFetchVideoAssignmentsQuery();
-  const [createVideoAssignment, { isLoading: isAssigningVideo }] =
-    useCreateVideoAssignmentMutation();
-  const [revokeVideoAssignment, { isLoading: isRevokingVideo }] =
-    useRevokeVideoAssignmentMutation();
-
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
-  const [selectedUpazila, setSelectedUpazila] = useState<string>('');
-  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
-  const [userIdsToRevoke, setUserIdsToRevoke] = useState<number[]>([]);
-  const [upazilasToRevoke, setUpazilasToRevoke] = useState<string[]>([]);
-  const [selectedUpazilaNames, setSelectedUpazilaNames] = useState<string[]>(
-    [],
-  );
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const isAssigning = isAssigningModule || isAssigningVideo;
-  const isRevoking = isRevokingModule || isRevokingVideo;
-  const isSubmitting = isAssigning || isRevoking;
-
-  const allUsers = useMemo(() => adminUsers ?? [], [adminUsers]);
-
-  const targetAssignments = useMemo((): AssignableRecord[] => {
-    switch (target.kind) {
-      case 'module':
-        return (existingModuleAssignments ?? []).filter(
-          (assignment) => assignment.module_id === target.id,
-        );
-      case 'video':
-        return (existingVideoAssignments ?? []).filter(
-          (assignment) => assignment.source_document_id === target.id,
-        );
-      default: {
-        const exhaustiveCheck: never = target;
-        return exhaustiveCheck;
-      }
-    }
-  }, [existingModuleAssignments, existingVideoAssignments, target]);
-
-  const roleFilteredUsers = useMemo(
-    () => getUsersForLevelMode(userLevelMode, allUsers),
-    [allUsers, userLevelMode],
-  );
-
-  const userAssignmentStatus = useMemo(
-    () =>
-      toUserAssignmentStatus(
-        buildUserAssignmentStatusMap(targetAssignments, allUsers),
-        userLevelMode,
-      ),
-    [targetAssignments, allUsers, userLevelMode],
-  );
-
-  const alreadyAssignedUserIds = useMemo(() => {
-    return getAssignedUserIdsForMode(
-      targetAssignments,
-      userLevelMode,
-      allUsers,
-    );
-  }, [targetAssignments, userLevelMode, allUsers]);
-
-  const alreadyAssignedUpazilas = useMemo(() => {
-    return targetAssignments
-      .filter(
-        (assignment) =>
-          assignment.assignment_type === 'geographical' && assignment.upazila,
-      )
-      .map((assignment) => assignment.upazila as string);
-  }, [targetAssignments]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setActiveTab('user');
-    setUserLevelMode('po_sk');
-    setSelectedDistrict('');
-    setSelectedUpazila('');
-    setSelectedUserIds([]);
-    setUserIdsToRevoke([]);
-    setUpazilasToRevoke([]);
-    setSelectedUpazilaNames([]);
-    setErrorMsg('');
-
-    void triggerAdminUsers();
-
-    switch (target.kind) {
-      case 'module':
-        void triggerAssignments({ module_id: target.id });
-        break;
-      case 'video':
-        void triggerVideoAssignments({ source_document_id: target.id });
-        break;
-      default: {
-        const exhaustiveCheck: never = target;
-        return exhaustiveCheck;
-      }
-    }
-  }, [
-    open,
-    target,
-    triggerAdminUsers,
-    triggerAssignments,
-    triggerVideoAssignments,
-  ]);
-
-  const selectableSkUserIds = useMemo(
-    () => getSelectableUserIdsForMode('sk', allUsers, targetAssignments),
-    [allUsers, targetAssignments],
-  );
-
-  const prevUserLevelModeRef = useRef<UserLevelMode>(userLevelMode);
+  const snackbar = useSnackbar();
+  const noun = entityNoun(target);
+  const [successState, setSuccessState] =
+    useState<AssignmentSuccessLocationState | null>(null);
 
   useEffect(() => {
     if (!open) {
-      prevUserLevelModeRef.current = 'po_sk';
-      return;
+      setSuccessState(null);
     }
-    if (activeTab !== 'user') return;
+  }, [open]);
 
-    const modeChanged = prevUserLevelModeRef.current !== userLevelMode;
-    prevUserLevelModeRef.current = userLevelMode;
+  const [activeTab, setActiveTab] = useState<AssignmentTab>('user');
+  const [userLevelMode, setUserLevelMode] =
+    useState<AssignmentUserLevelMode>('po_sk');
+  const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(
+    null,
+  );
+  const [selectedDivisionName, setSelectedDivisionName] = useState('');
+  const [divisionSearchQuery, setDivisionSearchQuery] = useState('');
+  const debouncedDivisionSearchQuery = useDebouncedValue(
+    divisionSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [loadedDivisions, setLoadedDivisions] = useState<AdminDivision[]>([]);
+  const [divisionsTotal, setDivisionsTotal] = useState(0);
+  const [divisionsOffset, setDivisionsOffset] = useState(0);
 
-    setUserIdsToRevoke([]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
+    null,
+  );
+  const [selectedDistrictName, setSelectedDistrictName] = useState('');
+  const [districtSearchQuery, setDistrictSearchQuery] = useState('');
+  const debouncedDistrictSearchQuery = useDebouncedValue(
+    districtSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [loadedDistricts, setLoadedDistricts] = useState<AdminDistrict[]>([]);
+  const [districtsTotal, setDistrictsTotal] = useState(0);
+  const [districtsOffset, setDistrictsOffset] = useState(0);
 
-    if (userLevelMode === 'sk') {
-      if (modeChanged) {
-        setSelectedUserIds(
-          Array.from(
-            new Set([...selectableSkUserIds, ...alreadyAssignedUserIds]),
-          ),
+  const [selectedUpazilaId, setSelectedUpazilaId] = useState<number | null>(
+    null,
+  );
+  const [selectedUpazilaName, setSelectedUpazilaName] = useState('');
+  const [filterUpazilaSearchQuery, setFilterUpazilaSearchQuery] = useState('');
+  const debouncedFilterUpazilaSearchQuery = useDebouncedValue(
+    filterUpazilaSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [filterLoadedUpazilas, setFilterLoadedUpazilas] = useState<
+    AdminUpazila[]
+  >([]);
+  const [filterUpazilasTotal, setFilterUpazilasTotal] = useState(0);
+  const [filterUpazilasOffset, setFilterUpazilasOffset] = useState(0);
+  const [divisionsCatalogPending, setDivisionsCatalogPending] = useState(false);
+  const [districtsCatalogPending, setDistrictsCatalogPending] = useState(false);
+  const [filterUpazilasCatalogPending, setFilterUpazilasCatalogPending] =
+    useState(false);
+
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const debouncedUserSearchQuery = useDebouncedValue(
+    userSearchQuery,
+    ASSIGNMENT_SEARCH_DEBOUNCE_MS,
+  );
+  const [desiredUserIds, setDesiredUserIds] = useState<number[]>([]);
+  const [baselineUserIds, setBaselineUserIds] = useState<number[]>([]);
+  const [loadedUsers, setLoadedUsers] = useState<AdminUser[]>([]);
+  const [poChildUsers, setPoChildUsers] = useState<AdminUser[]>([]);
+  const [geoKnownUsers, setGeoKnownUsers] = useState<AdminUser[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersOffset, setUsersOffset] = useState(0);
+
+  const divisionsRequestSeqRef = useRef(0);
+  const districtsRequestSeqRef = useRef(0);
+  const filterUpazilasRequestSeqRef = useRef(0);
+  const usersRequestSeqRef = useRef(0);
+
+  const usersFetchRole = hierarchyRoleForMode(userLevelMode);
+  const usersListQueryKey = [
+    usersFetchRole,
+    selectedDivisionId ?? '',
+    selectedDistrictId ?? '',
+    selectedUpazilaId ?? '',
+    debouncedUserSearchQuery.trim(),
+  ].join('|');
+
+  const [
+    triggerDivisionsPage,
+    {
+      isLoading: loadingDivisions,
+      isError: divisionsError,
+      isFetching: fetchingDivisions,
+    },
+  ] = useLazyFetchAdminDivisionsPageQuery();
+
+  const [
+    triggerDistrictsPage,
+    {
+      isLoading: loadingDistricts,
+      isError: districtsError,
+      isFetching: fetchingDistricts,
+    },
+  ] = useLazyFetchAdminDistrictsPageQuery();
+
+  const [
+    triggerUsersPage,
+    { isLoading: loadingUsers, isError: usersError, isFetching: fetchingUsers },
+  ] = useLazyFetchHierarchyUsersPageQuery();
+  // Separate trigger so PO→child SK fetches do not flip the main list loading flags.
+  const [triggerChildUsersPage] = useLazyFetchHierarchyUsersPageQuery();
+
+  const [
+    triggerFilterUpazilasPage,
+    {
+      isLoading: loadingFilterUpazilas,
+      isError: filterUpazilasError,
+      isFetching: fetchingFilterUpazilas,
+    },
+  ] = useLazyFetchAdminUpazilasPageQuery();
+
+  const [triggerModuleAssignedUsers, { data: moduleAssignedUsers }] =
+    useLazyFetchModuleAssignedUsersQuery();
+  const [createModuleAssignment, { isLoading: isCreatingModule }] =
+    useCreateAssignmentMutation();
+  const [replaceModuleUsers, { isLoading: isReplacingModule }] =
+    useReplaceModuleAssignedUsersMutation();
+
+  const [triggerDocumentAssignedUsers, { data: documentAssignedUsers }] =
+    useLazyFetchDocumentAssignedUsersQuery();
+  const [createDocumentAssignment, { isLoading: isCreatingDocument }] =
+    useCreateDocumentAssignmentMutation();
+  const [replaceDocumentUsers, { isLoading: isReplacingDocument }] =
+    useReplaceDocumentAssignedUsersMutation();
+
+  const isSubmitting =
+    isCreatingModule ||
+    isReplacingModule ||
+    isCreatingDocument ||
+    isReplacingDocument;
+  const desiredSet = useMemo(() => new Set(desiredUserIds), [desiredUserIds]);
+  const baselineSet = useMemo(
+    () => new Set(baselineUserIds),
+    [baselineUserIds],
+  );
+
+  const assignedUsersForTarget = useMemo(() => {
+    if (target.kind === 'module') return moduleAssignedUsers ?? [];
+    return documentAssignedUsers ?? [];
+  }, [documentAssignedUsers, moduleAssignedUsers, target.kind]);
+
+  const knownUsersById = useMemo(() => {
+    const map = new Map<number, AdminUser>();
+    for (const user of assignedUsersForTarget) map.set(user.id, user);
+    for (const user of loadedUsers) map.set(user.id, user);
+    for (const user of poChildUsers) map.set(user.id, user);
+    for (const user of geoKnownUsers) map.set(user.id, user);
+    return map;
+  }, [assignedUsersForTarget, geoKnownUsers, loadedUsers, poChildUsers]);
+
+  const filtersActive = hasAssignmentUserFilters({
+    divisionId: selectedDivisionId,
+    districtId: selectedDistrictId,
+    upazilaId: selectedUpazilaId,
+    searchQuery: debouncedUserSearchQuery,
+  });
+
+  const listUsers = useMemo(
+    () =>
+      buildAssignmentListUsers(
+        userLevelMode,
+        loadedUsers,
+        assignedUsersForTarget,
+        filtersActive,
+      ),
+    [assignedUsersForTarget, filtersActive, loadedUsers, userLevelMode],
+  );
+
+  const divisionComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_DIVISIONS_OPTION,
+        loadedDivisions,
+        selectedDivisionId,
+        selectedDivisionName,
+      ),
+    [loadedDivisions, selectedDivisionId, selectedDivisionName],
+  );
+
+  const districtComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_DISTRICTS_OPTION,
+        loadedDistricts,
+        selectedDistrictId,
+        selectedDistrictName,
+      ),
+    [loadedDistricts, selectedDistrictId, selectedDistrictName],
+  );
+
+  const filterUpazilaComboboxOptions = useMemo(
+    () =>
+      buildNamedEntityComboboxOptions(
+        ALL_UPAZILAS_OPTION,
+        filterLoadedUpazilas,
+        selectedUpazilaId,
+        selectedUpazilaName,
+      ),
+    [filterLoadedUpazilas, selectedUpazilaId, selectedUpazilaName],
+  );
+
+  const usersHasMore = loadedUsers.length < usersTotal;
+  const divisionsHasMore = loadedDivisions.length < divisionsTotal;
+  const districtsHasMore = loadedDistricts.length < districtsTotal;
+  const filterUpazilasHasMore =
+    filterLoadedUpazilas.length < filterUpazilasTotal;
+
+  const loadDivisionsPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? divisionsRequestSeqRef.current
+        : ++divisionsRequestSeqRef.current;
+      if (!append) {
+        setDivisionsCatalogPending(true);
+      }
+      try {
+        const nameQuery = debouncedDivisionSearchQuery.trim();
+        const result = await triggerDivisionsPage({
+          limit: ASSIGNMENT_LIST_PAGE_SIZE,
+          offset,
+          ...(nameQuery ? { q: nameQuery } : {}),
+        });
+        if (requestSeq !== divisionsRequestSeqRef.current) return;
+        if ('error' in result && result.error) return;
+        const page = result.data;
+        if (!page) return;
+        setDivisionsTotal(page.total);
+        setDivisionsOffset(page.offset + page.divisions.length);
+        setLoadedDivisions((prev) =>
+          mergeNamedEntityPages(prev, page.divisions, append),
         );
+      } finally {
+        if (!append && requestSeq === divisionsRequestSeqRef.current) {
+          setDivisionsCatalogPending(false);
+        }
+      }
+    },
+    [debouncedDivisionSearchQuery, triggerDivisionsPage],
+  );
+
+  const loadDistrictsPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? districtsRequestSeqRef.current
+        : ++districtsRequestSeqRef.current;
+      if (!append) {
+        setDistrictsCatalogPending(true);
+      }
+      try {
+        const nameQuery = debouncedDistrictSearchQuery.trim();
+        const result = await triggerDistrictsPage({
+          limit: ASSIGNMENT_LIST_PAGE_SIZE,
+          offset,
+          ...(selectedDivisionId !== null
+            ? { divisionId: selectedDivisionId }
+            : {}),
+          ...(nameQuery ? { q: nameQuery } : {}),
+        });
+        if (requestSeq !== districtsRequestSeqRef.current) return;
+        if ('error' in result && result.error) return;
+        const page = result.data;
+        if (!page) return;
+        setDistrictsTotal(page.total);
+        setDistrictsOffset(page.offset + page.districts.length);
+        setLoadedDistricts((prev) =>
+          mergeNamedEntityPages(prev, page.districts, append),
+        );
+      } finally {
+        if (!append && requestSeq === districtsRequestSeqRef.current) {
+          setDistrictsCatalogPending(false);
+        }
+      }
+    },
+    [debouncedDistrictSearchQuery, selectedDivisionId, triggerDistrictsPage],
+  );
+
+  const loadFilterUpazilasPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? filterUpazilasRequestSeqRef.current
+        : ++filterUpazilasRequestSeqRef.current;
+      if (!append) {
+        setFilterUpazilasCatalogPending(true);
+      }
+      try {
+        const nameQuery = debouncedFilterUpazilaSearchQuery.trim();
+        const result = await triggerFilterUpazilasPage({
+          limit: ASSIGNMENT_LIST_PAGE_SIZE,
+          offset,
+          ...(selectedDistrictId !== null
+            ? { districtId: selectedDistrictId }
+            : {}),
+          ...(nameQuery ? { q: nameQuery } : {}),
+        });
+        if (requestSeq !== filterUpazilasRequestSeqRef.current) return;
+        if ('error' in result && result.error) return;
+        const page = result.data;
+        if (!page) return;
+        setFilterUpazilasTotal(page.total);
+        setFilterUpazilasOffset(page.offset + page.upazilas.length);
+        setFilterLoadedUpazilas((prev) =>
+          mergeNamedEntityPages(prev, page.upazilas, append),
+        );
+      } finally {
+        if (!append && requestSeq === filterUpazilasRequestSeqRef.current) {
+          setFilterUpazilasCatalogPending(false);
+        }
+      }
+    },
+    [
+      debouncedFilterUpazilaSearchQuery,
+      selectedDistrictId,
+      triggerFilterUpazilasPage,
+    ],
+  );
+
+  const loadUsersPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const requestSeq = append
+        ? usersRequestSeqRef.current
+        : ++usersRequestSeqRef.current;
+      const nameQuery = debouncedUserSearchQuery.trim();
+      const result = await triggerUsersPage({
+        limit: ASSIGNMENT_USERS_PAGE_SIZE,
+        offset,
+        role: usersFetchRole,
+        ...(selectedDivisionId !== null
+          ? { divisionId: selectedDivisionId }
+          : {}),
+        ...(selectedDistrictId !== null
+          ? { districtId: selectedDistrictId }
+          : {}),
+        ...(selectedUpazilaId !== null ? { upazilaId: selectedUpazilaId } : {}),
+        ...(nameQuery ? { q: nameQuery } : {}),
+      });
+      if (requestSeq !== usersRequestSeqRef.current) return;
+      if ('error' in result && result.error) return;
+      const page = result.data;
+      if (!page) return;
+      setUsersTotal(page.total);
+      setUsersOffset(page.offset + page.users.length);
+      setLoadedUsers((prev) =>
+        append ? [...prev, ...page.users] : page.users,
+      );
+    },
+    [
+      debouncedUserSearchQuery,
+      selectedDivisionId,
+      selectedDistrictId,
+      selectedUpazilaId,
+      triggerUsersPage,
+      usersFetchRole,
+    ],
+  );
+
+  const resetFilterUpazilaState = useCallback(() => {
+    setFilterUpazilasCatalogPending(true);
+    setSelectedUpazilaId(null);
+    setSelectedUpazilaName('');
+    setFilterUpazilaSearchQuery('');
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasTotal(0);
+    setFilterUpazilasOffset(0);
+  }, []);
+
+  const resetDistrictAndBelow = useCallback(() => {
+    setDistrictsCatalogPending(true);
+    setFilterUpazilasCatalogPending(true);
+    setSelectedDistrictId(null);
+    setSelectedDistrictName('');
+    setDistrictSearchQuery('');
+    setLoadedDistricts([]);
+    setDistrictsTotal(0);
+    setDistrictsOffset(0);
+    resetFilterUpazilaState();
+  }, [resetFilterUpazilaState]);
+
+  const resetGeographyFilters = useCallback(() => {
+    setDivisionsCatalogPending(true);
+    setDistrictsCatalogPending(true);
+    setFilterUpazilasCatalogPending(true);
+    setSelectedDivisionId(null);
+    setSelectedDivisionName('');
+    setDivisionSearchQuery('');
+    setLoadedDivisions([]);
+    setDivisionsTotal(0);
+    setDivisionsOffset(0);
+    resetDistrictAndBelow();
+  }, [resetDistrictAndBelow]);
+
+  const handleAssignmentTabChange = (value: string) => {
+    const nextTab = value as AssignmentTab;
+    if (nextTab === activeTab) return;
+    resetGeographyFilters();
+    setActiveTab(nextTab);
+    void loadDivisionsPage(0, false);
+    if (nextTab === 'user') {
+      void loadDistrictsPage(0, false);
+    }
+  };
+
+  const targetId = target.id;
+  const targetKind = target.kind;
+
+  const loadUsersPageRef = useRef(loadUsersPage);
+  loadUsersPageRef.current = loadUsersPage;
+  const resetGeographyFiltersRef = useRef(resetGeographyFilters);
+  resetGeographyFiltersRef.current = resetGeographyFilters;
+  const triggerModuleAssignedUsersRef = useRef(triggerModuleAssignedUsers);
+  triggerModuleAssignedUsersRef.current = triggerModuleAssignedUsers;
+  const triggerDocumentAssignedUsersRef = useRef(triggerDocumentAssignedUsers);
+  triggerDocumentAssignedUsersRef.current = triggerDocumentAssignedUsers;
+
+  const initializeAssignmentSession = useCallback(() => {
+    setActiveTab('user');
+    setUserLevelMode('po_sk');
+    resetGeographyFiltersRef.current();
+    setUserSearchQuery('');
+    setLoadedUsers([]);
+    setPoChildUsers([]);
+    setUsersTotal(0);
+    setUsersOffset(0);
+    setBaselineUserIds([]);
+    setDesiredUserIds([]);
+    setGeoKnownUsers([]);
+
+    const applyAssignedUsers = (users: AdminUser[]) => {
+      const ids = users.map((user) => user.id);
+      setBaselineUserIds(ids);
+      setDesiredUserIds(ids);
+      setGeoKnownUsers(users);
+    };
+
+    if (targetKind === 'module') {
+      void triggerModuleAssignedUsersRef.current(targetId).then((result) => {
+        if ('data' in result && result.data) {
+          applyAssignedUsers(result.data);
+        }
+      });
+    } else {
+      void triggerDocumentAssignedUsersRef.current(targetId).then((result) => {
+        if ('data' in result && result.data) {
+          applyAssignedUsers(result.data);
+        }
+      });
+    }
+
+    // Always reload the hierarchy list. "Assign to more" keeps `open` true, so the
+    // usersListQueryKey effect may not re-run on its own.
+    void loadUsersPageRef.current(0, false);
+  }, [targetId, targetKind]);
+
+  useEffect(() => {
+    if (!open) return;
+    initializeAssignmentSession();
+  }, [initializeAssignmentSession, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    void loadDivisionsPage(0, false);
+  }, [loadDivisionsPage, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    void loadDistrictsPage(0, false);
+  }, [loadDistrictsPage, open]);
+
+  useEffect(() => {
+    if (!open || activeTab !== 'user') return;
+    setLoadedUsers([]);
+    setUsersTotal(0);
+    setUsersOffset(0);
+    void loadUsersPage(0, false);
+  }, [activeTab, loadUsersPage, open, usersListQueryKey]);
+
+  useEffect(() => {
+    if (!open || activeTab !== 'user') return;
+    void loadFilterUpazilasPage(0, false);
+  }, [activeTab, loadFilterUpazilasPage, open, selectedDistrictId]);
+
+  const userAssignmentStatus = useMemo(() => {
+    const map = new Map<number, UserAssignmentStatus>();
+
+    for (const user of listUsers) {
+      if (baselineSet.has(user.id)) {
+        map.set(user.id, {
+          label: 'Assigned',
+          displayLabel: 'Already assigned',
+          matchesCurrentMode: true,
+        });
+      }
+    }
+    return map;
+  }, [baselineSet, listUsers]);
+
+  const retryUsers = () => {
+    setLoadedUsers([]);
+    setUsersOffset(0);
+    void loadUsersPage(0, false);
+  };
+
+  const retryDivisions = () => {
+    setDivisionsCatalogPending(true);
+    setLoadedDivisions([]);
+    setDivisionsOffset(0);
+    void loadDivisionsPage(0, false);
+  };
+
+  const retryDistricts = () => {
+    setDistrictsCatalogPending(true);
+    setLoadedDistricts([]);
+    setDistrictsOffset(0);
+    void loadDistrictsPage(0, false);
+  };
+
+  const retryFilterUpazilas = () => {
+    setFilterUpazilasCatalogPending(true);
+    setFilterLoadedUpazilas([]);
+    setFilterUpazilasOffset(0);
+    void loadFilterUpazilasPage(0, false);
+  };
+
+  const handleDivisionChange = (value: string) => {
+    const next = resolveNamedEntitySelection(
+      value,
+      loadedDivisions,
+      selectedDivisionId,
+      selectedDivisionName,
+    );
+    setSelectedDivisionId(next.id);
+    setSelectedDivisionName(next.name);
+    resetDistrictAndBelow();
+  };
+
+  const handleDistrictChange = (value: string) => {
+    const next = resolveNamedEntitySelection(
+      value,
+      loadedDistricts,
+      selectedDistrictId,
+      selectedDistrictName,
+    );
+    setSelectedDistrictId(next.id);
+    setSelectedDistrictName(next.name);
+    resetFilterUpazilaState();
+  };
+
+  const handleFilterUpazilaChange = (value: string) => {
+    const next = resolveNamedEntitySelection(
+      value,
+      filterLoadedUpazilas,
+      selectedUpazilaId,
+      selectedUpazilaName,
+    );
+    setSelectedUpazilaId(next.id);
+    setSelectedUpazilaName(next.name);
+  };
+
+  const addUsersToDesired = (ids: number[]) => {
+    setDesiredUserIds((prev) => Array.from(new Set([...prev, ...ids])));
+  };
+
+  const removeUsersFromDesired = (ids: number[]) => {
+    const remove = new Set(ids);
+    setDesiredUserIds((prev) => prev.filter((id) => !remove.has(id)));
+  };
+
+  const mergePoChildUsers = (users: AdminUser[]) => {
+    if (users.length === 0) return;
+    setPoChildUsers((prev) => {
+      const map = new Map(prev.map((user) => [user.id, user]));
+      for (const user of users) map.set(user.id, user);
+      return Array.from(map.values());
+    });
+  };
+
+  const mergeGeoKnownUsers = (users: AdminUser[]) => {
+    if (users.length === 0) return;
+    setGeoKnownUsers((prev) => {
+      const map = new Map(prev.map((user) => [user.id, user]));
+      for (const user of users) map.set(user.id, user);
+      return Array.from(map.values());
+    });
+  };
+
+  const handleGeoAddUserIds = (userIds: number[], users: AdminUser[]) => {
+    mergeGeoKnownUsers(users);
+    addUsersToDesired(userIds);
+  };
+
+  const handleGeoRemoveUserIds = (userIds: number[]) => {
+    removeUsersFromDesired(userIds);
+  };
+
+  const loadChildSksForPo = async (poId: number): Promise<number[]> => {
+    const collected: AdminUser[] = [];
+    let offset = 0;
+    let total = Number.POSITIVE_INFINITY;
+
+    while (offset < total) {
+      const result = await triggerChildUsersPage({
+        limit: ASSIGNMENT_USERS_PAGE_SIZE,
+        offset,
+        role: 'SHASTIYA_KORMI',
+        parentId: poId,
+      });
+      if ('error' in result && result.error) break;
+      const page = result.data;
+      if (!page) break;
+      collected.push(...page.users);
+      total = page.total;
+      offset += page.users.length;
+      if (page.users.length === 0) break;
+    }
+
+    mergePoChildUsers(collected);
+    return collected.map((user) => user.id);
+  };
+
+  const handleToggleUser = (userId: number) => {
+    const user = knownUsersById.get(userId);
+    if (!user) return;
+
+    if (desiredSet.has(userId)) {
+      if (user.role === 'PO') {
+        removeUsersFromDesired(
+          idsToRemoveWhenClearingPo(userId, knownUsersById, userLevelMode),
+        );
+      } else {
+        removeUsersFromDesired([userId]);
       }
       return;
     }
 
-    setSelectedUserIds(alreadyAssignedUserIds);
-  }, [
-    open,
-    activeTab,
-    userLevelMode,
-    alreadyAssignedUserIds,
-    selectableSkUserIds,
-  ]);
+    if (user.role === 'PO') {
+      const immediateIds = idsToAddWhenSelectingPo(
+        userId,
+        knownUsersById,
+        userLevelMode,
+      );
+      addUsersToDesired(immediateIds);
+      if (userLevelMode === 'po_sk') {
+        void loadChildSksForPo(userId).then((childIds) => {
+          if (childIds.length > 0) addUsersToDesired(childIds);
+        });
+      }
+      return;
+    }
 
-  useEffect(() => {
-    if (!open || activeTab !== 'geographical') return;
-    setUpazilasToRevoke([]);
-    setSelectedUpazilaNames(alreadyAssignedUpazilas);
-  }, [open, activeTab, alreadyAssignedUpazilas]);
-
-  const districtOptions = useMemo(() => {
-    const uniqueDistricts = getUniqueDistricts(roleFilteredUsers);
-    return [
-      { label: 'All districts', value: '' },
-      ...uniqueDistricts.map((district) => ({
-        label: district,
-        value: district,
-      })),
-    ];
-  }, [roleFilteredUsers]);
-
-  const upazilaFilterOptions = useMemo(() => {
-    const uniqueUpazilas = getUniqueUpazilas(
-      roleFilteredUsers,
-      selectedDistrict,
-    );
-    return [
-      { label: 'All upazilas', value: '' },
-      ...uniqueUpazilas.map((upazila) => ({
-        label: upazila,
-        value: upazila,
-      })),
-    ];
-  }, [roleFilteredUsers, selectedDistrict]);
-
-  const displayedUserLevelUsers = useMemo(
-    () =>
-      filterUsersByLocation(
-        roleFilteredUsers,
-        selectedDistrict,
-        selectedUpazila,
-      ),
-    [roleFilteredUsers, selectedDistrict, selectedUpazila],
-  );
-
-  const usersWithOtherAssignments = useMemo(
-    () =>
-      displayedUserLevelUsers.filter((user) => {
-        const status = userAssignmentStatus.get(user.id);
-        return Boolean(
-          status?.isDisabledInCurrentMode &&
-          !status.matchesCurrentMode &&
-          !status.isInherited,
-        );
-      }),
-    [displayedUserLevelUsers, userAssignmentStatus],
-  );
-
-  const selectableUserLevelUsers = useMemo(
-    () =>
-      displayedUserLevelUsers.filter((user) =>
-        isUserSelectableForAssignment(userAssignmentStatus.get(user.id)),
-      ),
-    [displayedUserLevelUsers, userAssignmentStatus],
-  );
-
-  const displayedUpazilas = useMemo(
-    () => getUniqueUpazilas(allUsers, selectedDistrict),
-    [allUsers, selectedDistrict],
-  );
-
-  const handleDistrictChange = (value: string) => {
-    setSelectedDistrict(value);
-    setSelectedUpazila('');
-  };
-
-  const retryUsers = () => {
-    void triggerAdminUsers();
+    addUsersToDesired([userId]);
   };
 
   const handleSelectAllUsers = () => {
-    const selectableIds = selectableUserLevelUsers.map((user) => user.id);
-    const allSelected =
-      selectableIds.length > 0 &&
-      selectableIds.every((id) => selectedUserIds.includes(id));
-
+    const visibleIds = listUsers.map((user) => user.id);
+    const allSelected = visibleIds.every((id) => desiredSet.has(id));
     if (allSelected) {
-      const revokedIds = selectableIds.filter(
-        (id) =>
-          selectedUserIds.includes(id) && alreadyAssignedUserIds.includes(id),
+      const idsToRemove = listUsers.flatMap((user) =>
+        user.role === 'PO'
+          ? idsToRemoveWhenClearingPo(user.id, knownUsersById, userLevelMode)
+          : [user.id],
       );
-      if (revokedIds.length > 0) {
-        setUserIdsToRevoke((prev) =>
-          Array.from(new Set([...prev, ...revokedIds])),
+      removeUsersFromDesired(idsToRemove);
+      return;
+    }
+
+    for (const user of listUsers) {
+      if (user.role === 'PO') {
+        addUsersToDesired(
+          idsToAddWhenSelectingPo(user.id, knownUsersById, userLevelMode),
         );
+        if (userLevelMode === 'po_sk') {
+          void loadChildSksForPo(user.id).then((childIds) => {
+            if (childIds.length > 0) addUsersToDesired(childIds);
+          });
+        }
+      } else {
+        addUsersToDesired([user.id]);
       }
-      setSelectedUserIds((prev) =>
-        prev.filter((id) => !selectableIds.includes(id)),
-      );
-      return;
     }
-
-    const restoredIds = selectableIds.filter((id) =>
-      userIdsToRevoke.includes(id),
-    );
-    if (restoredIds.length > 0) {
-      setUserIdsToRevoke((prev) =>
-        prev.filter((id) => !restoredIds.includes(id)),
-      );
-    }
-
-    setSelectedUserIds((prev) =>
-      Array.from(new Set([...prev, ...selectableIds])),
-    );
-  };
-
-  const handleUserCheckboxChange = (userId: number) => {
-    const status = userAssignmentStatus.get(userId);
-    if (!isUserSelectableForAssignment(status)) {
-      return;
-    }
-
-    const isCurrentlySelected = selectedUserIds.includes(userId);
-    const wasAlreadyAssigned = alreadyAssignedUserIds.includes(userId);
-
-    if (isCurrentlySelected && wasAlreadyAssigned) {
-      setUserIdsToRevoke((prev) =>
-        prev.includes(userId) ? prev : [...prev, userId],
-      );
-    } else if (!isCurrentlySelected && wasAlreadyAssigned) {
-      setUserIdsToRevoke((prev) => prev.filter((id) => id !== userId));
-    }
-
-    setSelectedUserIds((prev) => {
-      if (prev.includes(userId)) {
-        return prev.filter((id) => id !== userId);
-      }
-      return [...prev, userId];
-    });
-  };
-
-  const handleSelectAllUpazilas = () => {
-    if (
-      displayedUpazilas.length > 0 &&
-      displayedUpazilas.every((name) => selectedUpazilaNames.includes(name))
-    ) {
-      const revokedUpazilas = displayedUpazilas.filter((name) =>
-        alreadyAssignedUpazilas.includes(name),
-      );
-      if (revokedUpazilas.length > 0) {
-        setUpazilasToRevoke((prev) =>
-          Array.from(new Set([...prev, ...revokedUpazilas])),
-        );
-      }
-      setSelectedUpazilaNames([]);
-      return;
-    }
-
-    const restoredUpazilas = displayedUpazilas.filter((name) =>
-      upazilasToRevoke.includes(name),
-    );
-    if (restoredUpazilas.length > 0) {
-      setUpazilasToRevoke((prev) =>
-        prev.filter((name) => !restoredUpazilas.includes(name)),
-      );
-    }
-
-    setSelectedUpazilaNames(displayedUpazilas);
-  };
-
-  const handleUpazilaCheckboxChange = (upazilaName: string) => {
-    const isCurrentlySelected = selectedUpazilaNames.includes(upazilaName);
-    const wasAlreadyAssigned = alreadyAssignedUpazilas.includes(upazilaName);
-
-    if (isCurrentlySelected && wasAlreadyAssigned) {
-      setUpazilasToRevoke((prev) =>
-        prev.includes(upazilaName) ? prev : [...prev, upazilaName],
-      );
-    } else if (!isCurrentlySelected && wasAlreadyAssigned) {
-      setUpazilasToRevoke((prev) =>
-        prev.filter((name) => name !== upazilaName),
-      );
-    }
-
-    setSelectedUpazilaNames((prev) => {
-      if (prev.includes(upazilaName)) {
-        return prev.filter((name) => name !== upazilaName);
-      }
-      return [...prev, upazilaName];
-    });
   };
 
   const finishSuccess = (
-    assignmentType: AssignmentType,
+    assignmentType: AssignmentSummaryType | undefined,
     assignedUsers: AssignedUserEntry[],
     removedUsers: AssignedUserEntry[],
   ) => {
-    switch (target.kind) {
-      case 'module':
-        onClose();
-        navigate(paths.moduleAssigned, {
-          state: {
-            moduleId: target.id,
-            moduleName: target.title,
-            assignmentType,
-            assignedCount: countAssignedUsers(assignedUsers),
-            assignedUsers,
-            removedUsers,
-            assignedAt: new Date().toISOString(),
-          },
-        });
-        return;
-      case 'video':
-        onClose();
-        onAssigned?.();
-        return;
-      default: {
-        const exhaustiveCheck: never = target;
-        return exhaustiveCheck;
-      }
-    }
-  };
+    const nextState = buildAssignmentSuccessLocationState(target, {
+      ...(assignmentType ? { assignmentType } : {}),
+      assignedCount: countAssignedUsers(assignedUsers),
+      assignedUsers,
+      removedUsers,
+      assignedAt: new Date().toISOString(),
+    });
 
-  const revokeById = async (assignmentId: string) => {
-    switch (target.kind) {
-      case 'module':
-        await revokeModuleAssignment(assignmentId).unwrap();
-        return;
-      case 'video':
-        await revokeVideoAssignment(assignmentId).unwrap();
-        return;
-      default: {
-        const exhaustiveCheck: never = target;
-        return exhaustiveCheck;
-      }
+    if (target.kind === 'sourceDocument') {
+      setSuccessState(nextState);
+      return;
     }
+
+    onClose();
+    navigate(paths.moduleAssigned, { state: nextState });
   };
 
   const handleAssign = async () => {
-    setErrorMsg('');
     try {
-      if (activeTab === 'user') {
-        const userIdsToAssign = selectedUserIds.filter(
-          (userId) => !alreadyAssignedUserIds.includes(userId),
+      const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
+      const addedIds = nextIds.filter((id) => !baselineSet.has(id));
+      const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
+
+      if (addedIds.length === 0 && removedIds.length === 0) {
+        snackbar.showError(
+          activeTab === 'geographical'
+            ? 'Please select at least one geography or change assignments.'
+            : 'Please select at least one user or change assignments.',
         );
-
-        if (userIdsToAssign.length === 0 && userIdsToRevoke.length === 0) {
-          setErrorMsg('Please select at least one user or change assignments.');
-          return;
-        }
-
-        const assignmentType = getUserLevelAssignmentType(userLevelMode);
-        const assignmentIdsToRevoke = getRevocableAssignmentIdsForUsers(
-          targetAssignments,
-          userIdsToRevoke,
-          userLevelMode,
-          allUsers,
-        );
-
-        await Promise.all(
-          assignmentIdsToRevoke.map((assignmentId) => revokeById(assignmentId)),
-        );
-
-        const removedUsers = buildAssignedUserEntries(
-          userLevelMode,
-          userIdsToRevoke,
-          allUsers,
-        );
-
-        if (userIdsToAssign.length > 0) {
-          let assignedCount = 0;
-
-          switch (target.kind) {
-            case 'module': {
-              const result = await createModuleAssignment({
-                module_id: target.id,
-                assignment_type: assignmentType,
-                user_ids: userIdsToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            case 'video': {
-              const result = await createVideoAssignment({
-                source_document_id: target.id,
-                assignment_type: assignmentType,
-                user_ids: userIdsToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            default: {
-              const exhaustiveCheck: never = target;
-              return exhaustiveCheck;
-            }
-          }
-
-          if (assignedCount === 0) {
-            setErrorMsg(
-              `This ${noun} is already assigned to the selected user(s). Choose different users or check existing assignments.`,
-            );
-            return;
-          }
-        }
-
-        const assignedUsers = buildAssignedUserEntries(
-          userLevelMode,
-          userIdsToAssign,
-          allUsers,
-        );
-
-        finishSuccess(assignmentType, assignedUsers, removedUsers);
         return;
       }
 
-      if (activeTab === 'geographical') {
-        const upazilasToAssign = selectedUpazilaNames.filter(
-          (upazilaName) => !alreadyAssignedUpazilas.includes(upazilaName),
-        );
-
-        if (upazilasToAssign.length === 0 && upazilasToRevoke.length === 0) {
-          setErrorMsg(
-            'Please select at least one upazila or change assignments.',
-          );
-          return;
+      if (removedIds.length > 0) {
+        // Removals require full replace; POST create is additive only.
+        const payload = {
+          user_ids: nextIds,
+          expand_po_assignees: false,
+        };
+        if (target.kind === 'module') {
+          await replaceModuleUsers({
+            moduleId: target.id,
+            ...payload,
+          }).unwrap();
+        } else {
+          await replaceDocumentUsers({
+            sourceDocumentId: target.id,
+            ...payload,
+          }).unwrap();
         }
-
-        const assignmentIdsToRevoke = getRevocableGeographicalAssignmentIds(
-          targetAssignments,
-          upazilasToRevoke,
-        );
-
-        await Promise.all(
-          assignmentIdsToRevoke.map((assignmentId) => revokeById(assignmentId)),
-        );
-
-        const removedUsers = buildGeographicalAssignedEntries(upazilasToRevoke);
-
-        if (upazilasToAssign.length > 0) {
-          let assignedCount = 0;
-
-          switch (target.kind) {
-            case 'module': {
-              const result = await createModuleAssignment({
-                module_id: target.id,
-                assignment_type: 'geographical',
-                upazilas: upazilasToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            case 'video': {
-              const result = await createVideoAssignment({
-                source_document_id: target.id,
-                assignment_type: 'geographical',
-                upazilas: upazilasToAssign,
-              }).unwrap();
-              assignedCount = result.assigned_count;
-              break;
-            }
-            default: {
-              const exhaustiveCheck: never = target;
-              return exhaustiveCheck;
-            }
-          }
-
-          if (assignedCount === 0) {
-            setErrorMsg(
-              `This ${noun} is already assigned to the selected upazila(s). Choose different upazilas or check existing assignments.`,
-            );
-            return;
-          }
-        }
-
-        const assignedUsers =
-          buildGeographicalAssignedEntries(upazilasToAssign);
-
-        finishSuccess('geographical', assignedUsers, removedUsers);
+      } else if (target.kind === 'module') {
+        await createModuleAssignment({
+          module_id: target.id,
+          user_ids: addedIds,
+          expand_po_assignees: false,
+        }).unwrap();
+      } else {
+        await createDocumentAssignment({
+          source_document_id: target.id,
+          user_ids: addedIds,
+          expand_po_assignees: false,
+        }).unwrap();
       }
+
+      const knownList = Array.from(knownUsersById.values());
+      finishSuccess(
+        undefined,
+        buildFlatAssignedUserEntries(addedIds, knownList),
+        buildFlatAssignedUserEntries(removedIds, knownList),
+      );
     } catch (err: unknown) {
       console.error(err);
       const detail =
         err && typeof err === 'object' && 'data' in err
           ? (err as { data?: { detail?: string } }).data?.detail
           : undefined;
-      setErrorMsg(
+      snackbar.showError(
         detail || `An error occurred while creating ${noun} assignment.`,
       );
     }
   };
 
+  if (!open && !successState) return null;
+
+  if (successState && target.kind === 'sourceDocument') {
+    return (
+      <AssignmentSuccessModal
+        open
+        state={successState}
+        onClose={() => {
+          setSuccessState(null);
+          onClose();
+        }}
+        onAssignMore={() => {
+          setSuccessState(null);
+          initializeAssignmentSession();
+        }}
+      />
+    );
+  }
+
   if (!open) return null;
 
+  const divisionsCatalogLoading =
+    (loadingDivisions || fetchingDivisions) && loadedDivisions.length === 0;
+  const districtsCatalogLoading =
+    (loadingDistricts || fetchingDistricts) && loadedDistricts.length === 0;
+  const filterUpazilasCatalogLoading =
+    (loadingFilterUpazilas || fetchingFilterUpazilas) &&
+    filterLoadedUpazilas.length === 0;
+  const catalogsLoading =
+    divisionsCatalogLoading ||
+    districtsCatalogLoading ||
+    filterUpazilasCatalogLoading;
+  const anyGeoCatalogLoading =
+    loadingDivisions ||
+    fetchingDivisions ||
+    loadingDistricts ||
+    fetchingDistricts ||
+    loadingFilterUpazilas ||
+    fetchingFilterUpazilas;
+  const showDivisionsRefresh = shouldShowGeoCatalogRefresh({
+    loadedCount: loadedDivisions.length,
+    catalogLoading: divisionsCatalogLoading,
+    isError: divisionsError,
+    anyGeoLoading: anyGeoCatalogLoading,
+    catalogPending: divisionsCatalogPending,
+  });
+  const showDistrictsRefresh = shouldShowGeoCatalogRefresh({
+    loadedCount: loadedDistricts.length,
+    catalogLoading: districtsCatalogLoading,
+    isError: districtsError,
+    anyGeoLoading: anyGeoCatalogLoading,
+    catalogPending: districtsCatalogPending,
+  });
+  const showFilterUpazilasRefresh =
+    canRefreshUpazilaCatalog({
+      selectedDivisionId,
+      selectedDistrictId,
+    }) &&
+    shouldShowGeoCatalogRefresh({
+      loadedCount: filterLoadedUpazilas.length,
+      catalogLoading: filterUpazilasCatalogLoading,
+      isError: filterUpazilasError,
+      anyGeoLoading: anyGeoCatalogLoading,
+      catalogPending: filterUpazilasCatalogPending,
+    });
+
+  const renderDivisionCombobox = (id: string) => (
+    <Combobox
+      id={id}
+      aria-label="Division"
+      value={selectedDivisionId === null ? '' : String(selectedDivisionId)}
+      selectedLabel={
+        selectedDivisionId === null
+          ? ALL_DIVISIONS_OPTION.label
+          : selectedDivisionName || ALL_DIVISIONS_OPTION.label
+      }
+      options={divisionComboboxOptions}
+      searchTerm={divisionSearchQuery}
+      onSearchTermChange={setDivisionSearchQuery}
+      onChange={handleDivisionChange}
+      isLoading={divisionsCatalogLoading}
+      hint={
+        divisionsTotal > 0
+          ? `Showing ${loadedDivisions.length} of ${divisionsTotal}`
+          : undefined
+      }
+      placeholder="Type to search divisions…"
+      emptyMessage={
+        divisionsError ? 'Failed to load divisions.' : 'No divisions found.'
+      }
+      hasMore={divisionsHasMore}
+      onLoadMore={() => {
+        void loadDivisionsPage(divisionsOffset, true);
+      }}
+      isLoadingMore={fetchingDivisions && loadedDivisions.length > 0}
+      loadMoreError={divisionsError && loadedDivisions.length > 0}
+      onLoadMoreRetry={retryDivisions}
+      className="w-full"
+    />
+  );
+
+  const renderDistrictCombobox = (id: string) => (
+    <Combobox
+      id={id}
+      aria-label="District"
+      value={selectedDistrictId === null ? '' : String(selectedDistrictId)}
+      selectedLabel={
+        selectedDistrictId === null
+          ? ALL_DISTRICTS_OPTION.label
+          : selectedDistrictName || ALL_DISTRICTS_OPTION.label
+      }
+      options={districtComboboxOptions}
+      searchTerm={districtSearchQuery}
+      onSearchTermChange={setDistrictSearchQuery}
+      onChange={handleDistrictChange}
+      isLoading={districtsCatalogLoading}
+      hint={
+        districtsTotal > 0
+          ? `Showing ${loadedDistricts.length} of ${districtsTotal}`
+          : undefined
+      }
+      placeholder="Type to search districts…"
+      emptyMessage={
+        districtsError ? 'Failed to load districts.' : 'No districts found.'
+      }
+      hasMore={districtsHasMore}
+      onLoadMore={() => {
+        void loadDistrictsPage(districtsOffset, true);
+      }}
+      isLoadingMore={fetchingDistricts && loadedDistricts.length > 0}
+      loadMoreError={districtsError && loadedDistricts.length > 0}
+      onLoadMoreRetry={retryDistricts}
+      className="w-full"
+    />
+  );
+
   return (
-    <Modal open={open} labelledBy="assignment-dialog-title" onClose={onClose}>
-      <Loader
-        open={isSubmitting}
-        label={isAssigning ? `Assigning ${noun}…` : 'Revoking assignment…'}
-      />
+    <Modal
+      open={open}
+      labelledBy="assignment-dialog-title"
+      onClose={onClose}
+      contentClassName="max-w-2xl"
+    >
+      <Loader open={isSubmitting} label={`Assigning ${noun}…`} />
       <Card
         variant="elevated"
-        className="w-full max-w-lg space-y-4 border-spice-border p-4 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-4 pr-12 shadow-lg sm:p-6 sm:pr-14"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h2
-              id="assignment-dialog-title"
-              className="text-lg font-semibold text-spice-text-primary sm:text-xl"
-            >
-              Assign {noun}
-            </h2>
-            <p className="mt-1 text-xs text-spice-text-muted">{target.title}</p>
-          </div>
-          <Button
-            variant="secondary"
-            className="h-9 px-3 text-xs"
-            disabled={isSubmitting}
-            onClick={onClose}
-          >
-            Close
-          </Button>
+        <div className="min-w-0 pr-10">
+          <ModalTitle id="assignment-dialog-title" className="sm:text-xl">
+            Assign {noun}
+          </ModalTitle>
+          <p className="mt-1 min-w-0">
+            <TruncatedText
+              text={target.title}
+              className="text-xs text-spice-text-muted"
+            />
+          </p>
         </div>
-
-        {errorMsg ? (
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {errorMsg}
-          </div>
-        ) : null}
 
         <Tabs
           items={ASSIGNMENT_TABS}
           value={activeTab}
-          onChange={(value) => {
-            setActiveTab(value as AssignmentTab);
-            setErrorMsg('');
-          }}
+          onChange={handleAssignmentTabChange}
         />
 
         <div className="max-h-[50vh] space-y-4 overflow-y-auto p-2">
           {activeTab === 'user' ? (
             <>
               <label className="flex items-center gap-3">
-                <span className="shrink-0 text-xs font-semibold text-spice-text-primary">
-                  Role
-                </span>
+                <FormLabel className="shrink-0">Role</FormLabel>
                 <Select
                   options={USER_LEVEL_MODE_OPTIONS}
                   value={userLevelMode}
                   onChange={(value) => {
-                    setUserLevelMode(value as UserLevelMode);
-                    setSelectedDistrict('');
-                    setSelectedUpazila('');
-                    setErrorMsg('');
+                    setUserLevelMode(value as AssignmentUserLevelMode);
                   }}
-                  className="min-w-0 flex-1 whitespace-nowrap"
-                  disabled={loadingUsers}
+                  className="min-w-0 flex-1"
+                  triggerClassName="rounded-lg"
+                  aria-label="Role"
+                  disabled={catalogsLoading}
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block space-y-2">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    District
-                  </span>
-                  <Select
-                    options={districtOptions}
-                    value={selectedDistrict}
-                    onChange={handleDistrictChange}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-start">
+                <GeoFilterField
+                  label="Division"
+                  showRefresh={showDivisionsRefresh}
+                  onRefresh={retryDivisions}
+                  isRefreshing={fetchingDivisions}
+                >
+                  {renderDivisionCombobox(
+                    'assignment-division-filter-combobox',
+                  )}
+                </GeoFilterField>
+                <GeoFilterField
+                  label="District"
+                  showRefresh={showDistrictsRefresh}
+                  onRefresh={retryDistricts}
+                  isRefreshing={fetchingDistricts}
+                >
+                  {renderDistrictCombobox(
+                    'assignment-district-filter-combobox',
+                  )}
+                </GeoFilterField>
+                <GeoFilterField
+                  label="Upazila"
+                  showRefresh={showFilterUpazilasRefresh}
+                  onRefresh={retryFilterUpazilas}
+                  isRefreshing={fetchingFilterUpazilas}
+                >
+                  <Combobox
+                    id="assignment-upazila-filter-combobox"
+                    aria-label="Upazila"
+                    value={
+                      selectedUpazilaId === null
+                        ? ''
+                        : String(selectedUpazilaId)
+                    }
+                    selectedLabel={
+                      selectedUpazilaId === null
+                        ? ALL_UPAZILAS_OPTION.label
+                        : selectedUpazilaName || ALL_UPAZILAS_OPTION.label
+                    }
+                    options={filterUpazilaComboboxOptions}
+                    searchTerm={filterUpazilaSearchQuery}
+                    onSearchTermChange={setFilterUpazilaSearchQuery}
+                    onChange={handleFilterUpazilaChange}
+                    isLoading={filterUpazilasCatalogLoading}
+                    hint={
+                      filterUpazilasTotal > 0
+                        ? `Showing ${filterLoadedUpazilas.length} of ${filterUpazilasTotal}`
+                        : undefined
+                    }
+                    placeholder="Type to search upazilas…"
+                    emptyMessage={
+                      filterUpazilasError
+                        ? 'Failed to load upazilas.'
+                        : 'No upazilas found.'
+                    }
+                    hasMore={filterUpazilasHasMore}
+                    onLoadMore={() => {
+                      void loadFilterUpazilasPage(filterUpazilasOffset, true);
+                    }}
+                    isLoadingMore={
+                      fetchingFilterUpazilas && filterLoadedUpazilas.length > 0
+                    }
+                    loadMoreError={
+                      filterUpazilasError && filterLoadedUpazilas.length > 0
+                    }
+                    onLoadMoreRetry={retryFilterUpazilas}
                     className="w-full"
-                    disabled={loadingUsers}
                   />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-xs font-semibold text-spice-text-primary">
-                    Upazila
-                  </span>
-                  <Select
-                    options={upazilaFilterOptions}
-                    value={selectedUpazila}
-                    onChange={setSelectedUpazila}
-                    className="w-full"
-                    disabled={loadingUsers}
-                  />
-                </label>
+                </GeoFilterField>
               </div>
+
+              <label className="block space-y-2">
+                <FormLabel>Search users</FormLabel>
+                <SearchInput
+                  value={userSearchQuery}
+                  onChange={setUserSearchQuery}
+                  placeholder="Search by name"
+                  aria-label="Search users by name"
+                  disabled={catalogsLoading}
+                  className="sm:min-w-0"
+                />
+              </label>
 
               <UserSelectionList
                 title="User"
-                users={displayedUserLevelUsers}
-                selectedUserIds={selectedUserIds}
+                users={listUsers}
+                desiredUserIds={desiredUserIds}
                 userAssignmentStatus={userAssignmentStatus}
-                isLoading={loadingUsers}
+                isLoading={
+                  (loadingUsers || fetchingUsers) && loadedUsers.length === 0
+                }
                 isError={usersError}
                 isFetching={fetchingUsers}
+                hasMore={usersHasMore}
+                isLoadingMore={fetchingUsers && loadedUsers.length > 0}
+                onLoadMore={() => {
+                  void loadUsersPage(usersOffset, true);
+                }}
                 onRetry={retryUsers}
                 onSelectAll={handleSelectAllUsers}
-                onToggleUser={handleUserCheckboxChange}
+                onToggleUser={handleToggleUser}
                 emptyMessage={getUserLevelEmptyMessage(userLevelMode)}
-                otherAssignmentUsers={usersWithOtherAssignments}
               />
-
-              <p className="text-xs leading-relaxed text-spice-text-muted">
-                {getUserLevelHint(userLevelMode, target.kind)}
-              </p>
             </>
           ) : null}
 
           {activeTab === 'geographical' ? (
             <>
-              <label className="block space-y-2">
-                <span className="text-xs font-semibold text-spice-text-primary">
-                  District
-                </span>
-                <Select
-                  options={districtOptions}
-                  value={selectedDistrict}
-                  onChange={handleDistrictChange}
-                  className="w-full"
-                  disabled={loadingUsers}
-                />
-              </label>
+              <GeoFilterField
+                label="Division"
+                showRefresh={showDivisionsRefresh}
+                onRefresh={retryDivisions}
+                isRefreshing={fetchingDivisions}
+              >
+                {renderDivisionCombobox('assignment-geo-division-combobox')}
+              </GeoFilterField>
 
-              <div className="overflow-hidden rounded-lg border border-spice-border">
-                <div className="flex items-center justify-between border-b border-spice-border bg-spice-bg-tint px-3 py-2 text-xs font-semibold text-spice-text-medium">
-                  <div className="flex items-center gap-1.5">
-                    <span>Upazila</span>
-                    {usersError ? (
-                      <FetchRetryButton
-                        label="Retry loading upazilas"
-                        onRetry={retryUsers}
-                        disabled={fetchingUsers}
-                      />
-                    ) : null}
-                  </div>
-                  {displayedUpazilas.length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={handleSelectAllUpazilas}
-                      className="text-spice-brand-primary hover:underline"
-                    >
-                      {displayedUpazilas.every((name) =>
-                        selectedUpazilaNames.includes(name),
-                      )
-                        ? 'Deselect all'
-                        : 'Select all'}
-                    </button>
-                  ) : null}
-                </div>
-
-                <div className="max-h-[20vh] divide-y divide-spice-border overflow-y-auto">
-                  {loadingUsers ? (
-                    <div className="p-4 text-center text-sm text-spice-text-muted">
-                      Loading upazilas…
-                    </div>
-                  ) : usersError ? (
-                    <div className="p-4 text-center text-sm text-spice-text-muted">
-                      Failed to load upazilas.
-                    </div>
-                  ) : displayedUpazilas.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-spice-text-muted">
-                      No upazilas found.
-                    </div>
-                  ) : (
-                    displayedUpazilas.map((upazilaName) => {
-                      const isChecked =
-                        selectedUpazilaNames.includes(upazilaName);
-                      const isAlreadyAssigned =
-                        alreadyAssignedUpazilas.includes(upazilaName);
-
-                      return (
-                        <label
-                          key={upazilaName}
-                          className="flex cursor-pointer items-center justify-between px-3 py-2.5 hover:bg-spice-bg-tint/30"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-spice-text-primary">
-                              {upazilaName}
-                            </span>
-                            {isAlreadyAssigned ? (
-                              <span className="text-xs text-spice-text-muted">
-                                Already assigned
-                              </span>
-                            ) : null}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() =>
-                              handleUpazilaCheckboxChange(upazilaName)
-                            }
-                            className="h-4 w-4 rounded border-spice-border text-spice-brand-primary focus:ring-spice-brand-primary/25"
-                          />
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              <p className="text-xs leading-relaxed text-spice-text-muted">
-                Assign this {noun} to all users in the selected upazila(s).
-              </p>
+              <AssignmentGeoDistrictHierarchy
+                divisionId={selectedDivisionId}
+                desiredUserIds={desiredSet}
+                baselineUserIds={baselineSet}
+                onAddUserIds={handleGeoAddUserIds}
+                onRemoveUserIds={handleGeoRemoveUserIds}
+              />
             </>
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="h-9 text-xs"
-            onClick={() => void handleAssign()}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Assigning…' : `Assign ${noun}`}
-          </Button>
-        </div>
+        <ModalActionBar
+          className="px-0 pb-0 pt-2"
+          confirmLabel={`Assign ${noun}`}
+          confirmingLabel="Assigning…"
+          isConfirming={isSubmitting}
+          onCancel={onClose}
+          onConfirm={() => void handleAssign()}
+        />
       </Card>
     </Modal>
   );

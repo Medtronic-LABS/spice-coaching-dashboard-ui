@@ -3,7 +3,6 @@ import { configureStore } from '@reduxjs/toolkit';
 import { renderHook } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { describe, expect, it } from 'vitest';
-import { setCurrentRole, type AppRole } from '@/constants/role';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import {
   adminModuleReviewReducer,
@@ -12,10 +11,8 @@ import {
 import { baseAdminModuleDetail } from '@/features/modules/utils/fixtures/adminModuleTestFixtures';
 
 function renderReadonlyHook(
-  role: AppRole,
   lifecycleStatus: 'draft' | 'published' | 'deactivated',
 ) {
-  setCurrentRole(role);
   const store = configureStore({
     reducer: { adminModuleReview: adminModuleReviewReducer },
   });
@@ -35,16 +32,12 @@ function renderReadonlyHook(
 
 describe('useAdminModuleReviewReadonly', () => {
   it.each([
-    ['programManager', 'draft', false],
-    ['programManager', 'published', true],
-    ['programManager', 'deactivated', true],
-    ['supervisor', 'draft', true],
-  ] as const)(
-    'returns %s / %s as readonly=%s',
-    (role, lifecycleStatus, expected) => {
-      const { result } = renderReadonlyHook(role, lifecycleStatus);
+    ['draft', false],
+    ['published', true],
+    ['deactivated', true],
+  ] as const)('returns %s as readonly=%s', (lifecycleStatus, expected) => {
+    const { result } = renderReadonlyHook(lifecycleStatus);
 
-      expect(result.current).toBe(expected);
-    },
-  );
+    expect(result.current).toBe(expected);
+  });
 });
