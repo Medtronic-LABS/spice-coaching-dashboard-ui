@@ -4,27 +4,17 @@ COPY package.json package-lock.json ./
 RUN npm ci && npm install --ignore-scripts @rollup/rollup-linux-arm64-musl 2>/dev/null || npm ci
 COPY . .
 
-# Build-time environment variables for Vite
+# Build-time variables for Vite. Only the four that CI passes as build args are
+# set here; every other VITE_* value comes from the .env.production that CI
+# writes from the target environment's variables (Dockerfile ENV would win over it).
 ARG VITE_API_BASE_URL=https://spice-dev-backend.uhis.labsplatform.com/micro-coaching/medtronics-api
 ARG VITE_ROUTE_PREFIX=/ai-coaching
-ARG VITE_DEPLOYMENT_PRIMARY_LOCALE=bn
-ARG VITE_SPICE_API_BASE_URL=https://spice-dev-backend.uhis.labsplatform.com
-ARG VITE_SPICE_WEB_LOGIN_URL=https://spice-dev.uhis.labsplatform.com/
 ARG VITE_COACHING_SUITE_ACCESS=coaching
-ARG VITE_SPICE_ADMIN_API_URL=/admin-service
-ARG VITE_SPICE_USER_API_URL=/user-service
-ARG VITE_ERROR_REPORTING_URL=
 ARG VITE_DEV_AUTH_BYPASS=false
 
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
     VITE_ROUTE_PREFIX=$VITE_ROUTE_PREFIX \
-    VITE_DEPLOYMENT_PRIMARY_LOCALE=$VITE_DEPLOYMENT_PRIMARY_LOCALE \
-    VITE_SPICE_API_BASE_URL=$VITE_SPICE_API_BASE_URL \
-    VITE_SPICE_WEB_LOGIN_URL=$VITE_SPICE_WEB_LOGIN_URL \
     VITE_COACHING_SUITE_ACCESS=$VITE_COACHING_SUITE_ACCESS \
-    VITE_SPICE_ADMIN_API_URL=$VITE_SPICE_ADMIN_API_URL \
-    VITE_SPICE_USER_API_URL=$VITE_SPICE_USER_API_URL \
-    VITE_ERROR_REPORTING_URL=$VITE_ERROR_REPORTING_URL \
     VITE_DEV_AUTH_BYPASS=$VITE_DEV_AUTH_BYPASS
 
 RUN npm run build
