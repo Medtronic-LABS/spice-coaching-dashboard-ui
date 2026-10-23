@@ -63,3 +63,39 @@ export function formatDisplayDateTime(
 
   return `${month} ${day} ${year} • ${time}`;
 }
+
+/**
+ * Same as `formatDisplayDateTime`, but splits date and time onto two lines
+ * (break before `•`) for compact KPI / card layouts.
+ */
+export function formatDisplayDateTimeMultiline(
+  value: string | null | undefined,
+): string {
+  return formatDisplayDateTime(value).replace(' • ', '\n• ');
+}
+
+/** Formats an ISO date (or timestamp) for dashboard labels, e.g. `Aug 1, 2026`. */
+export function formatDisplayDate(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+
+  const normalized = value.includes('T') ? value : `${value.trim()}T00:00:00`;
+  const date = parseDisplayDateTime(normalized);
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+/** Reference string for sizing table columns: `Aug 14 2026 • 11:43:34 am`. */
+export const DISPLAY_DATETIME_SAMPLE = 'Aug 14 2026 • 11:43:34 am';
+
+/** Fixed min width for table cells that show `formatDisplayDateTime` values. */
+export const DISPLAY_DATETIME_TABLE_COLUMN_CLASS =
+  'min-w-[13.5rem] w-[13.5rem] max-w-[13.5rem] whitespace-nowrap tabular-nums';

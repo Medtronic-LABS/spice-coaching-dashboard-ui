@@ -3,7 +3,7 @@ import type {
   RichBlock,
   RichListBlock,
   RichListItem,
-} from '@/features/modules/types/richText.types';
+} from '@/components/ui/rich-text/types/richText.types';
 import { PreviewAudioBlock } from '@/features/modules/components/module-preview/PreviewAudioBlock';
 import { PreviewImageBlock } from '@/features/modules/components/module-preview/PreviewImageBlock';
 import {
@@ -166,8 +166,10 @@ function renderBlock(
       return <PreviewVideoBlock key={key} attrs={block.attrs} />;
     case 'audio':
       return <PreviewAudioBlock key={key} attrs={block.attrs} />;
-    default:
-      return null;
+    default: {
+      const exhaustiveCheck: never = block;
+      return exhaustiveCheck;
+    }
   }
 }
 

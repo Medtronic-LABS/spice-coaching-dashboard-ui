@@ -1,4 +1,4 @@
-import type { RichAudioBlock } from '@/features/modules/types/richText.types';
+import type { RichAudioBlock } from '@/components/ui/rich-text/types/richText.types';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 
 export interface PreviewAudioBlockProps {

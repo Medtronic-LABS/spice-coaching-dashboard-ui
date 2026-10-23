@@ -5,11 +5,16 @@ import {
   buildOverrideFlags,
   conflictFilenamesFromList,
   conflictsKeptExisting,
+  countNewlyUploadedSources,
   findKeptExistingTargetForSource,
   isOverriddenUploadedSource,
+  keptExistingSourcesFromConflicts,
   normalizeUploadResponse,
   parseIngestDuplicateError,
   selectFilesForConflicts,
+  selectSourceDocumentIdsForConflicts,
+  selectSourcesForDuplicateIngestRetry,
+  selectedIngestDocumentsFromUploadResponse,
   sourceDocumentFromDuplicateConflict,
   uploadResponseFromDuplicateConflicts,
   uploadedSourceFromConflict,
@@ -84,6 +89,35 @@ describe('uploadedSourceFromConflict', () => {
   });
 });
 
+describe('selectedIngestDocumentsFromUploadResponse', () => {
+  it('enriches reused duplicates with existing source details', () => {
+    const docs = selectedIngestDocumentsFromUploadResponse({
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: existingSource.source_document_id,
+          title: existingSource.title,
+          source_type: 'pdf',
+          stored_path: '',
+          status: 'uploaded',
+        },
+      ],
+      skipped_duplicates: conflicts,
+    });
+
+    expect(docs).toEqual([
+      {
+        id: existingSource.source_document_id,
+        title: 'Procedure description',
+        originalFilename: 'Procedure description.pdf',
+        sourceType: 'pdf',
+        status: 'uploaded',
+        uploadedAt: existingSource.ingested_at,
+      },
+    ]);
+  });
+});
+
 describe('normalizeUploadResponse', () => {
   it('merges skipped duplicates into ordered sources', () => {
     const payload = {
@@ -130,6 +164,51 @@ describe('uploadResponseFromDuplicateConflicts', () => {
   });
 });
 
+describe('countNewlyUploadedSources', () => {
+  it('returns zero when skip upload reuses all duplicates', () => {
+    const response = uploadResponseFromDuplicateConflicts(
+      { files: [new File(['b'], 'Procedure description.pdf')] },
+      conflicts,
+    );
+    expect(
+      countNewlyUploadedSources(response, {
+        overriddenFilenames: [],
+        duplicateConflicts: conflicts,
+      }),
+    ).toBe(0);
+  });
+
+  it('counts only newly uploaded sources in a mixed batch', () => {
+    const payload = {
+      files: [
+        new File(['a'], 'new.docx'),
+        new File(['b'], 'Procedure description.pdf'),
+      ],
+    };
+    const response = normalizeUploadResponse(payload, {
+      status: 'uploaded',
+      sources: [
+        {
+          source_document_id: '07b62cf7-5c5f-4762-a918-ba7fffdff774',
+          title: 'AI Microcoaching Scenarios -V1',
+          source_type: 'docx',
+          stored_path: 'medtronics-storage/ingest/new.docx',
+          content_domain: 'clinical',
+          status: 'uploaded',
+        },
+      ],
+      skipped_duplicates: conflicts,
+    });
+
+    expect(
+      countNewlyUploadedSources(response, {
+        overriddenFilenames: [],
+        duplicateConflicts: conflicts,
+      }),
+    ).toBe(1);
+  });
+});
+
 describe('buildOverrideFlags', () => {
   it('marks only conflicting files for override', () => {
     const files = [new File(['a'], 'new.pdf'), new File(['b'], 'dup.pdf')];
@@ -145,6 +224,71 @@ describe('buildIngestOverrideFlags', () => {
       conflicts,
     );
     expect(flags).toEqual([false, true]);
+  });
+});
+
+describe('selectSourcesForDuplicateIngestRetry', () => {
+  const protocolConflict = {
+    filename: 'protocol.pdf',
+    title: 'Protocol',
+    content_sha256: 'def',
+    existing_source_documents: [
+      {
+        source_document_id: 'src-2',
+        title: 'Existing Protocol',
+        original_filename: 'protocol.pdf',
+        ingested_at: '2026-07-16T08:00:00Z',
+        status: 'uploaded',
+      },
+    ],
+  };
+  const mixedConflicts = [conflicts[0]!, protocolConflict];
+
+  it('keeps non-duplicates and only selected duplicates', () => {
+    const result = selectSourcesForDuplicateIngestRetry(
+      ['src-new', existingSource.source_document_id, 'src-2'],
+      mixedConflicts,
+      ['protocol.pdf'],
+    );
+    expect(result).toEqual({
+      sourceDocumentIds: ['src-new', 'src-2'],
+      overrideDuplicates: [false, true],
+    });
+  });
+
+  it('omits every duplicate when none are selected', () => {
+    const result = selectSourcesForDuplicateIngestRetry(
+      ['src-new', existingSource.source_document_id, 'src-2'],
+      mixedConflicts,
+      [],
+    );
+    expect(result).toEqual({
+      sourceDocumentIds: ['src-new'],
+      overrideDuplicates: [false],
+    });
+  });
+
+  it('returns empty when the batch is only unselected duplicates', () => {
+    const result = selectSourcesForDuplicateIngestRetry(
+      [existingSource.source_document_id, 'src-2'],
+      mixedConflicts,
+      [],
+    );
+    expect(result).toEqual({
+      sourceDocumentIds: [],
+      overrideDuplicates: [],
+    });
+  });
+});
+
+describe('selectSourceDocumentIdsForConflicts', () => {
+  it('filters payload ids to those present in conflicts', () => {
+    expect(
+      selectSourceDocumentIdsForConflicts(
+        ['src-new', existingSource.source_document_id, 'other'],
+        conflicts,
+      ),
+    ).toEqual([existingSource.source_document_id]);
   });
 });
 
@@ -303,5 +447,17 @@ describe('isOverriddenUploadedSource', () => {
         conflicts,
       ),
     ).toBe(false);
+  });
+});
+
+describe('keptExistingSourcesFromConflicts', () => {
+  it('maps kept duplicate conflicts to session rows', () => {
+    expect(keptExistingSourcesFromConflicts(conflicts)).toEqual([
+      {
+        source_document_id: existingSource.source_document_id,
+        title: existingSource.title,
+        filename: conflicts[0]!.filename,
+      },
+    ]);
   });
 });

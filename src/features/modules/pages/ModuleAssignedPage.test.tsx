@@ -1,9 +1,15 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { paths } from '@/constants/routes';
 import { renderWithProviders } from '@/test-utils/render';
 import { ModuleAssignedPage } from './ModuleAssignedPage';
+
+function LibraryTabProbe() {
+  const location = useLocation();
+  const tab = (location.state as { tab?: string } | null)?.tab ?? '';
+  return <div data-testid="library" data-tab={tab} />;
+}
 
 function renderAssignedPage(state?: Record<string, unknown>) {
   renderWithProviders(
@@ -16,7 +22,7 @@ function renderAssignedPage(state?: Record<string, unknown>) {
     </Routes>,
     {
       route: paths.moduleAssigned,
-      initialState: { locationState: state },
+      routerState: state,
     },
   );
 }
@@ -37,10 +43,15 @@ describe('ModuleAssignedPage', () => {
     expect(screen.getByTestId('library')).toBeInTheDocument();
   });
 
-  it('shows individual assignment summary', () => {
+  it('shows flat assigned users without mode-specific labels', () => {
     renderAssignedPage({
-      assignmentType: 'individual',
       assignedUsers: [
+        {
+          kind: 'individual',
+          userId: 20,
+          role: 'PO',
+          name: 'Sobita Rani',
+        },
         {
           kind: 'individual',
           userId: 21,
@@ -54,70 +65,34 @@ describe('ModuleAssignedPage', () => {
           name: 'Mst. Rabeya Khatun',
         },
       ],
-      assignedCount: 2,
-    });
-
-    expect(screen.getByText(/assigned to — individual/i)).toBeInTheDocument();
-    expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
-    expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
-  });
-
-  it('shows PO card and expandable SK users for po_sk assignments', async () => {
-    const user = userEvent.setup();
-    renderAssignedPage({
-      assignmentType: 'po_sk',
-      assignedUsers: [
+      assignedCount: 3,
+      removedUsers: [
         {
-          kind: 'po_sk',
-          poId: 20,
-          poName: 'Sobita Rani',
-          skUsers: [
-            { userId: 21, name: 'Md Abdus Salam' },
-            { userId: 22, name: 'Mst. Rabeya Khatun' },
-          ],
+          kind: 'individual',
+          userId: 30,
+          role: 'SK',
+          name: 'Independent SK',
         },
       ],
-      assignedCount: 3,
     });
 
-    expect(screen.getByText(/assigned to — po \+ sks/i)).toBeInTheDocument();
+    expect(screen.getByText(/^assigned to$/i)).toBeInTheDocument();
     expect(screen.getByText('Sobita Rani')).toBeInTheDocument();
-    expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: /show sk users for sobita rani/i }),
-    );
-
     expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
     expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
+    expect(screen.getByText(/revoked/i)).toBeInTheDocument();
+    expect(screen.getByText('Independent SK')).toBeInTheDocument();
   });
 
-  it('shows upazila card and expandable SK users for geographical assignments', async () => {
-    const user = userEvent.setup();
+  it('shows upazila assignment as a simple geographical card', () => {
     renderAssignedPage({
       assignmentType: 'geographical',
-      assignedUsers: [
-        {
-          kind: 'upazila',
-          upazilaName: 'Hatibandha',
-          skUsers: [
-            { userId: 21, name: 'Md Abdus Salam' },
-            { userId: 22, name: 'Mst. Rabeya Khatun' },
-          ],
-        },
-      ],
-      assignedCount: 3,
+      assignedUsers: [{ kind: 'geographical', name: 'Hatibandha' }],
+      assignedCount: 1,
     });
 
+    expect(screen.getByText(/assigned to — upazila/i)).toBeInTheDocument();
     expect(screen.getByText('Hatibandha')).toBeInTheDocument();
-    expect(screen.queryByText('Md Abdus Salam')).not.toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: /show sk users for hatibandha/i }),
-    );
-
-    expect(screen.getByText('Md Abdus Salam')).toBeInTheDocument();
-    expect(screen.getByText('Mst. Rabeya Khatun')).toBeInTheDocument();
   });
 
   it('shows organization assignment summary for group assignments', () => {
@@ -129,5 +104,87 @@ describe('ModuleAssignedPage', () => {
 
     expect(screen.getByText(/assigned to — organization/i)).toBeInTheDocument();
     expect(screen.getByText('Bo District')).toBeInTheDocument();
+  });
+
+  it('navigates to published tab when assigning more users', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <Routes>
+        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+        <Route path={paths.moduleLibrary} element={<LibraryTabProbe />} />
+      </Routes>,
+      {
+        route: paths.moduleAssigned,
+        routerState: {
+          moduleId: 'mod-1',
+          moduleName: 'Sample module',
+        },
+      },
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /assign to more users/i }),
+    );
+
+    expect(screen.getByTestId('library')).toHaveAttribute(
+      'data-tab',
+      'published',
+    );
+  });
+
+  it('renders document assignment success copy', () => {
+    renderAssignedPage({
+      entityKind: 'document',
+      entityId: 'doc-1',
+      entityName: 'HTN Guide',
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /document assigned successfully/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('HTN Guide')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/quiz reattempt allowed/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders video assignment success copy', () => {
+    renderAssignedPage({
+      entityKind: 'video',
+      entityId: 'vid-1',
+      entityName: 'Counselling clip',
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /video assigned successfully/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Counselling clip')).toBeInTheDocument();
+  });
+
+  it('navigates to knowledge library for document assignments', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <Routes>
+        <Route path={paths.moduleAssigned} element={<ModuleAssignedPage />} />
+        <Route
+          path={paths.uploadKnowledge}
+          element={<div data-testid="knowledge-library" />}
+        />
+      </Routes>,
+      {
+        route: paths.moduleAssigned,
+        routerState: {
+          entityKind: 'document',
+          entityId: 'doc-1',
+          entityName: 'HTN Guide',
+        },
+      },
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /knowledge library/i }),
+    );
+
+    expect(screen.getByTestId('knowledge-library')).toBeInTheDocument();
   });
 });

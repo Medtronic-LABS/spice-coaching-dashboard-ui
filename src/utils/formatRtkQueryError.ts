@@ -1,3 +1,5 @@
+import { parseApiError } from '@/utils/parseApiError';
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -30,6 +32,10 @@ function messageFromData(data: unknown): string | null {
 }
 
 export function formatRtkQueryError(error: unknown): string {
+  const parsed = parseApiError(error);
+  if (parsed.message) return parsed.message;
+  if (parsed.description) return parsed.description;
+
   if (isSerializedError(error)) {
     const fromData = messageFromData(error.data);
     if (fromData) return fromData;

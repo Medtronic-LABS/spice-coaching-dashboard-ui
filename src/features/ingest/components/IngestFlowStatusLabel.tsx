@@ -1,5 +1,5 @@
 import { Tooltip } from '@/components/ui/Tooltip';
-import { extractIngestErrorMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
+import { extractIngestFailureTooltipMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
 import {
   formatIngestRunStatusDisplay,
   ingestRunStatusTone,
@@ -7,24 +7,25 @@ import {
 
 interface IngestFlowStatusLabelProps {
   status: string;
-  error?: unknown;
+  /** Node/source/batch row or nested error payload. */
+  failureContext?: unknown;
   className?: string;
 }
 
 export const IngestFlowStatusLabel = ({
   status,
-  error,
+  failureContext,
   className = 'text-xs',
 }: IngestFlowStatusLabelProps) => {
   const hasStatus = Boolean(status.trim());
   const failed = hasStatus && ingestRunStatusTone(status) === 'failed';
-  const errorMessage = extractIngestErrorMessage(error);
+  const tooltipMessage = extractIngestFailureTooltipMessage(failureContext);
   const statusLabel = formatIngestRunStatusDisplay(status);
 
-  if (failed && errorMessage) {
+  if (failed && tooltipMessage) {
     return (
       <div className={`flex items-center ${className}`.trim()}>
-        <Tooltip label={errorMessage} content={errorMessage} />
+        <Tooltip label={tooltipMessage} content={tooltipMessage} />
       </div>
     );
   }

@@ -58,7 +58,7 @@ No new toast system required (match existing patterns).
 **Frontend:**
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test
 npm run typecheck
 npm run lint
@@ -67,7 +67,7 @@ npm run lint
 **Backend:**
 
 ```bash
-cd "/home/beehyv/Projects/Medtronics/android work/coaching-platform"
+cd <coaching-platform-repo>
 pytest tests/api/test_admin_modules.py -v
 ```
 

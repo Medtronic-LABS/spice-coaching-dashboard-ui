@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { LearnerRichCardBody } from '@/features/modules/components/module-preview/LearnerRichCardBody';
-import type { RichBlock } from '@/features/modules/types/richText.types';
+import type { RichBlock } from '@/components/ui/rich-text/types/richText.types';
 
 vi.mock('@/features/modules/hooks/usePresignedFileUrl', () => ({
   usePresignedFileUrl: () => ({
@@ -30,6 +30,26 @@ describe('LearnerRichCardBody', () => {
 
     const strong = screen.getByText('Bold text');
     expect(strong.tagName).toBe('STRONG');
+  });
+
+  it('drops unsafe link hrefs in preview text', () => {
+    const blocks: RichBlock[] = [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: 'Unsafe link',
+            marks: [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }],
+          },
+        ],
+      },
+    ];
+
+    render(<LearnerRichCardBody blocks={blocks} />);
+
+    expect(screen.getByText('Unsafe link')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Unsafe link' })).toBeNull();
   });
 
   it('renders heading level 2', () => {
@@ -120,7 +140,7 @@ describe('LearnerRichCardBody', () => {
       'flex',
       'justify-center',
     );
-    expect(container.querySelector('.aspect-video')).toBeInTheDocument();
+    expect(container.querySelector('.aspect-video')).not.toBeInTheDocument();
   });
 
   it('centers stored image display dimensions in preview', () => {
@@ -138,8 +158,9 @@ describe('LearnerRichCardBody', () => {
     const { container } = render(<LearnerRichCardBody blocks={blocks} />);
 
     const image = screen.getByRole('img', { name: 'Lesson image' });
-    expect(image).toHaveStyle({ width: '240px', height: '135px' });
-    expect(image).toHaveClass('max-w-full', 'object-contain');
+    expect(image).toHaveStyle({ width: '240px' });
+    expect(image).not.toHaveStyle({ height: '135px' });
+    expect(image).toHaveClass('max-w-full', 'object-contain', 'h-auto');
     expect(container.querySelector('figure')).toHaveClass(
       'flex',
       'justify-center',

@@ -104,7 +104,7 @@ Follow patterns from existing tests e.g. `ModuleLibraryPage.test.tsx`.
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/pages/admin-module-review/
 npm run dev
 ```

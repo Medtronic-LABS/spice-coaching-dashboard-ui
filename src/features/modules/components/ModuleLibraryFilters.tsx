@@ -26,7 +26,6 @@ const DATE_FIELD_KEYS: Record<
 export interface ModuleLibraryFiltersProps {
   filters: ModuleLibraryFilterState;
   tab: ModuleLibraryTab;
-  isProgramManager: boolean;
   domains: string[];
   sourceDocumentOptions: ComboboxOption[];
   sourceDocumentId: string;
@@ -45,7 +44,6 @@ export interface ModuleLibraryFiltersProps {
 export const ModuleLibraryFilters = ({
   filters,
   tab,
-  isProgramManager,
   domains,
   sourceDocumentOptions,
   sourceDocumentId,
@@ -60,12 +58,8 @@ export const ModuleLibraryFilters = ({
   onApply,
   applyDisabled = false,
 }: ModuleLibraryFiltersProps) => {
-  const dateTypes = getAvailableDateFilterTypes(tab, isProgramManager);
-  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(
-    filters,
-    tab,
-    isProgramManager,
-  );
+  const dateTypes = getAvailableDateFilterTypes(tab);
+  const dateRangeInvalid = isAnyVisibleDateRangeInvalid(filters, tab);
 
   const domainOptions: SelectOption[] = useMemo(
     () => [

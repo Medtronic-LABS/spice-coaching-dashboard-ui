@@ -5,10 +5,14 @@ import { ResponsiveLegend } from './ResponsiveLegend';
 
 describe('ResponsiveLegend', () => {
   it('returns null when items is empty/undefined', () => {
-    const { container: c1 } = render(<ResponsiveLegend items={undefined} />);
+    const { container: c1 } = render(
+      <ResponsiveLegend items={undefined} ariaLabel="Chart legend" />,
+    );
     expect(c1).toBeEmptyDOMElement();
 
-    const { container: c2 } = render(<ResponsiveLegend items={[]} />);
+    const { container: c2 } = render(
+      <ResponsiveLegend items={[]} ariaLabel="Chart legend" />,
+    );
     expect(c2).toBeEmptyDOMElement();
   });
 

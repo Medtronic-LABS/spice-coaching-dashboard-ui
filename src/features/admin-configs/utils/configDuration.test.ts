@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   DURATION_MAX_DAYS,
+  DURATION_MAX_DIGITS,
   DURATION_MAX_VALIDATION_ERROR,
   DURATION_VALIDATION_ERROR,
   formatConfigDurationValue,
   getDurationValidationError,
   isDurationDaysInput,
   parseConfigDurationDays,
+  parseDurationDaysInput,
 } from './configDuration';
 
 describe('parseConfigDurationDays', () => {
@@ -46,6 +48,16 @@ describe('formatConfigDurationValue', () => {
     expect(formatConfigDurationValue(0)).toBe('');
     expect(formatConfigDurationValue('1e2')).toBe('');
     expect(formatConfigDurationValue(DURATION_MAX_DAYS + 1)).toBe('');
+  });
+});
+
+describe('parseDurationDaysInput', () => {
+  it('keeps at most three digits and strips non-digits', () => {
+    expect(DURATION_MAX_DIGITS).toBe(3);
+    expect(parseDurationDaysInput('9999')).toBe('999');
+    expect(parseDurationDaysInput('36a5')).toBe('365');
+    expect(parseDurationDaysInput('02')).toBe('2');
+    expect(parseDurationDaysInput('')).toBe('');
   });
 });
 

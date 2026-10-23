@@ -1,27 +1,34 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Loader } from '@/components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  CardTitle,
+  Loader,
+  SectionHeader,
+  StatusBadge,
+} from '@/components/ui';
 import {
   useGetIngestBatchStatusQuery,
-  type AdminV3IngestBatchNode,
+  useRetryIngestBatchMutation,
   type AdminV3IngestBatchStatusResponse,
 } from '@/features/ingest/api/adminIngestApi';
-import { IngestFlowStatusLabel } from '@/features/ingest/components/IngestFlowStatusLabel';
+import { IngestDocumentProgressCard } from '@/features/ingest/components/IngestDocumentProgressCard';
+import { Tooltip } from '@/components/ui/Tooltip';
 import {
   canCompleteIngestFlow,
   isIngestInProgress,
   isIngestRunning,
   shouldPollIngestStatus,
 } from '@/features/ingest/utils/ingestStatus';
-import {
-  formatIngestRunStatusDisplay,
-  ingestRunStatusBadgeClassName,
-  ingestRunStatusTone,
-} from '@/features/ingest/utils/ingestRunHistoryUtils';
+import { getIngestRunStatusBadgeProps } from '@/features/ingest/utils/ingestRunStatusBadge';
+import { ingestRunStatusTone } from '@/features/ingest/utils/ingestRunHistoryUtils';
 import { formatRtkQueryError } from '@/utils/formatRtkQueryError';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { extractIngestBatchFailureTooltipMessage } from '@/features/ingest/utils/extractIngestErrorMessage';
 
 export interface IngestRunStatusPanelProps {
   batchId: string;
+  /** @deprecated Title is always generic; kept for call-site compatibility. */
   sourceTitle?: string;
   isUploading?: boolean;
   uploadLabel?: string;
@@ -32,72 +39,12 @@ export interface IngestRunStatusPanelProps {
     status: AdminV3IngestBatchStatusResponse | null,
   ) => void;
   successAction?: React.ReactNode;
-  onGoToDrafts?: () => void;
-  onGoToNeedsReview?: () => void;
-}
-
-function flattenNodes(
-  nodes: AdminV3IngestBatchNode[],
-  prefix = '',
-): Array<AdminV3IngestBatchNode & { path: string }> {
-  const rows: Array<AdminV3IngestBatchNode & { path: string }> = [];
-  for (const node of nodes) {
-    const path = prefix ? `${prefix}/${node.key}` : node.key;
-    rows.push({ ...node, path });
-    if (node.children?.length) {
-      rows.push(...flattenNodes(node.children, path));
-    }
-  }
-  return rows;
-}
-
-function countGeneratedModulesFromBatch(
-  status: AdminV3IngestBatchStatusResponse | null | undefined,
-): number {
-  if (!status) return 0;
-  const seen = new Set<string>();
-  for (const source of status.sources ?? []) {
-    for (const node of flattenNodes(source.nodes ?? [])) {
-      const summary = node.output_summary;
-      if (!summary || typeof summary !== 'object') continue;
-      const raw = summary.module_id;
-      if (typeof raw !== 'string') continue;
-      const trimmed = raw.trim();
-      if (trimmed) seen.add(trimmed);
-    }
-  }
-  return seen.size;
-}
-
-export function hasSimilarityDetectedInBatch(
-  status: AdminV3IngestBatchStatusResponse | null | undefined,
-): boolean {
-  if (!status) return false;
-  for (const source of status.sources ?? []) {
-    for (const node of flattenNodes(source.nodes ?? [])) {
-      if (node.published_module_merge?.was_merge === true) {
-        return true;
-      }
-      const summary = node.output_summary;
-      if (summary && typeof summary === 'object') {
-        const rec = summary as Record<string, unknown>;
-        if (
-          rec.has_similarity === true ||
-          rec.review_pending === true ||
-          rec.similarity_detected === true ||
-          rec.was_merge === true
-        ) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
+  onGoToDrafts?: (sourceDocumentId: string, documentLabel: string) => void;
+  onGoToNeedsReview?: (sourceDocumentId: string, documentLabel: string) => void;
 }
 
 export const IngestRunStatusPanel = ({
   batchId,
-  sourceTitle,
   isUploading = false,
   uploadLabel = 'Uploading…',
   emptyLabel = 'Upload a file to start ingestion.',
@@ -109,6 +56,9 @@ export const IngestRunStatusPanel = ({
 }: IngestRunStatusPanelProps) => {
   const [pollReady, setPollReady] = useState(initialPollDelayMs === 0);
   const [pollingIntervalMs, setPollingIntervalMs] = useState(0);
+  const [expandedBySourceId, setExpandedBySourceId] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     setPollReady(initialPollDelayMs === 0);
@@ -119,6 +69,10 @@ export const IngestRunStatusPanel = ({
     );
     return () => window.clearTimeout(timer);
   }, [batchId, initialPollDelayMs]);
+
+  useEffect(() => {
+    setExpandedBySourceId({});
+  }, [batchId]);
 
   const {
     data: statusData,
@@ -131,6 +85,8 @@ export const IngestRunStatusPanel = ({
     pollingInterval: pollingIntervalMs,
     refetchOnMountOrArgChange: true,
   });
+  const [retryIngestBatch, { isLoading: isRetrying, error: retryError }] =
+    useRetryIngestBatchMutation();
 
   useEffect(() => {
     if (!batchId || !pollReady) {
@@ -148,16 +104,38 @@ export const IngestRunStatusPanel = ({
 
   const ingestionInProgress = isIngestInProgress(batchId, statusData?.status);
   const ingestionSucceeded = canCompleteIngestFlow(statusData?.status);
-  const batchStatusTone = ingestRunStatusTone(statusData?.status);
+  const batchFailureMessage =
+    extractIngestBatchFailureTooltipMessage(statusData);
   const sources = statusData?.sources ?? [];
-  const similarityDetected = hasSimilarityDetectedInBatch(statusData);
-  const generatedModuleCount = countGeneratedModulesFromBatch(statusData);
+  const canRetryIngestion =
+    ingestRunStatusTone(statusData?.status) === 'failed';
+
+  const handleRetryIngestion = async () => {
+    if (!batchId || !canRetryIngestion || isRetrying) return;
+    try {
+      await retryIngestBatch(batchId).unwrap();
+      await refetch();
+    } catch {
+      // Retry error is rendered from mutation state.
+    }
+  };
+
+  const retryAction = canRetryIngestion ? (
+    <Button
+      variant="secondary"
+      className="h-8 text-xs"
+      disabled={isRetrying}
+      onClick={() => void handleRetryIngestion()}
+    >
+      {isRetrying ? 'Retrying…' : 'Retry'}
+    </Button>
+  ) : null;
 
   const progressLabel = useMemo(() => {
     if (!batchId) return emptyLabel;
     if (!statusData) return 'Loading ingestion status…';
     if (isIngestRunning(statusData.status)) {
-      return 'Ingestion running. Pipeline nodes update below while processing.';
+      return 'Ingestion running. Expand a document to inspect pipeline steps.';
     }
     if (ingestionInProgress) {
       return `Ingestion in progress · ${statusData.status}.`;
@@ -177,57 +155,43 @@ export const IngestRunStatusPanel = ({
 
   return (
     <Card variant="elevated" className="space-y-4 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-semibold text-spice-text-primary">
-              {sourceTitle ? `Status · ${sourceTitle}` : 'Batch status'}
-            </div>
+      <SectionHeader
+        title="Ingestion status"
+        variant="h2"
+        subtitle={progressLabel}
+        titleAccessory={
+          <>
             {statusData?.status ? (
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ingestRunStatusBadgeClassName(
-                  batchStatusTone,
-                )}`}
-              >
-                {formatIngestRunStatusDisplay(statusData.status)}
-              </span>
+              <StatusBadge
+                {...getIngestRunStatusBadgeProps(statusData.status)}
+              />
+            ) : null}
+            {batchFailureMessage ? (
+              <Tooltip
+                label={batchFailureMessage}
+                content={batchFailureMessage}
+              />
             ) : null}
             {isFetching && statusData ? (
-              <span className="text-[10px] text-spice-text-muted">
+              <span className="text-xs font-normal text-spice-text-muted">
                 Updating…
               </span>
             ) : null}
-          </div>
-          <div className="mt-1 text-xs text-spice-text-muted">
-            {progressLabel}
-          </div>
-        </div>
-
-        {ingestionSucceeded ? (
-          <div>
-            {similarityDetected ? (
-              <Button
-                className="h-8 shrink-0 text-xs"
-                onClick={onGoToNeedsReview}
-              >
-                Review Modules ({generatedModuleCount})
-              </Button>
-            ) : generatedModuleCount > 0 ? (
-              <Button className="h-8 shrink-0 text-xs" onClick={onGoToDrafts}>
-                Open Modules
-              </Button>
-            ) : null}
-          </div>
-        ) : successAction ? (
-          <div>{successAction}</div>
-        ) : null}
-      </div>
+          </>
+        }
+        action={
+          retryAction || (!ingestionSucceeded && successAction) ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {retryAction}
+              {!ingestionSucceeded ? successAction : null}
+            </div>
+          ) : undefined
+        }
+      />
 
       {error ? (
         <div className="space-y-2">
-          <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-            {formatRtkQueryError(error)}
-          </div>
+          <Banner tone="critical">{formatRtkQueryError(error)}</Banner>
           <Button
             variant="secondary"
             className="h-8 text-xs"
@@ -236,6 +200,10 @@ export const IngestRunStatusPanel = ({
             Retry status
           </Button>
         </div>
+      ) : null}
+
+      {retryError ? (
+        <Banner tone="critical">{formatRtkQueryError(retryError)}</Banner>
       ) : null}
 
       <Loader
@@ -247,94 +215,31 @@ export const IngestRunStatusPanel = ({
       />
 
       {statusData ? (
-        <div className="space-y-4">
-          <Card variant="bordered" className="space-y-1 p-3">
-            <div className="text-[11px] font-semibold tracking-wider text-spice-text-muted">
-              Timeline
+        <div className="space-y-3">
+          <CardTitle as="h3">Documents</CardTitle>
+          {sources.length ? (
+            sources.map((source) => (
+              <IngestDocumentProgressCard
+                key={source.source_document_id}
+                source={source}
+                expanded={Boolean(
+                  expandedBySourceId[source.source_document_id],
+                )}
+                onExpandedChange={(nextExpanded) => {
+                  setExpandedBySourceId((current) => ({
+                    ...current,
+                    [source.source_document_id]: nextExpanded,
+                  }));
+                }}
+                onGoToDrafts={onGoToDrafts}
+                onGoToNeedsReview={onGoToNeedsReview}
+              />
+            ))
+          ) : (
+            <div className="text-xs text-spice-text-muted">
+              No sources in this batch yet.
             </div>
-            <div className="text-xs text-spice-text-medium">
-              {statusData.created_at
-                ? `Created: ${formatDisplayDateTime(statusData.created_at)}`
-                : '—'}
-              <br />
-              {statusData.completed_at
-                ? `Completed: ${formatDisplayDateTime(statusData.completed_at)}`
-                : isIngestRunning(statusData.status)
-                  ? 'Running'
-                  : 'In progress'}
-            </div>
-          </Card>
-
-          <div className="space-y-3">
-            <div className="text-sm font-semibold text-spice-text-primary">
-              Sources
-            </div>
-            {sources.length ? (
-              sources.map((source) => {
-                const nodes = flattenNodes(source.nodes ?? []);
-                return (
-                  <Card
-                    key={source.source_document_id}
-                    variant="bordered"
-                    className="space-y-3 p-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-semibold text-spice-text-primary">
-                          {source.document_label}
-                        </div>
-                        <div className="mt-0.5 font-mono text-[11px] text-spice-text-muted">
-                          {source.source_document_id}
-                        </div>
-                      </div>
-                      <IngestFlowStatusLabel
-                        status={source.status}
-                        error={source.error}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      {nodes.length ? (
-                        nodes.map((node) => (
-                          <div
-                            key={node.path}
-                            className="rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-sm font-semibold text-spice-text-primary">
-                                  {node.title || node.key}
-                                </span>
-                              </div>
-                              <IngestFlowStatusLabel
-                                status={node.status}
-                                error={node.error}
-                              />
-                            </div>
-                            <div className="mt-1 text-xs text-spice-text-muted">
-                              {node.started_at
-                                ? `Started: ${formatDisplayDateTime(node.started_at)}`
-                                : '—'}
-                              {node.completed_at
-                                ? ` · Completed: ${formatDisplayDateTime(node.completed_at)}`
-                                : ''}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-xs text-spice-text-muted">
-                          No nodes yet.
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })
-            ) : (
-              <div className="text-xs text-spice-text-muted">
-                No sources in this batch yet.
-              </div>
-            )}
-          </div>
+          )}
         </div>
       ) : null}
     </Card>

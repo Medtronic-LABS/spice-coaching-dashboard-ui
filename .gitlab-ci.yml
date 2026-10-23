@@ -10,7 +10,7 @@
 #   deploy    -> pull + restart the dashboard     (on-box runner: medtronics-dev)
 #                service in the coaching-platform compose (port 18080)
 #
-# Registry: $CI_REGISTRY_IMAGE = registry.beehyv.com/beehyv/medtronics/micro-learning-analytics-dashboard
+# Registry: $CI_REGISTRY_IMAGE (set by the CI environment)
 #
 # DEPLOY TRIGGER: this repo's active integration branch is `feat/module-creation`
 # (the deployed one). Its `dev` branch is stale. To standardize on `dev`, change

@@ -149,7 +149,7 @@ Theme blue for headers comes in Phase 3 (`MobilePreviewFrame`).
 ## How to verify
 
 ```bash
-cd /home/beehyv/Projects/Medtronics/micro-learning-analytics-dashboard
+cd <dashboard-repo>
 npm run test -- src/features/module-library/components/module-preview/LearnerRichCardBody.test.tsx
 npm run typecheck
 ```

@@ -8,6 +8,7 @@ import {
 import {
   hydrateFromServer,
   markSaved,
+  selectAdminModuleBaseline,
   selectAdminModuleReviewIsDirty,
   selectAdminModuleWorking,
   setVersionConflict,
@@ -23,6 +24,7 @@ export function useAdminModuleReviewEditor(moduleId: string) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const working = useAppSelector(selectAdminModuleWorking);
+  const baseline = useAppSelector(selectAdminModuleBaseline);
   const isDirty = useAppSelector(selectAdminModuleReviewIsDirty);
   const saveInFlightRef = useRef<Promise<AdminModuleDetailResponse> | null>(
     null,
@@ -119,6 +121,7 @@ export function useAdminModuleReviewEditor(moduleId: string) {
 
   return {
     working,
+    baseline,
     isDirty,
     isSaving,
     save,

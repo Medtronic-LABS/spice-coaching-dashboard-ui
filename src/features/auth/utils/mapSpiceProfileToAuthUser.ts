@@ -1,11 +1,11 @@
 import type { AuthUser } from '@/features/auth/types/auth.types';
-import { COACHING_SUITE_ACCESS } from '@/features/auth/constants/spiceSuiteAccess';
+import { getCoachingSuiteAccess } from '@/features/auth/constants/spiceSuiteAccess';
 import type { SpiceUserProfileEntity } from '@/features/auth/types/spiceUserProfile.types';
 
 function resolveProfileRole(entity: SpiceUserProfileEntity): string {
+  const coachingSuite = getCoachingSuiteAccess();
   const coachingRole = entity.roles.find(
-    (role) =>
-      role.suiteAccessName.trim().toLowerCase() === COACHING_SUITE_ACCESS,
+    (role) => role.suiteAccessName.trim().toLowerCase() === coachingSuite,
   );
   if (coachingRole?.name.trim()) return coachingRole.name;
 

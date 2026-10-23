@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { SpiceUserProfileEntity } from '@/features/auth/types/spiceUserProfile.types';
 import { mapSpiceProfileToAuthUser } from './mapSpiceProfileToAuthUser';
 
@@ -36,6 +36,7 @@ const sampleEntity: SpiceUserProfileEntity = {
 
 describe('mapSpiceProfileToAuthUser', () => {
   it('maps profile entity fields to the auth session shape', () => {
+    vi.stubEnv('VITE_COACHING_SUITE_ACCESS', 'coaching');
     expect(mapSpiceProfileToAuthUser(sampleEntity)).toEqual({
       tenantId: '2',
       userId: '1',
@@ -44,9 +45,11 @@ describe('mapSpiceProfileToAuthUser', () => {
       lastName: 'user',
       role: 'SUPER_USER',
     });
+    vi.unstubAllEnvs();
   });
 
   it('prefers the coaching role when present', () => {
+    vi.stubEnv('VITE_COACHING_SUITE_ACCESS', 'coaching');
     expect(
       mapSpiceProfileToAuthUser({
         ...sampleEntity,
@@ -66,5 +69,6 @@ describe('mapSpiceProfileToAuthUser', () => {
         ],
       }).role,
     ).toBe('COACHING_ADMIN');
+    vi.unstubAllEnvs();
   });
 });

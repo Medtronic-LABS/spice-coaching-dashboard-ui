@@ -82,7 +82,7 @@ Each test should note:
 ## How to run
 
 ```bash
-cd "/home/beehyv/Projects/Medtronics/android work/coaching-platform"
+cd <coaching-platform-repo>
 # Use project’s usual test invocation, e.g.:
 pytest tests/api/test_admin_modules.py -k "card_array_order or quiz_reorder" -v
 ```

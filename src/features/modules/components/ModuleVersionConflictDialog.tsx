@@ -1,6 +1,7 @@
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Card, ModalTitle } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
+import { ModalActionBar } from '@/components/ui/ModalActionBar';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
 
 export interface ModuleVersionConflictDialogProps {
   open: boolean;
@@ -29,20 +30,18 @@ export const ModuleVersionConflictDialog = ({
       open={open}
       labelledBy="module-version-conflict-title"
       describedBy="module-version-conflict-description"
+      contentClassName="max-w-md"
       onClose={isReloading ? undefined : onDismiss}
-      zIndexClassName="z-[320]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalTop}
     >
       <Card
         variant="elevated"
-        className="w-full max-w-md space-y-4 border-spice-border p-6 shadow-lg"
+        className="w-full border-spice-border p-0 shadow-lg"
       >
-        <div className="space-y-2">
-          <h2
-            id="module-version-conflict-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
+        <div className="space-y-2 p-6 pb-4 pr-12">
+          <ModalTitle id="module-version-conflict-title">
             Module has been modified
-          </h2>
+          </ModalTitle>
           <p
             id="module-version-conflict-description"
             className="text-sm text-spice-text-muted"
@@ -50,18 +49,14 @@ export const ModuleVersionConflictDialog = ({
             {description}
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            variant="secondary"
-            onClick={onDismiss}
-            disabled={isReloading}
-          >
-            Stay
-          </Button>
-          <Button onClick={onReload} disabled={isReloading}>
-            {isReloading ? 'Reloading…' : 'Reload'}
-          </Button>
-        </div>
+        <ModalActionBar
+          cancelLabel="Stay"
+          confirmLabel="Reload"
+          confirmingLabel="Reloading…"
+          isConfirming={isReloading}
+          onCancel={onDismiss}
+          onConfirm={onReload}
+        />
       </Card>
     </Modal>
   );

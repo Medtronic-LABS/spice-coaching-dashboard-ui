@@ -1,9 +1,11 @@
 import { useEffect, useId, useState } from 'react';
+import { FormLabel, LimitedTextInput } from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
+import { cn } from '@/utils';
 
 const FIELD_CLASS =
   'h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm';
-const SELECT_CLASS = `select-arrow ${FIELD_CLASS}`;
 
 const OTHER_VALUE = '__other__';
 
@@ -12,9 +14,13 @@ export interface ModuleTaxonomyFieldProps {
   value: string;
   options: string[];
   placeholder?: string;
+  customOptionLabel?: string;
   disabled?: boolean;
   required?: boolean;
   emptyOptionLabel?: string;
+  hideLabel?: boolean;
+  showCounter?: boolean;
+  inputClassName?: string;
   onChange: (value: string) => void;
   id?: string;
 }
@@ -28,9 +34,13 @@ export const ModuleTaxonomyField = ({
   value,
   options,
   placeholder,
+  customOptionLabel,
   disabled = false,
   required = false,
   emptyOptionLabel,
+  hideLabel = false,
+  showCounter = true,
+  inputClassName,
   onChange,
   id: idProp,
 }: ModuleTaxonomyFieldProps) => {
@@ -40,44 +50,47 @@ export const ModuleTaxonomyField = ({
   const [useCustom, setUseCustom] = useState(false);
   const hasExistingOptions = options.length > 0;
   const inputOnly = !disabled && !hasExistingOptions;
+  const fieldClass = cn(FIELD_CLASS, inputClassName);
+  const selectClass = cn('select-arrow', fieldClass);
 
   useEffect(() => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    if (options.includes(trimmed)) {
-      setUseCustom(false);
+    // Keep custom-entry until the user picks an existing option.
+    if (useCustom) {
       return;
     }
-    setUseCustom(true);
-  }, [value, options]);
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    if (!options.includes(trimmed)) {
+      setUseCustom(true);
+    }
+  }, [options, useCustom, value]);
 
   const selectValue = useCustom ? OTHER_VALUE : value;
-  const labelContent = (
-    <span className="text-xs font-semibold text-spice-text-primary">
-      {label}
-      {required ? (
-        <span className="text-spice-semantic-error" aria-hidden="true">
-          {' '}
-          *
-        </span>
-      ) : null}
-    </span>
+  const labelContent = hideLabel ? null : (
+    <FormLabel required={required}>{label}</FormLabel>
   );
 
   if (inputOnly) {
     return (
-      <label className="block space-y-1" htmlFor={customInputId}>
-        {labelContent}
-        <input
+      <div className="block space-y-1">
+        {labelContent ? (
+          <label className="block" htmlFor={customInputId}>
+            {labelContent}
+          </label>
+        ) : null}
+        <LimitedTextInput
           id={customInputId}
-          className={FIELD_CLASS}
           value={value}
           disabled={disabled}
           required={required}
+          maxLength={FIELD_LIMITS.taxonomy}
+          showCounter={showCounter}
           placeholder={placeholder ?? `New ${label.toLowerCase()}`}
-          onChange={(event) => onChange(event.target.value)}
+          aria-label={hideLabel ? label : undefined}
+          inputClassName={fieldClass}
+          onChange={onChange}
         />
-      </label>
+      </div>
     );
   }
 
@@ -87,10 +100,11 @@ export const ModuleTaxonomyField = ({
         {labelContent}
         <select
           id={fieldId}
-          className={SELECT_CLASS}
+          className={selectClass}
           value={selectValue}
           disabled={disabled}
           required={required}
+          aria-label={hideLabel ? label : undefined}
           onChange={(event) => {
             const nextValue = event.target.value;
             if (nextValue === OTHER_VALUE) {
@@ -110,19 +124,23 @@ export const ModuleTaxonomyField = ({
               {formatModuleDomainLabel(option)}
             </option>
           ))}
-          <option value={OTHER_VALUE}>Enter new…</option>
+          <option value={OTHER_VALUE}>
+            {customOptionLabel ?? 'Enter new…'}
+          </option>
         </select>
       </label>
       {useCustom ? (
-        <input
+        <LimitedTextInput
           id={customInputId}
-          className={FIELD_CLASS}
           value={value}
           disabled={disabled}
           required={required}
+          maxLength={FIELD_LIMITS.taxonomy}
+          showCounter={showCounter}
           placeholder={placeholder ?? `New ${label.toLowerCase()}`}
           aria-label={`New ${label.toLowerCase()}`}
-          onChange={(event) => onChange(event.target.value)}
+          inputClassName={fieldClass}
+          onChange={onChange}
         />
       ) : null}
     </div>

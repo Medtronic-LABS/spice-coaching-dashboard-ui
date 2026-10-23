@@ -1,15 +1,120 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Loader } from '@/components/ui';
-import { paths } from '@/constants/routes';
+import { ArrowRightIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
+import {
+  Button,
+  Card,
+  FormLabel,
+  ImagePicker,
+  LimitedTextInput,
+  LimitedTextarea,
+  Loader,
+  SectionHeader,
+  Select,
+  TruncatedText,
+} from '@/components/ui';
+import { adminModuleReviewPaths } from '@/constants/routes';
+import {
+  FIELD_LIMITS,
+  fieldLimitExceededMessage,
+} from '@/constants/fieldLimits';
+import { THUMBNAIL_ACCEPT_SIZE_HINT } from '@/constants/uploadLimits';
+import { INGEST_FORM_DEFAULTS } from '@/features/ingest/constants/ingestFormDefaults';
+import {
+  INGEST_CONTENT_DOMAIN_OPTIONS,
+  formatModuleContentDomainLabel,
+} from '@/features/ingest/constants/ingestFormOptions';
+import { useFetchModuleDomainOptionsQuery } from '@/features/modules/api/adminModulesApi';
+import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
+import { ChatbotFaqsOnlyField } from '@/features/modules/components/ChatbotFaqsOnlyField';
+import { ModuleTaxonomyField } from '@/features/modules/components/ModuleTaxonomyField';
+import { CREATE_MODULE_FORM_PLACEHOLDERS } from '@/features/modules/constants/createModuleFormDefaults';
+import { useAdminModuleDraftSaveFeedback } from '@/features/modules/hooks/useAdminModuleDraftSaveFeedback';
 import { useAdminModuleReviewEditor } from '@/features/modules/hooks/useAdminModuleReviewEditor';
 import { useAdminModuleReviewReadonly } from '@/features/modules/hooks/useAdminModuleReviewReadonly';
 import { useAdminModuleThumbnailUpload } from '@/features/modules/hooks/useAdminModuleThumbnailUpload';
 import { useModulePreview } from '@/features/modules/hooks/useModulePreview';
-import { updateDetails } from '@/features/modules/store/adminModuleReviewSlice';
+import {
+  markReviewEditorFocused,
+  updateDetails,
+} from '@/features/modules/store/adminModuleReviewSlice';
+import { navigateToAdminModuleDraftIssue } from '@/features/modules/utils/adminModuleDraftIssueNavigation';
+import {
+  MAX_ESTIMATED_MINUTES_DIGITS,
+  formatEstimatedMinutesFieldValue,
+  getEstimatedMinutesValidationError,
+  parseEstimatedMinutesInput,
+} from '@/features/modules/utils/estimatedMinutesValidation';
+import { formatModuleDomainLabel } from '@/features/modules/utils/moduleListFilters';
+import { normalizeModuleTaxonomyLabel } from '@/features/modules/utils/normalizeModuleTaxonomyLabel';
+import type { AdminModuleDraftIssue } from '@/features/modules/utils/validateAdminModuleDraftContent';
 import { useAppDispatch } from '@/store/hooks';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
 import { patchLocaleField, readLocaleText } from '@/types/localized';
+import { cn } from '@/utils';
+import { IMAGE_FILE_INPUT_ACCEPT } from '@/utils/acceptedImageFile';
+import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+
+const COMPACT_CONTROL_CLASS =
+  'h-8 w-full min-w-0 truncate rounded-lg border border-spice-border bg-spice-bg-surface px-2 text-xs font-semibold text-spice-text-primary';
+const SUMMARY_VALUE_MAX_CLASS = 'max-w-[13.5rem]';
+
+function SummaryFitControl({
+  sizerText,
+  selectArrow = false,
+  children,
+}: {
+  sizerText: string;
+  selectArrow?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn('w-fit min-w-0 overflow-hidden', SUMMARY_VALUE_MAX_CLASS)}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'invisible block h-0 w-max max-w-full overflow-hidden whitespace-nowrap text-xs font-semibold',
+          selectArrow ? 'pl-2 pr-10' : 'px-2',
+        )}
+      >
+        {sizerText.trim() ? sizerText : '\u00a0'}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function SummaryReadonlyValue({ text }: { text: string }) {
+  return (
+    <div className={cn('w-fit min-w-0', SUMMARY_VALUE_MAX_CLASS)}>
+      <TruncatedText
+        text={text}
+        className="font-semibold text-spice-text-primary"
+      />
+    </div>
+  );
+}
+
+function SummaryFieldLabel({
+  label,
+  editable,
+}: {
+  label: string;
+  editable: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-medium text-spice-text-muted">
+      {label}
+      {editable ? (
+        <PencilIcon
+          className="h-3 w-3 shrink-0 text-spice-brand-primary"
+          title={`Edit ${label.toLowerCase()}`}
+        />
+      ) : null}
+    </span>
+  );
+}
 
 export const AdminModuleDetailsStep = () => {
   const navigate = useNavigate();
@@ -17,8 +122,8 @@ export const AdminModuleDetailsStep = () => {
   const { moduleId = '' } = useParams<{ moduleId: string }>();
   const {
     working,
+    baseline,
     isLoading,
-    isFetching,
     error,
     refetch,
     isSaving,
@@ -26,21 +131,49 @@ export const AdminModuleDetailsStep = () => {
     formatError,
   } = useAdminModuleReviewEditor(moduleId);
 
-  const [actionError, setActionError] = useState('');
   const isReadonly = useAdminModuleReviewReadonly();
+  const { data: catalogDomainOptions = [] } = useFetchModuleDomainOptionsQuery(
+    {},
+  );
   const { registerEditorContext } = useModulePreview();
+  const {
+    draftIssues,
+    draftValidationOpen,
+    clearSaveFeedback,
+    captureSaveError,
+    closeDraftValidation,
+  } = useAdminModuleDraftSaveFeedback(formatError);
+
+  const reviewDraftIssue = useCallback(
+    (issue: AdminModuleDraftIssue) => {
+      navigateToAdminModuleDraftIssue({
+        navigate,
+        moduleId,
+        issue,
+        onBeforeNavigate: closeDraftValidation,
+      });
+    },
+    [closeDraftValidation, moduleId, navigate],
+  );
+
+  const handleEditorFocus = useCallback(() => {
+    dispatch(markReviewEditorFocused());
+  }, [dispatch]);
 
   useEffect(() => {
     registerEditorContext({ phase: 'card', index: 0 });
   }, [registerEditorContext]);
 
-  const {
-    fileInputRef,
-    uploadError,
-    isUploading,
-    openFilePicker,
-    handleImageUpload,
-  } = useAdminModuleThumbnailUpload(save);
+  const { uploadError, isUploading, uploadThumbnailFile } =
+    useAdminModuleThumbnailUpload(save);
+
+  const domainOptions = useMemo(() => {
+    const savedDomain = baseline?.domain?.trim();
+    if (!savedDomain || catalogDomainOptions.includes(savedDomain)) {
+      return catalogDomainOptions;
+    }
+    return [savedDomain, ...catalogDomainOptions];
+  }, [baseline?.domain, catalogDomainOptions]);
 
   if (isLoading && !working) {
     return <Loader label="Loading module…" />;
@@ -59,36 +192,109 @@ export const AdminModuleDetailsStep = () => {
     );
   }
 
-  const busy = isFetching || isSaving || isUploading;
-  const busyLabel = isSaving
-    ? 'Saving module…'
-    : isUploading
-      ? 'Uploading image…'
-      : 'Refreshing module…';
+  const busy = isSaving || isUploading;
+  const busyLabel = isUploading ? 'Uploading image…' : 'Saving module…';
   const qualityFlagLabels: string[] = working.quality_flags?.flags ?? [];
+  const canEditMetadata = !isReadonly;
+  const normalizedDomain = normalizeModuleTaxonomyLabel(working.domain);
+  const domainError = !normalizedDomain
+    ? 'Domain is required.'
+    : working.domain.trim().length > FIELD_LIMITS.taxonomy
+      ? fieldLimitExceededMessage('Domain', FIELD_LIMITS.taxonomy)
+      : null;
+  const estimatedMinutesError = getEstimatedMinutesValidationError(
+    working.estimated_minutes,
+  );
+  const descriptionBnValue = working.description?.bn ?? '';
+  const descriptionError =
+    !isReadonly && descriptionBnValue.length > FIELD_LIMITS.description
+      ? fieldLimitExceededMessage('Description', FIELD_LIMITS.description)
+      : null;
+  const metadataInvalid = Boolean(
+    domainError || estimatedMinutesError || descriptionError,
+  );
+  const domainDisplay = formatModuleDomainLabel(working.domain) || '—';
+  const domainTypeDisplay =
+    formatModuleContentDomainLabel(working.content_domain) || '—';
+  const estimatedMinutesDisplay = `${working.estimated_minutes} ${
+    working.estimated_minutes === 1 ? 'minute' : 'minutes'
+  }`;
 
   return (
     <section className="space-y-4">
       <Loader open={busy} label={busyLabel} />
-      {actionError ? (
-        <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-          {actionError}
-        </div>
-      ) : null}
+      <AdminModuleDraftValidationDialog
+        open={draftValidationOpen}
+        issues={draftIssues}
+        onClose={closeDraftValidation}
+        onReviewIssue={reviewDraftIssue}
+      />
 
       <Card variant="elevated" className="space-y-4 p-4">
-        <div>
-          <div className="text-lg font-semibold text-spice-text-primary">
-            Module details
-          </div>
-          <div className="mt-1 text-xs text-spice-text-muted">
-            {working.domain} · {working.module_type} · v{working.version} ·{' '}
-            {working.lifecycle_status}
-          </div>
-        </div>
+        <SectionHeader
+          title="Module details"
+          subtitle={`${formatModuleDomainLabel(working.domain)} · ${working.module_type} · v${working.version} · ${working.lifecycle_status}`}
+        />
 
         <div className="flex flex-col md:flex-row gap-4 items-stretch">
           <div className="flex-1 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border text-xs min-h-[180px]">
+            <div className="flex justify-between items-start gap-3 py-1.5 border-b border-spice-border/40">
+              <SummaryFieldLabel label="Domain" editable={canEditMetadata} />
+              {canEditMetadata ? (
+                <div className="w-full min-w-0 max-w-[13.5rem]">
+                  <ModuleTaxonomyField
+                    id="admin-module-domain"
+                    label="Domain"
+                    hideLabel
+                    value={working.domain}
+                    options={domainOptions}
+                    placeholder={CREATE_MODULE_FORM_PLACEHOLDERS.domain}
+                    disabled={busy}
+                    required
+                    inputClassName={COMPACT_CONTROL_CLASS}
+                    onChange={(domain) => dispatch(updateDetails({ domain }))}
+                  />
+                  {domainError ? (
+                    <p className="mt-1 text-xs text-spice-semantic-error">
+                      {domainError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <SummaryReadonlyValue text={domainDisplay} />
+              )}
+            </div>
+            <div className="flex justify-between items-center gap-3 py-1.5 border-b border-spice-border/40">
+              <SummaryFieldLabel
+                label="Domain Type"
+                editable={canEditMetadata}
+              />
+              {canEditMetadata ? (
+                <SummaryFitControl sizerText={domainTypeDisplay} selectArrow>
+                  <Select
+                    className="w-full min-w-0"
+                    triggerClassName="h-8 truncate rounded-lg border-spice-border bg-spice-bg-surface px-2 text-xs font-semibold"
+                    options={INGEST_CONTENT_DOMAIN_OPTIONS}
+                    value={
+                      working.content_domain ??
+                      INGEST_FORM_DEFAULTS.content_domain
+                    }
+                    disabled={busy}
+                    aria-label="Domain type"
+                    onFocus={handleEditorFocus}
+                    onChange={(value) =>
+                      dispatch(
+                        updateDetails({
+                          content_domain: value,
+                        }),
+                      )
+                    }
+                  />
+                </SummaryFitControl>
+              ) : (
+                <SummaryReadonlyValue text={domainTypeDisplay} />
+              )}
+            </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
               <span className="text-spice-text-muted font-medium">Status</span>
               <span className="font-semibold capitalize text-spice-text-primary">
@@ -101,14 +307,57 @@ export const AdminModuleDetailsStep = () => {
                 {working.card_count}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
-              <span className="text-spice-text-muted font-medium">
-                Estimated minutes
-              </span>
-              <span className="font-semibold text-spice-text-primary">
-                {working.estimated_minutes}{' '}
-                {working.estimated_minutes === 1 ? 'minute' : 'minutes'}
-              </span>
+            <div className="flex justify-between items-start gap-3 py-1.5 border-b border-spice-border/40">
+              <SummaryFieldLabel
+                label="Estimated minutes"
+                editable={canEditMetadata}
+              />
+              {canEditMetadata ? (
+                <div className="min-w-0">
+                  <SummaryFitControl
+                    sizerText={formatEstimatedMinutesFieldValue(
+                      working.estimated_minutes,
+                    )}
+                  >
+                    <input
+                      id="admin-module-estimated-minutes"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={MAX_ESTIMATED_MINUTES_DIGITS}
+                      autoComplete="off"
+                      aria-label="Estimated minutes"
+                      aria-invalid={Boolean(estimatedMinutesError)}
+                      onFocus={handleEditorFocus}
+                      className={cn(
+                        COMPACT_CONTROL_CLASS,
+                        estimatedMinutesError &&
+                          'border-spice-semantic-error ring-1 ring-spice-semantic-error',
+                      )}
+                      value={formatEstimatedMinutesFieldValue(
+                        working.estimated_minutes,
+                      )}
+                      disabled={busy}
+                      onChange={(e) =>
+                        dispatch(
+                          updateDetails({
+                            estimated_minutes: parseEstimatedMinutesInput(
+                              e.target.value,
+                            ),
+                          }),
+                        )
+                      }
+                    />
+                  </SummaryFitControl>
+                  {estimatedMinutesError ? (
+                    <p className="mt-1 max-w-[13.5rem] text-xs text-spice-semantic-error">
+                      {estimatedMinutesError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <SummaryReadonlyValue text={estimatedMinutesDisplay} />
+              )}
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-spice-border/40">
               <span className="text-spice-text-muted font-medium">
@@ -139,85 +388,48 @@ export const AdminModuleDetailsStep = () => {
 
           <div className="w-full md:w-[300px] h-[250px] flex-shrink-0 flex flex-col justify-between rounded-xl bg-spice-bg-surface p-4 ring-1 ring-spice-border">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-spice-text-muted">
-                  Thumbnail
-                </div>
-                {working.thumbnail_presigned_url && !isReadonly && (
-                  <button
-                    type="button"
-                    onClick={openFilePicker}
-                    disabled={busy}
-                    className="p-1 rounded-md text-spice-text-muted hover:text-spice-text-primary hover:bg-spice-bg-tint transition-colors"
-                    title="Change thumbnail"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </button>
-                )}
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-spice-text-muted">
+                Thumbnail
               </div>
 
-              {working.thumbnail_presigned_url ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
-                  <img
-                    src={working.thumbnail_presigned_url}
-                    alt="Module thumbnail"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={busy || isReadonly}
-                  onClick={openFilePicker}
-                  className="flex h-[180px] w-full flex-col items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint hover:bg-spice-border p-2 text-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed group"
-                >
-                  <svg
-                    className="mx-auto h-6 w-6 text-spice-text-muted opacity-60 group-hover:opacity-100 transition-opacity"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 4v16m8-8H4"
+              {isReadonly ? (
+                working.thumbnail_presigned_url ? (
+                  <div className="relative flex h-[180px] w-full items-center justify-center overflow-hidden rounded-lg border border-spice-border bg-spice-bg-tint">
+                    <img
+                      src={working.thumbnail_presigned_url}
+                      alt="Module thumbnail"
+                      draggable={false}
+                      className="max-h-full max-w-full object-contain"
                     />
-                  </svg>
-                  <span className="mt-1 block text-[10px] font-medium text-spice-text-muted">
-                    Add thumbnail
-                  </span>
-                </button>
+                  </div>
+                ) : (
+                  <div className="flex h-[180px] w-full items-center justify-center rounded-lg border border-dashed border-spice-border bg-spice-bg-tint text-xs text-spice-text-muted">
+                    No thumbnail
+                  </div>
+                )
+              ) : (
+                <ImagePicker
+                  variant="tile"
+                  value={working.thumbnail_presigned_url ?? null}
+                  onChange={(file) => {
+                    if (file) void uploadThumbnailFile(file);
+                  }}
+                  disabled={busy}
+                  label="Add thumbnail"
+                  labelWhenSelected="Change thumbnail"
+                  hint={THUMBNAIL_ACCEPT_SIZE_HINT}
+                  previewAlt="Module thumbnail"
+                  previewObjectFit="contain"
+                  accept={IMAGE_FILE_INPUT_ACCEPT}
+                />
               )}
             </div>
 
-            {!isReadonly && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png, image/jpeg, image/jpg, image/webp"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-            )}
-
-            {uploadError && (
-              <div className="mt-1 text-[10px] text-spice-semantic-error">
+            {uploadError ? (
+              <div className="mt-1 text-xs text-spice-semantic-error">
                 {uploadError}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -230,7 +442,7 @@ export const AdminModuleDetailsStep = () => {
               {qualityFlagLabels.map((flag) => (
                 <span
                   key={flag}
-                  className="rounded-full bg-spice-bg-tint px-2 py-1 text-[11px] font-semibold text-spice-text-medium ring-1 ring-spice-border"
+                  className="rounded-full bg-spice-bg-tint px-2 py-1 text-xs font-semibold text-spice-text-medium ring-1 ring-spice-border"
                 >
                   {flag}
                 </span>
@@ -241,23 +453,21 @@ export const AdminModuleDetailsStep = () => {
 
         <div className="grid gap-3">
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">Title (BN)</span>
-            <input
-              className="h-10 w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 text-sm"
+            <FormLabel>Title (BN)</FormLabel>
+            <LimitedTextInput
+              id="admin-module-title-bn"
               value={
                 isReadonly
                   ? readLocaleText(working.title, 'bn')
                   : (working.title.bn ?? '')
               }
+              maxLength={FIELD_LIMITS.moduleTitle}
               disabled={busy || isReadonly}
-              onChange={(e) =>
+              onFocus={handleEditorFocus}
+              onChange={(value) =>
                 dispatch(
                   updateDetails({
-                    title: patchLocaleField(
-                      working.title,
-                      'bn',
-                      e.target.value,
-                    ),
+                    title: patchLocaleField(working.title, 'bn', value),
                   }),
                 )
               }
@@ -267,63 +477,84 @@ export const AdminModuleDetailsStep = () => {
 
         <div className="grid gap-3">
           <label className="block space-y-1">
-            <span className="text-xs text-spice-text-muted">
-              Description (BN)
-            </span>
-            <textarea
-              className="min-h-[100px] w-full rounded-lg border border-spice-border bg-spice-bg-surface px-3 py-2 text-sm"
+            <FormLabel>Description (BN)</FormLabel>
+            <LimitedTextarea
+              id="admin-module-description-bn"
               value={
                 isReadonly
                   ? readLocaleText(working.description, 'bn')
-                  : (working.description?.bn ?? '')
+                  : descriptionBnValue
               }
+              maxLength={FIELD_LIMITS.description}
               disabled={busy || isReadonly}
-              onChange={(e) =>
+              onFocus={handleEditorFocus}
+              textareaClassName={cn(
+                'min-h-[100px] border-spice-border',
+                descriptionError &&
+                  'border-spice-semantic-error ring-1 ring-spice-semantic-error',
+              )}
+              onChange={(value) =>
                 dispatch(
                   updateDetails({
                     description: patchLocaleField(
                       working.description ?? {},
                       'bn',
-                      e.target.value,
+                      value,
                     ),
                   }),
                 )
               }
             />
+            {descriptionError ? (
+              <p className="text-xs text-spice-semantic-error">
+                {descriptionError}
+              </p>
+            ) : null}
           </label>
         </div>
+
+        <ChatbotFaqsOnlyField
+          checked={Boolean(working.chatbot_faqs_only)}
+          disabled={busy || isReadonly}
+          onChange={(checked) =>
+            dispatch(
+              updateDetails({
+                chatbot_faqs_only: checked,
+              }),
+            )
+          }
+        />
 
         <div className="flex justify-end gap-2">
           {!isReadonly ? (
             <Button
               variant="secondary"
-              className="h-9 text-xs"
-              disabled={busy || isReadonly}
+              className="inline-flex h-9 items-center gap-1.5 text-xs"
+              disabled={busy || metadataInvalid}
               onClick={async () => {
-                setActionError('');
+                clearSaveFeedback();
+                if (metadataInvalid) return;
                 try {
                   await save();
                 } catch (err) {
-                  setActionError(formatError(err));
+                  captureSaveError(err);
                 }
               }}
             >
-              {isSaving ? 'Saving…' : 'Save'}
+              <SaveDraftIcon className="h-3.5 w-3.5" />
+              {isSaving ? 'Saving…' : 'Save draft'}
             </Button>
           ) : null}
           <Button
-            className="h-9 text-xs"
-            disabled={busy}
-            onClick={() =>
-              navigate(
-                paths.adminModuleReviewLessons.replace(
-                  ':moduleId',
-                  encodeURIComponent(working.id),
-                ),
-              )
-            }
+            className="inline-flex h-9 items-center gap-1.5 text-xs"
+            disabled={busy || metadataInvalid}
+            onClick={() => {
+              if (metadataInvalid) return;
+              navigate(adminModuleReviewPaths.lessons(working.id));
+            }}
           >
             Continue to Lessons
+            <ArrowRightIcon className="h-3.5 w-3.5" />
           </Button>
         </div>
       </Card>

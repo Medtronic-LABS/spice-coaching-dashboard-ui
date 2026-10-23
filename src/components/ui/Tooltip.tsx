@@ -44,7 +44,7 @@ export function InfoIcon({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-spice-text-medium/75 bg-white text-[10px] font-bold leading-none text-black',
+        'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-spice-text-medium/75 bg-white text-xs font-bold leading-none text-black',
         className,
       )}
       aria-hidden="true"
@@ -121,6 +121,10 @@ export const Tooltip = ({
         case 'left':
         case 'right':
           return space[side] >= tooltipWidth;
+        default: {
+          const exhaustiveCheck: never = side;
+          return exhaustiveCheck;
+        }
       }
     };
 
@@ -148,10 +152,13 @@ export const Tooltip = ({
         left = rect.right + TOOLTIP_GAP_PX;
         break;
       case 'bottom':
-      default:
         top = rect.bottom + TOOLTIP_GAP_PX;
         left = rect.left;
         break;
+      default: {
+        const exhaustiveCheck: never = chosen;
+        return exhaustiveCheck;
+      }
     }
 
     left = clamp(

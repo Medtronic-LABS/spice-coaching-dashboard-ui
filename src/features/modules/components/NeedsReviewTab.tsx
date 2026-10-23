@@ -1,49 +1,110 @@
-import { Fragment, useState } from 'react';
-import { Button, Card } from '@/components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronIcon, EyeIcon } from '@/assets/icon';
+import { Table, type ColumnDef } from '@/components/common/Table';
+import {
+  Button,
+  ConfirmDialog,
+  QuotedDisplayLabel,
+  StatusBadge,
+  TABLE_STATUS_BADGE_CLASSNAME,
+  Tooltip,
+  TruncatedText,
+  typographyClasses,
+  useSnackbar,
+} from '@/components/ui';
+import {
+  TABLE_CELL_LABEL_MAX_LENGTH,
+  TABLE_TITLE_COLUMN_CLASS,
+} from '@/constants/fieldLimits';
+import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/IngestMatchedModulePreviewModal';
+import { formatEstimatedMinutesDisplay } from '@/features/ingest/utils/formatEstimatedMinutesDisplay';
 import {
   useGetModuleDetailQuery,
   type AdminModuleDetailResponse,
   type AdminModulesListItem,
 } from '@/features/modules/api/adminModulesApi';
-import { IngestMatchedModulePreviewModal } from '@/features/ingest/components/IngestMatchedModulePreviewModal';
-import { ModuleStatusBadge } from '@/features/modules/components/ModuleStatusBadge';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import { getModuleStatusBadgeProps } from '@/features/modules/utils/moduleStatusBadge';
+import {
+  actorNameFromMetadata,
+  formatHierarchyActorName,
+} from '@/features/modules/types/hierarchyActor';
+import {
+  DISPLAY_DATETIME_TABLE_COLUMN_CLASS,
+  formatDisplayDateTime,
+} from '@/utils/formatDisplayDateTime';
+import { cn } from '@/utils';
+import { truncateDisplayText } from '@/utils/truncateDisplayText';
 
 interface NeedsReviewTabProps {
   modules: AdminModulesListItem[];
   isLoading?: boolean;
-  error?: unknown;
   onMerge: (moduleId: string) => Promise<void>;
-  onSkip: (moduleId: string) => Promise<void>;
+  onDiscardNew: (moduleId: string) => Promise<void>;
+  /** Wired when the keep-new API is available. */
+  onKeepNew?: (moduleId: string) => Promise<void>;
   onView?: (moduleId: string) => void;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onSort?: (sortKey: string, sortDir: 'asc' | 'desc') => void;
+  initialExpandedId?: string | null;
+  emptyMessage?: string;
+  queryError?: unknown;
+  queryErrorTitle?: string;
+  onRetryQuery?: () => void;
 }
 
+type NeedsReviewTableRow = {
+  id: string;
+  expand: string;
+  title: string;
+  content: string;
+  status: string;
+  createdAt: string;
+  createdBy: string;
+  actions: string;
+  raw: AdminModulesListItem;
+  existingModule: AdminModulesListItem | AdminModuleDetailResponse | null;
+  existingModuleId: string | null | undefined;
+  mergeSecondaryModuleId: string | null;
+};
+
 export const NEEDS_REVIEW_TOOLTIP_CONTENT = (
-  <div className="space-y-3 p-3.5 text-xs max-w-sm">
-    <div className="border-b border-spice-border pb-3">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-semantic-warningBg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-semantic-warning">
-          Merge
+  <div className="max-w-sm space-y-3.5 p-3.5 text-xs">
+    <div className="border-b border-spice-border/60 pb-3">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-spice-semantic-infoBg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-semantic-info">
+          Keep New
         </span>
       </div>
-      <p className="text-spice-text-medium leading-relaxed text-[11px]">
+      <p className="pl-3 text-xs leading-relaxed text-spice-text-medium">
         Moves the new module to{' '}
-        <strong className="text-spice-text-primary">Drafts</strong>. The
-        existing similar module is{' '}
-        <strong className="text-spice-text-primary">discarded</strong> and moved
-        to the Discarded tab. All assignments, learner progress, quiz attempts,
-        telemetry, and analytics associated with the existing module are
-        permanently removed.
+        <strong className="text-spice-text-primary">Drafts</strong> with no
+        impact on the existing module. The merge preview is discarded.
+      </p>
+    </div>
+    <div className="border-b border-spice-border/60 pb-3">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-text-muted ring-1 ring-spice-border/50">
+          Discard New
+        </span>
+      </div>
+      <p className="pl-3 text-xs leading-relaxed text-spice-text-medium">
+        Discards the new module and merge preview. The existing module remains
+        unchanged.
       </p>
     </div>
     <div>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex items-center rounded-md bg-spice-bg-tint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spice-text-muted">
-          Skip
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-spice-semantic-warningBg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-spice-semantic-warning">
+          Merge
         </span>
       </div>
-      <p className="text-spice-text-medium leading-relaxed text-[11px]">
-        Deletes the new module. The existing module remains unchanged.
+      <p className="pl-3 text-xs leading-relaxed text-spice-text-medium">
+        Moves the merged module to{' '}
+        <strong className="text-spice-text-primary">Drafts</strong> and discards
+        the existing and new modules. All assignments, learner progress, quiz
+        attempts, telemetry, and analytics linked to the existing module are
+        permanently removed.
       </p>
     </div>
   </div>
@@ -57,151 +118,217 @@ function formatModuleTitle(
   return item.title?.bn || item.title?.en || 'Untitled Module';
 }
 
+function getSearchMetadata(
+  item: AdminModulesListItem | AdminModuleDetailResponse,
+): Record<string, unknown> | null | undefined {
+  return 'search_metadata' in item ? item.search_metadata : null;
+}
+
 function getCreatedBy(
   item: AdminModulesListItem | AdminModuleDetailResponse | null | undefined,
 ): string {
   if (!item) return '—';
-  const metadata = (item as AdminModulesListItem).search_metadata as Record<
-    string,
-    unknown
-  > | null;
-  if (
-    metadata &&
-    typeof metadata.created_by === 'string' &&
-    metadata.created_by.trim()
-  ) {
-    return metadata.created_by.trim();
-  }
-  if (
-    metadata &&
-    typeof metadata.author === 'string' &&
-    metadata.author.trim()
-  ) {
-    return metadata.author.trim();
-  }
-  return '—';
+  const metadata = getSearchMetadata(item);
+  return formatHierarchyActorName(
+    item.created_by?.name ??
+      actorNameFromMetadata(metadata, 'created_by') ??
+      actorNameFromMetadata(metadata, 'author'),
+  );
 }
 
 function getPublishedBy(
   item: AdminModulesListItem | AdminModuleDetailResponse | null | undefined,
 ): string {
   if (!item) return '—';
-  const metadata = (item as AdminModulesListItem).search_metadata as Record<
-    string,
-    unknown
-  > | null;
-  if (
-    metadata &&
-    typeof metadata.published_by === 'string' &&
-    metadata.published_by.trim()
-  ) {
-    return metadata.published_by.trim();
+  const publishedName =
+    item.published_by?.name ??
+    actorNameFromMetadata(getSearchMetadata(item), 'published_by');
+  if (publishedName?.trim()) {
+    return formatHierarchyActorName(publishedName);
   }
   return getCreatedBy(item);
 }
 
-function EyeIcon() {
-  return (
-    <svg
-      className="w-3.5 h-3.5 mr-1 inline"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-      />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-      />
-    </svg>
-  );
+function resolveExistingModule(primary: AdminModulesListItem): {
+  existingModule: AdminModulesListItem | AdminModuleDetailResponse | null;
+  existingModuleId: string | null | undefined;
+} {
+  const existingModule =
+    primary.merge_source_module &&
+    typeof primary.merge_source_module === 'object'
+      ? (primary.merge_source_module as
+          | AdminModulesListItem
+          | AdminModuleDetailResponse)
+      : null;
+
+  const metadata = primary.search_metadata;
+  const metadataModuleId =
+    metadata && typeof metadata === 'object'
+      ? (
+          [
+            'matched_module_id',
+            'existing_module_id',
+            'merge_source_module_id',
+          ] as const
+        )
+          .map((key) => metadata[key])
+          .find(
+            (value): value is string =>
+              typeof value === 'string' && value.trim().length > 0,
+          )
+      : undefined;
+
+  const existingModuleId =
+    primary.merge_source_module_id ||
+    (typeof primary.merge_source_module === 'string'
+      ? primary.merge_source_module
+      : null) ||
+    metadataModuleId ||
+    existingModule?.id;
+
+  return { existingModule, existingModuleId };
 }
 
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      className={`h-4 w-4 transition-transform duration-200 text-spice-text-muted ${
-        expanded ? 'rotate-180' : ''
-      }`}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-    </svg>
-  );
+function resolveMergeSecondaryModuleId(
+  primary: AdminModulesListItem,
+  existingModuleId: string | null | undefined,
+): string | null {
+  const metadataId = getSearchMetadata(primary)?.merge_secondary_module_id;
+  const fromMetadata =
+    typeof metadataId === 'string' && metadataId.trim()
+      ? metadataId.trim()
+      : null;
+  const candidate = primary.merge_secondary_module_id?.trim() || fromMetadata;
+  if (!candidate) return null;
+  if (candidate === primary.id) return null;
+  if (existingModuleId && candidate === existingModuleId) return null;
+  return candidate;
+}
+
+function getQuizCount(
+  target: AdminModulesListItem | AdminModuleDetailResponse,
+): number {
+  if ('quiz_count' in target && typeof target.quiz_count === 'number') {
+    return target.quiz_count;
+  }
+  if ('quiz' in target && Array.isArray(target.quiz)) {
+    return target.quiz.length;
+  }
+  return 0;
+}
+
+type ComparisonBadgeVariant = 'warning' | 'info' | 'success';
+
+function comparisonPanelTone(variant: ComparisonBadgeVariant): {
+  borderLeftColor: string;
+  badgeStyle: string;
+} {
+  switch (variant) {
+    case 'warning':
+      return {
+        borderLeftColor: 'border-l-spice-semantic-warning',
+        badgeStyle:
+          'bg-spice-semantic-warningBg text-spice-semantic-warning border-spice-semantic-warning/20',
+      };
+    case 'info':
+      return {
+        borderLeftColor: 'border-l-spice-semantic-info',
+        badgeStyle:
+          'bg-spice-semantic-infoBg text-spice-semantic-info border-spice-semantic-info/20',
+      };
+    case 'success':
+      return {
+        borderLeftColor: 'border-l-spice-semantic-success',
+        badgeStyle:
+          'bg-spice-semantic-successBg text-spice-semantic-success border-spice-semantic-success/20',
+      };
+    default: {
+      const exhaustiveCheck: never = variant;
+      return exhaustiveCheck;
+    }
+  }
 }
 
 function ModuleCardPanel({
   headerLabel,
+  headerInfo,
   badgeText,
   badgeVariant = 'warning',
   children,
 }: {
   headerLabel: string;
+  headerInfo: { label: string; content: string };
   badgeText?: string;
-  badgeVariant?: 'warning' | 'info';
+  badgeVariant?: ComparisonBadgeVariant;
   children: React.ReactNode;
 }) {
-  const borderLeftColor =
-    badgeVariant === 'warning' ? 'border-l-amber-500' : 'border-l-indigo-500';
-  const badgeStyle =
-    badgeVariant === 'warning'
-      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-      : 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20';
+  const { borderLeftColor, badgeStyle } = comparisonPanelTone(badgeVariant);
 
   return (
     <div
-      className={`rounded-xl border border-spice-border border-l-4 ${borderLeftColor} bg-spice-bg-surface overflow-hidden shadow-sm transition-all hover:shadow-md`}
+      className={`min-w-0 max-w-full rounded-xl border border-spice-border border-l-4 ${borderLeftColor} bg-spice-bg-surface overflow-hidden shadow-sm`}
     >
-      <div className="px-4 py-2.5 bg-spice-bg-tint/40 border-b border-spice-border flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-spice-text-muted">
-          {headerLabel}
+      <div className="flex items-center justify-between gap-2 border-b border-spice-border bg-spice-bg-tint/40 px-3 py-2">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-spice-text-muted">
+          <span className="truncate">{headerLabel}</span>
+          <Tooltip
+            label={headerInfo.label}
+            content={headerInfo.content}
+            placement="bottom"
+          />
         </span>
         {badgeText ? (
           <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${badgeStyle}`}
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold tracking-wide uppercase ${badgeStyle}`}
           >
             {badgeText}
           </span>
         ) : null}
       </div>
-      <div className="px-5 py-4 space-y-4">{children}</div>
+      <div className="space-y-3 px-3 py-3">{children}</div>
     </div>
   );
 }
 
-function ExistingModulePanel({
-  existingModule,
-  existingModuleId,
+function ComparisonModulePanel({
+  headerLabel,
+  headerInfo,
+  badgeVariant,
+  module,
+  moduleId,
   onView,
   isOpen,
+  emptyMessage,
+  loadingMessage,
+  fallbackStatus,
 }: {
-  existingModule?: AdminModulesListItem | AdminModuleDetailResponse | null;
-  existingModuleId?: string | null;
+  headerLabel: string;
+  headerInfo: { label: string; content: string };
+  badgeVariant: ComparisonBadgeVariant;
+  module?: AdminModulesListItem | AdminModuleDetailResponse | null;
+  moduleId?: string | null;
   onView: (moduleId: string) => void;
   isOpen: boolean;
+  emptyMessage: string;
+  loadingMessage: string;
+  fallbackStatus?: string;
 }) {
   const { data: fetchedModule, isLoading } = useGetModuleDetailQuery(
-    existingModuleId ?? '',
-    { skip: !isOpen || Boolean(existingModule) || !existingModuleId },
+    moduleId ?? '',
+    { skip: !isOpen || Boolean(module) || !moduleId },
   );
 
-  const target = existingModule ?? fetchedModule;
+  const target = module ?? fetchedModule;
 
   if (isLoading && !target) {
     return (
-      <ModuleCardPanel headerLabel="Existing Module" badgeVariant="info">
-        <div className="flex h-36 items-center justify-center text-xs text-spice-text-muted animate-pulse">
-          Loading existing module details…
+      <ModuleCardPanel
+        headerLabel={headerLabel}
+        headerInfo={headerInfo}
+        badgeVariant={badgeVariant}
+      >
+        <div className="flex h-32 items-center justify-center text-xs text-spice-text-muted animate-pulse">
+          {loadingMessage}
         </div>
       </ModuleCardPanel>
     );
@@ -209,64 +336,74 @@ function ExistingModulePanel({
 
   if (!target) {
     return (
-      <ModuleCardPanel headerLabel="Existing Module" badgeVariant="info">
-        <div className="flex h-36 items-center justify-center text-xs text-spice-text-muted">
-          No matching existing module linkage found.
+      <ModuleCardPanel
+        headerLabel={headerLabel}
+        headerInfo={headerInfo}
+        badgeVariant={badgeVariant}
+      >
+        <div className="flex h-32 items-center justify-center text-center text-xs text-spice-text-muted">
+          {emptyMessage}
         </div>
       </ModuleCardPanel>
     );
   }
 
-  const quizCount =
-    (target as AdminModulesListItem).quiz_count ??
-    ('quiz' in target && Array.isArray(target.quiz) ? target.quiz.length : 0);
-
-  const targetStatus =
-    target.lifecycle_status || (target as { status?: string }).status;
+  const targetStatus = target.lifecycle_status || fallbackStatus;
   const isPublished = targetStatus?.toLowerCase() === 'published';
 
   return (
-    <ModuleCardPanel headerLabel="Existing Module" badgeVariant="info">
-      <div className="flex items-start justify-between gap-3 pb-3 border-b border-spice-border/30 mb-1">
-        <div className="min-w-0 flex-1 py-1">
-          <h4 className="text-sm font-semibold leading-snug text-spice-text-primary">
+    <ModuleCardPanel
+      headerLabel={headerLabel}
+      headerInfo={headerInfo}
+      badgeVariant={badgeVariant}
+    >
+      <div className="mb-1 flex items-start justify-between gap-2 border-b border-spice-border/30 pb-2">
+        <div className="min-w-0 flex-1 py-0.5">
+          <h4 className="truncate text-sm font-semibold leading-snug text-spice-text-primary">
             {formatModuleTitle(target)}
           </h4>
           {target.category ? (
-            <span className="mt-1.5 inline-block rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] text-spice-text-muted font-medium">
+            <span className="mt-1 inline-block max-w-full truncate rounded bg-spice-bg-tint/60 px-2 py-0.5 text-xs font-medium text-spice-text-muted">
               {target.category}
             </span>
           ) : null}
         </div>
         <Button
           variant="secondary"
-          className="h-8 shrink-0 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+          className="h-7 shrink-0 gap-1 px-2 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
           onClick={() => onView(target.id)}
         >
-          <EyeIcon />
+          <EyeIcon className="h-3.5 w-3.5" />
           View
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-3 text-xs">
+      <div className="grid grid-cols-1 gap-2 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-2.5 text-xs sm:grid-cols-2">
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Status
           </span>
           <div className="mt-1">
-            {targetStatus ? <ModuleStatusBadge status={targetStatus} /> : '—'}
+            {targetStatus ? (
+              <StatusBadge
+                {...getModuleStatusBadgeProps(targetStatus)}
+                className={TABLE_STATUS_BADGE_CLASSNAME}
+              />
+            ) : (
+              '—'
+            )}
           </div>
         </div>
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Lessons / Quizzes
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
-            {target.card_count} lessons • {quizCount} quizzes
+            {target.card_count} lessons • {getQuizCount(target)} quizzes
           </span>
         </div>
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Duration
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
@@ -274,18 +411,18 @@ function ExistingModulePanel({
           </span>
         </div>
         <div>
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             Created On
           </span>
           <span className="mt-1 block font-medium text-spice-text-primary">
             {target.created_at ? formatDisplayDateTime(target.created_at) : '—'}
           </span>
         </div>
-        <div className="col-span-2 border-t border-spice-border/40 pt-2">
-          <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
+        <div className="border-t border-spice-border/40 pt-2 sm:col-span-2">
+          <span className="block text-xs font-bold uppercase tracking-wider text-spice-text-muted">
             {isPublished ? 'Published By' : 'Created By'}
           </span>
-          <span className="mt-0.5 block font-medium text-spice-text-medium">
+          <span className="mt-0.5 block truncate font-medium text-spice-text-medium">
             {isPublished ? getPublishedBy(target) : getCreatedBy(target)}
           </span>
         </div>
@@ -297,15 +434,50 @@ function ExistingModulePanel({
 export const NeedsReviewTab = ({
   modules,
   isLoading,
-  error,
   onMerge,
-  onSkip,
+  onDiscardNew,
+  onKeepNew,
   onView,
+  sortBy,
+  sortDir,
+  onSort,
+  initialExpandedId,
+  emptyMessage,
+  queryError,
+  queryErrorTitle = 'Failed to load review pending modules',
+  onRetryQuery,
 }: NeedsReviewTabProps) => {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
-  const [actionType, setActionType] = useState<'merge' | 'skip' | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [actionType, setActionType] = useState<
+    'keep_new' | 'discard_new' | 'merge' | null
+  >(null);
+  const snackbar = useSnackbar();
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    if (initialExpandedId) {
+      initial.add(initialExpandedId);
+    }
+    return initial;
+  });
   const [previewModuleId, setPreviewModuleId] = useState<string | null>(null);
+  const [discardTargetId, setDiscardTargetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialExpandedId) {
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        next.add(initialExpandedId);
+        return next;
+      });
+      const timer = setTimeout(() => {
+        const element = document.getElementById(
+          `needs-review-row-${initialExpandedId}`,
+        );
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialExpandedId]);
 
   const handleViewClick = (moduleId: string) => {
     setPreviewModuleId(moduleId);
@@ -329,329 +501,364 @@ export const NeedsReviewTab = ({
       setSubmittingId(moduleId);
       setActionType('merge');
       await onMerge(moduleId);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
     }
   };
 
-  const handleSkipClick = async (moduleId: string) => {
+  const handleKeepNewClick = async (moduleId: string) => {
+    if (!onKeepNew) return;
     try {
       setSubmittingId(moduleId);
-      setActionType('skip');
-      await onSkip(moduleId);
+      setActionType('keep_new');
+      await onKeepNew(moduleId);
+    } catch (error) {
+      snackbar.showApiError(error);
     } finally {
       setSubmittingId(null);
       setActionType(null);
     }
   };
 
-  if (error) {
-    return (
-      <Card
-        variant="bordered"
-        className="p-6 text-center text-xs text-spice-semantic-error rounded-xl border border-spice-semantic-errorBg bg-spice-semantic-errorBg/20"
-      >
-        Failed to load review pending modules.
-      </Card>
-    );
-  }
+  const handleDiscardNewClick = (moduleId: string) => {
+    setDiscardTargetId(moduleId);
+  };
 
-  if (isLoading) {
-    return (
-      <Card
-        variant="bordered"
-        className="p-12 text-center text-sm text-spice-text-muted rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
-      >
-        <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-spice-brand-accent border-t-transparent mb-2" />
-        <div>Loading review modules…</div>
-      </Card>
-    );
-  }
+  const handleConfirmDiscardNew = async () => {
+    if (!discardTargetId) return;
+    const moduleId = discardTargetId;
+    try {
+      setSubmittingId(moduleId);
+      setActionType('discard_new');
+      await onDiscardNew(moduleId);
+      setDiscardTargetId(null);
+    } catch (error) {
+      snackbar.showApiError(error);
+    } finally {
+      setSubmittingId(null);
+      setActionType(null);
+    }
+  };
 
-  if (!modules.length) {
-    return (
-      <Card
-        variant="bordered"
-        className="p-12 text-center text-sm text-spice-text-muted rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
-      >
-        <div className="text-2xl mb-2">🎉</div>
-        <div className="font-semibold text-spice-text-primary">
-          All caught up!
-        </div>
-        <div className="text-xs text-spice-text-muted mt-1">
-          No modules requiring review.
-        </div>
-      </Card>
-    );
-  }
+  const rows = useMemo<NeedsReviewTableRow[]>(() => {
+    return (modules ?? []).map((primary) => {
+      const { existingModule, existingModuleId } =
+        resolveExistingModule(primary);
+      const mergeSecondaryModuleId = resolveMergeSecondaryModuleId(
+        primary,
+        existingModuleId,
+      );
+      const createdBy = getCreatedBy(primary);
+
+      return {
+        id: primary.id,
+        expand: '',
+        title: formatModuleTitle(primary),
+        content: '',
+        status: 'review_pending',
+        createdAt: primary.created_at
+          ? formatDisplayDateTime(primary.created_at)
+          : '—',
+        createdBy,
+        actions: '',
+        raw: primary,
+        existingModule,
+        existingModuleId,
+        mergeSecondaryModuleId,
+      };
+    });
+  }, [modules]);
+
+  const columns: Array<ColumnDef<NeedsReviewTableRow>> = [
+    {
+      key: 'expand',
+      header: '',
+      headerClassName: 'w-12 px-3 py-2 text-center sm:px-3',
+      className: 'px-3 py-3.5 text-center sm:px-3 sm:py-3.5',
+      render: (row) => {
+        const isExpanded = expandedIds.has(row.id);
+        return (
+          <button
+            type="button"
+            id={`needs-review-row-${row.id}`}
+            onClick={() => toggleExpand(row.id)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-spice-bg-tint text-spice-text-medium transition-colors focus:outline-none"
+            aria-label={
+              isExpanded ? 'Collapse comparison' : 'Expand comparison'
+            }
+            aria-expanded={isExpanded}
+          >
+            <ChevronIcon
+              className="h-4 w-4 text-spice-text-muted"
+              expanded={isExpanded}
+            />
+          </button>
+        );
+      },
+    },
+    {
+      key: 'title',
+      header: 'Module',
+      sortable: true,
+      sortKey: 'title',
+      headerClassName: TABLE_TITLE_COLUMN_CLASS,
+      className: TABLE_TITLE_COLUMN_CLASS,
+      render: (row) => {
+        const displayTitle = truncateDisplayText(
+          row.title,
+          TABLE_CELL_LABEL_MAX_LENGTH,
+        );
+        return (
+          <div className="w-full min-w-0">
+            <TruncatedText
+              text={row.title}
+              maxChars={TABLE_CELL_LABEL_MAX_LENGTH}
+            >
+              <button
+                type="button"
+                onClick={() => toggleExpand(row.id)}
+                className={cn(
+                  typographyClasses.tableCellPrimary,
+                  'block w-full truncate break-all text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none',
+                )}
+              >
+                {displayTitle}
+              </button>
+            </TruncatedText>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'content',
+      header: 'Content',
+      headerClassName: 'px-4 py-2 sm:px-4',
+      className: 'px-4 py-3.5 whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: (row) => {
+        const primary = row.raw;
+        return (
+          <div className="inline-flex items-center gap-x-1 whitespace-nowrap">
+            <span>
+              {primary.card_count === 1
+                ? '1 lesson'
+                : `${primary.card_count} lessons`}
+            </span>
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
+            {primary.quiz_count > 0 ? (
+              <span>
+                {primary.quiz_count === 1
+                  ? '1 question'
+                  : `${primary.quiz_count} questions`}
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-spice-bg-tint px-2 py-0.5 text-xs font-semibold text-spice-text-muted ring-1 ring-spice-border">
+                No quiz
+              </span>
+            )}
+            <span className="text-spice-text-muted" aria-hidden="true">
+              |
+            </span>
+            <span>
+              ~{formatEstimatedMinutesDisplay(primary.estimated_minutes)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      headerClassName: 'px-4 py-2 sm:px-4',
+      className: 'px-4 py-3.5 whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: () => (
+        <StatusBadge
+          {...getModuleStatusBadgeProps('review_pending')}
+          className={TABLE_STATUS_BADGE_CLASSNAME}
+        />
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Created At',
+      sortable: true,
+      sortKey: 'created_at',
+      headerClassName: `px-4 py-2 sm:px-4 ${DISPLAY_DATETIME_TABLE_COLUMN_CLASS}`,
+      className: `px-4 py-3.5 sm:px-4 sm:py-3.5 ${DISPLAY_DATETIME_TABLE_COLUMN_CLASS}`,
+      render: (row) => (
+        <>
+          <div className="font-medium text-spice-text-primary">
+            {row.createdAt}
+          </div>
+          {row.createdBy !== '—' ? (
+            <div className={`mt-0.5 ${typographyClasses.tableCellSecondary}`}>
+              By {row.createdBy}
+            </div>
+          ) : null}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      headerClassName: 'px-4 py-2 text-left sm:px-4',
+      className: 'px-4 py-3.5 text-left whitespace-nowrap sm:px-4 sm:py-3.5',
+      render: (row) => {
+        const isSubmittingThis = submittingId === row.id;
+        return (
+          <div className="flex flex-wrap items-center justify-start gap-2">
+            <Button
+              variant="secondary"
+              className="h-8 px-2.5 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+              disabled={isSubmittingThis}
+              onClick={() => void handleKeepNewClick(row.id)}
+            >
+              {isSubmittingThis && actionType === 'keep_new'
+                ? 'Keeping…'
+                : 'Keep New'}
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-8 px-2.5 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
+              disabled={isSubmittingThis}
+              onClick={() => handleDiscardNewClick(row.id)}
+            >
+              {isSubmittingThis && actionType === 'discard_new'
+                ? 'Discarding…'
+                : 'Discard New'}
+            </Button>
+            <Button
+              className="h-8 px-3 text-xs font-semibold bg-spice-brand-primary hover:bg-spice-brand-primary/90 text-white shadow-xs"
+              disabled={isSubmittingThis}
+              onClick={() => void handleMergeClick(row.id)}
+            >
+              {isSubmittingThis && actionType === 'merge'
+                ? 'Merging…'
+                : 'Merge'}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <>
-      <div className="w-full overflow-hidden rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-spice-text-medium border-collapse">
-            <thead className="bg-spice-bg-tint/70 text-[11px] uppercase font-bold tracking-wider text-spice-text-muted border-b border-spice-border">
-              <tr>
-                <th scope="col" className="w-12 px-3 py-3 text-center" />
-                <th
-                  scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
-                >
-                  Module
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
-                >
-                  Content
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 font-medium tracking-wider"
-                >
-                  Created
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 font-medium tracking-wider text-right"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-spice-border/70 bg-spice-bg-surface">
-              {modules.map((primary) => {
-                const existingModule = (
-                  primary.merge_source_module &&
-                  typeof primary.merge_source_module === 'object'
-                    ? primary.merge_source_module
-                    : null
-                ) as AdminModulesListItem | AdminModuleDetailResponse | null;
+      <Table
+        data={rows}
+        columns={columns}
+        keyExtractor={(row) => row.id}
+        isLoading={isLoading}
+        loadingMessage="Loading review modules…"
+        emptyMessage={emptyMessage ?? 'No modules requiring review.'}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={onSort}
+        queryError={queryError}
+        queryErrorTitle={queryErrorTitle}
+        onRetryQuery={onRetryQuery}
+        containerClassName="rounded-xl border border-spice-border bg-spice-bg-surface shadow-sm"
+        getRowClassName={(row) =>
+          expandedIds.has(row.id)
+            ? 'bg-spice-bg-tint/30 duration-150 hover:bg-spice-bg-tint/30'
+            : 'hover:bg-spice-bg-tint/20 duration-150'
+        }
+        renderExpandedRow={(row) => {
+          if (!expandedIds.has(row.id)) return null;
+          const primary = row.raw;
 
-                const existingModuleId =
-                  primary.merge_source_module_id ||
-                  (typeof primary.merge_source_module === 'string'
-                    ? primary.merge_source_module
-                    : null) ||
-                  existingModule?.id;
-
-                const isSubmittingThis = submittingId === primary.id;
-                const isExpanded = expandedIds.has(primary.id);
-
-                return (
-                  <Fragment key={primary.id ?? Math.random().toString()}>
-                    <tr
-                      className={`transition-colors duration-150 ${isExpanded ? 'bg-spice-bg-tint/30' : 'hover:bg-spice-bg-tint/20'}`}
-                    >
-                      <td className="px-3 py-3.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(primary.id)}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-spice-bg-tint text-spice-text-medium transition-colors focus:outline-none"
-                          aria-label={
-                            isExpanded
-                              ? 'Collapse comparison'
-                              : 'Expand comparison'
-                          }
-                          aria-expanded={isExpanded}
-                        >
-                          <ChevronIcon expanded={isExpanded} />
-                        </button>
-                      </td>
-                      <td className="px-4 py-3.5 font-medium text-spice-text-primary">
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(primary.id)}
-                          className="text-left font-semibold text-spice-brand-primary hover:underline focus:outline-none"
-                        >
-                          {formatModuleTitle(primary)}
-                        </button>
-                        {primary.category ? (
-                          <div className="mt-0.5">
-                            <span className="inline-block rounded bg-spice-bg-tint/70 px-2 py-0.5 text-[10px] font-medium text-spice-text-muted">
-                              {primary.category}
-                            </span>
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-spice-text-primary">
-                            {primary.card_count}
-                          </span>
-                          <span className="text-spice-text-muted">lessons</span>
-                          <span className="text-spice-text-muted">•</span>
-                          <span className="font-semibold text-spice-text-primary">
-                            {primary.quiz_count}
-                          </span>
-                          <span className="text-spice-text-muted">quizzes</span>
-                          <span className="text-spice-text-muted">•</span>
-                          <span className="font-semibold text-spice-text-primary">
-                            {primary.estimated_minutes}
-                          </span>
-                          <span className="text-spice-text-muted">min</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <ModuleStatusBadge status="review_pending" />
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-spice-text-medium whitespace-nowrap">
-                        <div className="font-medium text-spice-text-primary">
-                          {primary.created_at
-                            ? formatDisplayDateTime(primary.created_at)
-                            : '—'}
-                        </div>
-                        {getCreatedBy(primary) !== '—' ? (
-                          <div className="text-[11px] text-spice-text-muted mt-0.5">
-                            By {getCreatedBy(primary)}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                            onClick={() => handleViewClick(primary.id)}
-                          >
-                            <EyeIcon />
-                            View
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            className="h-8 px-3 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                            disabled={isSubmittingThis}
-                            onClick={() => void handleSkipClick(primary.id)}
-                          >
-                            {isSubmittingThis && actionType === 'skip'
-                              ? 'Skipping…'
-                              : 'Skip'}
-                          </Button>
-                          <Button
-                            className="h-8 px-3.5 text-xs font-semibold bg-spice-brand-primary hover:bg-spice-brand-primary/90 text-white shadow-xs"
-                            disabled={isSubmittingThis}
-                            onClick={() => void handleMergeClick(primary.id)}
-                          >
-                            {isSubmittingThis && actionType === 'merge'
-                              ? 'Merging…'
-                              : 'Merge'}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {isExpanded ? (
-                      <tr className="bg-spice-bg-tint/20">
-                        <td
-                          colSpan={6}
-                          className="p-4 sm:p-5 border-y border-spice-border/50"
-                        >
-                          <div className="grid gap-4 md:grid-cols-2">
-                            {/* Left Side: New Module */}
-                            <ModuleCardPanel
-                              headerLabel="New Module"
-                              badgeVariant="warning"
-                            >
-                              <div className="flex items-start justify-between gap-3 pb-3 border-b border-spice-border/30 mb-1">
-                                <div className="min-w-0 flex-1 py-1">
-                                  <h4 className="text-sm font-semibold leading-snug text-spice-text-primary">
-                                    {formatModuleTitle(primary)}
-                                  </h4>
-                                  {primary.category ? (
-                                    <span className="mt-1.5 inline-block rounded bg-spice-bg-tint/60 px-2 py-0.5 text-[11px] text-spice-text-muted font-medium">
-                                      {primary.category}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <Button
-                                  variant="secondary"
-                                  className="h-8 shrink-0 text-xs font-medium border border-spice-border bg-spice-bg-surface hover:bg-spice-bg-tint"
-                                  onClick={() => handleViewClick(primary.id)}
-                                >
-                                  <EyeIcon />
-                                  View
-                                </Button>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-3 rounded-lg border border-spice-border/50 bg-spice-bg-tint/20 p-3 text-xs">
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Status
-                                  </span>
-                                  <div className="mt-1">
-                                    <ModuleStatusBadge status="review_pending" />
-                                  </div>
-                                </div>
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Lessons / Quizzes
-                                  </span>
-                                  <span className="mt-1 block font-medium text-spice-text-primary">
-                                    {primary.card_count} lessons •{' '}
-                                    {primary.quiz_count} quizzes
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Duration
-                                  </span>
-                                  <span className="mt-1 block font-medium text-spice-text-primary">
-                                    {primary.estimated_minutes} min
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Created On
-                                  </span>
-                                  <span className="mt-1 block font-medium text-spice-text-primary">
-                                    {primary.created_at
-                                      ? formatDisplayDateTime(
-                                          primary.created_at,
-                                        )
-                                      : '—'}
-                                  </span>
-                                </div>
-                                <div className="col-span-2 border-t border-spice-border/40 pt-2">
-                                  <span className="text-spice-text-muted block text-[10px] uppercase font-bold tracking-wider">
-                                    Created By
-                                  </span>
-                                  <span className="mt-0.5 block font-medium text-spice-text-medium">
-                                    {getCreatedBy(primary)}
-                                  </span>
-                                </div>
-                              </div>
-                            </ModuleCardPanel>
-
-                            {/* Right Side: Existing Module (Lazy Loaded) */}
-                            <ExistingModulePanel
-                              existingModule={existingModule}
-                              existingModuleId={existingModuleId}
-                              onView={handleViewClick}
-                              isOpen={isExpanded}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          return (
+            <div className="w-0 min-w-full overflow-hidden">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                <ComparisonModulePanel
+                  headerLabel="New Module"
+                  headerInfo={{
+                    label: 'About new module',
+                    content: 'Newly generated module from the document',
+                  }}
+                  badgeVariant="warning"
+                  module={primary}
+                  moduleId={primary.id}
+                  onView={handleViewClick}
+                  isOpen
+                  emptyMessage="New module details are unavailable."
+                  loadingMessage="Loading new module details…"
+                  fallbackStatus="review_pending"
+                />
+                <ComparisonModulePanel
+                  headerLabel="Existing Module"
+                  headerInfo={{
+                    label: 'About existing module',
+                    content: 'Already published/existing module',
+                  }}
+                  badgeVariant="info"
+                  module={row.existingModule}
+                  moduleId={row.existingModuleId}
+                  onView={handleViewClick}
+                  isOpen
+                  emptyMessage="No matching existing module linkage found."
+                  loadingMessage="Loading existing module details…"
+                />
+                <ComparisonModulePanel
+                  headerLabel="Merge Preview"
+                  headerInfo={{
+                    label: 'About merge preview',
+                    content: 'Shows what the module will look like if merged',
+                  }}
+                  badgeVariant="success"
+                  moduleId={row.mergeSecondaryModuleId}
+                  onView={handleViewClick}
+                  isOpen
+                  emptyMessage="No merge preview is available yet."
+                  loadingMessage="Loading merge preview…"
+                />
+              </div>
+            </div>
+          );
+        }}
+      />
 
       <IngestMatchedModulePreviewModal
         open={Boolean(previewModuleId)}
         moduleId={previewModuleId}
         onClose={() => setPreviewModuleId(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(discardTargetId)}
+        labelledBy="discard-new-module-title"
+        describedBy="discard-new-module-description"
+        title="Discard new module?"
+        description={
+          <>
+            Are you sure you want to discard{' '}
+            {discardTargetId ? (
+              <QuotedDisplayLabel
+                text={
+                  rows.find((row) => row.id === discardTargetId)?.title ??
+                  'this module'
+                }
+              />
+            ) : (
+              'this module'
+            )}
+            ? The existing module will remain unchanged.
+          </>
+        }
+        confirmLabel="Discard New"
+        confirmingLabel="Discarding…"
+        isConfirming={
+          submittingId === discardTargetId && actionType === 'discard_new'
+        }
+        disabled={
+          submittingId === discardTargetId && actionType === 'discard_new'
+        }
+        onClose={() => setDiscardTargetId(null)}
+        onConfirm={() => void handleConfirmDiscardNew()}
       />
     </>
   );

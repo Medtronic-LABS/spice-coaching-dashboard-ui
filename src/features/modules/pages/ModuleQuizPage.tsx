@@ -1,19 +1,29 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Loader } from '@/components/ui';
+import {
+  Button,
+  Card,
+  FieldGroupLabel,
+  LimitedTextarea,
+  LimitedTextInput,
+  Loader,
+  ModalTitle,
+  SectionHeader,
+  useSnackbar,
+} from '@/components/ui';
+import { FIELD_LIMITS } from '@/constants/fieldLimits';
 import { paths } from '@/constants/routes';
 import { ModuleFlowStepper } from '@/features/modules/components/ModuleFlowStepper';
 import { useModuleEditor } from '@/features/modules/hooks/useModuleEditor';
 import { setModuleQuiz } from '@/features/modules/store/moduleEditSlice';
 import type { ModuleDraftData } from '@/features/modules/types/moduleDraft.types';
-import { blocksToPlainText } from '@/features/modules/utils/richText';
+import { blocksToPlainText } from '@/components/ui/rich-text/utils/richText';
 import { useAppDispatch } from '@/store/hooks';
 
 export const ModuleQuizPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { working, isSavingQuiz, saveQuiz, formatError } = useModuleEditor();
-  const [actionError, setActionError] = useState('');
+  const snackbar = useSnackbar();
   const isReadOnly = Boolean(working?.isReadOnly);
   const quiz = working?.quiz;
 
@@ -24,9 +34,7 @@ export const ModuleQuizPage = () => {
   if (working?.generationStatus !== 'generated') {
     return (
       <Card variant="elevated" className="space-y-3">
-        <div className="text-lg font-semibold text-spice-text-primary">
-          Generate quiz content first
-        </div>
+        <ModalTitle as="h2">Generate quiz content first</ModalTitle>
         <p className="text-sm text-spice-text-medium">
           Complete document upload and generation before editing quiz questions.
         </p>
@@ -45,37 +53,40 @@ export const ModuleQuizPage = () => {
       <ModuleFlowStepper currentStep="quiz" isGenerated />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
         <Card variant="elevated" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-2xl font-semibold text-spice-text-primary">
-              Build Quiz Questions
-            </h1>
-            {!isReadOnly ? (
-              <Button
-                variant="secondary"
-                className="h-9 text-xs text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
-                disabled={isSavingQuiz || !quiz || quiz.questions.length === 0}
-                onClick={() => {
-                  if (!quiz) return;
-                  updateQuiz({ ...quiz, questions: [] });
-                }}
-              >
-                Remove all
-              </Button>
-            ) : null}
-          </div>
+          <SectionHeader
+            title="Build Quiz Questions"
+            variant="h2"
+            action={
+              !isReadOnly ? (
+                <Button
+                  variant="secondary"
+                  className="text-spice-semantic-error ring-1 ring-spice-semantic-error/30"
+                  disabled={
+                    isSavingQuiz || !quiz || quiz.questions.length === 0
+                  }
+                  onClick={() => {
+                    if (!quiz) return;
+                    updateQuiz({ ...quiz, questions: [] });
+                  }}
+                >
+                  Remove all
+                </Button>
+              ) : undefined
+            }
+          />
           {(quiz?.questions ?? []).map((question, index) => (
             <div
               key={question.id}
               className="rounded-xl border border-spice-border p-4"
             >
-              <div className="mb-2 text-xs font-semibold tracking-wider text-spice-text-muted">
+              <FieldGroupLabel className="mb-2">
                 QUESTION {index + 1} • {question.questionType}
-              </div>
-              <input
-                className="w-full rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
+              </FieldGroupLabel>
+              <LimitedTextInput
                 value={blocksToPlainText(question.question)}
+                maxLength={FIELD_LIMITS.quizQuestion}
                 disabled={isReadOnly}
-                onChange={(event) => {
+                onChange={(value) => {
                   if (!quiz) return;
                   updateQuiz({
                     ...quiz,
@@ -86,9 +97,7 @@ export const ModuleQuizPage = () => {
                             question: [
                               {
                                 type: 'paragraph',
-                                content: [
-                                  { type: 'text', text: event.target.value },
-                                ],
+                                content: [{ type: 'text', text: value }],
                               },
                             ],
                           }
@@ -101,11 +110,12 @@ export const ModuleQuizPage = () => {
                 {question.options.map((option, optionIndex) => (
                   <label
                     key={`${question.id}-${optionIndex}`}
-                    className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${optionIndex === question.answerIndex ? 'border-green-500 bg-green-50' : 'border-spice-border bg-spice-bg-surface'}`}
+                    className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${optionIndex === question.answerIndex ? 'border-green-500 bg-green-50' : 'border-spice-border bg-spice-bg-surface'}`}
                   >
                     <input
                       type="radio"
                       name={String(question.id)}
+                      className="mt-2.5"
                       checked={optionIndex === question.answerIndex}
                       disabled={isReadOnly}
                       onChange={() => {
@@ -126,11 +136,13 @@ export const ModuleQuizPage = () => {
                         });
                       }}
                     />
-                    <input
-                      className="w-full bg-transparent outline-none"
+                    <LimitedTextInput
+                      className="min-w-0 flex-1"
+                      inputClassName="h-8 border-0 bg-transparent px-0"
                       value={blocksToPlainText(option.text)}
+                      maxLength={FIELD_LIMITS.quizOption}
                       disabled={isReadOnly}
-                      onChange={(event) => {
+                      onChange={(value) => {
                         if (!quiz) return;
                         updateQuiz({
                           ...quiz,
@@ -149,7 +161,7 @@ export const ModuleQuizPage = () => {
                                                 content: [
                                                   {
                                                     type: 'text',
-                                                    text: event.target.value,
+                                                    text: value,
                                                   },
                                                 ],
                                               },
@@ -167,14 +179,13 @@ export const ModuleQuizPage = () => {
                 ))}
               </div>
               <div className="mt-3 space-y-2">
-                <div className="text-xs font-semibold tracking-wider text-spice-text-muted">
-                  EXPLANATION
-                </div>
-                <textarea
-                  className="min-h-[100px] w-full resize-y rounded-md border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-primary outline-none"
+                <FieldGroupLabel>EXPLANATION</FieldGroupLabel>
+                <LimitedTextarea
+                  textareaClassName="min-h-[100px]"
                   value={blocksToPlainText(question.explanation)}
+                  maxLength={FIELD_LIMITS.description}
                   disabled={isReadOnly}
-                  onChange={(event) => {
+                  onChange={(value) => {
                     if (!quiz) return;
                     updateQuiz({
                       ...quiz,
@@ -185,9 +196,7 @@ export const ModuleQuizPage = () => {
                               explanation: [
                                 {
                                   type: 'paragraph',
-                                  content: [
-                                    { type: 'text', text: event.target.value },
-                                  ],
+                                  content: [{ type: 'text', text: value }],
                                 },
                               ],
                             }
@@ -199,22 +208,16 @@ export const ModuleQuizPage = () => {
               </div>
             </div>
           ))}
-          {actionError ? (
-            <div className="rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error">
-              {actionError}
-            </div>
-          ) : null}
           <div className="flex justify-end gap-2">
             {!isReadOnly ? (
               <Button
                 variant="secondary"
                 disabled={isSavingQuiz || !quiz || isReadOnly}
                 onClick={async () => {
-                  setActionError('');
                   try {
                     await saveQuiz();
                   } catch (err) {
-                    setActionError(formatError(err));
+                    snackbar.showError(formatError(err));
                   }
                 }}
               >

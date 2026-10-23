@@ -1,12 +1,10 @@
 import type { FetchArgs } from '@reduxjs/toolkit/query';
 import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-const mockBaseQuerySpy = vi.fn();
+import { fetchBaseQuerySpy } from '@/test-utils/installTestFetchMock';
 
-vi.mock('@/store/apis/mockBaseQuery', () => ({
-  mockBaseQuery: (...args: unknown[]) => mockBaseQuerySpy(...args),
-}));
+const mockBaseQuerySpy = fetchBaseQuerySpy;
 
 async function dispatchFetchModules(arg: {
   limit: number;
@@ -14,6 +12,13 @@ async function dispatchFetchModules(arg: {
   status?: string | null;
   sourceDocumentId?: string | null;
   q?: string | null;
+  chatbot_faqs_only?: boolean | null;
+  created_from?: string | null;
+  created_to?: string | null;
+  published_from?: string | null;
+  division_id?: number | null;
+  district_id?: number | null;
+  upazila_id?: number | null;
 }): Promise<FetchArgs> {
   mockBaseQuerySpy.mockResolvedValue({ data: [] });
   const { baseApi } = await import('@/store/apis/base');
@@ -99,6 +104,54 @@ describe('adminModulesApi fetchModules request', () => {
     expect(request.params).not.toHaveProperty('q');
   });
 
+  it('sends chatbot_faqs_only when provided as a boolean', async () => {
+    const request = await dispatchFetchModules({
+      limit: 50,
+      offset: 0,
+      status: 'published',
+      chatbot_faqs_only: false,
+    });
+
+    expect(request.params).toEqual({
+      limit: 50,
+      offset: 0,
+      latest_version_only: true,
+      status: 'published',
+      chatbot_faqs_only: false,
+    });
+  });
+
+  it('omits chatbot_faqs_only when not provided', async () => {
+    const request = await dispatchFetchModules({
+      limit: 50,
+      offset: 0,
+      status: 'published',
+    });
+
+    expect(request.params).not.toHaveProperty('chatbot_faqs_only');
+  });
+
+  it('sends geography assignment filters when provided', async () => {
+    const request = await dispatchFetchModules({
+      limit: 20,
+      offset: 0,
+      status: 'published',
+      division_id: 1,
+      district_id: 10,
+      upazila_id: 2,
+    });
+
+    expect(request.params).toEqual({
+      limit: 20,
+      offset: 0,
+      latest_version_only: true,
+      status: 'published',
+      division_id: 1,
+      district_id: 10,
+      upazila_id: 2,
+    });
+  });
+
   it('sends typed date range params when provided', async () => {
     const request = await dispatchFetchModules({
       limit: 20,
@@ -120,6 +173,44 @@ describe('adminModulesApi fetchModules request', () => {
     });
     expect(request.params).not.toHaveProperty('date_from');
     expect(request.params).not.toHaveProperty('date_to');
+  });
+});
+
+describe('adminModulesApi splitMergeModule request', () => {
+  afterEach(() => {
+    mockBaseQuerySpy.mockReset();
+  });
+
+  it('POSTs /admin/ingest/modules/:moduleId/split-merge with no body', async () => {
+    mockBaseQuerySpy.mockResolvedValue({
+      data: {
+        primary_module_id: 'candidate-1',
+        secondary_module_id: 'merge-secondary-1',
+        source_module_id: 'existing-1',
+        primary_lifecycle_status: 'draft',
+        secondary_lifecycle_status: 'retired',
+      },
+    });
+    const { baseApi } = await import('@/store/apis/base');
+    const { adminModulesApi } = await import('./adminModulesApi');
+    const store = configureStore({
+      reducer: { [baseApi.reducerPath]: baseApi.reducer },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(baseApi.middleware),
+    });
+
+    await store
+      .dispatch(
+        adminModulesApi.endpoints.splitMergeModule.initiate({
+          moduleId: 'candidate-1',
+        }),
+      )
+      .unwrap();
+
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(request.url).toBe('/admin/ingest/modules/candidate-1/split-merge');
+    expect(request.method).toBe('POST');
+    expect(request.body).toBeUndefined();
   });
 });
 

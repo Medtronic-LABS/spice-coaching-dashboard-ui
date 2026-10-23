@@ -11,13 +11,14 @@ export type LegendItem = {
 export type ResponsiveLegendProps = {
   items?: readonly LegendItem[];
   className?: string;
-  ariaLabel?: string;
+  /** Accessible name for the legend list (required). */
+  ariaLabel: string;
 };
 
 export function ResponsiveLegend({
   items,
   className,
-  ariaLabel = 'Chart legend',
+  ariaLabel,
 }: ResponsiveLegendProps) {
   if (!items || items.length === 0) return null;
 

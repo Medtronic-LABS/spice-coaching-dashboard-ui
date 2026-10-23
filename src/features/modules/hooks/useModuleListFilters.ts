@@ -10,25 +10,20 @@ import {
   type ModuleLibraryTab,
 } from '@/features/modules/utils/moduleListFilters';
 
-export function useModuleListFilters(isProgramManager: boolean) {
+export function useModuleListFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tab = parseModuleLibraryTab(searchParams.get('tab'), isProgramManager);
-  const activeFilters = parseFiltersFromSearchParams(
-    searchParams,
-    tab,
-    isProgramManager,
-  );
-  const lifecycleStatus = tabToLifecycleStatus(tab, isProgramManager);
+  const tab = parseModuleLibraryTab(searchParams.get('tab'));
+  const activeFilters = parseFiltersFromSearchParams(searchParams, tab);
+  const lifecycleStatus = tabToLifecycleStatus(tab);
 
   const applyTabAndFilters = useCallback(
     (nextTab: ModuleLibraryTab, nextFilters: ModuleLibraryFilters) => {
-      setSearchParams(
-        buildModuleListSearchParams(nextTab, nextFilters, isProgramManager),
-        { replace: true },
-      );
+      setSearchParams(buildModuleListSearchParams(nextTab, nextFilters), {
+        replace: true,
+      });
     },
-    [isProgramManager, setSearchParams],
+    [setSearchParams],
   );
 
   // Only the selected status changes when switching tabs — the globally shared
@@ -60,20 +55,12 @@ export function useModuleListFilters(isProgramManager: boolean) {
       partial: Partial<ModuleLibraryFilters>,
     ): string => {
       const merged = {
-        ...parseFiltersFromSearchParams(
-          searchParams,
-          nextTab,
-          isProgramManager,
-        ),
+        ...parseFiltersFromSearchParams(searchParams, nextTab),
         ...partial,
       };
-      return buildModuleListSearchParams(
-        nextTab,
-        merged,
-        isProgramManager,
-      ).toString();
+      return buildModuleListSearchParams(nextTab, merged).toString();
     },
-    [isProgramManager, searchParams],
+    [searchParams],
   );
 
   return {

@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import type {
   RichTextLeaf,
   RichTextMark,
-} from '@/features/modules/types/richText.types';
+} from '@/components/ui/rich-text/types/richText.types';
+import { normalizeHref } from '@/utils/sanitizeHref';
 
 function applyMark(
   content: ReactNode,
@@ -27,11 +28,15 @@ function applyMark(
           {content}
         </code>
       );
-    case 'link':
+    case 'link': {
+      const safeHref = normalizeHref(mark.attrs.href);
+      if (!safeHref) {
+        return <span key={key}>{content}</span>;
+      }
       return (
         <a
           key={key}
-          href={mark.attrs.href}
+          href={safeHref}
           target="_blank"
           rel="noopener noreferrer"
           className="text-spice-brand-primary underline"
@@ -39,8 +44,11 @@ function applyMark(
           {content}
         </a>
       );
-    default:
-      return content;
+    }
+    default: {
+      const exhaustiveCheck: never = mark;
+      return exhaustiveCheck;
+    }
   }
 }
 

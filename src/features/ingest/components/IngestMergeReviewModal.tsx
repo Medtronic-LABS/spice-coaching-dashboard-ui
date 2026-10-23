@@ -1,5 +1,16 @@
+import { EyeIcon } from '@/assets/icon';
 import { Table, type ColumnDef } from '@/components/common/Table';
-import { Badge, Button, Card, Modal, Tooltip } from '@/components/ui';
+import {
+  Badge,
+  Banner,
+  Button,
+  Card,
+  Modal,
+  ModalTitle,
+  Tooltip,
+} from '@/components/ui';
+import { OVERLAY_Z_INDEX } from '@/components/ui/overlayZIndex';
+import type { BannerProps } from '@/components/ui/Banner';
 import type {
   AdminV3IngestMergeDecision,
   IngestMergeDecisionChoice,
@@ -32,6 +43,23 @@ export interface IngestMergeReviewModalProps {
 }
 
 type DecisionRow = AdminV3IngestMergeDecision & { _key: string };
+
+function mergeNotificationBannerTone(
+  tone: NonNullable<IngestMergeReviewModalProps['notification']>['tone'],
+): NonNullable<BannerProps['tone']> {
+  switch (tone) {
+    case 'success':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'error':
+      return 'critical';
+    default: {
+      const _exhaustive: never = tone;
+      return _exhaustive;
+    }
+  }
+}
 
 export const IngestMergeReviewModal = ({
   open,
@@ -67,7 +95,7 @@ export const IngestMergeReviewModal = ({
               {resolveMergeDecisionTitle(row)}
             </div>
             {mergeUnavailable ? (
-              <div className="mt-1 text-[11px] text-spice-semantic-warning">
+              <div className="mt-1 text-xs text-spice-semantic-warning">
                 Matched module unavailable. You can Skip Merge to create a new
                 module.
               </div>
@@ -139,14 +167,15 @@ export const IngestMergeReviewModal = ({
           <div>
             <Button
               variant="secondary"
-              className="h-8 text-xs"
+              className="h-8 gap-1.5 text-xs"
               disabled={isSubmitting}
               onClick={() => onViewModule(row)}
             >
+              <EyeIcon className="h-3.5 w-3.5" />
               View Module
             </Button>
             {!matchedModuleId ? (
-              <div className="mt-1 text-[11px] text-spice-text-muted">
+              <div className="mt-1 text-xs text-spice-text-muted">
                 Module id unavailable
               </div>
             ) : null}
@@ -161,20 +190,18 @@ export const IngestMergeReviewModal = ({
       open={open}
       labelledBy="ingest-merge-review-title"
       describedBy="ingest-merge-review-description"
+      contentClassName="max-w-4xl"
       onClose={canClose ? onClose : undefined}
-      zIndexClassName="z-[310]"
+      zIndexClassName={OVERLAY_Z_INDEX.modalRaised}
     >
       <Card
         variant="elevated"
-        className="w-full max-w-4xl space-y-4 border-spice-border p-5 shadow-lg sm:p-6"
+        className="w-full space-y-4 border-spice-border p-5 shadow-lg sm:p-6"
       >
         <div className="space-y-2">
-          <h2
-            id="ingest-merge-review-title"
-            className="text-lg font-semibold text-spice-text-primary"
-          >
+          <ModalTitle id="ingest-merge-review-title">
             Review module merge decisions
-          </h2>
+          </ModalTitle>
           <p
             id="ingest-merge-review-description"
             className="text-sm text-spice-text-muted"
@@ -186,18 +213,9 @@ export const IngestMergeReviewModal = ({
         </div>
 
         {notification ? (
-          <div
-            className={
-              notification.tone === 'success'
-                ? 'rounded-lg bg-spice-semantic-successBg px-3 py-2 text-xs text-spice-semantic-success'
-                : notification.tone === 'warning'
-                  ? 'rounded-lg bg-spice-semantic-warningBg px-3 py-2 text-xs text-spice-semantic-warning'
-                  : 'rounded-lg bg-spice-semantic-errorBg px-3 py-2 text-xs text-spice-semantic-error'
-            }
-            role="status"
-          >
+          <Banner tone={mergeNotificationBannerTone(notification.tone)}>
             {notification.message}
-          </div>
+          </Banner>
         ) : null}
 
         <Table
@@ -207,16 +225,13 @@ export const IngestMergeReviewModal = ({
           emptyMessage="No pending merge decisions."
         />
 
-        <div className="flex justify-end">
-          <Button
-            variant="secondary"
-            className="h-9 text-xs"
-            disabled={!canClose}
-            onClick={onClose}
-          >
-            {canClose ? 'Close' : `${pendingCount} pending…`}
-          </Button>
-        </div>
+        {canClose ? null : (
+          <div className="flex justify-end">
+            <Button variant="secondary" className="h-9 text-xs" disabled>
+              {`${pendingCount} pending…`}
+            </Button>
+          </div>
+        )}
       </Card>
     </Modal>
   );

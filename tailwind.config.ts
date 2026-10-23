@@ -20,6 +20,8 @@ const config: Config = {
           },
           text: {
             primary: 'var(--color-text-primary)',
+            sidebarName: 'var(--color-text-sidebar-name)',
+            onSurfaceVariant: 'var(--color-text-on-surface-variant)',
             medium: 'var(--color-text-medium)',
             muted: 'var(--color-text-muted)',
             subtle: 'var(--color-text-subtle)',
@@ -38,6 +40,7 @@ const config: Config = {
           },
           brand: {
             primary: 'var(--color-blue-supervisor)',
+            coaching: 'var(--color-brand-coaching)',
             pm: 'var(--color-blue-pm)',
             app: 'var(--color-blue-app)',
             appDark: 'var(--color-blue-app-dark)',
@@ -58,6 +61,30 @@ const config: Config = {
             coral: 'var(--color-accent-coral)',
             lavender: 'var(--color-accent-lavender)',
             greenPale: 'var(--color-accent-green-pale)',
+          },
+          palette: {
+            purple: 'var(--color-palette-purple)',
+            purpleHover: 'var(--color-palette-purple-hover)',
+            purpleActive: 'var(--color-palette-purple-active)',
+            pink: 'var(--color-palette-pink)',
+            blue: 'var(--color-palette-blue)',
+            violet: 'var(--color-palette-violet)',
+            violetDeep: 'var(--color-palette-violet-deep)',
+            amber: 'var(--color-palette-amber)',
+            green: 'var(--color-palette-green)',
+            red: 'var(--color-palette-red)',
+            purpleLt: 'var(--color-palette-purple-lt)',
+            pinkLt: 'var(--color-palette-pink-lt)',
+            blueLt: 'var(--color-palette-blue-lt)',
+            violetLt: 'var(--color-palette-violet-lt)',
+            amberLt: 'var(--color-palette-amber-lt)',
+            greenLt: 'var(--color-palette-green-lt)',
+            redLt: 'var(--color-palette-red-lt)',
+          },
+          logout: {
+            text: 'var(--color-logout-text)',
+            bg: 'var(--color-logout-bg)',
+            border: 'var(--color-logout-border)',
           },
           semantic: {
             success: 'var(--color-success)',
@@ -92,6 +119,10 @@ const config: Config = {
         spicePmPanel: 'var(--shadow-pm-panel)',
         spiceKpi: 'var(--shadow-kpi-card)',
       },
+      backgroundImage: {
+        spiceTopbar: 'var(--gradient-topbar)',
+        spiceSkDrawer: 'var(--gradient-sk-drawer)',
+      },
       spacing: {
         sp1: 'var(--space-1)',
         sp2: 'var(--space-2)',
@@ -104,6 +135,16 @@ const config: Config = {
         sp10: 'var(--space-10)',
         sp12: 'var(--space-12)',
         sp16: 'var(--space-16)',
+      },
+      keyframes: {
+        'progress-indeterminate': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(350%)' },
+        },
+      },
+      animation: {
+        'progress-indeterminate':
+          'progress-indeterminate 2s ease-in-out infinite',
       },
       fontSize: {
         'dash-title': [

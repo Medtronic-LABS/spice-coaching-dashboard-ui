@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { formatDisplayDateTime } from '@/utils/formatDisplayDateTime';
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  formatDisplayDateTimeMultiline,
+} from '@/utils/formatDisplayDateTime';
 
 function expectedDisplayDateTime(date: Date): string {
   const dateParts = new Intl.DateTimeFormat(undefined, {
@@ -45,5 +49,39 @@ describe('formatDisplayDateTime', () => {
     const date = new Date('2026-07-21T12:45:13.192+00:00');
 
     expect(formatDisplayDateTime(iso)).toBe(expectedDisplayDateTime(date));
+  });
+});
+
+describe('formatDisplayDateTimeMultiline', () => {
+  it('breaks before the bullet so date and time are on separate lines', () => {
+    const iso = '2026-06-01T11:27:29.877549Z';
+    const singleLine = formatDisplayDateTime(iso);
+    const expected = singleLine.replace(' • ', '\n• ');
+
+    expect(formatDisplayDateTimeMultiline(iso)).toBe(expected);
+    expect(formatDisplayDateTimeMultiline(iso)).toContain('\n• ');
+  });
+
+  it('returns em dash for empty values without inserting a break', () => {
+    expect(formatDisplayDateTimeMultiline(null)).toBe('—');
+  });
+});
+
+describe('formatDisplayDate', () => {
+  it('formats ISO date-only strings', () => {
+    const date = new Date('2026-08-01T00:00:00');
+    const expected = new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+
+    expect(formatDisplayDate('2026-08-01')).toBe(expected);
+  });
+
+  it('returns em dash for empty values', () => {
+    expect(formatDisplayDate(null)).toBe('—');
+    expect(formatDisplayDate(undefined)).toBe('—');
+    expect(formatDisplayDate('')).toBe('—');
   });
 });
