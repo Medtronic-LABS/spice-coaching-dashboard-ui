@@ -7,7 +7,7 @@ COPY . .
 # Build-time variables for Vite. Only the four that CI passes as build args are
 # set here; every other VITE_* value comes from the .env.production that CI
 # writes from the target environment's variables (Dockerfile ENV would win over it).
-ARG VITE_API_BASE_URL=https://spice-dev-backend.uhis.labsplatform.com/micro-coaching/medtronics-api
+ARG VITE_API_BASE_URL=https://uhis-dev-backend.labsplatform.com/micro-coaching/medtronics-api
 ARG VITE_ROUTE_PREFIX=/ai-coaching
 ARG VITE_COACHING_SUITE_ACCESS=coaching
 ARG VITE_DEV_AUTH_BYPASS=false
