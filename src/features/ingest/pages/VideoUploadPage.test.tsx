@@ -462,7 +462,7 @@ describe('VideoUploadPage', () => {
         titles: ['new-video'],
         descriptions: [null],
         content_domains: ['clinical'],
-        sync_published_visible: [false],
+        sync_published_visible: [true],
       }),
     );
     expect(
@@ -481,6 +481,89 @@ describe('VideoUploadPage', () => {
         assessment_mode: 'with_quiz',
         override_duplicates: null,
       }),
+    );
+  });
+
+  it('defaults Visible in SDK sync (knowledge) to on for staged videos', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'visible.mp4', { type: 'video/mp4' });
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      video,
+    );
+    await screen.findByRole('button', { name: `Remove ${video.name}` });
+
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('uploads sync_published_visible false after the admin turns it off', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'hidden.mp4', { type: 'video/mp4' });
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      video,
+    );
+    await screen.findByRole('button', { name: `Remove ${video.name}` });
+    await user.click(screen.getByRole('switch'));
+
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await waitFor(() => expect(mocks.uploadFiles).toHaveBeenCalled());
+
+    expect(mocks.uploadFiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [video],
+        sync_published_visible: [false],
+      }),
+    );
+  });
+
+  it('defaults staged videos to All SKs and uploads assign_to_all true', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'all-sks.mp4', { type: 'video/mp4' });
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      video,
+    );
+    await screen.findByRole('button', { name: `Remove ${video.name}` });
+
+    expect(screen.getByRole('radio', { name: /all sks/i })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /specific/i })).not.toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await waitFor(() => expect(mocks.uploadFiles).toHaveBeenCalled());
+
+    expect(mocks.uploadFiles).toHaveBeenCalledWith(
+      expect.objectContaining({ files: [video], assign_to_all: [true] }),
+    );
+  });
+
+  it('uploads assign_to_all false when Specific is chosen for a staged video', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const video = new File(['video'], 'specific.mp4', { type: 'video/mp4' });
+
+    await user.upload(
+      screen.getByLabelText(/upload video/i, { selector: 'input' }),
+      video,
+    );
+    await screen.findByRole('button', { name: `Remove ${video.name}` });
+    await user.click(screen.getByRole('radio', { name: /specific/i }));
+
+    expect(screen.getByRole('radio', { name: /specific/i })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await waitFor(() => expect(mocks.uploadFiles).toHaveBeenCalled());
+
+    expect(mocks.uploadFiles).toHaveBeenCalledWith(
+      expect.objectContaining({ files: [video], assign_to_all: [false] }),
     );
   });
 

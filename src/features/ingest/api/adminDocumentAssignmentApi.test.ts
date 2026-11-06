@@ -45,3 +45,40 @@ describe('adminDocumentAssignmentApi replace request', () => {
     });
   });
 });
+
+describe('adminDocumentAssignmentApi set assign-to-all', () => {
+  afterEach(() => {
+    mockBaseQuerySpy.mockReset();
+  });
+
+  it('PUTs /admin/source-documents/:id/assign-to-all with the mode', async () => {
+    mockBaseQuerySpy.mockResolvedValue({
+      data: { source_document_id: 'doc-1', assign_to_all: true },
+    });
+    const { baseApi } = await import('@/store/apis/base');
+    const { adminDocumentAssignmentApi } =
+      await import('./adminDocumentAssignmentApi');
+    const store = configureStore({
+      reducer: { [baseApi.reducerPath]: baseApi.reducer },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(baseApi.middleware),
+    });
+
+    const result = await store
+      .dispatch(
+        adminDocumentAssignmentApi.endpoints.setSourceDocumentAssignToAll.initiate(
+          { sourceDocumentId: 'doc-1', assign_to_all: true },
+        ),
+      )
+      .unwrap();
+
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(request.url).toBe('/admin/source-documents/doc-1/assign-to-all');
+    expect(request.method).toBe('PUT');
+    expect(request.body).toEqual({ assign_to_all: true });
+    expect(result).toEqual({
+      source_document_id: 'doc-1',
+      assign_to_all: true,
+    });
+  });
+});

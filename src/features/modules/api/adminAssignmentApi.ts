@@ -98,6 +98,11 @@ export interface AssignmentUpdateResponse {
   assignment_ids: string[];
 }
 
+export interface SetModuleAssignToAllResponse {
+  module_id: string;
+  assign_to_all: boolean;
+}
+
 export interface CreateAssignmentResponse {
   assigned_count: number;
   assignment_ids: string[];
@@ -367,6 +372,17 @@ export const adminAssignmentApi = baseApi.injectEndpoints({
           expand_po_assignees,
         }),
       }),
+    }),
+    setModuleAssignToAll: builder.mutation<
+      SetModuleAssignToAllResponse,
+      { moduleId: string; assign_to_all: boolean }
+    >({
+      query: ({ moduleId, assign_to_all }) => ({
+        url: `/admin/modules/${encodeURIComponent(moduleId)}/assign-to-all`,
+        method: 'PUT',
+        body: { assign_to_all },
+      }),
+      invalidatesTags: ['Modules'],
     }),
     /** Loads every district page — catalogs are typically small. */
     fetchAdminDistricts: builder.query<AdminDistrict[], void>({
@@ -747,6 +763,7 @@ export const {
   useLazyFetchModuleAssignedUsersQuery,
   useCreateAssignmentMutation,
   useReplaceModuleAssignedUsersMutation,
+  useSetModuleAssignToAllMutation,
   useFetchAdminDistrictsQuery,
   useLazyFetchAdminDistrictsQuery,
   useFetchAdminDivisionsQuery,

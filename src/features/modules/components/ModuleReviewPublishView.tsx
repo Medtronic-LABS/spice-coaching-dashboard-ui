@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { EyeIcon, PencilIcon, SaveDraftIcon } from '@/assets/icon';
 import {
   Button,
@@ -57,6 +58,8 @@ export interface ModuleReviewPublishViewProps {
   publishDisabled?: boolean;
   /** When true, hides publish/save actions and shows read-only navigation links. */
   readonly?: boolean;
+  /** Extra controls shown above the publish card (e.g. assignment mode); hidden once published or read-only. */
+  publishOptions?: ReactNode;
 }
 
 const EditLinkButton = ({
@@ -119,6 +122,7 @@ export const ModuleReviewPublishView = ({
   isAlreadyPublished = false,
   editActionLabel = 'Edit',
   unsavedChangesMessage,
+  publishOptions,
   publishDisabled = false,
   readonly = false,
 }: ModuleReviewPublishViewProps) => {
@@ -331,6 +335,12 @@ export const ModuleReviewPublishView = ({
                   </button>
                 ) : null}
               </div>
+            </Card>
+          ) : null}
+
+          {publishOptions && !readonly && !isAlreadyPublished ? (
+            <Card variant="bordered" className="p-4">
+              {publishOptions}
             </Card>
           ) : null}
 

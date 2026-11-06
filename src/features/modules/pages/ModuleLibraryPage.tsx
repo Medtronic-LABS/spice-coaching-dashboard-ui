@@ -295,6 +295,7 @@ export const ModuleLibraryPage = () => {
   const [assignmentModule, setAssignmentModule] = useState<{
     id: string;
     title: string;
+    assignToAll: boolean;
   } | null>(null);
   const [createError, setCreateError] = useState('');
   const [createForm, setCreateForm] = useState<CreateModuleFormState>(
@@ -469,7 +470,11 @@ export const ModuleLibraryPage = () => {
       const { moduleId, moduleTitle } = state.openAssignment;
       void fetchModuleDetail(moduleId).then((result) => {
         if (result.data?.lifecycle_status === 'published') {
-          setAssignmentModule({ id: moduleId, title: moduleTitle });
+          setAssignmentModule({
+            id: moduleId,
+            title: moduleTitle,
+            assignToAll: result.data.assign_to_all === true,
+          });
           setAssignmentOpen(true);
         }
       });
@@ -640,6 +645,7 @@ export const ModuleLibraryPage = () => {
       activatedBy: m.activated_by?.name ?? null,
       deactivatedBy: m.deactivated_by?.name ?? null,
       chatbot_faqs_only: Boolean(m.chatbot_faqs_only),
+      assign_to_all: m.assign_to_all === true,
     }));
     return rows;
   }, [modulesForDisplay]);
@@ -796,7 +802,11 @@ export const ModuleLibraryPage = () => {
               <Button
                 className={actionButtonClass}
                 onClick={() => {
-                  setAssignmentModule({ id: row.id, title: row.title });
+                  setAssignmentModule({
+                    id: row.id,
+                    title: row.title,
+                    assignToAll: row.assign_to_all === true,
+                  });
                   setAssignmentOpen(true);
                 }}
               >
@@ -1479,6 +1489,7 @@ export const ModuleLibraryPage = () => {
           }}
           moduleId={assignmentModule.id}
           moduleTitle={assignmentModule.title}
+          assignToAll={assignmentModule.assignToAll}
         />
       ) : null}
     </section>

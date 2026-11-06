@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   FormLabel,
@@ -15,11 +16,13 @@ import {
   fieldLimitExceededMessage,
 } from '@/constants/fieldLimits';
 import { SPICE_INPUT_FOCUS_CLASSNAME } from '@/constants/formControls';
+import { useSetSourceDocumentAssignToAllMutation } from '@/features/ingest/api/adminDocumentAssignmentApi';
 import {
   useUpdateSourceDocumentMetadataMutation,
   useUpdateSourceDocumentThumbnailMutation,
   type SourceDocumentSummary,
 } from '@/features/modules/api/adminSourceDocumentsApi';
+import { AssignToModeField } from '@/features/modules/components/AssignToModeField';
 import { usePresignedFileUrl } from '@/features/modules/hooks/usePresignedFileUrl';
 import { cn } from '@/utils';
 import {
@@ -45,20 +48,24 @@ export const VideoMetadataEditDialog = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [syncPublishedVisible, setSyncPublishedVisible] = useState(false);
+  const [assignToAll, setAssignToAll] = useState(false);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [localThumbnailPreviewUrl, setLocalThumbnailPreviewUrl] = useState<
     string | null
   >(null);
   const [fieldError, setFieldError] = useState('');
   const snackbar = useSnackbar();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [updateMetadata, { isLoading: isSavingMetadata }] =
     useUpdateSourceDocumentMetadataMutation();
   const [updateThumbnail, { isLoading: isSavingThumbnail }] =
     useUpdateSourceDocumentThumbnailMutation();
+  const [setDocumentAssignToAll, { isLoading: isSavingAssignMode }] =
+    useSetSourceDocumentAssignToAllMutation();
 
-  const isSaving = isSavingMetadata || isSavingThumbnail;
+  const isSaving = isSavingMetadata || isSavingThumbnail || isSavingAssignMode;
 
   const existingStoragePath =
     open && document && !thumbnailFile ? document.thumbnail_storage_path : null;
@@ -73,6 +80,7 @@ export const VideoMetadataEditDialog = ({
     setTitle(document.title);
     setDescription(document.description ?? '');
     setSyncPublishedVisible(document.sync_published_visible ?? false);
+    setAssignToAll(document.assign_to_all ?? false);
     setThumbnailFile(null);
     setLocalThumbnailPreviewUrl(null);
     setFieldError('');
@@ -157,6 +165,14 @@ export const VideoMetadataEditDialog = ({
           sourceDocumentId: document.id,
           file: thumbnailFile,
         }).unwrap();
+      }
+
+      if (assignToAll !== (document.assign_to_all ?? false)) {
+        await setDocumentAssignToAll({
+          sourceDocumentId: document.id,
+          assign_to_all: assignToAll,
+        }).unwrap();
+        latest = { ...latest, assign_to_all: assignToAll };
       }
 
       onSaved(latest);
@@ -258,6 +274,13 @@ export const VideoMetadataEditDialog = ({
             Visible in SDK sync (knowledge)
           </span>
         </div>
+
+        <AssignToModeField
+          assignToAll={assignToAll}
+          disabled={isSaving}
+          specificHint={t('assignmentMode.specificAfterUploadHint')}
+          onChange={setAssignToAll}
+        />
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">

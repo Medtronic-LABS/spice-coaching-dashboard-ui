@@ -43,12 +43,15 @@ import {
   useLazyFetchModuleAssignedUsersQuery,
   useCreateAssignmentMutation,
   useReplaceModuleAssignedUsersMutation,
+  useSetModuleAssignToAllMutation,
 } from '@/features/modules/api/adminAssignmentApi';
 import {
   useLazyFetchDocumentAssignedUsersQuery,
   useCreateDocumentAssignmentMutation,
   useReplaceDocumentAssignedUsersMutation,
+  useSetSourceDocumentAssignToAllMutation,
 } from '@/features/ingest/api/adminDocumentAssignmentApi';
+import { AssignToModeField } from '@/features/modules/components/AssignToModeField';
 import { AssignmentGeoDistrictHierarchy } from '@/features/modules/components/AssignmentGeoDistrictHierarchy';
 import {
   buildFlatAssignedUserEntries,
@@ -85,13 +88,15 @@ import { cn } from '@/utils';
 
 type AssignmentTab = 'user' | 'geographical';
 
+/** `assignToAll` is the target's current mode; omit to hide the mode control. */
 export type AssignmentDialogTarget =
-  | { kind: 'module'; id: string; title: string }
+  | { kind: 'module'; id: string; title: string; assignToAll?: boolean }
   | {
       kind: 'sourceDocument';
       id: string;
       title: string;
       noun: 'video' | 'document';
+      assignToAll?: boolean;
     };
 
 const USER_LEVEL_MODE_OPTIONS: Array<{
@@ -113,6 +118,7 @@ interface ModuleAssignmentDialogProps {
   onClose: () => void;
   moduleId: string;
   moduleTitle: string;
+  assignToAll?: boolean;
 }
 
 interface AssignmentDialogProps {
@@ -337,7 +343,18 @@ export const AssignmentDialog = ({
 }: AssignmentDialogProps) => {
   const navigate = useNavigate();
   const snackbar = useSnackbar();
+  const { t } = useTranslation();
   const noun = entityNoun(target);
+  const initialAssignToAll = target.assignToAll;
+  const modeSupported = initialAssignToAll !== undefined;
+  // Mode as last saved on the server vs. the radio selection pending confirm.
+  const [savedAssignToAll, setSavedAssignToAll] = useState(initialAssignToAll);
+  const [assignToAll, setAssignToAll] = useState(initialAssignToAll);
+
+  useEffect(() => {
+    setSavedAssignToAll(initialAssignToAll);
+    setAssignToAll(initialAssignToAll);
+  }, [initialAssignToAll]);
   const [successState, setSuccessState] =
     useState<AssignmentSuccessLocationState | null>(null);
 
@@ -470,11 +487,18 @@ export const AssignmentDialog = ({
   const [replaceDocumentUsers, { isLoading: isReplacingDocument }] =
     useReplaceDocumentAssignedUsersMutation();
 
+  const [setModuleAssignToAll, { isLoading: isSettingModuleMode }] =
+    useSetModuleAssignToAllMutation();
+  const [setDocumentAssignToAll, { isLoading: isSettingDocumentMode }] =
+    useSetSourceDocumentAssignToAllMutation();
+
   const isSubmitting =
     isCreatingModule ||
     isReplacingModule ||
     isCreatingDocument ||
-    isReplacingDocument;
+    isReplacingDocument ||
+    isSettingModuleMode ||
+    isSettingDocumentMode;
   const desiredSet = useMemo(() => new Set(desiredUserIds), [desiredUserIds]);
   const baselineSet = useMemo(
     () => new Set(baselineUserIds),
@@ -1047,13 +1071,49 @@ export const AssignmentDialog = ({
     navigate(paths.moduleAssigned, { state: nextState });
   };
 
+  /** Persists the All SKs / Specific switch; returns false (after a toast) on failure. */
+  const saveAssignMode = async (nextAssignToAll: boolean): Promise<boolean> => {
+    try {
+      if (target.kind === 'module') {
+        await setModuleAssignToAll({
+          moduleId: target.id,
+          assign_to_all: nextAssignToAll,
+        }).unwrap();
+      } else {
+        await setDocumentAssignToAll({
+          sourceDocumentId: target.id,
+          assign_to_all: nextAssignToAll,
+        }).unwrap();
+      }
+      setSavedAssignToAll(nextAssignToAll);
+      return true;
+    } catch (err: unknown) {
+      snackbar.showApiError(err);
+      return false;
+    }
+  };
+
   const handleAssign = async () => {
+    const modeChanged = modeSupported && assignToAll !== savedAssignToAll;
+    if (modeChanged && !(await saveAssignMode(assignToAll === true))) return;
+
+    if (assignToAll === true) {
+      if (modeChanged) snackbar.showSuccess(t('assignmentMode.updated'));
+      onClose();
+      return;
+    }
+
     try {
       const nextIds = buildReplaceAssignmentUserIds(desiredUserIds);
       const addedIds = nextIds.filter((id) => !baselineSet.has(id));
       const removedIds = baselineUserIds.filter((id) => !desiredSet.has(id));
 
       if (addedIds.length === 0 && removedIds.length === 0) {
+        if (modeChanged) {
+          snackbar.showSuccess(t('assignmentMode.updated'));
+          onClose();
+          return;
+        }
         snackbar.showError(
           activeTab === 'geographical'
             ? 'Please select at least one geography or change assignments.'
@@ -1271,158 +1331,182 @@ export const AssignmentDialog = ({
           </p>
         </div>
 
-        <Tabs
-          items={ASSIGNMENT_TABS}
-          value={activeTab}
-          onChange={handleAssignmentTabChange}
-        />
+        {assignToAll !== undefined ? (
+          <AssignToModeField
+            assignToAll={assignToAll}
+            onChange={setAssignToAll}
+            disabled={isSubmitting}
+          />
+        ) : null}
 
-        <div className="max-h-[50vh] space-y-4 overflow-y-auto p-2">
-          {activeTab === 'user' ? (
-            <>
-              <label className="flex items-center gap-3">
-                <FormLabel className="shrink-0">Role</FormLabel>
-                <Select
-                  options={USER_LEVEL_MODE_OPTIONS}
-                  value={userLevelMode}
-                  onChange={(value) => {
-                    setUserLevelMode(value as AssignmentUserLevelMode);
-                  }}
-                  className="min-w-0 flex-1"
-                  triggerClassName="rounded-lg"
-                  aria-label="Role"
-                  disabled={catalogsLoading}
-                />
-              </label>
+        {assignToAll === true ? (
+          <p
+            className="rounded-lg border border-spice-border bg-spice-bg-tint px-3 py-2 text-sm text-spice-text-medium"
+            role="status"
+          >
+            {t('assignmentMode.allSksNoSelection')}
+          </p>
+        ) : (
+          <>
+            <Tabs
+              items={ASSIGNMENT_TABS}
+              value={activeTab}
+              onChange={handleAssignmentTabChange}
+            />
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-start">
-                <GeoFilterField
-                  label="Division"
-                  showRefresh={showDivisionsRefresh}
-                  onRefresh={retryDivisions}
-                  isRefreshing={fetchingDivisions}
-                >
-                  {renderDivisionCombobox(
-                    'assignment-division-filter-combobox',
-                  )}
-                </GeoFilterField>
-                <GeoFilterField
-                  label="District"
-                  showRefresh={showDistrictsRefresh}
-                  onRefresh={retryDistricts}
-                  isRefreshing={fetchingDistricts}
-                >
-                  {renderDistrictCombobox(
-                    'assignment-district-filter-combobox',
-                  )}
-                </GeoFilterField>
-                <GeoFilterField
-                  label="Upazila"
-                  showRefresh={showFilterUpazilasRefresh}
-                  onRefresh={retryFilterUpazilas}
-                  isRefreshing={fetchingFilterUpazilas}
-                >
-                  <Combobox
-                    id="assignment-upazila-filter-combobox"
-                    aria-label="Upazila"
-                    value={
-                      selectedUpazilaId === null
-                        ? ''
-                        : String(selectedUpazilaId)
+            <div className="max-h-[50vh] space-y-4 overflow-y-auto p-2">
+              {activeTab === 'user' ? (
+                <>
+                  <label className="flex items-center gap-3">
+                    <FormLabel className="shrink-0">Role</FormLabel>
+                    <Select
+                      options={USER_LEVEL_MODE_OPTIONS}
+                      value={userLevelMode}
+                      onChange={(value) => {
+                        setUserLevelMode(value as AssignmentUserLevelMode);
+                      }}
+                      className="min-w-0 flex-1"
+                      triggerClassName="rounded-lg"
+                      aria-label="Role"
+                      disabled={catalogsLoading}
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-start">
+                    <GeoFilterField
+                      label="Division"
+                      showRefresh={showDivisionsRefresh}
+                      onRefresh={retryDivisions}
+                      isRefreshing={fetchingDivisions}
+                    >
+                      {renderDivisionCombobox(
+                        'assignment-division-filter-combobox',
+                      )}
+                    </GeoFilterField>
+                    <GeoFilterField
+                      label="District"
+                      showRefresh={showDistrictsRefresh}
+                      onRefresh={retryDistricts}
+                      isRefreshing={fetchingDistricts}
+                    >
+                      {renderDistrictCombobox(
+                        'assignment-district-filter-combobox',
+                      )}
+                    </GeoFilterField>
+                    <GeoFilterField
+                      label="Upazila"
+                      showRefresh={showFilterUpazilasRefresh}
+                      onRefresh={retryFilterUpazilas}
+                      isRefreshing={fetchingFilterUpazilas}
+                    >
+                      <Combobox
+                        id="assignment-upazila-filter-combobox"
+                        aria-label="Upazila"
+                        value={
+                          selectedUpazilaId === null
+                            ? ''
+                            : String(selectedUpazilaId)
+                        }
+                        selectedLabel={
+                          selectedUpazilaId === null
+                            ? ALL_UPAZILAS_OPTION.label
+                            : selectedUpazilaName || ALL_UPAZILAS_OPTION.label
+                        }
+                        options={filterUpazilaComboboxOptions}
+                        searchTerm={filterUpazilaSearchQuery}
+                        onSearchTermChange={setFilterUpazilaSearchQuery}
+                        onChange={handleFilterUpazilaChange}
+                        isLoading={filterUpazilasCatalogLoading}
+                        hint={
+                          filterUpazilasTotal > 0
+                            ? `Showing ${filterLoadedUpazilas.length} of ${filterUpazilasTotal}`
+                            : undefined
+                        }
+                        placeholder="Type to search upazilas…"
+                        emptyMessage={
+                          filterUpazilasError
+                            ? 'Failed to load upazilas.'
+                            : 'No upazilas found.'
+                        }
+                        hasMore={filterUpazilasHasMore}
+                        onLoadMore={() => {
+                          void loadFilterUpazilasPage(
+                            filterUpazilasOffset,
+                            true,
+                          );
+                        }}
+                        isLoadingMore={
+                          fetchingFilterUpazilas &&
+                          filterLoadedUpazilas.length > 0
+                        }
+                        loadMoreError={
+                          filterUpazilasError && filterLoadedUpazilas.length > 0
+                        }
+                        onLoadMoreRetry={retryFilterUpazilas}
+                        className="w-full"
+                      />
+                    </GeoFilterField>
+                  </div>
+
+                  <label className="block space-y-2">
+                    <FormLabel>Search users</FormLabel>
+                    <SearchInput
+                      value={userSearchQuery}
+                      onChange={setUserSearchQuery}
+                      placeholder="Search by name"
+                      aria-label="Search users by name"
+                      disabled={catalogsLoading}
+                      className="sm:min-w-0"
+                    />
+                  </label>
+
+                  <UserSelectionList
+                    title="User"
+                    users={listUsers}
+                    desiredUserIds={desiredUserIds}
+                    userAssignmentStatus={userAssignmentStatus}
+                    isLoading={
+                      (loadingUsers || fetchingUsers) &&
+                      loadedUsers.length === 0
                     }
-                    selectedLabel={
-                      selectedUpazilaId === null
-                        ? ALL_UPAZILAS_OPTION.label
-                        : selectedUpazilaName || ALL_UPAZILAS_OPTION.label
-                    }
-                    options={filterUpazilaComboboxOptions}
-                    searchTerm={filterUpazilaSearchQuery}
-                    onSearchTermChange={setFilterUpazilaSearchQuery}
-                    onChange={handleFilterUpazilaChange}
-                    isLoading={filterUpazilasCatalogLoading}
-                    hint={
-                      filterUpazilasTotal > 0
-                        ? `Showing ${filterLoadedUpazilas.length} of ${filterUpazilasTotal}`
-                        : undefined
-                    }
-                    placeholder="Type to search upazilas…"
-                    emptyMessage={
-                      filterUpazilasError
-                        ? 'Failed to load upazilas.'
-                        : 'No upazilas found.'
-                    }
-                    hasMore={filterUpazilasHasMore}
+                    isError={usersError}
+                    isFetching={fetchingUsers}
+                    hasMore={usersHasMore}
+                    isLoadingMore={fetchingUsers && loadedUsers.length > 0}
                     onLoadMore={() => {
-                      void loadFilterUpazilasPage(filterUpazilasOffset, true);
+                      void loadUsersPage(usersOffset, true);
                     }}
-                    isLoadingMore={
-                      fetchingFilterUpazilas && filterLoadedUpazilas.length > 0
-                    }
-                    loadMoreError={
-                      filterUpazilasError && filterLoadedUpazilas.length > 0
-                    }
-                    onLoadMoreRetry={retryFilterUpazilas}
-                    className="w-full"
+                    onRetry={retryUsers}
+                    onSelectAll={handleSelectAllUsers}
+                    onToggleUser={handleToggleUser}
+                    emptyMessage={getUserLevelEmptyMessage(userLevelMode)}
                   />
-                </GeoFilterField>
-              </div>
+                </>
+              ) : null}
 
-              <label className="block space-y-2">
-                <FormLabel>Search users</FormLabel>
-                <SearchInput
-                  value={userSearchQuery}
-                  onChange={setUserSearchQuery}
-                  placeholder="Search by name"
-                  aria-label="Search users by name"
-                  disabled={catalogsLoading}
-                  className="sm:min-w-0"
-                />
-              </label>
+              {activeTab === 'geographical' ? (
+                <>
+                  <GeoFilterField
+                    label="Division"
+                    showRefresh={showDivisionsRefresh}
+                    onRefresh={retryDivisions}
+                    isRefreshing={fetchingDivisions}
+                  >
+                    {renderDivisionCombobox('assignment-geo-division-combobox')}
+                  </GeoFilterField>
 
-              <UserSelectionList
-                title="User"
-                users={listUsers}
-                desiredUserIds={desiredUserIds}
-                userAssignmentStatus={userAssignmentStatus}
-                isLoading={
-                  (loadingUsers || fetchingUsers) && loadedUsers.length === 0
-                }
-                isError={usersError}
-                isFetching={fetchingUsers}
-                hasMore={usersHasMore}
-                isLoadingMore={fetchingUsers && loadedUsers.length > 0}
-                onLoadMore={() => {
-                  void loadUsersPage(usersOffset, true);
-                }}
-                onRetry={retryUsers}
-                onSelectAll={handleSelectAllUsers}
-                onToggleUser={handleToggleUser}
-                emptyMessage={getUserLevelEmptyMessage(userLevelMode)}
-              />
-            </>
-          ) : null}
-
-          {activeTab === 'geographical' ? (
-            <>
-              <GeoFilterField
-                label="Division"
-                showRefresh={showDivisionsRefresh}
-                onRefresh={retryDivisions}
-                isRefreshing={fetchingDivisions}
-              >
-                {renderDivisionCombobox('assignment-geo-division-combobox')}
-              </GeoFilterField>
-
-              <AssignmentGeoDistrictHierarchy
-                divisionId={selectedDivisionId}
-                desiredUserIds={desiredSet}
-                baselineUserIds={baselineSet}
-                onAddUserIds={handleGeoAddUserIds}
-                onRemoveUserIds={handleGeoRemoveUserIds}
-              />
-            </>
-          ) : null}
-        </div>
+                  <AssignmentGeoDistrictHierarchy
+                    divisionId={selectedDivisionId}
+                    desiredUserIds={desiredSet}
+                    baselineUserIds={baselineSet}
+                    onAddUserIds={handleGeoAddUserIds}
+                    onRemoveUserIds={handleGeoRemoveUserIds}
+                  />
+                </>
+              ) : null}
+            </div>
+          </>
+        )}
 
         <ModalActionBar
           className="px-0 pb-0 pt-2"
@@ -1442,10 +1526,11 @@ export const ModuleAssignmentDialog = ({
   onClose,
   moduleId,
   moduleTitle,
+  assignToAll,
 }: ModuleAssignmentDialogProps) => (
   <AssignmentDialog
     open={open}
     onClose={onClose}
-    target={{ kind: 'module', id: moduleId, title: moduleTitle }}
+    target={{ kind: 'module', id: moduleId, title: moduleTitle, assignToAll }}
   />
 );

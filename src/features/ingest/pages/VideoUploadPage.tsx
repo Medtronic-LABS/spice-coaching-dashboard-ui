@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DeleteIcon, EyeIcon } from '@/assets/icon';
 import { ModuleLibraryNavButton } from '@/components/common/ModuleLibraryNavButton';
@@ -60,6 +61,7 @@ import {
   type SourceDocumentSummary,
 } from '@/features/modules/api/adminSourceDocumentsApi';
 import { AssignmentDialog } from '@/features/modules/components/AssignmentDialog';
+import { AssignToModeField } from '@/features/modules/components/AssignToModeField';
 import { IngestConfigurationPanel } from '@/features/ingest/components/IngestConfigurationPanel';
 import { IngestRunStatusPanel } from '@/features/ingest/components/IngestRunStatusPanel';
 import { IngestUploadProgress } from '@/features/ingest/components/IngestUploadProgress';
@@ -133,6 +135,8 @@ type PendingVideoItem = {
   thumbnailPreviewUrl: string | null;
   thumbnailSource: 'auto' | 'custom';
   syncPublishedVisible: boolean;
+  /** `true` = all SKs (default), `false` = specific assignees only. */
+  assignToAll: boolean;
 };
 
 type PendingUploadMeta = {
@@ -213,6 +217,7 @@ export const VideoUploadPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const snackbar = useSnackbar();
+  const { t } = useTranslation();
   const [pendingItems, setPendingItems] = useState<PendingVideoItem[]>([]);
   const [pendingTitleErrorKeys, setPendingTitleErrorKeys] = useState<
     Set<string>
@@ -371,7 +376,8 @@ export const VideoUploadPage = () => {
           thumbnailFile: null,
           thumbnailPreviewUrl: null,
           thumbnailSource: 'auto',
-          syncPublishedVisible: false,
+          syncPublishedVisible: true,
+          assignToAll: true,
         });
       }
       if (!additions.length) return previous;
@@ -878,6 +884,7 @@ export const VideoUploadPage = () => {
       ),
       content_domains: items.map(() => contentDomain),
       sync_published_visible: items.map((item) => item.syncPublishedVisible),
+      assign_to_all: items.map((item) => item.assignToAll),
     });
     // Pending items are cleared in handleUploaded after a successful upload
     // (including duplicate-confirm flows). Keep them if the dialog opens.
@@ -1292,6 +1299,15 @@ export const VideoUploadPage = () => {
                         Visible in SDK sync (knowledge)
                       </span>
                     </div>
+                    <AssignToModeField
+                      className="pt-3"
+                      assignToAll={item.assignToAll}
+                      disabled={uploadBusy}
+                      specificHint={t('assignmentMode.specificAfterUploadHint')}
+                      onChange={(assignToAll) =>
+                        updatePendingItem(item.key, { assignToAll })
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -1502,6 +1518,8 @@ export const VideoUploadPage = () => {
             id: assignTarget.id,
             title: assignTarget.title,
             noun: 'video',
+            assignToAll: sourceDocumentsById.get(assignTarget.id)
+              ?.assign_to_all,
           }}
         />
       ) : null}

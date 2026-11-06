@@ -27,6 +27,11 @@ export interface ReplaceDocumentAssignedUsersRequest {
   expand_po_assignees?: boolean;
 }
 
+export interface SetSourceDocumentAssignToAllResponse {
+  source_document_id: string;
+  assign_to_all: boolean;
+}
+
 export const adminDocumentAssignmentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     fetchDocumentAssignedUsers: builder.query<AdminUser[], string>({
@@ -71,6 +76,17 @@ export const adminDocumentAssignmentApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['SourceDocuments'],
     }),
+    setSourceDocumentAssignToAll: builder.mutation<
+      SetSourceDocumentAssignToAllResponse,
+      { sourceDocumentId: string; assign_to_all: boolean }
+    >({
+      query: ({ sourceDocumentId, assign_to_all }) => ({
+        url: `/admin/source-documents/${encodeURIComponent(sourceDocumentId)}/assign-to-all`,
+        method: 'PUT',
+        body: { assign_to_all },
+      }),
+      invalidatesTags: ['SourceDocuments'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -80,4 +96,5 @@ export const {
   useLazyFetchDocumentAssignedUsersQuery,
   useCreateDocumentAssignmentMutation,
   useReplaceDocumentAssignedUsersMutation,
+  useSetSourceDocumentAssignToAllMutation,
 } = adminDocumentAssignmentApi;

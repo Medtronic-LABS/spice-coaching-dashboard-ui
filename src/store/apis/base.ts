@@ -32,6 +32,7 @@ export const baseApi = createApi({
     'ConfigHistory',
     'ModuleDomains',
     'SourceDocuments',
+    'Modules',
     'Badges',
   ],
   endpoints: () => ({}),

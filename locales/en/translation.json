@@ -158,6 +158,19 @@
       }
     }
   },
+  "assignmentMode": {
+    "legend": "Assign to",
+    "allSks": "All SKs",
+    "allSksHint": "Every SK in the tenant gets this, including SKs added later.",
+    "specific": "Specific",
+    "specificHint": "Only users or areas you assign explicitly get this.",
+    "specificAfterUploadHint": "After upload, use Assign on the video to choose who gets it.",
+    "specificAfterPublishHint": "After publishing, use Assign on the module to choose who gets it.",
+    "rule": "If All SKs is selected, every SK gets it; otherwise only those explicitly assigned.",
+    "allSksNoSelection": "Every SK gets this. Individual selection is not needed.",
+    "updated": "Assignment mode updated.",
+    "updateFailed": "Could not update the assignment mode. Please try again."
+  },
   "adminDashboard": {
     "title": "Dashboard",
     "description": "BRAC Health Programme · Bangladesh",

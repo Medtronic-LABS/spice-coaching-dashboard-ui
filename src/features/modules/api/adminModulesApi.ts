@@ -68,6 +68,8 @@ export interface AdminModulesListItem {
   source_document_ids?: string[];
   /** Chatbot FAQ-only modules are not assignable to milestones/badges. */
   chatbot_faqs_only?: boolean;
+  /** True = every SK gets this module; false = only explicit assignees. */
+  assign_to_all?: boolean;
   merge_source_module_id?: string | null;
   merge_source_module?: AdminModulesListItem | AdminModuleDetailResponse | null;
   merge_primary_module_id?: string | null;
@@ -130,6 +132,8 @@ export interface AdminModuleDetailResponse {
   is_merge_secondary?: boolean;
   /** Chatbot FAQ-only modules are not assignable to CHWs. */
   chatbot_faqs_only?: boolean;
+  /** True = every SK gets this module; false = only explicit assignees. */
+  assign_to_all?: boolean;
 }
 
 export interface EditAdminModuleRequestBody {
@@ -288,6 +292,7 @@ function normalizeModuleSummary(
         : null,
     source_document_ids: normalizeSourceDocumentIds(item.source_document_ids),
     chatbot_faqs_only: Boolean(item.chatbot_faqs_only),
+    assign_to_all: item.assign_to_all === true,
     merge_source_module_id:
       typeof item.merge_source_module_id === 'string'
         ? item.merge_source_module_id
@@ -452,6 +457,7 @@ function normalizeModuleDetail(
         : null,
     is_merge_secondary: Boolean(response.is_merge_secondary),
     chatbot_faqs_only: Boolean(response.chatbot_faqs_only),
+    assign_to_all: response.assign_to_all === true,
   };
 }
 
@@ -651,6 +657,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: unknown) =>
         normalizeFetchModulesResponse(response),
+      providesTags: ['Modules'],
     }),
     fetchModuleDomainOptions: builder.query<
       string[],
@@ -701,6 +708,7 @@ export const adminModulesApi = baseApi.injectEndpoints({
         normalizeModuleDetail(isPlainObject(response) ? response : {}),
       /** Retain briefly so `useAdminModuleDetailQuery(..., { useCache: true })` can reuse across review steps. */
       keepUnusedDataFor: 300,
+      providesTags: ['Modules'],
     }),
     editModule: builder.mutation<
       EditAdminModuleResponse,

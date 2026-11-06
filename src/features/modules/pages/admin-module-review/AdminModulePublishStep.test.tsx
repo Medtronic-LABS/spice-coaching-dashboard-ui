@@ -138,7 +138,38 @@ describe('AdminModulePublishStep', () => {
 
     expect(publishModule).toHaveBeenCalledWith({
       moduleId: 'mod-1',
+      assign_to_all: true,
     });
+  });
+
+  it('defaults the assignment mode to All SKs', () => {
+    renderPublishStep();
+
+    expect(screen.getByRole('radio', { name: /all sks/i })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /specific/i })).not.toBeChecked();
+  });
+
+  it('publishes with assign_to_all false when Specific is chosen', async () => {
+    const user = userEvent.setup();
+    renderPublishStep();
+
+    await user.click(screen.getByRole('radio', { name: /specific/i }));
+    await user.click(screen.getByRole('button', { name: /↑ publish module/i }));
+
+    expect(publishModule).toHaveBeenCalledWith({
+      moduleId: 'mod-1',
+      assign_to_all: false,
+    });
+  });
+
+  it('hides the assignment mode for read-only published modules', () => {
+    mockModule = {
+      ...createMockModule(),
+      lifecycle_status: 'published',
+    };
+    renderPublishStep();
+
+    expect(screen.queryByRole('radio', { name: /all sks/i })).toBeNull();
   });
 
   it('opens assignment from read-only published modules', async () => {
