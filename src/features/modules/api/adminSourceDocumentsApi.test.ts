@@ -56,8 +56,45 @@ describe('adminSourceDocumentsApi', () => {
       updated_by: null,
       ingested_by: { id: 1, name: 'ingest-bot' },
       assigned: false,
+      assign_to_all: false,
       sync_published_visible: false,
     });
+  });
+
+  it('maps assign_to_all only when the backend sends true', async () => {
+    const { fetchBaseQuerySpy } =
+      await import('@/test-utils/installTestFetchMock');
+    const base = testSourceDocuments[0];
+    fetchBaseQuerySpy.mockResolvedValueOnce({
+      data: {
+        source_documents: [
+          { ...base, id: 'doc-all', assign_to_all: true },
+          { ...base, id: 'doc-specific', assign_to_all: false },
+          { ...base, id: 'doc-old-backend' },
+        ],
+        total_source_documents: 3,
+        total_pages: 1,
+        limit: 10,
+        offset: 0,
+      },
+    });
+    const store = makeStore();
+
+    const result = await store
+      .dispatch(
+        adminSourceDocumentsApi.endpoints.fetchSourceDocuments.initiate({
+          limit: 10,
+        }),
+      )
+      .unwrap();
+
+    expect(
+      result.source_documents.map((doc) => [doc.id, doc.assign_to_all]),
+    ).toEqual([
+      ['doc-all', true],
+      ['doc-specific', false],
+      ['doc-old-backend', false],
+    ]);
   });
 
   it('filters by source_type and reports the filtered totals', async () => {

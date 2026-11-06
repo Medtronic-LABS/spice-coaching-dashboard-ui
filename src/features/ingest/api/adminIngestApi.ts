@@ -36,6 +36,8 @@ export interface AdminV3IngestUploadPayload {
   content_domains?: IngestContentDomain[];
   sync_published_visible?: boolean[];
   override_duplicates?: boolean[];
+  /** Parallel to `files`; `true` = all SKs, `false` = specific. Omitted = backend default (all SKs). */
+  assign_to_all?: boolean[];
   /** Parallel to `files`; BCP-47 codes: en, bn, hi, ta, te. Defaults to deployment locale. */
   primary_languages?: string[];
 }
@@ -233,6 +235,9 @@ export const adminIngestApi = baseApi.injectEndpoints({
             'sync_published_visible',
             JSON.stringify(payload.sync_published_visible),
           );
+        }
+        if (payload.assign_to_all?.length) {
+          form.append('assign_to_all', JSON.stringify(payload.assign_to_all));
         }
         if (payload.override_duplicates?.length) {
           form.append(

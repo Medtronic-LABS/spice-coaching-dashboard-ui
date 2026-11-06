@@ -284,6 +284,14 @@ export function useIngestWithDuplicateHandling({
           ...(contentDomains.length === filesToUpload.length
             ? { content_domains: contentDomains }
             : {}),
+          ...(pendingUploadPayload.assign_to_all?.length
+            ? {
+                assign_to_all: indexesToUpload.map(
+                  ({ index }) =>
+                    pendingUploadPayload.assign_to_all?.[index] ?? true,
+                ),
+              }
+            : {}),
           ...(selectedVisibility.syncPublishedVisible?.length
             ? {
                 sync_published_visible: selectedVisibility.syncPublishedVisible,

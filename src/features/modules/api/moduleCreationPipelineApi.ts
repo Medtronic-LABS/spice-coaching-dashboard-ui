@@ -34,10 +34,17 @@ export const moduleCreationPipelineApi = baseApi.injectEndpoints({
         };
       },
     }),
-    publishModule: builder.mutation<unknown, { moduleId: string }>({
-      query: ({ moduleId }) => ({
+    publishModule: builder.mutation<
+      unknown,
+      { moduleId: string; assign_to_all?: boolean }
+    >({
+      query: ({ moduleId, assign_to_all }) => ({
         url: `/admin/modules/${encodeURIComponent(moduleId)}/publish`,
         method: 'POST',
+        // Omitted body leaves the module's assignment mode unchanged.
+        ...(typeof assign_to_all === 'boolean'
+          ? { body: { assign_to_all } }
+          : {}),
       }),
     }),
     saveModuleAsDraft: builder.mutation<unknown, { moduleId: string }>({

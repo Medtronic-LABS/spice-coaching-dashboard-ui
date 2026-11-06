@@ -27,6 +27,8 @@ export interface ModuleLibraryItem {
   draftProgress?: string;
   /** When true, module is Chatbot FAQ-only (not assignable to milestones). */
   chatbot_faqs_only?: boolean;
+  /** True = every SK gets this module; false = only explicit assignees. */
+  assign_to_all?: boolean;
 }
 
 export interface ModuleLibraryResponse {

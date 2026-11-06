@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
@@ -9,6 +10,7 @@ import {
 } from '@/components/ui';
 import { adminModuleReviewPaths, paths } from '@/constants/routes';
 import { AdminModuleDraftValidationDialog } from '@/features/modules/components/AdminModuleDraftValidationDialog';
+import { AssignToModeField } from '@/features/modules/components/AssignToModeField';
 import { ModulePublishedSuccessModal } from '@/features/modules/components/ModulePublishedSuccessModal';
 import { ModuleReviewPublishView } from '@/features/modules/components/ModuleReviewPublishView';
 import { ModuleSourceDocumentPanel } from '@/features/modules/components/ModuleSourceDocumentPanel';
@@ -54,6 +56,8 @@ export const AdminModulePublishStep = () => {
   const [publishModule, { isLoading: isPublishing }] =
     usePublishModuleMutation();
   const snackbar = useSnackbar();
+  const { t } = useTranslation();
+  const [assignToAll, setAssignToAll] = useState(true);
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [sourceDocOpen, setSourceDocOpen] = useState(false);
   const isReadonly = useAdminModuleReviewReadonly();
@@ -197,6 +201,14 @@ export const AdminModulePublishStep = () => {
                 }
               : undefined
           }
+          publishOptions={
+            <AssignToModeField
+              assignToAll={assignToAll}
+              onChange={setAssignToAll}
+              disabled={busy}
+              specificHint={t('assignmentMode.specificAfterPublishHint')}
+            />
+          }
           isAlreadyPublished={isAlreadyPublished}
           isPublishing={isPublishing}
           isSaving={isSaving}
@@ -243,6 +255,7 @@ export const AdminModulePublishStep = () => {
                   : working.id;
                 await publishModule({
                   moduleId: moduleIdForPublish,
+                  assign_to_all: assignToAll,
                 }).unwrap();
                 await refetch();
                 setPublishSuccessOpen(true);

@@ -41,6 +41,8 @@ export interface SourceDocumentSummary {
   updated_by: SourceDocumentActorRef | null;
   ingested_by: SourceDocumentActorRef | null;
   assigned: boolean;
+  /** True = every SK gets this document; false = only explicit assignees. */
+  assign_to_all?: boolean;
   sync_published_visible?: boolean;
 }
 
@@ -144,6 +146,7 @@ function normalizeSourceDocumentSummary(
     updated_by: normalizeHierarchyActorRef(item.updated_by),
     ingested_by: normalizeHierarchyActorRef(item.ingested_by),
     assigned: item.assigned === true,
+    assign_to_all: item.assign_to_all === true,
     sync_published_visible:
       typeof item.sync_published_visible === 'boolean'
         ? item.sync_published_visible

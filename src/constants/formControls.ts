@@ -11,3 +11,7 @@ export const SPICE_CHECKBOX_CLASSNAME =
  */
 export const SPICE_INPUT_FOCUS_CLASSNAME =
   'outline-none transition focus:border-spice-palette-purple focus:outline-none focus:ring-2 focus:ring-spice-palette-purpleLt';
+
+/** Native radio: same brand accent + focus ring as the checkbox. */
+export const SPICE_RADIO_CLASSNAME =
+  'h-4 w-4 shrink-0 border-spice-border-mid text-spice-brand-primary accent-spice-palette-purple focus:outline-none focus:ring-2 focus:ring-spice-palette-purpleLt focus:ring-offset-1 focus:ring-offset-spice-bg-surface';

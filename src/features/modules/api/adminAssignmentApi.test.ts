@@ -344,3 +344,31 @@ describe('adminAssignmentApi assignment requests', () => {
     });
   });
 });
+
+describe('adminAssignmentApi set module assign-to-all', () => {
+  afterEach(() => {
+    mockBaseQuerySpy.mockReset();
+  });
+
+  it('PUTs /admin/modules/:id/assign-to-all with the mode', async () => {
+    mockBaseQuerySpy.mockResolvedValue({
+      data: { module_id: 'mod/1', assign_to_all: false },
+    });
+    const { adminAssignmentApi, store } = await createAssignmentStore();
+
+    const result = await store
+      .dispatch(
+        adminAssignmentApi.endpoints.setModuleAssignToAll.initiate({
+          moduleId: 'mod/1',
+          assign_to_all: false,
+        }),
+      )
+      .unwrap();
+
+    const request = mockBaseQuerySpy.mock.calls.at(-1)?.[0] as FetchArgs;
+    expect(request.url).toBe('/admin/modules/mod%2F1/assign-to-all');
+    expect(request.method).toBe('PUT');
+    expect(request.body).toEqual({ assign_to_all: false });
+    expect(result).toEqual({ module_id: 'mod/1', assign_to_all: false });
+  });
+});
